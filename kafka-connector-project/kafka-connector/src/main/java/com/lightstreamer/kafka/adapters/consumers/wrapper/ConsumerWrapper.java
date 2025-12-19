@@ -80,8 +80,8 @@ public interface ConsumerWrapper<K, V> extends Runnable {
                 () ->
                         new KafkaConsumer<>(
                                 config.consumerProperties(),
-                                config.deserializers().keyDeserializer(),
-                                config.deserializers().valueDeserializer()),
+                                config.suppliers().keySelectorSupplier().deserializer(),
+                                config.suppliers().valueSelectorSupplier().deserializer()),
                 AdminInterface::newAdmin);
     }
 

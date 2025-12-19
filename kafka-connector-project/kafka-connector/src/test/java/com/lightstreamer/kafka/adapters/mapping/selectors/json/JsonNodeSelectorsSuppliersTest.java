@@ -21,22 +21,22 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -51,6 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class JsonNodeSelectorsSuppliersTest {
@@ -63,20 +64,19 @@ public class JsonNodeSelectorsSuppliersTest {
                             JSON.toString(),
                             RECORD_VALUE_EVALUATOR_TYPE,
                             JSON.toString()));
+
     static JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
 
-    static ValueSelector<JsonNode> valueSelector(ExtractionExpression expression)
-            throws ExtractionException {
-        return new JsonNodeSelectorsSuppliers(CONFIG)
-                .makeValueSelectorSupplier()
-                .newSelector("name", expression);
-    }
-
-    static KeySelector<JsonNode> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
         return new JsonNodeSelectorsSuppliers(CONFIG)
                 .makeKeySelectorSupplier()
-                .newSelector("name", expression);
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
+    }
+
+    static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
+        return new JsonNodeSelectorsSuppliers(CONFIG)
+                .makeValueSelectorSupplier()
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -85,7 +85,8 @@ public class JsonNodeSelectorsSuppliersTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+        KeySelectorSupplier<JsonNode> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.JSON);
     }
 
     @Test
@@ -98,7 +99,7 @@ public class JsonNodeSelectorsSuppliersTest {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not JSON");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not JSON");
     }
 
     @Test
@@ -110,20 +111,37 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplierWithNoConfig() {
-        JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
-        ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
-        assertThat(valueSelectorSupplier.deserializer().getClass())
-                .isEqualTo(KafkaJsonDeserializer.class);
+    public void shouldMakeKeySelector() throws ExtractionException {
+        KeySelector<JsonNode> selector = keySelector("KEY");
+        assertThat(selector.expression().expression()).isEqualTo("KEY");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED_ERROR_MESSAGE
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
+                    """)
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    public void shouldMakeValueSelectorSupplier() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+        ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.JSON);
     }
 
     @Test
@@ -136,17 +154,45 @@ public class JsonNodeSelectorsSuppliersTest {
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not JSON");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not JSON");
+    }
+
+    @Test
+    public void shouldMakeValueSelectorSupplierWithNoConfig() {
+        JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
+        ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.deserializer().getClass())
+                .isEqualTo(KafkaJsonDeserializer.class);
+    }
+
+    @Test
+    public void shouldMakeValueSelector() throws ExtractionException {
+        ValueSelector<JsonNode> selector = valueSelector("VALUE");
+        assertThat(selector.expression().expression()).isEqualTo("VALUE");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION         | EXPECTED_ERROR_MESSAGE
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
+                    """)
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
     public void shouldGetDeserializer() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
-
         Deserializer<JsonNode> keyDeserializer =
-                new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
+                new JsonNodeSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
 
         Deserializer<JsonNode> valueDeserializer =
@@ -157,69 +203,180 @@ public class JsonNodeSelectorsSuppliersTest {
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                            EXPECTED
-                VALUE.name,                            joe
-                VALUE.signature,                       YWJjZA==
-                VALUE.children[0].name,                alex
-                VALUE.children[0]['name'],             alex
-                VALUE.children[0].signature,           NULL
-                VALUE.children[1].name,                anna
-                VALUE.children[2].name,                serena
-                VALUE.children[3],                     NULL
-                VALUE.children[1].children[0].name,    gloria
-                VALUE.children[1].children[1].name,    terence
-                VALUE.children[1].children[1]['name'], terence
-                VALUE.family[0][0].name,               bro00
-                VALUE.family[0][1].name,               bro01
-                VALUE.family[1][0].name,               bro10
-                VALUE.family[1][1].name,               bro11
+                EXPRESSION                            | EXPECTED_NAME        | EXPECTED_VALUE
+                VALUE.name                            | name                 | joe
+                VALUE['name']                         | name                 | joe
+                VALUE.signature                       | signature            | YWJjZA==
+                VALUE['notes'][0]                     | notes[0]             | note1
+                VALUE.notes[0]                        | notes[0]             | note1
+                VALUE.stringsStrings[0][1]            | stringsStrings[0][1] | ss01
+                VALUE['stringsStrings'][0][1]         | stringsStrings[0][1] | ss01
+                VALUE.mapsMaps.map1.m11               | m11                  | mv11
+                VALUE.mapsMaps['map1']['m11']         | m11                  | mv11
+                VALUE.mapsMaps['map1'].m11            | m11                  | mv11
+                VALUE['mapsMaps']['map1']['m11']      | m11                  | mv11
+                VALUE['mapsMaps'].map1['m11']         | m11                  | mv11
+                VALUE.children[0].name                | name                 | alex
+                VALUE.children[0]['name']             | name                 | alex
+                VALUE.children[0].signature           | signature            |
+                VALUE.children[1].name                | name                 | anna
+                VALUE.children[2].name                | name                 | serena
+                VALUE.children[3]                     | children[3]          |
+                VALUE.children[1].children[0].name    | name                 | gloria
+                VALUE.children[1].children[1].name    | name                 | terence
+                VALUE.children[1].children[1]['name'] | name                 | terence
+                VALUE.family[0][0].name               | name                 | bro00
+                VALUE.family[0][1].name               | name                 | bro01
+                VALUE.family[1][0].name               | name                 | bro10
+                VALUE.family[1][1].name               | name                 | bro11
                     """)
-    public void shouldExtractValue(String expressionStr, String expected)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        valueSelector(Expression(expressionStr))
-                                .extractValue(fromValue(SAMPLE_MESSAGE))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
+        ValueSelector<JsonNode> valueSelector = valueSelector(expression);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractValueIntoMap()
+            throws ExtractionException, JsonMappingException, JsonProcessingException {
+        ObjectMapper om = new ObjectMapper();
+        JsonNode message =
+                om.readTree(
+                        """
+                    {
+                         "name": "joe",
+                         "signature": "YWJjZA",
+                         "data": [1, 2, 3, null],
+                         "emptyData": [],
+                         "map": {"a": 1, "b": 2, "c": 3},
+                         "emptyMap": {},
+                         "nullValue": null,
+                         "matrix": [
+                             [1,2,3],
+                             [4,5,6],
+                             [7,8,9]
+                         ]
+                         }
+                    }
+                        """);
+
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<?, JsonNode> record = fromValue(message);
+
+        valueSelector("VALUE.*").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "name",
+                        "joe",
+                        "signature",
+                        "YWJjZA",
+                        "data",
+                        "[1,2,3,null]",
+                        "emptyData",
+                        "[]",
+                        "map",
+                        "{\"a\":1,\"b\":2,\"c\":3}",
+                        "emptyMap",
+                        "{}",
+                        "matrix",
+                        "[[1,2,3],[4,5,6],[7,8,9]]",
+                        "nullValue",
+                        null);
+        target.clear();
+
+        valueSelector("VALUE.data").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3", "data[3]", null);
+        target.clear();
+
+        valueSelector("VALUE.emptyData").extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        valueSelector("VALUE.map").extractValueInto(record, target);
+        assertThat(target).containsExactly("a", "1", "b", "2", "c", "3");
+        target.clear();
+
+        valueSelector("VALUE.emptyMap").extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        valueSelector("VALUE.matrix").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "matrix[0]", "[1,2,3]", "matrix[1]", "[4,5,6]", "matrix[2]", "[7,8,9]");
+        target.clear();
+
+        valueSelector("VALUE.matrix[1]").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("matrix[1][0]", "4", "matrix[1][1]", "5", "matrix[1][2]", "6");
+        target.clear();
+
+        valueSelector("VALUE.nullValue").extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        valueSelector("VALUE.nullValue").extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE,                       The expression [VALUE] must evaluate to a non-complex object
-                VALUE.no_attrib,             Field [no_attrib] not found
-                VALUE.children[0].no_attrib, Field [no_attrib] not found
-                VALUE.no_children[0],        Field [no_children] not found
-                VALUE.name[0],               Field [name] is not indexed
-                VALUE.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                VALUE.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                VALUE.children,              The expression [VALUE.children] must evaluate to a non-complex object
-                VALUE.children[0]['no_key'], Field [no_key] not found
-                VALUE.children[0],           The expression [VALUE.children[0]] must evaluate to a non-complex object
-                VALUE.children[3].name,      Cannot retrieve field [name] from a null object
-                VALUE.children[4],           Field not found at index [4]
-                VALUE.children[4].name,      Field not found at index [4]
-                VALUE.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE                       | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.a b                   | Field [a b] not found
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE[0]                    | Cannot retrieve index [0] from a non-array object
+                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children              | The expression [VALUE.children] must evaluate to a non-complex object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children['name']      | Cannot retrieve field [name] from an array object
+                VALUE.children.name         | Cannot retrieve field [name] from an array object
+                VALUE.children[0]           | The expression [VALUE.children[0]] must evaluate to a non-complex object
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
+                VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
                                         .extractValue(fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -228,119 +385,134 @@ public class JsonNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION             | EXPECTED
-                VALUE                  | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}}
-                VALUE.root             | {"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}
-                VALUE.root.name        | joe
-                VALUE.root.emptyArray  | []
-                VALUE.root.emptyObject | {}
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.a b                   | Field [a b] not found
+                VALUE.no_attrib             | Field [no_attrib] not found
+                VALUE['no_attrib']          | Field [no_attrib] not found
+                VALUE[0]                    | Cannot retrieve index [0] from a non-array object
+                VALUE.no_children[0]        | Field [no_children] not found
+                VALUE.name[0]               | Field [name] is not indexed
+                VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.children[0]['no_key'] | Field [no_key] not found
+                VALUE.children[3].name      | Cannot retrieve field [name] from a null object
+                VALUE.children[4]           | Field not found at index [4]
+                VALUE.children[4].name      | Field not found at index [4]
+                VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldExtractValueWithNonScalars(String expressionString, String expected)
-            throws ExtractionException, JsonMappingException, JsonProcessingException {
-        ObjectMapper om = new ObjectMapper();
-        JsonNode message =
-                om.readTree(
-                        """
-                {
-                    "root": {
-                        "name": "joe",
-                        "signature": "YWJjZA",
-                        "emptyArray": [],
-                        "emptyObject": {}
-                        }
-                }
-                """);
-
-        String extractedData =
-                valueSelector(Expression(expressionString))
-                        .extractValue(fromValue(message), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(expected);
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                fromValue(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION             | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE                  | VALUE         | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"array":[1,2,3],"emptyObject":{},"object":{"a":1,"b":2},"nullValue":null}}
+                VALUE.root             | root          | {"name":"joe","signature":"YWJjZA","emptyArray":[],"array":[1,2,3],"emptyObject":{},"object":{"a":1,"b":2},"nullValue":null}
+                VALUE.root.name        | name          | joe
+                VALUE.root.emptyArray  | emptyArray    | []
+                VALUE.root.array       | array         | [1,2,3]
+                VALUE.root.emptyObject | emptyObject   | {}
+                VALUE.root.object      | object        | {"a":1,"b":2}
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldExtractValueWithNonScalars(
+            String expressionString, String expectedName, String expectedValue)
+            throws ExtractionException, JsonMappingException, JsonProcessingException {
+        ObjectMapper om = new ObjectMapper();
+        JsonNode message =
+                om.readTree(
+                        """
+                    {
+                        "root": {
+                            "name": "joe",
+                            "signature": "YWJjZA",
+                            "emptyArray": [],
+                            "array": [1,2,3],
+                            "emptyObject": {},
+                            "object": {
+                                "a": 1,
+                                "b": 2
+                             },
+                             "nullValue": null
+                        }
+                    }
+                        """);
+
+        ValueSelector<JsonNode> valueSelector = valueSelector(expressionString);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(message), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData =
+                valueSelector(expressionString).extractValue("param", fromValue(message), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldHandleNullValue() throws ExtractionException {
+        ValueSelector<JsonNode> valueSelector = valueSelector("VALUE");
+
+        Data autoBoundData = valueSelector.extractValue(fromValue((JsonNode) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("VALUE");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = valueSelector.extractValue("param", fromValue((JsonNode) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expression)
                                         .extractValue(fromValue((JsonNode) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                          EXPECTED
-                KEY.name,                            joe
-                KEY.signature,                       YWJjZA==
-                KEY.children[0].name,                alex
-                KEY.children[0]['name'],             alex
-                KEY.children[0].signature,           NULL
-                KEY.children[1].name,                anna
-                KEY.children[2].name,                serena
-                KEY.children[3],                     NULL
-                KEY.children[1].children[0].name,    gloria
-                KEY.children[1].children[1].name,    terence
-                KEY.children[1].children[1]['name'], terence
-                    """)
-    public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        StringSubject subject =
-                assertThat(
-                        keySelector(Expression(expressionStr))
-                                .extractKey(fromKey(SAMPLE_MESSAGE))
-                                .text());
-        if (expected.equals("NULL")) {
-            subject.isNull();
-        } else {
-            subject.isEqualTo(expected);
-        }
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                KEY,                       The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib,             Field [no_attrib] not found
-                KEY.children[0].no_attrib, Field [no_attrib] not found
-                KEY.no_children[0],        Field [no_children] not found
-                KEY.name[0],               Field [name] is not indexed
-                KEY.name['no_key'],        Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key,           Cannot retrieve field [no_key] from a scalar object
-                KEY.children,              The expression [KEY.children] must evaluate to a non-complex object
-                KEY.children[0]['no_key'], Field [no_key] not found
-                KEY.children[0],           The expression [KEY.children[0]] must evaluate to a non-complex object
-                KEY.children[3].name,      Cannot retrieve field [name] from a null object
-                KEY.children[4],           Field not found at index [4]
-                KEY.children[4].name,      Field not found at index [4]
-                KEY.nullArray[0],          Cannot retrieve index [0] from null object [nullArray]
-                    """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ValueException ve =
+        ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey(SAMPLE_MESSAGE))
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue((JsonNode) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                fromValue((JsonNode) null), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -349,93 +521,270 @@ public class JsonNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION           | EXPECTED
-                KEY                  | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}}
-                KEY.root             | {"name":"joe","signature":"YWJjZA","emptyArray":[],"emptyObject":{}}
-                KEY.root.name        | joe
-                KEY.root.emptyArray  | []
-                KEY.root.emptyObject | {}
+                EXPRESSION                          | EXPECTED_NAME | EXPECTED_VALUE
+                KEY.name                            | name          | joe
+                KEY['name']                         | name          | joe
+                KEY.signature                       | signature     | YWJjZA==
+                KEY.notes[0]                        | notes[0]      | note1
+                KEY.children[0].name                | name          | alex
+                KEY.children[0]['name']             | name          | alex
+                KEY.children[0].signature           | signature     |
+                KEY.children[1].name                | name          | anna
+                KEY.children[2].name                | name          | serena
+                KEY.children[3]                     | children[3]   |
+                KEY.children[1].children[0].name    | name          | gloria
+                KEY.children[1].children[1].name    | name          | terence
+                KEY.children[1].children[1]['name'] | name          | terence
+                KEY.family[0][0].name               | name          | bro00
+                KEY.family[0][1].name               | name          | bro01
+                KEY.family[1][0].name               | name          | bro10
+                KEY.family[1][1].name               | name          | bro11
                     """)
-    public void shouldExtractKeyWithNonScalars(String expressionString, String expected)
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KeySelector<JsonNode> keySelector = keySelector(expression);
+
+        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundValueData = keySelector.extractKey(expectedName, fromKey(SAMPLE_MESSAGE));
+        assertThat(boundValueData.name()).isEqualTo(expectedName);
+        assertThat(boundValueData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractKeyIntoMap()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         ObjectMapper om = new ObjectMapper();
         JsonNode message =
                 om.readTree(
                         """
-                {
-                    "root": {
-                        "name": "joe",
-                        "signature": "YWJjZA",
-                        "emptyArray": [],
-                        "emptyObject": {}
-                        }
-                }
-                """);
+                    {
+                         "name": "joe",
+                         "signature": "YWJjZA",
+                         "data": [1, 2, 3, null],
+                         "emptyData": [],
+                         "map": {"a": 1, "b": 2, "c": 3},
+                         "emptyMap": {},
+                         "nullValue": null
+                    }
+                        """);
 
-        String text =
-                keySelector(Expression(expressionString))
-                        .extractKey(fromKey(message), false)
-                        .text();
-        assertThat(text).isEqualTo(expected);
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<JsonNode, ?> record = fromKey(message);
+
+        keySelector("KEY.*").extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "name",
+                        "joe",
+                        "signature",
+                        "YWJjZA",
+                        "data",
+                        "[1,2,3,null]",
+                        "emptyData",
+                        "[]",
+                        "map",
+                        "{\"a\":1,\"b\":2,\"c\":3}",
+                        "emptyMap",
+                        "{}",
+                        "nullValue",
+                        null);
+        target.clear();
+
+        keySelector("KEY.data").extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly("data[0]", "1", "data[1]", "2", "data[2]", "3", "data[3]", null);
+        target.clear();
+
+        keySelector("KEY.emptyData").extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        keySelector("KEY.map").extractKeyInto(record, target);
+        assertThat(target).containsExactly("a", "1", "b", "2", "c", "3");
+        target.clear();
+
+        keySelector("KEY.emptyMap").extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+
+        keySelector("KEY.nullValue").extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY                       | The expression [KEY] must evaluate to a non-complex object
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.children              | The expression [KEY.children] must evaluate to a non-complex object
+                KEY.children.name         | Cannot retrieve field [name] from an array object
+                KEY.children['name']      | Cannot retrieve field [name] from an array object
+                KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.children[0]           | The expression [KEY.children[0]] must evaluate to a non-complex object
+                KEY.children[3].name      | Cannot retrieve field [name] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
+                KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
-            throws ExtractionException {
+    public void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey((JsonNode) null))
+                                keySelector(expression)
+                                        .extractKey("param", fromKey(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.children[3].name      | Cannot retrieve field [name] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+        ValueException ve =
                 assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                EXPRESSION           | EXPECTED_NAME | EXPECTED_VALUE
+                KEY                  | KEY           | {"root":{"name":"joe","signature":"YWJjZA","emptyArray":[],"array":[1,2,3],"emptyObject":{},"object":{"a":1,"b":2}}}
+                KEY.root             | root          | {"name":"joe","signature":"YWJjZA","emptyArray":[],"array":[1,2,3],"emptyObject":{},"object":{"a":1,"b":2}}
+                KEY.root.name        | name          | joe
+                KEY.root.emptyArray  | emptyArray    | []
+                KEY.root.array       | array         | [1,2,3]
+                KEY.root.emptyObject | emptyObject   | {}
+                KEY.root.object      | object        | {"a":1,"b":2}
                     """)
-    public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
+    public void shouldExtractKeyWithNonScalars(
+            String expression, String expectedName, String expectedValue)
+            throws ExtractionException, JsonMappingException, JsonProcessingException {
+        ObjectMapper om = new ObjectMapper();
+        JsonNode message =
+                om.readTree(
+                        """
+                    {
+                        "root": {
+                            "name": "joe",
+                            "signature": "YWJjZA",
+                            "emptyArray": [],
+                            "array": [1,2,3],
+                            "emptyObject": {},
+                            "object": {
+                                "a": 1,
+                                "b": 2
+                             }
+                        }
+                    }
+                        """);
+
+        Data autoBoundValue = keySelector(expression).extractKey(fromKey(message), false);
+        assertThat(autoBoundValue.name()).isEqualTo(expectedName);
+        assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
+
+        Data boundValue = keySelector(expression).extractKey("param", fromKey(message), false);
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldHandleNullKey() throws ExtractionException {
+        KeySelector<JsonNode> keySelector = keySelector("KEY");
+
+        Data autoBoundData = keySelector.extractKey(fromKey((JsonNode) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("KEY");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = keySelector.extractKey("param", fromKey((JsonNode) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldHandleNullKey(String expression, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
                 assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        ValueException.class,
+                        () -> keySelector(expression).extractKey(fromKey((JsonNode) null)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKey("param", fromKey((JsonNode) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(fromKey((JsonNode) null), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }

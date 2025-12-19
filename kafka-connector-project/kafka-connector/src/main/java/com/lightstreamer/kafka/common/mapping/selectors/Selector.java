@@ -21,7 +21,5 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionEx
 
 public interface Selector {
 
-    String name();
-
     ExtractionExpression expression();
 }

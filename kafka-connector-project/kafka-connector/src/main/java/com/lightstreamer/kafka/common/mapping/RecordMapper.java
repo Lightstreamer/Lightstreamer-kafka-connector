@@ -22,9 +22,9 @@ import static java.util.Collections.emptySet;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 
 import org.slf4j.Logger;
@@ -73,33 +73,35 @@ public interface RecordMapper<K, V> {
      * <p>The mapping process transforms Kafka records into Lightstreamer items by:
      *
      * <ul>
-     *   <li>Expanding templates into concrete item names using record data
+     *   <li>Expanding templates into canonical item names using record data
      *   <li>Providing routing capabilities to match against subscriber subscriptions
-     *   <li>Offering lazy field extraction for data updates when needed
+     *   <li>Offering lazy field extraction for Lightstreamer data updates when needed
      * </ul>
      *
      * <p><strong>Canonical form guarantee:</strong> All item names are returned in canonical form
-     * with fields arranged in consistent alphabetical order by the statically configured template
-     * field names, ensuring deterministic output regardless of the original template definition
-     * order.
+     * with template parameters sorted in alphanumeric order by their parameter names, ensuring
+     * deterministic output regardless of the order specified in the template definition.
      *
-     * <p><strong>Configuration-independent field ordering example:</strong> If a template is
-     * configured as: {@code
-     * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"} The
-     * resulting item name will always arrange fields alphabetically: {@code
-     * "item-[accountId=123,profileId=456,userId=789]"} - with fields ordered by their configured
-     * names (accountId, profileId, userId), not by their definition order in the template.
+     * <p><strong>Alphanumeric parameter ordering example:</strong> If a template is configured as:
+     * {@code "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"}
+     *
+     * <p>The resulting canonical item name will have parameters sorted alphabetically: {@code
+     * "item-[accountId=123,profileId=456,userId=789]"}
+     *
+     * <p>Parameters are ordered by their names (accountId, profileId, userId), not by their
+     * definition order in the template.
      */
     interface MappedRecord {
 
         /**
          * Returns the canonical Lightstreamer item names that this Kafka record maps to after
-         * template processing. Each name represents a distinct Lightstreamer item that should
+         * template expansion. Each name represents a distinct Lightstreamer item that should
          * receive data updates when this record is processed.
          *
          * <p>These item names are produced by evaluating item templates against the Kafka record's
-         * data. Templates containing placeholders like {@code {VALUE.symbol}} or {@code {KEY.id}}
-         * are resolved into concrete item names using the actual field values from the record.
+         * data. Templates containing parameter expressions like {@code VALUE.symbol} or {@code
+         * KEY.id} are resolved into concrete item names using the actual extracted values from the
+         * record.
          *
          * <p><strong>Examples:</strong>
          *
@@ -111,7 +113,7 @@ public interface RecordMapper<K, V> {
          *   <li>Static template {@code "market-summary"} → Item name {@code "market-summary"}
          * </ul>
          *
-         * <p>The returned item names are used primarily for:
+         * <p>The returned item names are used for:
          *
          * <ul>
          *   <li>Routing records to subscribers of matching items
@@ -120,16 +122,15 @@ public interface RecordMapper<K, V> {
          * </ul>
          *
          * <p><strong>Canonical form guarantee:</strong> Each returned item name is in canonical
-         * form with fields arranged alphabetically by the statically configured template field
-         * names.
+         * form with template parameters sorted in alphanumeric order by their parameter names,
+         * ensuring deterministic routing regardless of the order specified in the template
+         * definition.
          *
-         * <p><strong>Configuration-independent field ordering example:</strong> If a template is
-         * configured as: {@code
-         * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"} The
-         * resulting item name will always arrange fields alphabetically: {@code
-         * "item-[accountId=123,profileId=456,userId=789]"} - with fields ordered by their
-         * configured names (accountId, profileId, userId), not by their definition order in the
-         * template.
+         * <p><strong>Alphanumeric parameter ordering example:</strong> For template {@code
+         * "item-#{userId=KEY.userId,accountId=VALUE.accountId,profileId=VALUE.profileId}"}, the
+         * resulting canonical item name will be {@code
+         * "item-[accountId=123,profileId=456,userId=789]"} with parameters sorted alphabetically
+         * (accountId, profileId, userId).
          *
          * @return an array of canonical Lightstreamer item names derived from template evaluation;
          *     never null but may be empty
@@ -137,31 +138,31 @@ public interface RecordMapper<K, V> {
         String[] canonicalItemNames();
 
         /**
-         * Provides lazy access to the field data extracted from the Kafka record for data updates.
-         * This map contains the structured field values that will be sent to Lightstreamer
-         * subscribers when items matching this record receive updates.
+         * Provides lazy access to the Lightstreamer field data extracted from the Kafka record.
+         * This map contains the structured field name-value pairs that will be sent to
+         * Lightstreamer subscribers when items matching this record receive updates.
          *
-         * <p>Unlike {@link #canonicalItemNames()} which handles routing through template expansion,
-         * this method extracts the actual data payload using field extractors. The field names in
-         * the returned map correspond to the Lightstreamer schema fields that subscribers will
-         * receive.
+         * <p>Unlike {@link #canonicalItemNames()} which handles routing through template expansion
+         * with parameters, this method extracts the actual data payload using field extractors. The
+         * field names in the returned map correspond to the Lightstreamer schema fields that
+         * subscribers will receive as data updates.
          *
          * <p><strong>Key characteristics:</strong>
          *
          * <ul>
          *   <li><strong>Lazy evaluation:</strong> Field extraction is performed on-demand to
          *       optimize performance when only routing information is needed
-         *   <li><strong>Schema-based:</strong> Field names match the configured schema for
-         *       consistent data structure
-         *   <li><strong>Update payload:</strong> Contains the actual values that will be pushed to
-         *       subscribers
+         *   <li><strong>Schema-based:</strong> Field names match the configured Lightstreamer
+         *       schema for consistent data structure
+         *   <li><strong>Update payload:</strong> Contains the actual data values that will be
+         *       pushed to subscribers
          * </ul>
          *
          * <p><strong>Example:</strong> For a stock record, this might return: {@code {"symbol":
          * "AAPL", "price": "150.25", "timestamp": "2024-01-15T10:30:00Z"}}
          *
-         * @return a map of field names to their extracted values from the record; never null but
-         *     may be empty
+         * @return a map of Lightstreamer field names to their extracted string values from the
+         *     record; never null but may be empty
          * @throws ValueException if field extraction fails due to data format issues or missing
          *     required fields
          */
@@ -198,18 +199,19 @@ public interface RecordMapper<K, V> {
     }
 
     /**
-     * Retrieves the set of template extractors configured for the specified Kafka topic. Template
-     * extractors are responsible for generating canonical item names through template expansion
-     * when records from the given topic are processed by {@link #map(KafkaRecord)}.
+     * Retrieves the set of canonical item extractors configured for the specified Kafka topic.
+     * Canonical item extractors are responsible for generating canonical Lightstreamer item names
+     * through template expansion when records from the given topic are processed by {@link
+     * #map(KafkaRecord)}.
      *
      * <p>This method enables inspection of the mapping configuration and is primarily used for
      * diagnostics, testing, and validation of extractor configurations.
      *
      * @param topicName the name of the Kafka topic to retrieve extractors for
-     * @return a set of data extractors configured for the specified topic; never null but may be
-     *     empty if no extractors are configured for the topic
+     * @return a set of canonical item extractors configured for the specified topic; never null but
+     *     may be empty if no extractors are configured for the topic
      */
-    Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
+    Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName);
 
     /**
      * Transforms a Kafka record into a {@code MappedRecord} containing canonical item names and
@@ -223,8 +225,9 @@ public interface RecordMapper<K, V> {
      * <p><strong>Processing steps:</strong>
      *
      * <ol>
-     *   <li>Identifies template extractors for the record's topic
-     *   <li>Evaluates each template against the record data to produce canonical item names
+     *   <li>Identifies canonical item extractors for the record's topic
+     *   <li>Evaluates each template against the record data to produce canonical item names with
+     *       parameters sorted in alphanumeric order
      *   <li>Sets up lazy field extraction using the configured field extractor
      *   <li>Returns a {@code MappedRecord} containing both routing and data information
      * </ol>
@@ -232,10 +235,11 @@ public interface RecordMapper<K, V> {
      * <p><strong>Example:</strong> A record from topic "stocks" with value containing {@code
      * {"symbol": "AAPL", "price": 150.25}} processed with template {@code
      * "stock-#{symbol=VALUE.symbol}"} would produce a {@code MappedRecord} with canonical item name
-     * {@code "stock-[symbol=AAPL]"} and field data available on demand.
+     * {@code "stock-[symbol=AAPL]"} and Lightstreamer field data available on demand.
      *
-     * <p><strong>No-op behavior:</strong> If no template extractors are configured for the record's
-     * topic, returns a no-operation record that produces no routing targets and empty field data.
+     * <p><strong>No-op behavior:</strong> If no canonical item extractors are configured for the
+     * record's topic, returns a no-operation record that produces no routing targets and empty
+     * field data.
      *
      * @param record the Kafka record to be mapped into Lightstreamer format
      * @return a {@code MappedRecord} containing canonical item names and lazy field access; never
@@ -245,14 +249,13 @@ public interface RecordMapper<K, V> {
     MappedRecord map(KafkaRecord<K, V> record) throws ValueException;
 
     /**
-     * Indicates whether this mapper has any template extractors configured for generating canonical
-     * item names. Template extractors are used by {@link #map(KafkaRecord)} to determine routing
-     * targets through template expansion.
+     * Checks whether this mapper has canonical item extractors configured. Canonical item
+     * extractors are used by {@link #map(KafkaRecord)} to determine routing targets through
+     * template expansion.
      *
-     * @return {@code true} if at least one template extractor is configured, {@code false}
-     *     otherwise
+     * @return {@code true} if canonical item extractors are available; {@code false} otherwise
      */
-    boolean hasExtractors();
+    boolean hasCanonicalItemExtractors();
 
     /**
      * Indicates whether this mapper has a field extractor configured for generating data updates.
@@ -284,21 +287,25 @@ public interface RecordMapper<K, V> {
      * configuration is provided, ensuring that {@link MappedRecord#fieldsMap()} operations complete
      * successfully without actual data extraction.
      */
-    static class NOPDataExtractor<K, V> implements DataExtractor<K, V> {
+    static class NOPDataExtractor<K, V> implements FieldsExtractor<K, V> {
 
         @Override
-        public Map<String, String> extractAsMap(KafkaRecord<K, V> record) throws ValueException {
-            return Collections.emptyMap();
+        public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
+                throws ValueException {}
+
+        @Override
+        public boolean skipOnFailure() {
+            return false;
         }
 
         @Override
-        public Schema schema() {
-            return Schema.nop();
+        public boolean mapNonScalars() {
+            return false;
         }
 
         @Override
-        public String extractAsCanonicalItem(KafkaRecord<K, V> record) throws ValueException {
-            return "";
+        public Set<String> mappedFields() {
+            return Collections.emptySet();
         }
     }
 
@@ -308,12 +315,13 @@ public interface RecordMapper<K, V> {
      */
     static class Builder<K, V> {
 
-        static final DataExtractor<?, ?> NOP = new NOPDataExtractor<>();
+        static final FieldsExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
-        final Map<String, Set<DataExtractor<K, V>>> extractorsByTopicSubscription = new HashMap<>();
+        final Map<String, Set<CanonicalItemExtractor<K, V>>> extractorsByTopicSubscription =
+                new HashMap<>();
 
         @SuppressWarnings("unchecked")
-        DataExtractor<K, V> fieldExtractor = (DataExtractor<K, V>) NOP;
+        FieldsExtractor<K, V> fieldExtractor = (FieldsExtractor<K, V>) NOP;
 
         boolean regexEnabled = false;
 
@@ -324,35 +332,36 @@ public interface RecordMapper<K, V> {
          * are used by {@link RecordMapper#map(KafkaRecord)} to produce routing targets through
          * template expansion.
          *
-         * @param templateExtractors a map of topic names (or patterns) to sets of template
+         * @param canonicalItemExtractors a map of topic names (or patterns) to sets of template
          *     extractors
          * @return this builder for method chaining
          */
-        public Builder<K, V> withTemplateExtractors(
-                Map<String, Set<DataExtractor<K, V>>> templateExtractors) {
-            this.extractorsByTopicSubscription.putAll(templateExtractors);
+        public Builder<K, V> withCanonicalItemExtractors(
+                Map<String, Set<CanonicalItemExtractor<K, V>>> canonicalItemExtractors) {
+            this.extractorsByTopicSubscription.putAll(canonicalItemExtractors);
             return this;
         }
 
         /**
-         * Adds a single template extractor for the specified topic subscription. Multiple
+         * Adds a single canonical item extractor for the specified topic subscription. Multiple
          * extractors can be associated with the same topic to generate multiple canonical item
          * names from a single record.
          *
          * @param subscription the topic name or pattern (if regex is enabled) to associate the
          *     extractor with
-         * @param templateExtractor the template extractor for generating canonical item names
+         * @param canonicalItemExtractor the canonical item extractor for generating canonical item
+         *     names
          * @return this builder for method chaining
          */
-        public final Builder<K, V> withTemplateExtractor(
-                String subscription, DataExtractor<K, V> templateExtractor) {
+        public final Builder<K, V> addCanonicalItemExtractor(
+                String subscription, CanonicalItemExtractor<K, V> canonicalItemExtractor) {
             this.extractorsByTopicSubscription.compute(
                     subscription,
                     (t, extractors) -> {
                         if (extractors == null) {
                             extractors = new HashSet<>();
                         }
-                        extractors.add(templateExtractor);
+                        extractors.add(canonicalItemExtractor);
                         return extractors;
                     });
             return this;
@@ -380,7 +389,7 @@ public interface RecordMapper<K, V> {
          *     extractor will be used
          * @return this builder for method chaining
          */
-        public final Builder<K, V> withFieldExtractor(DataExtractor<K, V> extractor) {
+        public final Builder<K, V> withFieldExtractor(FieldsExtractor<K, V> extractor) {
             this.fieldExtractor = extractor;
             return this;
         }
@@ -403,14 +412,14 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     interface ExtractorsSupplier<K, V> {
 
-        Collection<DataExtractor<K, V>> getExtractors(String topic);
+        Collection<CanonicalItemExtractor<K, V>> getExtractors(String topic);
     }
 
     static record PatternAndExtractors<K, V>(
-            Pattern pattern, Set<DataExtractor<K, V>> extractors) {}
+            Pattern pattern, Set<CanonicalItemExtractor<K, V>> extractors) {}
 
-    private final DataExtractor<K, V> fieldExtractor;
-    private final Map<String, Set<DataExtractor<K, V>>> templateExtractors;
+    private final FieldsExtractor<K, V> fieldExtractor;
+    private final Map<String, Set<CanonicalItemExtractor<K, V>>> templateExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
     private final boolean regexEnabled;
@@ -440,12 +449,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         return pe;
     }
 
-    private Collection<DataExtractor<K, V>> getAssociatedExtractors(String topic) {
+    private Collection<CanonicalItemExtractor<K, V>> getAssociatedExtractors(String topic) {
         return templateExtractors.getOrDefault(topic, emptySet());
     }
 
-    private Collection<DataExtractor<K, V>> getMatchingExtractors(String topic) {
-        Collection<DataExtractor<K, V>> extractors = new ArrayList<>();
+    private Collection<CanonicalItemExtractor<K, V>> getMatchingExtractors(String topic) {
+        Collection<CanonicalItemExtractor<K, V>> extractors = new ArrayList<>();
         for (PatternAndExtractors<K, V> p : patterns) {
             Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
@@ -456,12 +465,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     @Override
-    public Set<DataExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
+    public Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
         return templateExtractors.get(topicName);
     }
 
     @Override
-    public boolean hasExtractors() {
+    public boolean hasCanonicalItemExtractors() {
         return !templateExtractors.isEmpty();
     }
 
@@ -485,11 +494,11 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
         String[] canonicalItems = new String[extractors.size()];
         int i = 0;
-        for (DataExtractor<K, V> dataExtractor : extractors) {
-            canonicalItems[i++] = dataExtractor.extractAsCanonicalItem(record);
+        for (CanonicalItemExtractor<K, V> dataExtractor : extractors) {
+            canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractAsMap(record));
+        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractMap(record));
     }
 }
 

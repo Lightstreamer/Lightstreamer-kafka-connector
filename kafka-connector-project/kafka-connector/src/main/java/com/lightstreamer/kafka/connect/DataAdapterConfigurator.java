@@ -22,8 +22,8 @@ import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.connect.config.DataAdapterConfig;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 public class DataAdapterConfigurator {
 
     private static record DataAdapterConfigImpl(
-            DataExtractor<Object, Object> fieldsExtractor,
+            FieldsExtractor<Object, Object> fieldsExtractor,
             ItemTemplates<Object, Object> itemTemplates,
             RecordErrorHandlingStrategy recordErrorHandlingStrategy,
             SinkTaskContext context)
@@ -54,7 +54,11 @@ public class DataAdapterConfigurator {
                         config.getItemTemplateConfigs(),
                         config.getTopicMappings(),
                         config.isRegexEnabled());
-        KeyValueSelectorSuppliers<Object, Object> sSuppliers = new ConnectSelectorsSuppliers();
+        ConnectSelectorsSuppliers selectorsSuppliers = new ConnectSelectorsSuppliers();
+        KeyValueSelectorSuppliers<Object, Object> sSuppliers =
+                KeyValueSelectorSuppliers.of(
+                        selectorsSuppliers.makeKeySelectorSupplier(),
+                        selectorsSuppliers.makeValueSelectorSupplier());
         try {
             ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, sSuppliers);
             logger.info("Constructed item templates: {}", templates);
@@ -62,8 +66,8 @@ public class DataAdapterConfigurator {
             FieldConfigs fieldConfigs = config.getFieldConfigs();
             logger.info("fieldsMapping: {}", fieldConfigs);
 
-            DataExtractor<Object, Object> fieldsExtractor =
-                    fieldConfigs.extractor(
+            FieldsExtractor<Object, Object> fieldsExtractor =
+                    fieldConfigs.fieldsExtractor(
                             sSuppliers,
                             config.isRecordMappingSkipFailedEnabled(),
                             config.isRecordMappingMapNonScalarValuesEnabled());

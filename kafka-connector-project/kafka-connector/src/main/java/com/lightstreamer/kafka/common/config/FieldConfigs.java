@@ -17,59 +17,82 @@
 
 package com.lightstreamer.kafka.common.config;
 
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
+
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class FieldConfigs {
-
-    private static String SCHEMA_NAME = "fields";
 
     public static FieldConfigs from(Map<String, String> configs) throws ConfigException {
         return new FieldConfigs(configs);
     }
 
-    private final Map<String, ExtractionExpression> expressions = new HashMap<>();
+    private final Map<String, ExtractionExpression> namedFieldExpressions = new HashMap<>();
+    private final Map<String, ExtractionExpression> discoveredFieldsExpressions = new HashMap<>();
 
     private FieldConfigs(Map<String, String> fieldsMapping) throws ConfigException {
         for (Map.Entry<String, String> entry : fieldsMapping.entrySet()) {
             String fieldName = entry.getKey();
-            String wrappedExpression = entry.getValue();
+            String expression = entry.getValue();
             try {
-                expressions.put(fieldName, Expressions.Wrapped(wrappedExpression));
+                if ("*".equals(fieldName)) {
+                    discoveredFieldsExpressions.put(fieldName, WrappedWithWildcards(expression));
+                    continue;
+                }
+                namedFieldExpressions.put(fieldName, Wrapped(expression));
             } catch (ExpressionException e) {
                 throw new ConfigException(
                         "Got the following error while evaluating the field [%s] containing the expression [%s]: <%s>"
-                                .formatted(fieldName, wrappedExpression, e.getMessage()));
+                                .formatted(fieldName, expression, e.getMessage()));
             }
         }
     }
 
-    public Map<String, ExtractionExpression> expressions() {
-        return new HashMap<>(expressions);
+    public Map<String, ExtractionExpression> namedFieldsExpressions() {
+        return new HashMap<>(namedFieldExpressions);
     }
 
-    public ExtractionExpression getExpression(String fieldName) {
-        return expressions.get(fieldName);
+    public Map<String, ExtractionExpression> discoveredFieldsExpressions() {
+        return new HashMap<>(discoveredFieldsExpressions);
     }
 
-    public <K, V> DataExtractor<K, V> extractor(
+    public <K, V> FieldsExtractor<K, V> fieldsExtractor(
             KeyValueSelectorSuppliers<K, V> selectorSuppliers,
             boolean skipOnFailure,
             boolean mapNonScalars)
             throws ExtractionException {
-        return DataExtractor.extractor(
-                selectorSuppliers, SCHEMA_NAME, expressions, skipOnFailure, mapNonScalars);
-    }
 
-    public <K, V> DataExtractor<K, V> extractor(KeyValueSelectorSuppliers<K, V> selectorSuppliers)
-            throws ExtractionException {
-        return DataExtractor.extractor(selectorSuppliers, SCHEMA_NAME, expressions, false, false);
+        List<FieldsExtractor<K, V>> fieldExtractors = new java.util.ArrayList<>();
+        if (!discoveredFieldsExpressions.isEmpty()) {
+            fieldExtractors.add(
+                    DataExtractors.discoveredFieldsExtractor(
+                            selectorSuppliers,
+                            discoveredFieldsExpressions.values(),
+                            skipOnFailure));
+        }
+        if (!namedFieldExpressions.isEmpty()) {
+            fieldExtractors.add(
+                    DataExtractors.namedFieldsExtractor(
+                            selectorSuppliers,
+                            namedFieldExpressions,
+                            skipOnFailure,
+                            mapNonScalars));
+        }
+
+        if (fieldExtractors.size() == 1) {
+            return fieldExtractors.get(0);
+        }
+
+        return DataExtractors.composedFieldsExtractor(fieldExtractors);
     }
 }

@@ -25,8 +25,9 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -43,6 +44,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -61,10 +63,10 @@ public class DataExtractorBenchmarks {
     public static class Protobuf {
 
         @Param({"1", "2", "3"})
-        int numOfTemplateParams = 3;
+        int numOfTemplateParams = 1;
 
-        DataExtractor<String, DynamicMessage> templateExtractor;
-        DataExtractor<String, DynamicMessage> fieldsExtractor;
+        CanonicalItemExtractor<String, DynamicMessage> canonicalItemExtractor;
+        FieldsExtractor<String, DynamicMessage> fieldsExtractor;
         List<KafkaRecord<String, DynamicMessage>> records;
 
         @Setup(Level.Iteration)
@@ -72,7 +74,7 @@ public class DataExtractorBenchmarks {
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             ConsumerTriggerConfig<String, DynamicMessage> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
-            templateExtractor =
+            canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
             records = ProtoRecords.kafkaRecords(TOPICS, 1, 1, 10);
@@ -85,8 +87,8 @@ public class DataExtractorBenchmarks {
         @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
-        DataExtractor<String, JsonNode> templateExtractor;
-        DataExtractor<String, JsonNode> fieldsExtractor;
+        CanonicalItemExtractor<String, JsonNode> canonicalItemExtractor;
+        FieldsExtractor<String, JsonNode> fieldsExtractor;
         private List<KafkaRecord<String, JsonNode>> records;
 
         @Setup(Level.Iteration)
@@ -94,36 +96,74 @@ public class DataExtractorBenchmarks {
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             ConsumerTriggerConfig<String, JsonNode> config =
                     BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
-            templateExtractor =
+            canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
             records = JsonRecords.kafkaRecords(TOPICS, 1, 1, 1);
         }
     }
 
-    // Measure extraction from templates
+    /**
+     * Benchmarks the extraction of canonical item names from Protobuf-formatted Kafka records.
+     * Measures the performance of converting Protobuf data into canonical string format.
+     */
     @Benchmark
     public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
-        String data = proto.templateExtractor.extractAsCanonicalItem(proto.records.get(0));
+        String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks the extraction of canonical item names from JSON-formatted Kafka records. Measures
+     * the performance of converting JSON data into canonical string format.
+     */
     @Benchmark
     public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
-        String data = json.templateExtractor.extractAsCanonicalItem(json.records.get(0));
+        String data = json.canonicalItemExtractor.extractCanonicalItem(json.records.get(0));
         bh.consume(data);
     }
 
-    // Measure extraction from fields (all fields, no template)
+    /**
+     * Benchmarks extraction of Protobuf records into a new Map structure. Tests the performance of
+     * creating and populating a new Map with extracted field data.
+     */
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
-        Map<String, String> data = proto.fieldsExtractor.extractAsMap(proto.records.get(0));
+        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks extraction of Protobuf records into a pre-existing Map. Tests the performance of
+     * populating an existing Map with extracted field data, which may be more efficient than
+     * creating a new Map.
+     */
+    @Benchmark
+    public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
+        Map<String, String> target = new HashMap<>();
+        proto.fieldsExtractor.extractIntoMap(proto.records.get(0), target);
+        bh.consume(target);
+    }
+
+    /**
+     * Benchmarks extraction of JSON records into a new Map structure. Tests the performance of
+     * creating and populating a new Map with extracted field data from JSON.
+     */
     @Benchmark
     public void extractAsMapJson(Json json, Blackhole bh) {
-        Map<String, String> data = json.fieldsExtractor.extractAsMap(json.records.get(0));
+        Map<String, String> data = json.fieldsExtractor.extractMap(json.records.get(0));
         bh.consume(data);
+    }
+
+    /**
+     * Benchmarks extraction of JSON records into a pre-existing Map. Tests the performance of
+     * populating an existing Map with extracted field data from JSON, which may be more efficient
+     * than creating a new Map.
+     */
+    @Benchmark
+    public void extractIntoMapJson(Json json, Blackhole bh) {
+        Map<String, String> target = new HashMap<>();
+        json.fieldsExtractor.extractIntoMap(json.records.get(0), target);
+        bh.consume(target);
     }
 }

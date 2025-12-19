@@ -38,7 +38,7 @@
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
-        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.name">#{VALUE.name}</param>
         <param name="field.last_price">#{VALUE.last_price}</param>
         <param name="field.ask">#{VALUE.ask}</param>
         <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>

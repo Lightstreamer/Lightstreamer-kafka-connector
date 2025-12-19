@@ -214,11 +214,19 @@ public class RecordConsumerBenchmark {
         }
     }
 
+    /**
+     * Benchmarks end-to-end consumption and processing of JSON-formatted Kafka records. Measures
+     * the complete workflow from record consumption to subscriber notification.
+     */
     @Benchmark
     public void consumeWithJson(Json json) {
         json.recordConsumer.consumeRecords(json.consumerRecords);
     }
 
+    /**
+     * Benchmarks end-to-end consumption and processing of Protobuf-formatted Kafka records.
+     * Measures the complete workflow from record consumption to subscriber notification.
+     */
     @Benchmark
     public void consumeWithProtobuf(Protobuf proto) {
         proto.recordConsumer.consumeRecords(proto.consumerRecords);

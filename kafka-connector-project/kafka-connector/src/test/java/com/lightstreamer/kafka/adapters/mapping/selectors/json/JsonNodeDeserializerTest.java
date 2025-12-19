@@ -118,7 +118,7 @@ public class JsonNodeDeserializerTest {
                     assertThrows(
                             SerializationException.class,
                             () -> deser.deserialize("topic", flight.getBytes()));
-            assertThat(se.getMessage()).contains("required key [terminal] not found");
+            assertThat(se).hasMessageThat().contains("required key [terminal] not found");
         }
     }
 

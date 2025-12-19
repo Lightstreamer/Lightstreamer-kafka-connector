@@ -136,7 +136,7 @@ public class ConsumerTriggerTest {
                 assertThrows(
                         SubscriptionException.class,
                         () -> consumerTrigger.subscribe("@invalidItem@", itemHandle));
-        assertThat(se.getMessage()).isEqualTo("Invalid Item");
+        assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
     }
 
     @Test

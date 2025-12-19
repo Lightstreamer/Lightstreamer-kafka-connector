@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.1] (2025-12-19)
+
+**Improvements**
+
+- **Data Extraction Language Enhancement and Dynamic Field Discovery**: Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support wildcard expressions (e.g., `#{VALUE.*}`, `#{KEY.*}`, `#{HEADERS.*}`), enabling the new [_Dynamic Field Discovery_](README.md#dynamic-field-discovery-field) mechanism with the `field.*` configuration parameter. This allows automatic mapping of Kafka record fields to Lightstreamer fields at runtime, eliminating the need to explicitly configure each field individually – especially useful for records with numerous or dynamically varying fields (also available for the Sink connector). ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+
+- Upgraded _Gradle_ to version 9.2.1. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+
+**Third-Party Library Updates**
+
+- Upgraded _JUnit_ to version 6.0.1. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+- Upgraded _Truth_ to version 1.4.5. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+
+**Bug Fixes**
+
+- Fixed the [examples/quickstart-schema-registry/README.md](examples/quickstart-schema-registry/README.md) file to mention usage of Protobuf. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+
+- Corrected broken anchor links in the Table of Contents of the [README.md](README.md) file. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+
+
 ## [1.3.0] (2025-10-21)
 
 **Breaking Changes**

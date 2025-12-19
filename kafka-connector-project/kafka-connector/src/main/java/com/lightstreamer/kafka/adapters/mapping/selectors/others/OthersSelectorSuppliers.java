@@ -17,19 +17,36 @@
 
 package com.lightstreamer.kafka.adapters.mapping.selectors.others;
 
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.BOOLEAN;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.BYTES;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.BYTE_ARRAY;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.BYTE_BUFFER;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.DOUBLE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.FLOAT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.INTEGER;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.LONG;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.SHORT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
+import static com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier.makeSelectorSupplier;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ConstantSelectorSupplier;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.GenericSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 
@@ -47,6 +64,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.UUIDDeserializer;
 
 import java.util.EnumMap;
+import java.util.Map;
 
 public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<Object> {
 
@@ -56,64 +74,132 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
                 new EnumMap<>(EvaluatorType.class);
 
         static {
-            DESERIALIZERS.put(EvaluatorType.STRING, new StringDeserializer());
-            DESERIALIZERS.put(EvaluatorType.INTEGER, new IntegerDeserializer());
-            DESERIALIZERS.put(EvaluatorType.BOOLEAN, new BooleanDeserializer());
-            DESERIALIZERS.put(EvaluatorType.BYTE_ARRAY, new ByteArrayDeserializer());
-            DESERIALIZERS.put(EvaluatorType.BYTE_BUFFER, new ByteBufferDeserializer());
-            DESERIALIZERS.put(EvaluatorType.BYTES, new BytesDeserializer());
-            DESERIALIZERS.put(EvaluatorType.DOUBLE, new DoubleDeserializer());
-            DESERIALIZERS.put(EvaluatorType.FLOAT, new FloatDeserializer());
-            DESERIALIZERS.put(EvaluatorType.LONG, new LongDeserializer());
-            DESERIALIZERS.put(EvaluatorType.SHORT, new ShortDeserializer());
-            DESERIALIZERS.put(EvaluatorType.UUID, new UUIDDeserializer());
+            DESERIALIZERS.put(STRING, new StringDeserializer());
+            DESERIALIZERS.put(INTEGER, new IntegerDeserializer());
+            DESERIALIZERS.put(BOOLEAN, new BooleanDeserializer());
+            DESERIALIZERS.put(BYTE_ARRAY, new ByteArrayDeserializer());
+            DESERIALIZERS.put(BYTE_BUFFER, new ByteBufferDeserializer());
+            DESERIALIZERS.put(BYTES, new BytesDeserializer());
+            DESERIALIZERS.put(DOUBLE, new DoubleDeserializer());
+            DESERIALIZERS.put(FLOAT, new FloatDeserializer());
+            DESERIALIZERS.put(LONG, new LongDeserializer());
+            DESERIALIZERS.put(SHORT, new ShortDeserializer());
+            DESERIALIZERS.put(UUID, new UUIDDeserializer());
         }
 
         private final Deserializer<T> deserializer;
+        protected final EvaluatorType type;
 
         @SuppressWarnings("unchecked")
-        BaseOthersSelectorSupplier(EvaluatorType type, Class<T> klass, Constant constant) {
+        BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
+            this.type = type;
             this.deserializer = (Deserializer<T>) DESERIALIZERS.get(type);
+            if (this.deserializer == null) {
+                throw new IllegalArgumentException("Unsupported evaluator [" + type + "]");
+            }
         }
 
         public Deserializer<T> deserializer() {
             return deserializer;
         }
+
+        public SelectorEvaluatorType evaluatorType() {
+            return type;
+        }
+    }
+
+    private static class KeySelectorWrapper<K> implements KeySelector<K> {
+
+        private final GenericSelector selector;
+
+        KeySelectorWrapper(GenericSelector selector) throws ExtractionException {
+            this.selector = selector;
+        }
+
+        @Override
+        public ExtractionExpression expression() {
+            return selector.expression();
+        }
+
+        @Override
+        public Data extractKey(KafkaRecord<K, ?> record, boolean checkScalar)
+                throws ValueException {
+            return selector.extract(record, checkScalar);
+        }
+
+        @Override
+        public Data extractKey(java.lang.String name, KafkaRecord<K, ?> record, boolean checkScalar)
+                throws ValueException {
+            return selector.extract(name, record, checkScalar);
+        }
+
+        @Override
+        public void extractKeyInto(
+                KafkaRecord<K, ?> record, Map<java.lang.String, java.lang.String> target)
+                throws ValueException {}
     }
 
     private static class OthersKeySelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
             implements KeySelectorSupplier<T> {
 
-        private final ConstantSelectorSupplier constantSelectorSupplier =
-                ConstantSelectorSupplier.KeySelector();
+        private final ConstantSelectorSupplier supplier = makeSelectorSupplier(KEY);
 
-        OthersKeySelectorSupplier(EvaluatorType type, Class<T> klass) {
-            super(type, klass, KEY);
+        OthersKeySelectorSupplier(EvaluatorType type) {
+            super(type, KEY);
         }
 
-        @SuppressWarnings("unchecked")
         @Override
-        public KeySelector<T> newSelector(String name, ExtractionExpression expression)
+        public KeySelector<T> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return (KeySelector<T>) constantSelectorSupplier.newSelector(name, expression);
+            return new KeySelectorWrapper<>(supplier.newSelector(expression));
         }
+    }
+
+    private static class ValueSelectorWrapper<V> implements ValueSelector<V> {
+
+        private final GenericSelector selector;
+
+        ValueSelectorWrapper(GenericSelector selector) throws ExtractionException {
+            this.selector = selector;
+        }
+
+        @Override
+        public ExtractionExpression expression() {
+            return selector.expression();
+        }
+
+        @Override
+        public Data extractValue(KafkaRecord<?, V> record, boolean checkScalar)
+                throws ValueException {
+            return selector.extract(record, checkScalar);
+        }
+
+        @Override
+        public Data extractValue(
+                java.lang.String name, KafkaRecord<?, V> record, boolean checkScalar)
+                throws ValueException {
+            return selector.extract(name, record, checkScalar);
+        }
+
+        @Override
+        public void extractValueInto(
+                KafkaRecord<?, V> record, Map<java.lang.String, java.lang.String> target)
+                throws ValueException {}
     }
 
     private static class OthersValueSelectorSupplier<T> extends BaseOthersSelectorSupplier<T>
             implements ValueSelectorSupplier<T> {
 
-        private final ConstantSelectorSupplier selectorSupplier =
-                ConstantSelectorSupplier.ValueSelector();
+        private final ConstantSelectorSupplier supplier = makeSelectorSupplier(VALUE);
 
-        OthersValueSelectorSupplier(EvaluatorType type, Class<T> klass) {
-            super(type, klass, Constant.VALUE);
+        OthersValueSelectorSupplier(EvaluatorType type) {
+            super(type, VALUE);
         }
 
-        @SuppressWarnings("unchecked")
         @Override
-        public ValueSelector<T> newSelector(String name, ExtractionExpression expression)
+        public ValueSelector<T> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
-            return (ValueSelector<T>) selectorSupplier.newSelector(name, expression);
+            return new ValueSelectorWrapper<T>(supplier.newSelector(expression));
         }
     }
 
@@ -135,31 +221,23 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
 
     @Override
     public KeySelectorSupplier<Object> makeKeySelectorSupplier() {
-        return new OthersKeySelectorSupplier<>(keyEvaluatorType, Object.class);
+        return new OthersKeySelectorSupplier<>(keyEvaluatorType);
     }
 
     @Override
     public ValueSelectorSupplier<Object> makeValueSelectorSupplier() {
-        return new OthersValueSelectorSupplier<>(valueEvaluatorType, Object.class);
-    }
-
-    public static <K> KeySelectorSupplier<K> KeySelectorSupplier(Class<K> klass) {
-        return new OthersKeySelectorSupplier<>(EvaluatorType.fromClass(klass), klass);
-    }
-
-    public static <V> ValueSelectorSupplier<V> ValueSelectorSupplier(Class<V> klass) {
-        return new OthersValueSelectorSupplier<>(EvaluatorType.fromClass(klass), klass);
+        return new OthersValueSelectorSupplier<>(valueEvaluatorType);
     }
 
     public static KeySelectorSupplier<String> StringKey() {
-        return KeySelectorSupplier(String.class);
+        return new OthersKeySelectorSupplier<>(EvaluatorType.fromClass(String.class));
     }
 
     public static ValueSelectorSupplier<String> StringValue() {
-        return ValueSelectorSupplier(String.class);
+        return new OthersValueSelectorSupplier<>(EvaluatorType.fromClass(String.class));
     }
 
     public static KeyValueSelectorSuppliers<String, String> String() {
-        return new WrapperKeyValueSelectorSuppliers<>(StringKey(), StringValue());
+        return KeyValueSelectorSuppliers.of(StringKey(), StringValue());
     }
 }

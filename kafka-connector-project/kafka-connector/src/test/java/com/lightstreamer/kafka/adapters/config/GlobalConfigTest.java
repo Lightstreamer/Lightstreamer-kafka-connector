@@ -85,40 +85,46 @@ public class GlobalConfigTest {
     public void shouldSpecifyRequiredParam() {
         ConfigException e =
                 assertThrows(ConfigException.class, () -> new GlobalConfig(Collections.emptyMap()));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [%s]".formatted(GlobalConfig.ADAPTERS_CONF_ID));
 
         Map<String, String> params = new HashMap<>();
         params.put(GlobalConfig.ADAPTERS_CONF_ID, "");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(GlobalConfig.ADAPTERS_CONF_ID));
 
         params.put(GlobalConfig.ADAPTERS_CONF_ID, "KAFKA");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [%s]".formatted(GlobalConfig.ADAPTER_DIR));
 
         params.put(GlobalConfig.ADAPTER_DIR, "");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(GlobalConfig.ADAPTER_DIR));
 
         params.put(GlobalConfig.ADAPTER_DIR, adapterDir.toString());
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [%s]"
                                 .formatted(GlobalConfig.LOGGING_CONFIGURATION_PATH));
 
         params.put(GlobalConfig.LOGGING_CONFIGURATION_PATH, "non-existing-conf-file");
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found file [non-existing-conf-file] specified in [%s]"
                                 .formatted(GlobalConfig.LOGGING_CONFIGURATION_PATH));
