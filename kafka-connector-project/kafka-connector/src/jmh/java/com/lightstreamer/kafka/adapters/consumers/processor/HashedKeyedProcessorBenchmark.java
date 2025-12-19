@@ -147,6 +147,11 @@ public class HashedKeyedProcessorBenchmark {
         return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
     }
 
+    /**
+     * Benchmarks keyed record processing scalability with key-based distribution. Tests how
+     * efficiently the processor distributes records across threads based on their keys, ensuring
+     * ordering guarantees for records with the same key.
+     */
     @Benchmark
     public void testScalabilityWithKey(Blackhole bh) throws InterruptedException {
         // AtomicInteger i = new AtomicInteger();
@@ -158,6 +163,10 @@ public class HashedKeyedProcessorBenchmark {
                 consumerRecords, e -> e.key(), (key, record) -> recordProcessor.process(record));
     }
 
+    /**
+     * Benchmarks record processing scalability without key-based distribution. Tests maximum
+     * throughput when records can be processed in any order without key-based ordering constraints.
+     */
     @Benchmark
     public void testScalabilityNoKey(Blackhole bh) throws InterruptedException {
         // executor.executeBatch(

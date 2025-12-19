@@ -19,11 +19,22 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
+import java.util.Map;
+
 public interface KeySelector<K> extends Selector {
+
+    default Data extractKey(String name, KafkaRecord<K, ?> record) throws ValueException {
+        return extractKey(name, record, true);
+    }
+
+    Data extractKey(String name, KafkaRecord<K, ?> record, boolean checkScalar)
+            throws ValueException;
 
     default Data extractKey(KafkaRecord<K, ?> record) throws ValueException {
         return extractKey(record, true);
     }
 
     Data extractKey(KafkaRecord<K, ?> record, boolean checkScalar) throws ValueException;
+
+    void extractKeyInto(KafkaRecord<K, ?> record, Map<String, String> target) throws ValueException;
 }

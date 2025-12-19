@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.config.specs;
 
+import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -185,7 +187,7 @@ public interface ConfigTypes {
         }
     }
 
-    enum EvaluatorType {
+    public enum EvaluatorType implements SelectorEvaluatorType {
         AVRO,
         JSON,
         PROTOBUF,

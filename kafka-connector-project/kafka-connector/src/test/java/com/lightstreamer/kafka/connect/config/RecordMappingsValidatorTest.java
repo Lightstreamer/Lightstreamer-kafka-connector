@@ -91,7 +91,7 @@ public class RecordMappingsValidatorTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(RECORD_MAPPINGS, value));
-        assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     static Stream<Arguments> values() {

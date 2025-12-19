@@ -25,44 +25,22 @@ public class ExtractionException extends Exception {
         super(message);
     }
 
-    public static ExtractionException expectedRootToken(String name, String expectedRoot)
+    public static ExtractionException expectedRootToken(String expression, String expectedRoot)
             throws ExtractionException {
         return new ExtractionException(
-                "Expected the root token [%s] while evaluating [%s]".formatted(expectedRoot, name));
+                "Expected the root token [%s] while evaluating [%s]"
+                        .formatted(expectedRoot, expression));
     }
 
-    public static ExtractionException invalidExpression(String name, String expression)
+    public static ExtractionException notAllowedAttributes(String expression)
             throws ExtractionException {
         return new ExtractionException(
-                "Got the following error while evaluating [%s] while evaluating [%s]"
-                        .formatted(expression, name));
+                "Found the invalid expression [%s] for scalar values".formatted(expression));
     }
 
-    public static ExtractionException missingToken(String name, String expression)
+    public static ExtractionException invalidIndexedExpression(String expression)
             throws ExtractionException {
         return new ExtractionException(
-                "Found the invalid expression [%s] with missing tokens while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
-    public static ExtractionException missingAttribute(String name, String expression)
-            throws ExtractionException {
-        return new ExtractionException(
-                "Found the invalid expression [%s] with missing attribute while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
-    public static ExtractionException notAllowedAttributes(String name, String expression)
-            throws ExtractionException {
-        return new ExtractionException(
-                "Found the invalid expression [%s] for scalar values while evaluating [%s]"
-                        .formatted(expression, name));
-    }
-
-    public static ExtractionException invalidIndexedExpression(String name, String expression)
-            throws ExtractionException {
-        return new ExtractionException(
-                "Found the invalid indexed expression [%s] while evaluating [%s]"
-                        .formatted(expression, name));
+                "Found the invalid indexed expression [%s]".formatted(expression));
     }
 }

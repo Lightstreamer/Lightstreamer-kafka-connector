@@ -92,12 +92,20 @@ public class DataBenchmarks {
         benchmark.buildItemNameSingle(bh);
     }
 
+    /**
+     * Benchmarks building a single item name from a data element and schema name. Measures the
+     * performance of the simplest item name construction scenario.
+     */
     @Benchmark
     public void buildItemNameSingle(Blackhole bh) {
         String result = Data.buildItemNameSingle(first, schemaName);
         bh.consume(result);
     }
 
+    /**
+     * Benchmarks building an item name from an array of data elements and schema name. Tests the
+     * performance of constructing item names from multiple data elements.
+     */
     @Benchmark
     public void buildItemNameArray(Blackhole bh) {
         String result = Data.buildItemName(sortedDataArray, schemaName);

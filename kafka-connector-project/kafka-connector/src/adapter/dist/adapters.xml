@@ -453,7 +453,7 @@
         -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
 
-        <!-- Multiple and mandatory. Map the Kafka topic TOPIC_NAME to:
+        <!-- Multiple and mandatory. Maps the Kafka topic TOPIC_NAME to:
              - one or more simple items
              - one or more item templates
              - any combination of the above
@@ -483,9 +483,20 @@
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
-        <!-- Multiple and Mandatory. Map the value extracted through "extraction_expression" to
+        <!-- Multiple and Mandatory. Maps the value extracted through "extraction_expression" to
              field FIELD_NAME. The expression is written in the Data Extraction Language. See documentation at:
              https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfield_name
+
+             Dynamic Field Discovery: Use wildcards in both parameter name (field.*) and extraction expression
+             to automatically discover and map field names at runtime from the record structure. For example:
+
+             <param name="field.*">#{VALUE.*}</param>
+             <param name="field.*">#{KEY.*}</param>
+             <param name="field.*">#{HEADERS.*}</param>
+             <param name="field.*">#{VALUE.nested.*}</param>
+             <param name="field.*">#{VALUE.items.*}</param>
+
+             Static field.fieldName mappings take precedence over field.* wildcards.
 
              At least one mapping must be provided. -->
         <!--
@@ -493,7 +504,7 @@
         -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
-        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.name">#{VALUE.name}</param>
         <param name="field.last_price">#{VALUE.last_price}</param>
         <param name="field.ask">#{VALUE.ask}</param>
         <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -665,7 +676,7 @@
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
         <param name="field.timestamp">#{VALUE.timestamp}</param>
         <param name="field.time">#{VALUE.time}</param>
-        <param name="field.stock_name">#{VALUE.name}</param>
+        <param name="field.name">#{VALUE.name}</param>
         <param name="field.last_price">#{VALUE.last_price}</param>
         <param name="field.ask">#{VALUE.ask}</param>
         <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>

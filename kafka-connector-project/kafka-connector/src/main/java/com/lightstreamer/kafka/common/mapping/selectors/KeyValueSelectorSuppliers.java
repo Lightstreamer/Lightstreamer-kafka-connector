@@ -26,4 +26,10 @@ public interface KeyValueSelectorSuppliers<K, V> {
     KeySelectorSupplier<K> keySelectorSupplier();
 
     ValueSelectorSupplier<V> valueSelectorSupplier();
+
+    static <K, V> KeyValueSelectorSuppliers<K, V> of(
+            KeySelectorSupplier<K> keySelectorSupplier,
+            ValueSelectorSupplier<V> valueSelectorSupplier) {
+        return new WrapperKeyValueSelectorSuppliers<>(keySelectorSupplier, valueSelectorSupplier);
+    }
 }

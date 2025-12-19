@@ -518,7 +518,7 @@ public class BenchmarksUtils {
 
     public static <T> RecordMapper<String, T> newRecordMapper(Config<String, T> config) {
         return RecordMapper.<String, T>builder()
-                .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }

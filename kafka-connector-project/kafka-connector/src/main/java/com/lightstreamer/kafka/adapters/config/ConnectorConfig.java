@@ -513,8 +513,12 @@ public final class ConnectorConfig extends AbstractConfig {
                         "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
                                 .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
             }
-            checkCommandKey();
-            if (fieldConfigs.getExpression("command") == null) {
+            if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
+                throw new ConfigException(
+                        "Command mode requires a key field. Parameter [%s] must be set"
+                                .formatted("field.key"));
+            }
+            if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
                 throw new ConfigException(
                         "Command mode requires a command field. Parameter [%s] must be set"
                                 .formatted("field.command"));

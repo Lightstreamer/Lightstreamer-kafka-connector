@@ -27,11 +27,10 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.PROTOBUF;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromKey;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromValue;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.google.protobuf.DynamicMessage;
@@ -39,11 +38,15 @@ import com.google.protobuf.TextFormat;
 import com.google.protobuf.TextFormat.InvalidEscapeSequenceException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
+import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
+import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
@@ -57,6 +60,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 public class DynamicMessageSelectorSuppliersTest {
@@ -80,18 +84,17 @@ public class DynamicMessageSelectorSuppliersTest {
     static DynamicMessage SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessageV2();
 
-    static ValueSelector<DynamicMessage> valueSelector(ExtractionExpression expression)
+    static KeySelector<DynamicMessage> keySelector(String expression) throws ExtractionException {
+        return new DynamicMessageSelectorSuppliers(CONFIG)
+                .makeKeySelectorSupplier()
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
+    }
+
+    static ValueSelector<DynamicMessage> valueSelector(String expression)
             throws ExtractionException {
         return new DynamicMessageSelectorSuppliers(CONFIG)
                 .makeValueSelectorSupplier()
-                .newSelector("name", expression);
-    }
-
-    static KeySelector<DynamicMessage> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
-        return new DynamicMessageSelectorSuppliers(CONFIG)
-                .makeKeySelectorSupplier()
-                .newSelector("name", expression);
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     static String maybeEmpty(String expected) {
@@ -118,7 +121,8 @@ public class DynamicMessageSelectorSuppliersTest {
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8081"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        assertDoesNotThrow(() -> s.makeKeySelectorSupplier());
+        KeySelectorSupplier<DynamicMessage> keySelectorSupplier = s.makeKeySelectorSupplier();
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.PROTOBUF);
     }
 
     @Test
@@ -129,7 +133,7 @@ public class DynamicMessageSelectorSuppliersTest {
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not PROTOBUF");
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not PROTOBUF");
     }
 
     @Test
@@ -160,6 +164,57 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
+    public void shouldMakeKeySelector() throws ExtractionException {
+        KeySelector<DynamicMessage> selector = keySelector("KEY");
+        assertThat(selector.expression().expression()).isEqualTo("KEY");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED_ERROR_MESSAGE
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd | Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
+                    """)
+    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    public void shouldMakeValueSelectorSupplier() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                PROTOBUF.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8081"));
+        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
+        ValueSelectorSupplier<DynamicMessage> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.PROTOBUF);
+    }
+
+    @Test
+    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        // Configure the value evaluator type, but leave default settings for
+        // RECORD_VALUE_EVALUATOR_TYPE (String)
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not PROTOBUF");
+    }
+
+    @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
         Path adapterDir = Paths.get("src/test/resources");
         Path protoValueSchemaFile = adapterDir.resolve("person.proto.desc");
@@ -187,29 +242,27 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_VALUE_EVALUATOR_TYPE,
-                                PROTOBUF.toString(),
-                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
-                                SchemaRegistryConfigs.URL,
-                                "http://localhost:8081"));
-        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        assertDoesNotThrow(() -> s.makeValueSelectorSupplier());
+    public void shouldMakeValueSelector() throws ExtractionException {
+        ValueSelector<DynamicMessage> selector = valueSelector("VALUE");
+        assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
-    @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
-        // Configure the value evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
-        IllegalArgumentException ie =
-                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
-        assertThat(ie.getMessage()).isEqualTo("Evaluator type is not PROTOBUF");
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION         | EXPECTED_ERROR_MESSAGE
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd | Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
+                    """)
+    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -233,109 +286,85 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                                | EXPECTED
-                VALUE.name                                | joe
-                VALUE.email                               | <EMPTY>
-                VALUE.mainAddress.zip                     | <EMPTY>
-                VALUE.mainAddress.country.name            | <EMPTY>
-                VALUE.otherAddresses['work'].city         | Milan
-                VALUE.otherAddresses['work'].country.name | Italy
-                VALUE.otherAddresses['club'].zip          | 96100
-                VALUE.job                                 | EMPLOYEE
-                VALUE.signature                           | abcd
-                VALUE.phoneNumbers[0]                     | 012345
-                VALUE.phoneNumbers[1]                     | 123456
-                VALUE.friends[0].name                     | mike
-                VALUE.friends[1]['name']                  | john
-                VALUE.simpleRoleName                      | Software Architect
-                VALUE.indexedAddresses['1'].city          | Rome
-                VALUE.booleanAddresses['true'].city       | Turin
-                VALUE.booleanAddresses['false'].city      | Florence
-                VALUE.any.type_url                        | type.googleapis.com/Car
-                VALUE.any.value                           | \\n\\004FORD
+                EXPRESSION                                | EXPECTED_NAME   | EXPECTED_VALUE
+                VALUE.name                                | name            | joe
+                VALUE['name']                             | name            | joe
+                VALUE.email                               | email           | <EMPTY>
+                VALUE['email']                            | email           | <EMPTY>
+                VALUE.mainAddress.zip                     | zip             | <EMPTY>
+                VALUE.mainAddress.country.name            | name            | <EMPTY>
+                VALUE.otherAddresses['work'].city         | city            | Milan
+                VALUE.otherAddresses['work'].country.name | name            | Italy
+                VALUE.otherAddresses['club'].zip          | zip             | 96100
+                VALUE.job                                 | job             | EMPLOYEE
+                VALUE.signature                           | signature       | abcd
+                VALUE.phoneNumbers[0]                     | phoneNumbers[0] | 012345
+                VALUE.phoneNumbers[1]                     | phoneNumbers[1] | 123456
+                VALUE.friends[0].name                     | name            | mike
+                VALUE.friends[1]['name']                  | name            | john
+                VALUE.simpleRoleName                      | simpleRoleName  | Software Architect
+                VALUE.indexedAddresses['1'].city          | city            | Rome
+                VALUE.booleanAddresses['true'].city       | city            | Turin
+                VALUE.booleanAddresses['false'].city      | city            | Florence
+                VALUE.any.type_url                        | type_url        | type.googleapis.com/Car
+                VALUE.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractValue(String expressionStr, String expected)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException {
-        String extractedData =
-                valueSelector(Expression(expressionStr))
-                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
-                        .text();
-        assertThat(extractedData).isEqualTo(maybeEmpty(expected));
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(maybeEmpty(expectedValue));
+
+        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE), true);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(maybeEmpty(expectedValue));
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                     EXPECTED_ERROR_MESSAGE
-                VALUE,                          The expression [VALUE] must evaluate to a non-complex object
-                VALUE.no_attrib,                Field [no_attrib] not found
-                VALUE.friends[0].no_attrib,     Field [no_attrib] not found
-                VALUE.no_children[0],           Field [no_children] not found
-                VALUE.name[0],                  Field [name] is not indexed
-                VALUE.name['no_key'],           Cannot retrieve field [no_key] from a scalar object
-                VALUE.name.no_key,              Cannot retrieve field [no_key] from a scalar object
-                VALUE.phoneNumbers,             The expression [VALUE.phoneNumbers] must evaluate to a non-complex object
-                VALUE.otherAddresses,           The expression [VALUE.otherAddresses] must evaluate to a non-complex object
-                VALUE.otherAddresses['no_key'], Field [no_key] not found
-                VALUE.mainAddress,              The expression [VALUE.mainAddress] must evaluate to a non-complex object
-                VALUE.friends[4],               Field not found at index [4]
-                VALUE.friends[4].name,          Field not found at index [4]
-                    """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ValueException ve =
-                assertThrows(
-                        ValueException.class,
-                        () ->
-                                valueSelector(Expression(expressionStr))
-                                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
+    @Test
+    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<?, DynamicMessage> record = fromValue(SAMPLE_MESSAGE);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|', // Required because of the expected value for input VALUE.signature
-            textBlock =
-                    """
-                EXPRESSION         | EXPECTED
-                VALUE              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
-                VALUE.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
-                VALUE.friends      | friends {\\n  name: "alex"\\n}\\n
-                VALUE.friends[0]   | name: "alex"\\n
-                VALUE.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
-                    """)
-    public void shouldExtractValueWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException {
-        String extractedData =
-                valueSelector(Expression(expressionStr))
-                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(unescape(expected));
-    }
+        valueSelector("VALUE.*").extractValueInto(record, target);
+        assertThat(target)
+                .containsAtLeast(
+                        "name", "joe",
+                        "job", "EMPLOYEE",
+                        "simpleRoleName", "Software Architect",
+                        "signature", "abcd");
+        target.clear();
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                VALUE.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                VALUE.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                VALUE.no_children[0],        Cannot retrieve field [no_children] from a null object
-                    """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
-            throws ExtractionException {
-        ValueException ve =
-                assertThrows(
-                        ValueException.class,
-                        () ->
-                                valueSelector(Expression(expressionStr))
-                                        .extractValue(KafkaRecordFromValue((DynamicMessage) null))
-                                        .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        valueSelector("VALUE.car").extractValueInto(record, target);
+        assertThat(target).containsExactly("brand", "BMW");
+        target.clear();
+
+        valueSelector("VALUE.phoneNumbers").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
+        target.clear();
+
+        valueSelector("VALUE.otherAddresses['club']").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
+        target.clear();
+
+        valueSelector("VALUE.data").extractValueInto(record, target);
+        assertThat(target).containsExactly("aDataKey", "-13.3");
+        target.clear();
+
+        valueSelector("VALUE.friends[0]").extractValueInto(record, target);
+        assertThat(target).containsEntry("name", "mike");
+        target.clear();
+
+        valueSelector("VALUE.friends[1]").extractValueInto(record, target);
+        assertThat(target).containsEntry("name", "john");
+        target.clear();
+
+        valueSelector("VALUE.friends[1].friends[0]").extractValueInto(record, target);
+        assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -344,65 +373,46 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                              | EXPECTED
-                KEY.name                                | joe
-                KEY.email                               | <EMPTY>
-                KEY.mainAddress.zip                     | <EMPTY>
-                KEY.mainAddress.country.name            | <EMPTY>
-                KEY.otherAddresses['work'].city         | Milan
-                KEY.otherAddresses['work'].country.name | Italy
-                KEY.otherAddresses['club'].zip          | 96100
-                KEY.job                                 | EMPLOYEE
-                KEY.signature                           | abcd
-                KEY.phoneNumbers[0]                     | 012345
-                KEY.phoneNumbers[1]                     | 123456
-                KEY.friends[0].name                     | mike
-                KEY.friends[1]['name']                  | john
-                KEY.simpleRoleName                      | Software Architect
-                KEY.indexedAddresses['1'].city          | Rome
-                KEY.booleanAddresses['true'].city       | Turin
-                KEY.booleanAddresses['false'].city      | Florence
-                KEY.any.type_url                        | type.googleapis.com/Car
-                KEY.any.value                           | \\n\\004FORD
+                EXPRESSION                     | EXPECTED_ERROR_MESSAGE
+                VALUE                          | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.a b                      | Field [a b] not found
+                VALUE.no_attrib                | Field [no_attrib] not found
+                VALUE['no_attrib']             | Field [no_attrib] not found
+                VALUE[0]                       | Cannot retrieve index [0] from a non-array object
+                VALUE.friends[0].no_attrib     | Field [no_attrib] not found
+                VALUE.no_children[0]           | Field [no_children] not found
+                VALUE.name[0]                  | Field [name] is not indexed
+                VALUE.name['no_key']           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key              | Cannot retrieve field [no_key] from a scalar object
+                VALUE.phoneNumbers             | The expression [VALUE.phoneNumbers] must evaluate to a non-complex object
+                VALUE.otherAddresses           | The expression [VALUE.otherAddresses] must evaluate to a non-complex object
+                VALUE.otherAddresses['no_key'] | Field [no_key] not found
+                VALUE.otherAddresses[0]        | Cannot retrieve index [0] from a non-array object
+                VALUE.mainAddress              | The expression [VALUE.mainAddress] must evaluate to a non-complex object
+                VALUE.friends[4]               | Field not found at index [4]
+                VALUE.friends[4].name          | Field not found at index [4]
+                VALUE.friends['name']          | Cannot retrieve field [name] from an array object
+                VALUE.friends.name             | Cannot retrieve field [name] from an array object
+                VALUE.*                        | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldExtractKey(String expressionStr, String expected)
-            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        String extractedData =
-                keySelector(Expression(expressionStr))
-                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(maybeEmpty(expected));
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                   EXPECTED_ERROR_MESSAGE
-                KEY,                          The expression [KEY] must evaluate to a non-complex object
-                KEY.no_attrib,                Field [no_attrib] not found
-                KEY.friends[0].no_attrib,     Field [no_attrib] not found
-                KEY.no_children[0],           Field [no_children] not found
-                KEY.name[0],                  Field [name] is not indexed
-                KEY.name['no_key'],           Cannot retrieve field [no_key] from a scalar object
-                KEY.name.no_key,              Cannot retrieve field [no_key] from a scalar object
-                KEY.phoneNumbers,             The expression [KEY.phoneNumbers] must evaluate to a non-complex object
-                KEY.otherAddresses,           The expression [KEY.otherAddresses] must evaluate to a non-complex object
-                KEY.otherAddresses['no_key'], Field [no_key] not found
-                KEY.mainAddress,              The expression [KEY.mainAddress] must evaluate to a non-complex object
-                KEY.friends[4],               Field not found at index [4]
-                KEY.friends[4].name,          Field not found at index [4]
-                    """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
+    public void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
-                                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue(SAMPLE_MESSAGE))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -411,79 +421,328 @@ public class DynamicMessageSelectorSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION       | EXPECTED
-                KEY              | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
-                KEY.phoneNumbers | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
-                KEY.friends      | friends {\\n  name: "alex"\\n}\\n
-                KEY.friends[0]   | name: "alex"\\n
-                KEY.mainAddress  | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
+                EXPRESSION                     | EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib                | Field [no_attrib] not found
+                VALUE['no_attrib']             | Field [no_attrib] not found
+                VALUE.friends[0].no_attrib     | Field [no_attrib] not found
+                VALUE.no_children[0]           | Field [no_children] not found
+                VALUE.name[0]                  | Field [name] is not indexed
+                VALUE.name['no_key']           | Cannot retrieve field [no_key] from a scalar object
+                VALUE.name.no_key              | Cannot retrieve field [no_key] from a scalar object
+                VALUE.otherAddresses['no_key'] | Field [no_key] not found
+                VALUE.friends[4]               | Field not found at index [4]
+                VALUE.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldExtractKeyWithNonScalars(String expressionStr, String expected)
-            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
-        String extractedData =
-                keySelector(Expression(expressionStr))
-                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE_V2), false)
-                        .text();
-        assertThat(extractedData).isEqualTo(unescape(expected));
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                fromValue(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,                  EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,             Cannot retrieve field [no_attrib] from a null object
-                KEY.children[0].no_attrib, Cannot retrieve field [children] from a null object
-                KEY.no_children[0],        Cannot retrieve field [no_children] from a null object
+                EXPRESSION         | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE              | VALUE         | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                VALUE.phoneNumbers | phoneNumbers  | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                VALUE.friends      | friends       | friends {\\n  name: "alex"\\n}\\n
+                VALUE.friends[0]   | friends[0]    | name: "alex"\\n
+                VALUE.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldExtractValueWithNonScalars(
+            String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(unescape(expectedValue));
+
+        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE_V2), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(unescape(expectedValue));
+    }
+
+    @Test
+    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+        Data autoBoundValue = valueSelector("VALUE").extractValue(fromValue((DynamicMessage) null));
+        assertThat(autoBoundValue.name()).isEqualTo("VALUE");
+        assertThat(autoBoundValue.text()).isNull();
+
+        Data boundValue =
+                valueSelector("VALUE").extractValue("param", fromValue((DynamicMessage) null));
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isNull();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.no_attrib             | Cannot retrieve field [no_attrib] from a null object
+                VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
+                VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
-                                        .extractKey(KafkaRecordFromKey((DynamicMessage) null))
+                                valueSelector(expression)
+                                        .extractValue(fromValue((DynamicMessage) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue((DynamicMessage) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
+                EXPRESSION                              | EXPECTED_NAME   | EXPECTED_VALUE
+                KEY.name                                | name            | joe
+                KEY['name']                             | name            | joe
+                KEY.email                               | email           | <EMPTY>
+                KEY['email']                            | email           | <EMPTY>
+                KEY.mainAddress.zip                     | zip             | <EMPTY>
+                KEY.mainAddress.country.name            | name            | <EMPTY>
+                KEY.otherAddresses['work'].city         | city            | Milan
+                KEY.otherAddresses['work'].country.name | name            | Italy
+                KEY.otherAddresses['club'].zip          | zip             | 96100
+                KEY.job                                 | job             | EMPLOYEE
+                KEY.signature                           | signature       | abcd
+                KEY.phoneNumbers[0]                     | phoneNumbers[0] | 012345
+                KEY.phoneNumbers[1]                     | phoneNumbers[1] | 123456
+                KEY.friends[0].name                     | name            | mike
+                KEY.friends[1]['name']                  | name            | john
+                KEY.simpleRoleName                      | simpleRoleName  | Software Architect
+                KEY.indexedAddresses['1'].city          | city            | Rome
+                KEY.booleanAddresses['true'].city       | city            | Turin
+                KEY.booleanAddresses['false'].city      | city            | Florence
+                KEY.any.type_url                        | type_url        | type.googleapis.com/Car
+                KEY.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
-                assertThrows(
-                        ExtractionException.class, () -> valueSelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+        KeySelector<DynamicMessage> keySelector = keySelector(expression);
+
+        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(maybeEmpty(expectedValue));
+
+        Data boundData = keySelector.extractKey("param", fromKey(SAMPLE_MESSAGE), true);
+        ;
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(maybeEmpty(expectedValue));
+    }
+
+    @Test
+    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<DynamicMessage, ?> record = fromKey(SAMPLE_MESSAGE);
+
+        keySelector("KEY.*").extractKeyInto(record, target);
+        assertThat(target)
+                .containsAtLeast(
+                        "name", "joe",
+                        "job", "EMPLOYEE",
+                        "simpleRoleName", "Software Architect",
+                        "signature", "abcd");
+        target.clear();
+
+        keySelector("KEY.car").extractKeyInto(record, target);
+        assertThat(target).containsExactly("brand", "BMW");
+        target.clear();
+
+        keySelector("KEY.phoneNumbers").extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly("phoneNumbers[0]", "012345", "phoneNumbers[1]", "123456");
+        target.clear();
+
+        keySelector("KEY.otherAddresses['club']").extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly("zip", "96100", "city", "Siracusa", "street", "", "country", "");
+        target.clear();
+
+        keySelector("KEY.data").extractKeyInto(record, target);
+        assertThat(target).containsExactly("aDataKey", "-13.3");
+        target.clear();
+
+        keySelector("KEY.friends[0]").extractKeyInto(record, target);
+        assertThat(target).containsEntry("name", "mike");
+        target.clear();
+
+        keySelector("KEY.friends[1]").extractKeyInto(record, target);
+        assertThat(target).containsEntry("name", "john");
+        target.clear();
+
+        keySelector("KEY.friends[1].friends[0]").extractKeyInto(record, target);
+        assertThat(target).containsAtLeast("name", "robert", "signature", "abcd");
+        target.clear();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
+                EXPRESSION                   | EXPECTED_ERROR_MESSAGE
+                KEY                       | The expression [KEY] must evaluate to a non-complex object
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY.friends[0].no_attrib     | Field [no_attrib] not found
+                KEY.no_children[0]           | Field [no_children] not found
+                KEY.name[0]                  | Field [name] is not indexed
+                KEY.name['no_key']           | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key              | Cannot retrieve field [no_key] from a scalar object
+                KEY.phoneNumbers             | The expression [KEY.phoneNumbers] must evaluate to a non-complex object
+                KEY.otherAddresses           | The expression [KEY.otherAddresses] must evaluate to a non-complex object
+                KEY.otherAddresses['no_key'] | Field [no_key] not found
+                KEY.otherAddresses[0]        | Cannot retrieve index [0] from a non-array object
+                KEY.mainAddress              | The expression [KEY.mainAddress] must evaluate to a non-complex object
+                KEY.friends[4]               | Field not found at index [4]
+                KEY.friends[4].name          | Field not found at index [4]
+                KEY.friends['name']          | Cannot retrieve field [name] from an array object
+                KEY.friends.name             | Cannot retrieve field [name] from an array object
+                KEY.*                        | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionException ee =
+    public void shouldNotExtractKey(String expression, String errorMessage) {
+        ValueException ve =
                 assertThrows(
-                        ExtractionException.class, () -> keySelector(Expression(expressionStr)));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                        ValueException.class,
+                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                   | EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib                | Field [no_attrib] not found
+                KEY['no_attrib']             | Field [no_attrib] not found
+                KEY.friends[0].no_attrib     | Field [no_attrib] not found
+                KEY.no_children[0]           | Field [no_children] not found
+                KEY.name[0]                  | Field [name] is not indexed
+                KEY.name['no_key']           | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key              | Cannot retrieve field [no_key] from a scalar object
+                KEY.otherAddresses['no_key'] | Field [no_key] not found
+                KEY.friends[4]               | Field not found at index [4]
+                KEY.friends[4].name          | Field not found at index [4]
+                    """)
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION       | EXPECTED_NAME | EXPECTED_VALUE
+                KEY              | KEY           | name: "mike"\\nmainAddress {\\n  city: "London"\\n  country {\\n    name: "England"\\n  }\\n}\\nphoneNumbers: "111111"\\nphoneNumbers: "222222"\\nfriends {\\n  name: "alex"\\n}\\njob: ARTIST\\n
+                KEY.phoneNumbers | phoneNumbers  | phoneNumbers: "111111"\\nphoneNumbers: "222222"\\n
+                KEY.friends      | friends       | friends {\\n  name: "alex"\\n}\\n
+                KEY.friends[0]   | friends[0]    | name: "alex"\\n
+                KEY.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
+                    """)
+    public void shouldExtractKeyWithNonScalars(
+            String expression, String expectedName, String expectedValue)
+            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+        KeySelector<DynamicMessage> keySelector = keySelector(expression);
+
+        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(unescape(expectedValue));
+
+        Data boundData = keySelector.extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(unescape(expectedValue));
+    }
+
+    @Test
+    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+        Data autoBoundValue = keySelector("KEY").extractKey(fromKey((DynamicMessage) null));
+        assertThat(autoBoundValue.name()).isEqualTo("KEY");
+        assertThat(autoBoundValue.text()).isNull();
+
+        Data boundValue = keySelector("KEY").extractKey("param", fromKey((DynamicMessage) null));
+        assertThat(boundValue.name()).isEqualTo("param");
+        assertThat(boundValue.text()).isNull();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                |  EXPECTED_ERROR_MESSAGE
+                KEY.no_attrib              | Cannot retrieve field [no_attrib] from a null object
+                KEY.children[0].no_attrib  | Cannot retrieve field [children] from a null object
+                KEY.no_children[0]         | Cannot retrieve field [no_children] from a null object
+                    """)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+            throws ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKey(fromKey((DynamicMessage) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKey("param", fromKey((DynamicMessage) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(
+                                                fromKey((DynamicMessage) null), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }

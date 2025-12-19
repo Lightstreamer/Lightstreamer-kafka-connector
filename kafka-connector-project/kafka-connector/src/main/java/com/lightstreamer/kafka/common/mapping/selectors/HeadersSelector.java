@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2024 Lightstreamer Srl
+ * Copyright (C) 2025 Lightstreamer Srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,11 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.mapping.selectors;
+package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
-import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import java.util.Map;
 
-public interface KeyValueSelectorSuppliersMaker<T> {
+public interface HeadersSelector extends GenericSelector {
 
-    KeySelectorSupplier<T> makeKeySelectorSupplier();
-
-    ValueSelectorSupplier<T> makeValueSelectorSupplier();
+    void extractInto(KafkaRecord<?, ?> record, Map<String, String> target) throws ValueException;
 }

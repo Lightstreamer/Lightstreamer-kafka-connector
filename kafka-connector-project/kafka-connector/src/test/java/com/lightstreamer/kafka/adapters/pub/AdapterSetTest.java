@@ -89,13 +89,13 @@ public class AdapterSetTest {
 
     @Test
     void shouldNotInitDueToMissingRequiredParameters() {
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () ->
                                 connectorMetadataAdapter.init(
                                         metadataAdapterParams, adapterDir.toFile()));
-        assertThat(e)
+        assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Missing required parameter [logging.configuration.path]");
     }

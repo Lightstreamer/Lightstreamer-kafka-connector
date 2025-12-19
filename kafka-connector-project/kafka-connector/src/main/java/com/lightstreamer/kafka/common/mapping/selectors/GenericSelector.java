@@ -21,9 +21,15 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 public interface GenericSelector extends Selector {
 
+    default Data extract(String name, KafkaRecord<?, ?> record) throws ValueException {
+        return extract(name, record, true);
+    }
+
+    Data extract(String name, KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException;
+
     default Data extract(KafkaRecord<?, ?> record) throws ValueException {
         return extract(record, true);
     }
 
-    Data extract(KafkaRecord<?, ?> record, boolean checkScalar);
+    Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException;
 }

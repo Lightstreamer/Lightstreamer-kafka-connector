@@ -145,18 +145,30 @@ public class RecordMapperBenchmarks {
         }
     }
 
+    /**
+     * Benchmarks the mapping of JSON-formatted Kafka records to MappedRecord objects. Measures the
+     * overhead of the complete record mapping process for JSON data.
+     */
     @Benchmark
     public void measureMapWithJson(Json json, Blackhole bh) throws ExtractionException {
         MappedRecord map = json.mapper.map(json.record);
         bh.consume(map);
     }
 
+    /**
+     * Benchmarks the mapping of Protobuf-formatted Kafka records to MappedRecord objects. Measures
+     * the overhead of the complete record mapping process for Protobuf data.
+     */
     @Benchmark
     public void measureMapWithProtobuf(Protobuf proto, Blackhole bh) throws ExtractionException {
         MappedRecord map = proto.mapper.map(proto.record);
         bh.consume(map);
     }
 
+    /**
+     * Benchmarks the complete mapping and field extraction workflow for JSON records. Measures the
+     * performance of mapping a record and then extracting its fields into a Map.
+     */
     @Benchmark
     public void measureMapAndFieldsMapWithJson(Json plan, Blackhole bh) throws ExtractionException {
         MappedRecord map = plan.mapper.map(plan.records.get(0));
@@ -164,6 +176,10 @@ public class RecordMapperBenchmarks {
         bh.consume(filtered);
     }
 
+    /**
+     * Benchmarks the complete mapping and field extraction workflow for Protobuf records. Measures
+     * the performance of mapping a record and then extracting its fields into a Map.
+     */
     @Benchmark
     public void measureMapAndFieldsMapWithProtobuf(Protobuf plan, Blackhole bh)
             throws ExtractionException {

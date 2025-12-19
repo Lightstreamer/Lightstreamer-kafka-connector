@@ -159,11 +159,11 @@ public class Records {
         return sink(topic, keySchema, key, null, null);
     }
 
-    public static KafkaRecord<Object, Object> sinkFromHeaders(
-            String topic, org.apache.kafka.connect.header.Headers headers) {
+    public static KafkaRecord<Object, Object> sinkWithHeaders(
+            Object key, Object value, org.apache.kafka.connect.header.Headers headers) {
         return KafkaRecord.from(
                 new SinkRecord(
-                        topic,
+                        "record-topic",
                         150,
                         null,
                         null,

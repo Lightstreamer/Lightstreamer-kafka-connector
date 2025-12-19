@@ -70,6 +70,10 @@ public class MultiplexerBenchmark {
         return calculateFibonacci(n - 1) + calculateFibonacci(n - 2);
     }
 
+    /**
+     * Benchmarks the multiplexer's task execution throughput. Measures the performance of
+     * distributing and executing multiple concurrent tasks across the multiplexer's thread pool.
+     */
     @Benchmark
     public void multiplexerExecutor(Blackhole bh) throws InterruptedException {
         for (int i = 0; i < taskCount; i++) {

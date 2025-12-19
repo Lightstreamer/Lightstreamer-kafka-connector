@@ -103,7 +103,7 @@ configs:
       ssl.keystore.password=producer-password
       ssl.key.password=producer-private-key-password
       ssl.endpoint.identification.algorithm=
-      # Protobuf serializer
+      # Protobuf serializer with support for the Schema Registry
       value.serializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
       # Schema Registry URL
       schema.registry.url=https://schema-registry:8084

@@ -168,11 +168,13 @@ public class StreamingDataAdapterTest {
         StreamingDataAdapter adapter = newAdapter();
         SubscriptionException se1 =
                 assertThrows(SubscriptionException.class, () -> adapter.subscribe("anItem"));
-        assertThat(se1.getMessage()).isEqualTo("Item does not match any defined item templates");
+        assertThat(se1)
+                .hasMessageThat()
+                .isEqualTo("Item does not match any defined item templates");
 
         SubscriptionException se2 =
                 assertThrows(SubscriptionException.class, () -> adapter.subscribe("@"));
-        assertThat(se2.getMessage()).isEqualTo("Invalid Item");
+        assertThat(se2).hasMessageThat().isEqualTo("Invalid Item");
     }
 
     @Test
@@ -397,8 +399,8 @@ public class StreamingDataAdapterTest {
                 assertThrows(
                         ConnectException.class,
                         () -> adapter.sendRecords(Collections.singleton(record)));
-        assertThat(ce.getLocalizedMessage()).isEqualTo("No DQL, terminating task");
-        assertThat(ce.getCause()).isInstanceOf(ValueException.class);
+        assertThat(ce).hasMessageThat().isEqualTo("No DQL, terminating task");
+        assertThat(ce).hasCauseThat().isInstanceOf(ValueException.class);
 
         // Verify that the ItemEventListener has NOT been updated.
         assertThat(eventListener.getRealtimeUpdates()).isEmpty();
@@ -430,8 +432,8 @@ public class StreamingDataAdapterTest {
                 assertThrows(
                         ConnectException.class,
                         () -> adapter.sendRecords(Collections.singleton(record)));
-        assertThat(ce.getLocalizedMessage()).isEqualTo("Terminating task");
-        assertThat(ce.getCause()).isInstanceOf(ValueException.class);
+        assertThat(ce).hasMessageThat().isEqualTo("Terminating task");
+        assertThat(ce).hasCauseThat().isInstanceOf(ValueException.class);
 
         // Verify that the ItemEventListener has NOT been updated.
         assertThat(eventListener.getRealtimeUpdates()).isEmpty();

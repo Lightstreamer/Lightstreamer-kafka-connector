@@ -119,7 +119,7 @@ public class TopicMappingConfigTest {
         map.put(topic, null);
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> TopicMappingConfig.from(map));
-        assertThat(ce.getMessage()).isEqualTo("Topic must be a non-empty string");
+        assertThat(ce).hasMessageThat().isEqualTo("Topic must be a non-empty string");
     }
 
     @ParameterizedTest
@@ -129,7 +129,7 @@ public class TopicMappingConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> TopicMappingConfig.fromDelimitedMappings(topic, "item"));
-        assertThat(ce.getMessage()).isEqualTo("Topic must be a non-empty string");
+        assertThat(ce).hasMessageThat().isEqualTo("Topic must be a non-empty string");
     }
 
     @ParameterizedTest
@@ -144,7 +144,7 @@ public class TopicMappingConfigTest {
         map.put("topic", mapping);
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> TopicMappingConfig.from(map));
-        assertThat(ce.getMessage()).isEqualTo("Topic mappings must be non-empty strings");
+        assertThat(ce).hasMessageThat().isEqualTo("Topic mappings must be non-empty strings");
     }
 
     @ParameterizedTest
@@ -154,6 +154,6 @@ public class TopicMappingConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> TopicMappingConfig.fromDelimitedMappings("topic", mapping));
-        assertThat(ce.getMessage()).isEqualTo("Topic mappings must be non-empty strings");
+        assertThat(ce).hasMessageThat().isEqualTo("Topic mappings must be non-empty strings");
     }
 }

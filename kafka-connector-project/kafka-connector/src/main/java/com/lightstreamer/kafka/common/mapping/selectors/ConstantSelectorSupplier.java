@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
@@ -27,19 +29,29 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelector> {
+public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelector> {
 
-    private static class ConstantSelectorImpl extends BaseSelector implements ConstantSelector {
+    private static class ConstantSelectorImpl extends BaseSelector implements GenericSelector {
 
         private final Constant constant;
 
-        ConstantSelectorImpl(String name, Constant expression) {
-            super(name, expression);
-            this.constant = expression;
+        ConstantSelectorImpl(Constant constant) {
+            super(constant);
+            this.constant = constant;
         }
 
         @Override
-        public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) throws ValueException {
+        public Data extract(KafkaRecord<?, ?> record, boolean checkScalar) {
+            return extract(constant.name(), record, checkScalar);
+        }
+
+        @Override
+        public Data extract(String name, KafkaRecord<?, ?> record, boolean checkScalar)
+                throws ValueException {
+            return new SimpleData(name, getText(record));
+        }
+
+        private String getText(KafkaRecord<?, ?> record) {
             Object data =
                     switch (constant) {
                         case TIMESTAMP -> String.valueOf(record.timestamp());
@@ -49,60 +61,46 @@ public class ConstantSelectorSupplier implements SelectorSupplier<ConstantSelect
                         case KEY -> record.key();
                         case VALUE -> record.value();
                         default ->
+                                // This should never happen as HEADERS is not supported
                                 throw new IllegalStateException("Unexpected constant: " + constant);
                     };
-            return new SimpleData(name(), Objects.toString(data, null));
-        }
-
-        @Override
-        public Data extractKey(KafkaRecord<Object, ?> record, boolean checkScalar)
-                throws ValueException {
-            return new SimpleData(name(), Objects.toString(record.key(), null));
-        }
-
-        @Override
-        public Data extractValue(KafkaRecord<?, Object> record, boolean checkScalar)
-                throws ValueException {
-            return new SimpleData(name(), Objects.toString(record.value(), null));
+            return Objects.toString(data, null);
         }
     }
 
     private final Set<Constant> allowedConstants;
 
-    ConstantSelectorSupplier(Constant... constant) {
+    private ConstantSelectorSupplier(Constant... constant) {
         this.allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
     }
 
-    ConstantSelectorSupplier() {
-        this(Constant.values());
-    }
-
     @Override
-    public ConstantSelector newSelector(String name, ExtractionExpression expression)
-            throws ExtractionException {
-        return mkSelector(name, expression);
+    public GenericSelector newSelector(ExtractionExpression expression) throws ExtractionException {
+        return mkSelector(expression);
     }
 
     String expectedConstantStr() {
         return allowedConstants.stream().map(Constant::toString).collect(Collectors.joining("|"));
     }
 
-    private ConstantSelectorImpl mkSelector(String name, ExtractionExpression expression)
+    private ConstantSelectorImpl mkSelector(ExtractionExpression expression)
             throws ExtractionException {
         if (!allowedConstants.contains(expression.constant())) {
-            throw ExtractionException.expectedRootToken(name, expectedConstantStr());
+            throw ExtractionException.expectedRootToken(
+                    expression.expression(), expectedConstantStr());
         }
         if (expression.tokens().length > 1) {
-            throw ExtractionException.notAllowedAttributes(name, expression.expression());
+            throw ExtractionException.notAllowedAttributes(expression.expression());
         }
-        return new ConstantSelectorImpl(name, expression.constant());
+        return new ConstantSelectorImpl(expression.constant());
     }
 
-    public static ConstantSelectorSupplier KeySelector() {
-        return new ConstantSelectorSupplier(Constant.KEY);
-    }
-
-    public static ConstantSelectorSupplier ValueSelector() {
-        return new ConstantSelectorSupplier(Constant.VALUE);
+    public static ConstantSelectorSupplier makeSelectorSupplier(Constant... constants) {
+        for (Constant constant : constants) {
+            if (constant == HEADERS) {
+                throw new IllegalArgumentException("Cannot handle HEADERS constant");
+            }
+        }
+        return new ConstantSelectorSupplier(constants);
     }
 }

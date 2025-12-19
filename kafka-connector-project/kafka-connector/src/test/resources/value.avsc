@@ -65,7 +65,17 @@
             }
         },
         {
-            "name": "nullArray",
+            "name": "array",
+            "type": {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": "string"
+                }
+            }
+        },        
+        {
+            "name": "nullValue",
             "type": {
                 "type": "array",
                 "items": {

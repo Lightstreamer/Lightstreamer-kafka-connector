@@ -19,9 +19,12 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.discoveredFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleDynamicMessageProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -32,12 +35,14 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Object;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.ProtoValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -47,9 +52,13 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class RecordMapperTest {
 
@@ -64,76 +73,91 @@ public class RecordMapperTest {
     public void shouldBuildEmptyMapper() {
         RecordMapper<String, String> mapper = builder().build();
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasTemplateExtractors()).isFalse();
+        assertThat(mapper.hasCanonicalItemExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
     }
 
     @Test
-    public void shouldBuildMapperWithDuplicateTemplateExtractors() throws ExtractionException {
+    public void shouldBuildMapperWithDuplicateCanonicalItemExtractors() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(String(), Template("test-#{aKey=PARTITION}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        String(),
+                                        Template("test-#{aPartition=PARTITION,anOffset=OFFSET}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(String(), Template("test-#{aKey=PARTITION}")))
+                                canonicalItemExtractor(
+                                        String(),
+                                        Template("test-#{anOffset=OFFSET,aPartition=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
-                .containsExactly(extractor(String(), Template("test-#{aKey=PARTITION}")));
-        // extractor(String(), "test", Map.of("aKey", Expression("PARTITION"))));
+                .containsExactly(
+                        canonicalItemExtractor(
+                                String(),
+                                Template("test-#{aPartition=PARTITION,anOffset=OFFSET}")));
     }
 
     @Test
-    public void shouldBuildMapperWithDifferentTemplateExtractors() throws ExtractionException {
+    public void shouldBuildMapperWithDifferentCanonicalItemExtractors() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withTemplateExtractor(
-                                TEST_TOPIC_1, extractor(String(), Template("prefix1-#{aKey=KEY}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(String(), Template("prefix2-#{aValue=PARTITION}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(String(), Template("prefix1-#{aKey=KEY}")))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(
+                                        String(), Template("prefix1-#{aKey=PARTITION}")))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(
+                                        String(), Template("prefix2-#{aKey=PARTITION}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")))
+                                canonicalItemExtractor(
+                                        String(), Template("anotherPrefix-#{aKey=PARTITION}")))
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isFalse();
         assertThat(mapper.isRegexEnabled()).isFalse();
-        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(2);
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(3);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1))
                 .containsExactly(
-                        extractor(String(), Template("prefix1-#{aKey=KEY}")),
-                        extractor(String(), Template("prefix2-#{aValue=PARTITION}")));
+                        canonicalItemExtractor(String(), Template("prefix1-#{aKey=KEY}")),
+                        canonicalItemExtractor(String(), Template("prefix1-#{aKey=PARTITION}")),
+                        canonicalItemExtractor(String(), Template("prefix2-#{aKey=PARTITION}")));
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2)).hasSize(1);
         assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_2))
-                .containsExactly(extractor(String(), Template("anotherPrefix-#{aKey=PARTITION}")));
+                .containsExactly(
+                        canonicalItemExtractor(
+                                String(), Template("anotherPrefix-#{aKey=PARTITION}")));
     }
 
     @Test
-    public void shouldBuildWithFieldsExtractor() throws ExtractionException {
+    public void shouldBuildMapperWithStaticFieldsExtractor() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of("aKey", Wrapped("#{PARTITION}")),
                                         false,
                                         false))
                         .build();
 
         assertThat(mapper).isNotNull();
-        assertThat(mapper.hasTemplateExtractors()).isFalse();
+        assertThat(mapper.hasCanonicalItemExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isTrue();
     }
 
@@ -141,23 +165,25 @@ public class RecordMapperTest {
     public void shouldMapRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         String(),
                                         Template("prefix1-#{partition=PARTITION,value=VALUE}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
-                        .withTemplateExtractor(
-                                TEST_TOPIC_1, extractor(String(), Template("prefix3-#{key=KEY}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        String(), Template("prefix2-#{topic=TOPIC}")))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(String(), Template("prefix3-#{key=KEY}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(String(), Template("prefix3-#{value=VALUE}")))
+                                canonicalItemExtractor(
+                                        String(), Template("prefix3-#{value=VALUE}")))
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of(
                                                 "keyField",
                                                 Wrapped("#{KEY}"),
@@ -168,7 +194,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
 
         // Record published to topic "topic": mapping
@@ -223,24 +249,26 @@ public class RecordMapperTest {
     public void shouldMapRecordWithMatchingTopicPattern() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 "topic[0-9]+",
-                                extractor(
+                                canonicalItemExtractor(
                                         String(),
                                         Template("prefix1-#{partition=PARTITION,value=VALUE}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 "topic[0-9]+",
-                                extractor(String(), Template("prefix2-#{topic=TOPIC}")))
-                        .withTemplateExtractor(
-                                "topic[0-9]+", extractor(String(), Template("prefix3-#{key=KEY}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        String(), Template("prefix2-#{topic=TOPIC}")))
+                        .addCanonicalItemExtractor(
+                                "topic[0-9]+",
+                                canonicalItemExtractor(String(), Template("prefix3-#{key=KEY}")))
+                        .addCanonicalItemExtractor(
                                 "anotherTopic[A-C]",
-                                extractor(String(), Template("prefix3-#{value=VALUE}")))
+                                canonicalItemExtractor(
+                                        String(), Template("prefix3-#{value=VALUE}")))
                         .enableRegex(true)
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         String(),
-                                        "fields",
                                         Map.of(
                                                 "keyField",
                                                 Wrapped("#{KEY}"),
@@ -249,7 +277,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isTrue();
 
@@ -299,43 +327,58 @@ public class RecordMapperTest {
         assertThat(mappedRecord4.fieldsMap()).isEmpty();
     }
 
-    @Test
-    public void shouldMapJsonRecordWithMatchingTopic() throws ExtractionException {
+    static Stream<Arguments> jsonFieldExtractors() throws ExtractionException {
+        return Stream.of(
+                arguments(
+                        namedFieldsExtractor(
+                                JsonValue(),
+                                Map.of(
+                                        "firstName",
+                                        Wrapped("#{VALUE.name}"),
+                                        "childSignature",
+                                        Wrapped("#{VALUE.children[0].signature}")),
+                                false,
+                                false),
+                        true),
+                arguments(
+                        discoveredFieldsExtractor(
+                                JsonValue(),
+                                List.of(WrappedWithWildcards("#{VALUE.children[0].*}")),
+                                false),
+                        false));
+    }
+
+    @ParameterizedTest
+    @MethodSource("jsonFieldExtractors")
+    public void shouldMapJsonRecordWithMatchingTopic(
+            FieldsExtractor<String, JsonNode> fieldsExtractor, boolean isStatic)
+            throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        JsonValue(), Template("test-#{name=VALUE.name}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         JsonValue(),
                                         Template("test-#{firstChildName=VALUE.children[0].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         JsonValue(),
                                         Template(
                                                 "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
+                                canonicalItemExtractor(
                                         JsonValue(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
-                        .withFieldExtractor(
-                                extractor(
-                                        JsonValue(),
-                                        "fields",
-                                        Map.of(
-                                                "firstName",
-                                                Wrapped("#{VALUE.name}"),
-                                                "childSignature",
-                                                Wrapped("#{VALUE.children[0].signature}")),
-                                        false,
-                                        false))
+                        .withFieldExtractor(fieldsExtractor)
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -350,8 +393,13 @@ public class RecordMapperTest {
                         "test-[name=joe]",
                         "test-[firstChildName=alex]",
                         "test-[grandChildName=terence,secondChildName=anna]");
-        assertThat(mappedRecord.fieldsMap())
-                .containsExactly("firstName", "joe", "childSignature", null);
+
+        Map<String, String> fieldsMap = mappedRecord.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap).containsExactly("firstName", "joe", "childSignature", null);
+        } else {
+            assertThat(fieldsMap).containsAtLeast("name", "alex");
+        }
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord2 =
@@ -361,8 +409,12 @@ public class RecordMapperTest {
         assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[grandChildName=gloria,thirdChildName=serena]");
-        assertThat(mappedRecord2.fieldsMap())
-                .containsExactly("firstName", "joe", "childSignature", null);
+        Map<String, String> fieldsMap2 = mappedRecord.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap2).containsExactly("firstName", "joe", "childSignature", null);
+        } else {
+            assertThat(fieldsMap2).containsAtLeast("name", "alex");
+        }
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, JsonNode> kafkaRecord3 =
@@ -378,13 +430,13 @@ public class RecordMapperTest {
         boolean skipOnFailure = true;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                                canonicalItemExtractor(
+                                        JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -395,7 +447,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -411,13 +463,13 @@ public class RecordMapperTest {
         boolean skipOnFailure = false;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(JsonValue(), Template("test-#{name=VALUE.name}")))
+                                canonicalItemExtractor(
+                                        JsonValue(), Template("test-#{name=VALUE.name}")))
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -428,7 +480,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -436,7 +488,7 @@ public class RecordMapperTest {
                 Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         ValueException ve = assertThrows(ValueException.class, () -> mappedRecord.fieldsMap());
-        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+        assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
     }
 
     @ParameterizedTest
@@ -444,16 +496,15 @@ public class RecordMapperTest {
     public void shouldNotMapDueToTemplateFailure(boolean skipOnFailure) throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
                                 // This leads a ValueException, which leads to make mapping fail
-                                extractor(
+                                canonicalItemExtractor(
                                         JsonValue(),
                                         Template("test-#{name=VALUE.not_valid_attrib}")))
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         JsonValue(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -464,7 +515,7 @@ public class RecordMapperTest {
                                         skipOnFailure,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -477,46 +528,61 @@ public class RecordMapperTest {
                                                 TEST_TOPIC_1,
                                                 "",
                                                 SampleJsonNodeProvider().sampleMessage())));
-        assertThat(ve.getMessage()).isEqualTo("Field [not_valid_attrib] not found");
+        assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
     }
 
-    @Test
-    public void shouldMapAvroRecordWithMatchingTopic() throws ExtractionException {
+    static Stream<Arguments> avoFieldExtractors() throws ExtractionException {
+        return Stream.of(
+                arguments(
+                        namedFieldsExtractor(
+                                AvroValue(),
+                                Map.of(
+                                        "firstName",
+                                        Wrapped("#{VALUE.name}"),
+                                        "childSignature",
+                                        Wrapped("#{VALUE.children[0].signature}")),
+                                false,
+                                false),
+                        true),
+                arguments(
+                        discoveredFieldsExtractor(
+                                AvroValue(),
+                                List.of(WrappedWithWildcards("#{VALUE.children[0].*}")),
+                                false),
+                        false));
+    }
+
+    @ParameterizedTest
+    @MethodSource("avoFieldExtractors")
+    public void shouldMapAvroRecordWithMatchingTopic(
+            FieldsExtractor<String, GenericRecord> fieldExtractor, boolean isStatic)
+            throws ExtractionException {
         RecordMapper<String, GenericRecord> mapper =
                 RecordMapper.<String, GenericRecord>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(AvroValue(), Template("test-#{name=VALUE.name}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        AvroValue(), Template("test-#{name=VALUE.name}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         AvroValue(),
                                         Template("test-#{firstChildName=VALUE.children[0].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         AvroValue(),
                                         Template(
                                                 "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
+                                canonicalItemExtractor(
                                         AvroValue(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
-                        .withFieldExtractor(
-                                extractor(
-                                        AvroValue(),
-                                        "fields",
-                                        Map.of(
-                                                "firstName",
-                                                Wrapped("#{VALUE.name}"),
-                                                "childSignature",
-                                                Wrapped("#{VALUE.children[0].signature}")),
-                                        false,
-                                        false))
+                        .withFieldExtractor(fieldExtractor)
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -532,8 +598,13 @@ public class RecordMapperTest {
                         "test-[name=joe]",
                         "test-[firstChildName=alex]",
                         "test-[grandChildName=terence,secondChildName=anna]");
-        assertThat(mappedRecord.fieldsMap())
-                .containsExactly("firstName", "joe", "childSignature", null);
+
+        Map<String, String> fieldsMap = mappedRecord.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap).containsExactly("firstName", "joe", "childSignature", null);
+        } else {
+            assertThat(fieldsMap).containsAtLeast("name", "alex");
+        }
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
@@ -544,8 +615,12 @@ public class RecordMapperTest {
         assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[grandChildName=gloria,thirdChildName=serena]");
-        assertThat(mappedRecord2.fieldsMap())
-                .containsExactly("firstName", "joe", "childSignature", null);
+        Map<String, String> fieldsMap2 = mappedRecord2.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap2).containsExactly("firstName", "joe", "childSignature", null);
+        } else {
+            assertThat(fieldsMap2).containsAtLeast("name", "alex");
+        }
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
@@ -556,44 +631,58 @@ public class RecordMapperTest {
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
     }
 
-    @Test
-    public void shouldMapProtobufRecordWithMatchingTopic() throws ExtractionException {
+    static Stream<Arguments> protobufFieldExtractors() throws ExtractionException {
+        return Stream.of(
+                arguments(
+                        namedFieldsExtractor(
+                                ProtoValue(),
+                                Map.of(
+                                        "firstName",
+                                        Wrapped("#{VALUE.name}"),
+                                        "friendSignature",
+                                        Wrapped("#{VALUE.friends[1].friends[0].signature}")),
+                                false,
+                                false),
+                        true),
+                arguments(
+                        discoveredFieldsExtractor(
+                                ProtoValue(),
+                                List.of(WrappedWithWildcards("#{VALUE.friends[1].friends[0].*}")),
+                                false),
+                        false));
+    }
+
+    @ParameterizedTest
+    @MethodSource("protobufFieldExtractors")
+    public void shouldMapProtobufRecordWithMatchingTopic(
+            FieldsExtractor<String, DynamicMessage> fieldsExtractor, boolean isStatic)
+            throws ExtractionException {
         RecordMapper<String, DynamicMessage> mapper =
                 RecordMapper.<String, DynamicMessage>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(ProtoValue(), Template("test-#{name=VALUE.name}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        ProtoValue(), Template("test-#{name=VALUE.name}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         ProtoValue(),
                                         Template("test-#{firstFriendName=VALUE.friends[0].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         ProtoValue(),
                                         Template(
                                                 "test-#{secondFriendName=VALUE.friends[1].name,otherName=VALUE.friends[1].friends[0].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
+                                canonicalItemExtractor(
                                         ProtoValue(),
                                         Template(
                                                 "test-#{phoneNumber=VALUE.phoneNumbers[0],country=VALUE.otherAddresses['work'].country.name}")))
-                        .withFieldExtractor(
-                                extractor(
-                                        ProtoValue(),
-                                        "fields",
-                                        Map.of(
-                                                "firstName",
-                                                Wrapped("#{VALUE.name}"),
-                                                "friendSignature",
-                                                Wrapped(
-                                                        "#{VALUE.friends[1].friends[0].signature}")),
-                                        false,
-                                        false))
+                        .withFieldExtractor(fieldsExtractor)
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
@@ -609,8 +698,12 @@ public class RecordMapperTest {
                         "test-[name=joe]",
                         "test-[firstFriendName=mike]",
                         "test-[otherName=robert,secondFriendName=john]");
-        assertThat(mappedRecord.fieldsMap())
-                .containsExactly("firstName", "joe", "friendSignature", "abcd");
+        Map<String, String> fieldsMap = mappedRecord.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap).containsExactly("firstName", "joe", "friendSignature", "abcd");
+        } else {
+            assertThat(fieldsMap).containsAtLeast("name", "robert", "signature", "abcd");
+        }
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, DynamicMessage> kafkaRecord2 =
@@ -621,9 +714,12 @@ public class RecordMapperTest {
         assertThat(canonicalItemNamesFromAnotherTopic)
                 .asList()
                 .containsExactly("test-[country=Italy,phoneNumber=012345]");
-
-        assertThat(mappedRecord2.fieldsMap())
-                .containsExactly("firstName", "joe", "friendSignature", "abcd");
+        Map<String, String> fieldsMap2 = mappedRecord2.fieldsMap();
+        if (isStatic) {
+            assertThat(fieldsMap2).containsExactly("firstName", "joe", "friendSignature", "abcd");
+        } else {
+            assertThat(fieldsMap2).containsAtLeast("name", "robert", "signature", "abcd");
+        }
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, DynamicMessage> kafkaRecord3 =
@@ -638,30 +734,30 @@ public class RecordMapperTest {
     public void shouldMapSinkRecordMatchingTopic() throws ExtractionException {
         RecordMapper<Object, Object> mapper =
                 RecordMapper.<Object, Object>builder()
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(Object(), Template("test-#{name=VALUE.name}")))
-                        .withTemplateExtractor(
+                                canonicalItemExtractor(
+                                        Object(), Template("test-#{name=VALUE.name}")))
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         Object(),
                                         Template("test-#{firstChildName=VALUE.children[0].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                extractor(
+                                canonicalItemExtractor(
                                         Object(),
                                         Template(
                                                 "test-#{secondChildName=VALUE.children[1].name,grandChildName=VALUE.children[1].children[1].name}")))
-                        .withTemplateExtractor(
+                        .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
-                                extractor(
+                                canonicalItemExtractor(
                                         Object(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
                         .withFieldExtractor(
-                                extractor(
+                                namedFieldsExtractor(
                                         Object(),
-                                        "fields",
                                         Map.of(
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
@@ -670,7 +766,7 @@ public class RecordMapperTest {
                                         false,
                                         false))
                         .build();
-        assertThat(mapper.hasTemplateExtractors()).isTrue();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
