@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node.NullNode;
 import com.lightstreamer.kafka.common.mapping.selectors.SelectorEvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.StructuredBaseSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -42,7 +43,6 @@ import com.lightstreamer.kafka.common.utils.Split.Splitter;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +59,56 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         @Override
         default int size() {
             return 0;
+        }
+
+        /**
+         * Parses a string containing key-value pairs using the default delimiters.
+         *
+         * <p>The input string is expected to contain key-value pairs separated by a semicolon
+         * ({@code ;}) and keys and values separated by an equals sign ({@code =}).
+         *
+         * @param name the name to be assigned to the created node
+         * @param text the input string to be parsed. If null or blank, a {@code KvpNullNode} is
+         *     returned.
+         * @return a {@code KvpNode} - specifically, a {@code KvpMap} containing the parsed
+         *     key-value pairs if the input is valid, or a {@code KvpNullNode} if the input is null
+         *     or blank
+         */
+        static KvpNode fromString(String name, String text) {
+            return fromString(name, text, Split.on(';'), Split.on('='));
+        }
+
+        /**
+         * Parses a string containing key-value pairs using custom splitters.
+         *
+         * <p>This method allows customization of the delimiters used to split the input string. The
+         * {@code pairs} splitter divides the input into individual key-value pair strings, and the
+         * {@code keyValue} splitter separates each pair into its key and value components.
+         *
+         * @param name the name to be assigned to the created node
+         * @param text the input string to be parsed. If null or blank, a {@code KvpNullNode} is
+         *     returned.
+         * @param pairs a {@code Splitter} used to split the input string into individual pair
+         *     strings
+         * @param keyValue a {@code Splitter} used to split each pair string into key and value
+         *     components
+         * @return a {@code KvpNode} - specifically, a {@code KvpMap} containing the parsed
+         *     key-value pairs if the input is valid, or a {@code KvpNullNode} if the input is null
+         *     or blank
+         */
+        static KvpNode fromString(String name, String text, Splitter pairs, Splitter keyValue) {
+            if (text == null || text.isBlank()) {
+                return new KvpNullNode(name);
+            }
+
+            List<String> tokens = pairs.splitToList(text);
+            Map<String, String> values = new LinkedHashMap<>();
+            for (int i = 0; i < tokens.size(); i++) {
+                keyValue.splitToPair(tokens.get(i), true)
+                        .ifPresent(pair -> values.put(pair.key(), pair.value()));
+            }
+
+            return new KvpMap(name, values);
         }
     }
 
@@ -104,7 +154,14 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public KvpNode getIndexed(String nodeName, int index, String indexedPropertyName) {
-            throw ValueException.scalarObject(indexedPropertyName);
+            throw ValueException.noIndexedField(indexedPropertyName);
+        }
+    }
+
+    static class KvpNullNode extends NullNode<KvpNode> implements KvpNode {
+
+        private KvpNullNode(String name) {
+            super(name);
         }
     }
 
@@ -140,7 +197,12 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public KvpNode getProperty(String nodeName, String propertyName) {
-            return new KvpValue(nodeName, values.get(propertyName));
+            String value = values.get(propertyName);
+            if (value != null) {
+                return new KvpValue(nodeName, value);
+            }
+
+            throw ValueException.fieldNotFound(propertyName);
         }
 
         @Override
@@ -150,67 +212,17 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
 
         @Override
         public String text() {
-            return !isNull() ? toString() : null;
+            return values.toString();
         }
 
         @Override
         public String toString() {
-            return values.toString();
+            return text();
         }
 
         @Override
         public void flatIntoMap(Map<String, String> target) {
             target.putAll(values);
-        }
-
-        /**
-         * Parses a string into a {@code KvpMap} using the default delimiters for key-value pairs
-         * and key-value separation.
-         *
-         * <p>The input string is expected to contain key-value pairs separated by a semicolon
-         * ({@code ;}) and keys and values separated by an equals sign ({@code =}).
-         *
-         * @param name the name to be assigned to the created {@code KvpMap}
-         * @param text the input string to be parsed into a {@code KvpMap}. If null or blank, an
-         *     empty {@code KvpMap} is returned.
-         * @return a {@code KvpMap} containing the parsed key-value pairs, or an empty {@code
-         *     KvpMap} if the input is null or blank
-         */
-        static KvpMap fromString(String name, String text) {
-            return fromString(name, text, Split.on(';'), Split.on('='));
-        }
-
-        /**
-         * Parses a string into a {@code KvpMap} using custom splitters for pairs and key-value
-         * components.
-         *
-         * <p>This method allows customization of the delimiters used to split the input string. The
-         * {@code pairs} splitter divides the input into individual key-value pair strings, and the
-         * {@code keyValue} splitter separates each pair into its key and value components.
-         *
-         * @param name the name to be assigned to the created {@code KvpMap}
-         * @param text the input string to be parsed. If null or blank, an empty {@code KvpMap} is
-         *     returned.
-         * @param pairs a {@code Splitter} used to split the input string into individual pair
-         *     strings
-         * @param keyValue a {@code Splitter} used to split each pair string into key and value
-         *     components
-         * @return a {@code KvpMap} containing the parsed key-value pairs, or an empty {@code
-         *     KvpMap} if the input is null or blank
-         */
-        static KvpMap fromString(String name, String text, Splitter pairs, Splitter keyValue) {
-            if (text == null || text.isBlank()) {
-                return new KvpMap(name, Collections.emptyMap());
-            }
-
-            List<String> tokens = pairs.splitToList(text);
-            Map<String, String> values = new LinkedHashMap<>();
-            for (int i = 0; i < tokens.size(); i++) {
-                keyValue.splitToPair(tokens.get(i), true)
-                        .ifPresent(pair -> values.put(pair.key(), pair.value()));
-            }
-
-            return new KvpMap(name, values);
         }
     }
 
@@ -272,7 +284,7 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
             this.deserializer = Serdes.String().deserializer();
             this.kvpMapFactory =
                     (rootName, payload) -> {
-                        return KvpMap.fromString(rootName, payload, pair, keyValue);
+                        return KvpNode.fromString(rootName, payload, pair, keyValue);
                     };
         }
 
