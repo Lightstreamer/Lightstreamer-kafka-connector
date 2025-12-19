@@ -242,7 +242,7 @@ public class Parsers {
             return next;
         }
 
-        final Node<T> evalAndAdvance(Node<T> node, String nodeName) throws ValueException {
+        final Node<T> evaluateChain(Node<T> node, String nodeName) throws ValueException {
             NodeEvaluator<T> next = this;
             while (next != null) {
                 node = next.eval(node, nodeName);
@@ -251,12 +251,7 @@ public class Parsers {
             return node;
         }
 
-        final Node<T> evalAndAdvance(Node<T> node) throws ValueException {
-            // Node<T> evaluated = eval(node);
-            // if (next != null) {
-            //     return next.evalAndAdvance(evaluated);
-            // }
-            // return evaluated;
+        final Node<T> evaluateChain(Node<T> node) throws ValueException {
             NodeEvaluator<T> next = this;
             while (next != null) {
                 node = next.eval(node);
