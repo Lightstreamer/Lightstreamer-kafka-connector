@@ -226,10 +226,10 @@ public class GenericRecordSelectorsSuppliers
         @Override
         public AvroNode getProperty(String nodeName, String propertyName) {
             Object value = map.get(new Utf8(propertyName));
-            if (value == null) {
-                throw ValueException.fieldNotFound(propertyName);
+            if (value != null) {
+                return AvroNode.newNode(nodeName, value);
             }
-            return AvroNode.newNode(nodeName, value);
+            throw ValueException.fieldNotFound(propertyName);
         }
 
         @Override
