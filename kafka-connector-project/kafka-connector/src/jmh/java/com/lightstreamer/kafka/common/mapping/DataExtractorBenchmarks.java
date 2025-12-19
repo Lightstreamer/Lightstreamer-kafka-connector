@@ -44,6 +44,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +63,7 @@ public class DataExtractorBenchmarks {
     public static class Protobuf {
 
         @Param({"1", "2", "3"})
-        int numOfTemplateParams = 3;
+        int numOfTemplateParams = 1;
 
         CanonicalItemExtractor<String, DynamicMessage> canonicalItemExtractor;
         FieldsExtractor<String, DynamicMessage> fieldsExtractor;
@@ -115,7 +116,6 @@ public class DataExtractorBenchmarks {
         bh.consume(data);
     }
 
-    // Measure extraction from fields (all fields, no template)
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
         Map<String, String> data = proto.fieldsExtractor.extractMap(proto.records.get(0));
@@ -123,8 +123,22 @@ public class DataExtractorBenchmarks {
     }
 
     @Benchmark
+    public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
+        Map<String, String> target = new HashMap<>();
+        proto.fieldsExtractor.extractIntoMap(proto.records.get(0), target);
+        bh.consume(target);
+    }
+
+    @Benchmark
     public void extractAsMapJson(Json json, Blackhole bh) {
         Map<String, String> data = json.fieldsExtractor.extractMap(json.records.get(0));
         bh.consume(data);
+    }
+
+    @Benchmark
+    public void extractIntoMapJson(Json json, Blackhole bh) {
+        Map<String, String> target = new HashMap<>();
+        json.fieldsExtractor.extractIntoMap(json.records.get(0), target);
+        bh.consume(target);
     }
 }
