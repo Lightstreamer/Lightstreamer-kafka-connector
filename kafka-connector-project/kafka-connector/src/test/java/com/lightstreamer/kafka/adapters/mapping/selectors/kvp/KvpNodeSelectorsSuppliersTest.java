@@ -281,6 +281,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
                 VALUE                     | The expression [VALUE] must evaluate to a non-complex object
                 VALUE.*                   | The expression [VALUE.*] must evaluate to a non-complex object
+                VALUE[0]                  | Cannot retrieve index [0] from a non-array object
                 VALUE.no_attrib           | Field [no_attrib] not found
                 VALUE['no_attrib']        | Field [no_attrib] not found
                 VALUE.no_children[0]      | Field [no_children] not found
@@ -314,6 +315,7 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                VALUE[0]                  | Cannot retrieve index [0] from a non-array object
                 VALUE.no_attrib           | Field [no_attrib] not found
                 VALUE['no_attrib']        | Field [no_attrib] not found
                 VALUE.no_children[0]      | Field [no_children] not found
@@ -538,6 +540,7 @@ public class KvpNodeSelectorsSuppliersTest {
                 EXPRESSION              | EXPECTED_ERROR_MESSAGE
                 KEY                     | The expression [KEY] must evaluate to a non-complex object
                 KEY.*                   | The expression [KEY.*] must evaluate to a non-complex object
+                KEY[0]                  | Cannot retrieve index [0] from a non-array object
                 KEY.no_attrib           | Field [no_attrib] not found
                 KEY['no_attrib']        | Field [no_attrib] not found
                 KEY.no_children[0]      | Field [no_children] not found
@@ -567,6 +570,7 @@ public class KvpNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION              | EXPECTED_ERROR_MESSAGE
+                KEY[0]                  | Cannot retrieve index [0] from a non-array object
                 KEY.no_attrib           | Field [no_attrib] not found
                 KEY['no_attrib']        | Field [no_attrib] not found
                 KEY.no_children[0]      | Field [no_children] not found

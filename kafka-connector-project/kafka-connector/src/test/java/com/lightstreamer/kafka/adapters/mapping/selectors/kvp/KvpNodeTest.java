@@ -21,7 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
-import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers.KvpMap;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers.KvpNode;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.utils.Split;
@@ -39,7 +38,7 @@ public class KvpNodeTest {
     @ParameterizedTest
     @ValueSource(strings = {"key1=value1;key2=value2", "key1=value1;key2=value2;"})
     public void shouldParseValidString(String text) {
-        KvpMap kvpMap = KvpMap.fromString("root", text);
+        KvpNode kvpMap = KvpNode.fromString("root", text);
         assertThat(kvpMap.name()).isEqualTo("root");
         assertKvpMap(kvpMap);
     }
@@ -47,12 +46,12 @@ public class KvpNodeTest {
     @ParameterizedTest
     @ValueSource(strings = {"key1@value1|key2@value2", "key1@value1|key2@value2|"})
     public void shouldParseValidStringWithNonDefaultSeparators(String text) {
-        KvpMap kvpMap = KvpMap.fromString("root", text, Split.on('|'), Split.on('@'));
+        KvpNode kvpMap = KvpNode.fromString("root", text, Split.on('|'), Split.on('@'));
         assertThat(kvpMap.name()).isEqualTo("root");
         assertKvpMap(kvpMap);
     }
 
-    private void assertKvpMap(KvpMap kvpMap) {
+    private void assertKvpMap(KvpNode kvpMap) {
         assertThat(kvpMap.size()).isEqualTo(0);
         assertThat(kvpMap.isScalar()).isFalse();
         assertThat(kvpMap.isArray()).isFalse();
@@ -75,9 +74,7 @@ public class KvpNodeTest {
                 .contains("Cannot retrieve field [anyProp] from a scalar object");
 
         ve = assertThrows(ValueException.class, () -> key1Value.getIndexed("node3", 0, "nodeKey1"));
-        assertThat(ve)
-                .hasMessageThat()
-                .contains("Cannot retrieve field [nodeKey1] from a scalar object");
+        assertThat(ve).hasMessageThat().contains("ield [nodeKey1] is not indexed");
 
         assertThat(key1Value.text()).isEqualTo("value1");
         assertThat(kvpMap.has("key2")).isTrue();
@@ -91,17 +88,33 @@ public class KvpNodeTest {
         assertThat(key2Value.has("anyProp")).isFalse();
         assertThat(key2Value.text()).isEqualTo("value2");
 
-        assertThat(kvpMap.has("key3")).isFalse();
-
         Map<String, String> target = new HashMap<>();
         kvpMap.flatIntoMap(target);
         assertThat(target).containsExactly("key1", "value1", "key2", "value2");
+
+        assertThat(kvpMap.has("nonExistingKey")).isFalse();
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> kvpMap.getProperty("anyNode", "nonExistingKey"));
+        assertThat(ve).hasMessageThat().contains("Field [nonExistingKey] not found");
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> kvpMap.getIndexed("anyNode", 0, "nonIndexedKey"));
+        assertThat(ve)
+                .hasMessageThat()
+                .contains("Cannot retrieve index [0] from a non-array object");
+        assertThat(kvpMap.text()).isEqualTo("{key1=value1, key2=value2}");
+        assertThat(kvpMap.toString()).isEqualTo("{key1=value1, key2=value2}");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"key1", "key1;"})
     public void shouldParseKeysOnly(String text) {
-        KvpMap csvMap = KvpMap.fromString("root", text);
+        KvpNode csvMap = KvpNode.fromString("root", text);
         assertThat(csvMap.size()).isEqualTo(0);
         assertThat(csvMap.isScalar()).isFalse();
         assertThat(csvMap.isArray()).isFalse();
@@ -120,12 +133,12 @@ public class KvpNodeTest {
     @NullAndEmptySource
     @ValueSource(strings = {" ", "   ", "\t", "\n"})
     public void shouldHandleEmptyOrNullString(String text) {
-        KvpMap csvMap = KvpMap.fromString("root", text);
-        assertThat(csvMap.size()).isEqualTo(0);
-        assertThat(csvMap.isScalar()).isFalse();
-        assertThat(csvMap.isArray()).isFalse();
-        assertThat(csvMap.isNull()).isTrue();
-        assertThat(csvMap.text()).isNull();
+        KvpNode nullNode = KvpNode.fromString("root", text);
+        assertThat(nullNode.size()).isEqualTo(0);
+        assertThat(nullNode.isScalar()).isTrue();
+        assertThat(nullNode.isArray()).isFalse();
+        assertThat(nullNode.isNull()).isTrue();
+        assertThat(nullNode.text()).isNull();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -150,7 +163,7 @@ public class KvpNodeTest {
                 key1@value1|key2@value2 $ {key1=value1, key2=value2}  $ |         $ @
                     """)
     public void shouldReturnAsText(String input, String expected, char pairsSep, char keyValSep) {
-        KvpMap csvMap = KvpMap.fromString("root", input, Split.on(pairsSep), Split.on(keyValSep));
+        KvpNode csvMap = KvpNode.fromString("root", input, Split.on(pairsSep), Split.on(keyValSep));
         assertThat(csvMap.size()).isEqualTo(0);
         assertThat(csvMap.isScalar()).isFalse();
         assertThat(csvMap.isArray()).isFalse();
