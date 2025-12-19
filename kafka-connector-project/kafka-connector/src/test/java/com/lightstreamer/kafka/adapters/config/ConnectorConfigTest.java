@@ -564,7 +564,7 @@ public class ConnectorConfigTest {
         assertThat(maxPollIntervalMs.name()).isEqualTo(CONSUMER_MAX_POLL_INTERVAL_MS);
         assertThat(maxPollIntervalMs.required()).isFalse();
         assertThat(maxPollIntervalMs.multiple()).isFalse();
-        assertThat(maxPollIntervalMs.mutable()).isFalse();
+        assertThat(maxPollIntervalMs.mutable()).isTrue();
         assertThat(maxPollIntervalMs.defaultValue()).isEqualTo("5000");
         assertThat(maxPollIntervalMs.type()).isEqualTo(ConfType.INT);
 
