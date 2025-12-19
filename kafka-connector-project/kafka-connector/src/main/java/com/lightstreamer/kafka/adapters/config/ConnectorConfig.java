@@ -353,13 +353,13 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
                         .add(CONSUMER_MAX_POLL_RECORDS, false, false, INT)
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
-                        .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
+                        .add(CONSUMER_SESSION_TIMEOUT_MS, false, true, INT)
                         .add(
                                 CONSUMER_MAX_POLL_INTERVAL_MS,
                                 false,
                                 false,
                                 INT,
-                                false,
+                                true,
                                 defaultValue("5000"))
                         .add(
                                 CONSUMER_METADATA_MAX_AGE_CONFIG,
