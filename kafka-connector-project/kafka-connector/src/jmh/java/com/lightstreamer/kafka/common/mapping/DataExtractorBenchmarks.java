@@ -103,25 +103,41 @@ public class DataExtractorBenchmarks {
         }
     }
 
-    // Measure extraction from templates
+    /**
+     * Benchmarks the extraction of canonical item names from Protobuf-formatted Kafka records.
+     * Measures the performance of converting Protobuf data into canonical string format.
+     */
     @Benchmark
     public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
         String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks the extraction of canonical item names from JSON-formatted Kafka records. Measures
+     * the performance of converting JSON data into canonical string format.
+     */
     @Benchmark
     public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
         String data = json.canonicalItemExtractor.extractCanonicalItem(json.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks extraction of Protobuf records into a new Map structure. Tests the performance of
+     * creating and populating a new Map with extracted field data.
+     */
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
         Map<String, String> data = proto.fieldsExtractor.extractMap(proto.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks extraction of Protobuf records into a pre-existing Map. Tests the performance of
+     * populating an existing Map with extracted field data, which may be more efficient than
+     * creating a new Map.
+     */
     @Benchmark
     public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
         Map<String, String> target = new HashMap<>();
@@ -129,12 +145,21 @@ public class DataExtractorBenchmarks {
         bh.consume(target);
     }
 
+    /**
+     * Benchmarks extraction of JSON records into a new Map structure. Tests the performance of
+     * creating and populating a new Map with extracted field data from JSON.
+     */
     @Benchmark
     public void extractAsMapJson(Json json, Blackhole bh) {
         Map<String, String> data = json.fieldsExtractor.extractMap(json.records.get(0));
         bh.consume(data);
     }
 
+    /**
+     * Benchmarks extraction of JSON records into a pre-existing Map. Tests the performance of
+     * populating an existing Map with extracted field data from JSON, which may be more efficient
+     * than creating a new Map.
+     */
     @Benchmark
     public void extractIntoMapJson(Json json, Blackhole bh) {
         Map<String, String> target = new HashMap<>();
