@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.Parsers.ParsingContext;
 
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseSelector {
@@ -49,12 +48,7 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
 
     protected final Node<T> eval(Supplier<P> payloadSupplier, boolean checkScalar) {
         Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
-        NodeEvaluator<T> next = evaluator;
-        while (next != null) {
-            recordNode = next.eval(recordNode);
-            next = next.next();
-        }
-        Node<T> resultNode = recordNode;
+        Node<T> resultNode = evaluator.evaluateChain(recordNode);
 
         if (checkScalar && !resultNode.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
@@ -65,25 +59,7 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
 
     protected final Node<T> eval(String name, Supplier<P> payloadSupplier, boolean checkScalar) {
         Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
-        // NodeEvaluator<T> next = evaluator;
-        // while (next != null) {
-        //     recordNode = next.eval(recordNode, name);
-        //     next = next.next();
-        // }
-        // Node<T> resultNode = recordNode;
-        Node<T> resultNode = evaluator.evalAndAdvance(recordNode, name);
-
-        if (checkScalar && !resultNode.isScalar()) {
-            throw ValueException.nonComplexObjectRequired(expression().expression());
-        }
-
-        return resultNode;
-    }
-
-    private Node<T> doEval(
-            Supplier<P> payloadSupplier, Function<Node<T>, Node<T>> eval, boolean checkScalar) {
-        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
-        Node<T> resultNode = eval.apply(recordNode);
+        Node<T> resultNode = evaluator.evaluateChain(recordNode, name);
 
         if (checkScalar && !resultNode.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
