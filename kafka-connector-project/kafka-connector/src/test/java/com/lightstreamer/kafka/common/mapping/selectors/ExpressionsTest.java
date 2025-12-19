@@ -18,10 +18,17 @@
 package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.HEADERS;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.KEY;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.OFFSET;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.PARTITION;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TIMESTAMP;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -38,9 +45,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Arrays;
@@ -53,9 +59,9 @@ import java.util.stream.Stream;
 public class ExpressionsTest {
 
     @Test
-    void shouldCreateEqualExpressions() {
-        ExtractionExpression ee1 = Expression("VALUE");
-        ExtractionExpression ee2 = Expression("VALUE");
+    public void shouldCreateEqualWrappedExpressions() {
+        ExtractionExpression ee1 = Wrapped("#{VALUE}");
+        ExtractionExpression ee2 = Wrapped("#{VALUE}");
 
         assertThat(ee1.equals(ee1)).isTrue(); // Enforces code coverage
         assertThat(ee1).isEqualTo(ee2);
@@ -63,57 +69,128 @@ public class ExpressionsTest {
         assertThat(ee1).isNotEqualTo(new Object());
         assertThat(ee1.hashCode()).isEqualTo(ee2.hashCode());
 
-        ExtractionExpression ee3 = Expression("KEY");
+        ExtractionExpression ee3 = Wrapped("#{KEY}");
         assertThat(ee1).isNotEqualTo(ee3);
         assertThat(ee1.hashCode()).isNotEqualTo(ee3.hashCode());
+
+        ExtractionExpression ee4 = Expressions.WrappedWithWildcards("#{VALUE.*}");
+        assertThat(ee1.equals(ee4)).isFalse();
     }
 
-    static Stream<Arguments> expressionArgs() {
+    @Test
+    public void shouldCreateEqualWrappedWithWildcardsExpressions() {
+        ExtractionExpression ee1 = Expressions.WrappedWithWildcards("#{VALUE.*}");
+        ExtractionExpression ee2 = Expressions.WrappedWithWildcards("#{VALUE.*}");
+
+        assertThat(ee1.equals(ee1)).isTrue(); // Enforces code coverage
+        assertThat(ee1).isEqualTo(ee2);
+        assertThat(ee1).isNotSameInstanceAs(ee2);
+        assertThat(ee1).isNotEqualTo(new Object());
+        assertThat(ee1.hashCode()).isEqualTo(ee2.hashCode());
+
+        ExtractionExpression ee3 = Expressions.WrappedWithWildcards("#{KEY.*}");
+        assertThat(ee1).isNotEqualTo(ee3);
+        assertThat(ee1.hashCode()).isNotEqualTo(ee3.hashCode());
+
+        ExtractionExpression ee4 = Expressions.Wrapped("#{VALUE}");
+        assertThat(ee1.equals(ee4)).isFalse();
+    }
+
+    static Stream<Arguments> wrappedExpressions() {
         return Stream.of(
-                arguments("VALUE", Constant.VALUE, Arrays.asList("VALUE")),
-                arguments("OFFSET", Constant.OFFSET, Arrays.asList("OFFSET")),
-                arguments("TIMESTAMP", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
-                arguments("PARTITION", Constant.PARTITION, Arrays.asList("PARTITION")),
-                arguments("KEY", Constant.KEY, Arrays.asList("KEY")),
-                arguments("VALUE.attrib", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
-                arguments(
-                        "VALUE.attrib[]", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
-                arguments(
-                        "HEADERS['attrib']", Constant.HEADERS, Arrays.asList("HEADERS['attrib']")));
+                arguments("VALUE", VALUE, Arrays.asList("VALUE")),
+                arguments("VALUE.*.a", VALUE, Arrays.asList("VALUE", ".", "*", ".", "a")),
+                arguments("OFFSET", OFFSET, Arrays.asList("OFFSET")),
+                arguments("TIMESTAMP", TIMESTAMP, Arrays.asList("TIMESTAMP")),
+                arguments("PARTITION", PARTITION, Arrays.asList("PARTITION")),
+                arguments("KEY", KEY, Arrays.asList("KEY")),
+                arguments("VALUE.attrib", VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("VALUE.attrib[]", VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments("VALUE['name']", VALUE, Arrays.asList("VALUE['name']")),
+                arguments("VALUE['name'].aaa", VALUE, Arrays.asList("VALUE['name']", ".", "aaa")),
+                arguments("HEADERS['attrib']", HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
-    @MethodSource("expressionArgs")
-    void shouldParseExtractionExpression(
-            String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Expression(expressionStr);
-        assertThat(ee.expression()).isEqualTo(expressionStr);
+    @MethodSource("wrappedExpressions")
+    public void shouldParseWrappedExpression(
+            String expression, Constant expectedRoot, List<String> expectedTokens) {
+        // Wrap in #{ }
+        String wrappedExpression = "#{" + expression + "}";
+        ExtractionExpression ee = Wrapped(wrappedExpression);
+        assertThat(ee.expression()).isEqualTo(expression);
         assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
+        assertThat(ee.isWildCardExpression()).isFalse();
     }
 
     @ParameterizedTest
-    @EmptySource
-    @NullSource
-    @ValueSource(strings = {"NOT-EXISTING-CONSTANT", "..", "@", "\\"})
-    void shouldNotParseExpression(String expressionStr) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '$',
+            commentCharacter = '^',
+            textBlock =
+                    """
+                EXPRESSION               $ EXPECTED_ERROR_MESSAGE
+                                         $ Invalid expression
+                '\n'                     $ Invalid expression
+                '\t'                     $ Invalid expression
+                ''                       $ Invalid expression
+                VALUE1 VALUE2            $ Invalid expression
+                #{}                      $ Invalid expression
+                #{\t}                    $ Found unexpected white char in the expression [\t]
+                #{ }                     $ Found unexpected white char in the expression [ ]
+                #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [NOT-EXISTING-CONSTANT]
+                #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [..]
+                #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [@]
+                #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [\\]
+                #{VALUE.}                $ Found unexpected trailing dot(s) in the expression [VALUE.]
+                #{VALUE..}               $ Found unexpected trailing dot(s) in the expression [VALUE..]
+                #{VALUE.a .b}            $ Found unexpected white char in the expression [VALUE.a .b]
+                #{VALUE. a}              $ Found unexpected white char in the expression [VALUE. a]
+                #{VALUE.*}               $ Found unexpected wildcard char in the expression [VALUE.*]
+                #{VALUE.a.*}             $ Found unexpected wildcard char in the expression [VALUE.a.*]
+                    """)
+    public void shouldNotParseWrappedExpression(String expression, String expectedErrorMessage) {
+        ExpressionException ee = assertThrows(ExpressionException.class, () -> Wrapped(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
+    }
+
+    static Stream<Arguments> wrappedWildWildcardExpressions() {
+        return Stream.of(
+                arguments("VALUE.*", VALUE, Arrays.asList("VALUE")),
+                arguments("KEY.*", KEY, Arrays.asList("KEY")),
+                arguments("VALUE.attrib.*", VALUE, Arrays.asList("VALUE", ".", "attrib")),
+                arguments("VALUE.attrib[].*", VALUE, Arrays.asList("VALUE", ".", "attrib[]")),
+                arguments("VALUE['name'].*", VALUE, Arrays.asList("VALUE['name']")),
+                arguments("VALUE['name'].aaa.*", VALUE, Arrays.asList("VALUE['name']", ".", "aaa")),
+                arguments("HEADERS['attrib'].*", HEADERS, Arrays.asList("HEADERS['attrib']")));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"VALUE.", "VALUE..", "VALUE.attrib.", "VALUE.attrib[]]."})
-    void shouldNotParseExpressionDueToTrailingDots(String expressionStr) {
+    @MethodSource("wrappedWildWildcardExpressions")
+    public void shouldParseWrappedWidthWildcardExpression(
+            String expression, Constant expectedRoot, List<String> expectedTokens) {
+        // Wrap in #{ }
+        String wrappedExpression = "#{" + expression + "}";
+        ExtractionExpression ee = WrappedWithWildcards(wrappedExpression);
+        assertThat(ee.expression()).isEqualTo(expression);
+        assertThat(ee.constant()).isEqualTo(expectedRoot);
+        assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
+        assertThat(ee.isWildCardExpression()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"VALUE", "KEY"})
+    public void shouldNotParseWrappedWithWildcardExpressionDueToMissingWildCard(String expression) {
+        // Wrap in #{ }
+        String wrappedExpression = "#{" + expression + "}";
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Expression(expressionStr));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Found unexpected trailing dot(s) in the expression ["
-                                + expressionStr
-                                + "]");
+                assertThrows(
+                        ExpressionException.class, () -> WrappedWithWildcards(wrappedExpression));
+        assertThat(ee)
+                .hasMessageThat()
+                .isEqualTo("Missing wildcard char in the expression [" + expression + "]");
     }
 
     static Stream<Arguments> templateArgs() {
@@ -142,9 +219,9 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    void shouldParseTemplateExpression(
-            String expressionStr, String expectedPrefix, Map<String, String> expectedParams) {
-        TemplateExpression template = Template(expressionStr);
+    public void shouldParseTemplateExpression(
+            String expression, String expectedPrefix, Map<String, String> expectedParams) {
+        TemplateExpression template = Template(expression);
         assertThat(template.prefix()).isEqualTo(expectedPrefix);
 
         Map<String, ExtractionExpression> templateParams = template.params();
@@ -154,6 +231,22 @@ public class ExpressionsTest {
             ExtractionExpression ee = templateParams.get(expectedParam.getKey());
             assertThat(ee.toString()).isEqualTo(expectedParam.getValue());
         }
+    }
+
+    @Test
+    public void shouldParseEqualsTemplateExpression() {
+        TemplateExpression t1 = Template("template-#{param1=VALUE,param2=OFFSET}");
+        TemplateExpression t2 = Template("template-#{param2=OFFSET,param1=VALUE}");
+
+        assertThat(t1.equals(t1)).isTrue(); // Enforces code coverage
+        assertThat(t1).isEqualTo(t2);
+        assertThat(t1).isNotSameInstanceAs(t2);
+        assertThat(t1).isNotEqualTo(new Object());
+        assertThat(t1.hashCode()).isEqualTo(t2.hashCode());
+
+        TemplateExpression t3 = Template("template-#{param=KEY}");
+        assertThat(t1).isNotEqualTo(t3);
+        assertThat(t1.hashCode()).isNotEqualTo(t3.hashCode());
     }
 
     @ParameterizedTest
@@ -178,16 +271,36 @@ public class ExpressionsTest {
                 item-                               $ Invalid template expression
                 prefix-#                            $ Invalid template expression
                 prefix-#{}                          $ Invalid template expression
-                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
+                template-#{name=FOO}                $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [FOO]
                 template-#{name=VALUE,name=OFFSET}  $ No duplicated keys are allowed
                 template-#{name=VALUE,par}          $ Invalid template expression
+                template-#{name=VALUE.a }           $ Found unexpected white char in the expression [VALUE.a ]
+                template-#{name=VALUE. a}           $ Found unexpected white char in the expression [VALUE. a]
                 template-#{name=VALUE.}             $ Found unexpected trailing dot(s) in the expression [VALUE.]
-                template-#{name=VALUE[1]}           $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]
+                template-#{name=VALUE.*}            $ Found unexpected wildcard char in the expression [VALUE.*]
+                template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [VALUE[1]aaa]
                     """)
-    void shouldNotParseTemplateExpression(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Template(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExpressionException.class, () -> Template(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
+    }
+
+    @Test
+    public void shouldCreateEmptyTemplate() {
+        TemplateExpression template = Expressions.EmptyTemplate("item");
+        assertThat(template.prefix()).isEqualTo("item");
+        assertThat(template.params()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    @ValueSource(strings = {" ", "   ", "\t", "\n"})
+    public void shouldNotCreateEmptyTemplate(String invalidItem) {
+        ExpressionException ee =
+                assertThrows(
+                        ExpressionException.class, () -> Expressions.EmptyTemplate(invalidItem));
+        assertThat(ee).hasMessageThat().isEqualTo("Invalid Item");
     }
 
     static Stream<Arguments> subscriptionArgs() {
@@ -252,12 +365,12 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    void shouldParseSubscriptionExpression(
-            String expressionStr,
+    public void shouldParseSubscriptionExpression(
+            String expression,
             String expectedPrefix,
             Set<Data> expectedParams,
             String expectedCanonicalItem) {
-        SubscriptionExpression subscription = Subscription(expressionStr);
+        SubscriptionExpression subscription = Subscription(expression);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);
         assertThat(subscription.schema().name()).isEqualTo(expectedPrefix);
         assertThat(subscription.asCanonicalItemName()).isEqualTo(expectedCanonicalItem);
@@ -269,101 +382,75 @@ public class ExpressionsTest {
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '$',
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION                         $ EXPECTED_ERROR_MESSAGE
-                                                   $ Invalid Item
-                ''                                 $ Invalid Item
-                template-[name=VALUE,name=OFFSET]  $ No duplicated keys are allowed
+                EXPRESSION                         | EXPECTED_ERROR_MESSAGE
+                                                   | Invalid Item
+                ''                                 | Invalid Item
+                template-[name=VALUE,name=OFFSET]  | No duplicated keys are allowed
                     """)
-    void shouldNotParseSubscriptionExpression(String expressionStr, String expectedErrorMessage) {
+    public void shouldNotParseSubscriptionExpression(
+            String expression, String expectedErrorMessage) {
         ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Subscription(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+                assertThrows(ExpressionException.class, () -> Subscription(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
-    static Stream<Arguments> fieldArgs() {
+    static Stream<Arguments> wrappedWildNoWildcardCheckExpressions() {
         return Stream.of(
-                arguments("#{VALUE}", Constant.VALUE, Arrays.asList("VALUE")),
-                arguments("#{OFFSET}", Constant.OFFSET, Arrays.asList("OFFSET")),
-                arguments("#{TIMESTAMP}", Constant.TIMESTAMP, Arrays.asList("TIMESTAMP")),
-                arguments("#{PARTITION}", Constant.PARTITION, Arrays.asList("PARTITION")),
-                arguments("#{KEY}", Constant.KEY, Arrays.asList("KEY")),
-                arguments("#{VALUE.attrib}", Constant.VALUE, Arrays.asList("VALUE", ".", "attrib")),
-                arguments("#{HEADERS}", Constant.HEADERS, Arrays.asList("HEADERS")),
+                arguments("VALUE", VALUE, Arrays.asList("VALUE"), false),
+                arguments("OFFSET", OFFSET, Arrays.asList("OFFSET"), false),
+                arguments("TIMESTAMP", TIMESTAMP, Arrays.asList("TIMESTAMP"), false),
+                arguments("PARTITION", PARTITION, Arrays.asList("PARTITION"), false),
+                arguments("KEY", KEY, Arrays.asList("KEY"), false),
+                arguments("KEY.*", KEY, Arrays.asList("KEY"), true),
+                arguments("VALUE.attrib", VALUE, Arrays.asList("VALUE", ".", "attrib"), false),
+                arguments("VALUE.attrib.*", VALUE, Arrays.asList("VALUE", ".", "attrib"), true),
+                arguments("HEADERS", HEADERS, Arrays.asList("HEADERS"), false),
                 arguments(
-                        "#{HEADERS.attrib}",
-                        Constant.HEADERS,
-                        Arrays.asList("HEADERS", ".", "attrib")),
+                        "HEADERS.attrib", HEADERS, Arrays.asList("HEADERS", ".", "attrib"), false),
                 arguments(
-                        "#{HEADERS['attrib']}",
-                        Constant.HEADERS,
-                        Arrays.asList("HEADERS['attrib']")));
+                        "HEADERS['attrib'].*", HEADERS, Arrays.asList("HEADERS['attrib']"), true));
     }
 
     @ParameterizedTest
-    @MethodSource("fieldArgs")
-    void shouldParseWrappedExpression(
-            String expressionStr, Constant expectedRoot, List<String> expectedTokens) {
-        ExtractionExpression ee = Wrapped(expressionStr);
-        // Remove '#{' and '}'
-        String expectedExpression =
-                expressionStr.substring(
-                        expressionStr.indexOf("#{") + 2, expressionStr.lastIndexOf("}"));
-        assertThat(ee.expression()).isEqualTo(expectedExpression);
+    @MethodSource("wrappedWildNoWildcardCheckExpressions")
+    public void shouldParseWrappedNoWildcardCheckExpression(
+            String expression,
+            Constant expectedRoot,
+            List<String> expectedTokens,
+            boolean expectedAsWildCard) {
+        // Wrap in #{ }
+        String wrappedExpression = "#{" + expression + "}";
+        ExtractionExpression ee = WrappedNoWildcardCheck(wrappedExpression);
+        assertThat(ee.expression()).isEqualTo(expression);
         assertThat(ee.constant()).isEqualTo(expectedRoot);
         assertThat(ee.tokens()).asList().isEqualTo(expectedTokens);
+        assertThat(ee.isWildCardExpression()).isEqualTo(expectedAsWildCard);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"#{NOT-EXISTING-CONSTANT}", "#{..}", "#{@}", "#{\\}"})
-    void shouldNotParseWrappedExpression(String expressionStr) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
-        assertThat(ee.getMessage())
-                .isEqualTo(
-                        "Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS]");
-    }
+    @Test
+    public void shouldCreateWrappedWithNoWildcardCheck() {}
 
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
-            delimiter = '$',
+            delimiter = '|',
             textBlock =
                     """
-                EXPRESSION               $ EXPECTED_ERROR_MESSAGE
-                                         $ Invalid expression
-                ''                       $ Invalid expression
-                #{NOT-EXISTING-CONSTANT} $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                #{..}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                #{@}                     $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
-                #{\\}                    $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC]
+                EXPRESSION          | EXPECTED_NORMALIZATION
+                item-[a=1]          | item-[a=1]
+                item-[a=1,b=2]      | item-[a=1,b=2]
+                item-[key=val=ue]   | item-[key=val=ue]
+                item-[c=3,a=1,b=2]  | item-[a=1,b=2,c=3]
+                item-[b=2,a=1]      | item-[a=1,b=2]
+                item                | item
+                item-               | item-
+                item-[]             | item
                     """)
-    void shouldNotParseWrappedExpressionDueToInvalidExpression(
-            String expressionStr, String expectedErrorMessage) {
-        ExpressionException ee =
-                assertThrows(ExpressionException.class, () -> Wrapped(expressionStr));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    @ParameterizedTest
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '$',
-            textBlock =
-                    """
-                EXPRESSION          $ EXPECTED_NORMALIZATION
-                item-[a=1]          $ item-[a=1]
-                item-[a=1,b=2]      $ item-[a=1,b=2]
-                item-[key=val=ue]   $ item-[key=val=ue]
-                item-[c=3,a=1,b=2]  $ item-[a=1,b=2,c=3]
-                item-[b=2,a=1]      $ item-[a=1,b=2]
-                item                $ item
-                item-               $ item-
-                item-[]             $ item
-                    """)
-    void shouldGetCanonicalItemFromExpression(String expression, String expectedCanonicalItem) {
+    public void shouldGetCanonicalItemFromExpression(
+            String expression, String expectedCanonicalItem) {
         String canonicalItem = Expressions.CanonicalItemName(expression);
         assertThat(canonicalItem).isEqualTo(expectedCanonicalItem);
     }

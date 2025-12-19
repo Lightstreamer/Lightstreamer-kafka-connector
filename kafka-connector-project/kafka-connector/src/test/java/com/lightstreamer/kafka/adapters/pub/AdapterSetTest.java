@@ -84,13 +84,14 @@ public class AdapterSetTest {
 
     @Test
     void shouldNotInitDueToMissingRequiredParameters() {
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () ->
                                 connectorMetadataAdapter.init(
                                         metadataAdapterParams, adapterDir.toFile()));
-        assertThat(e.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [logging.configuration.path]");
     }
 
@@ -189,7 +190,7 @@ public class AdapterSetTest {
                                 connectorMetadataAdapter.notifyNewTables(
                                         "user", "sessionId", tables));
         assertThat(ce.getClientErrorCode()).isEqualTo(-1);
-        assertThat(ce.getMessage()).isEqualTo("Connection [CONNECTOR] not enabled");
+        assertThat(ce).hasMessageThat().isEqualTo("Connection [CONNECTOR] not enabled");
     }
 
     @Test

@@ -21,5 +21,5 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionEx
 
 public interface SelectorSupplier<S extends Selector> {
 
-    S newSelector(String name, ExtractionExpression expression) throws ExtractionException;
+    S newSelector(ExtractionExpression expression) throws ExtractionException;
 }

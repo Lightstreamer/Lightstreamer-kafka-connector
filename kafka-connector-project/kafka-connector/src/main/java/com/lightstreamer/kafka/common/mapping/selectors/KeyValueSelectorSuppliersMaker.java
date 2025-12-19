@@ -17,5 +17,9 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-public interface ConstantSelector
-        extends GenericSelector, KeySelector<Object>, ValueSelector<Object> {}
+public interface KeyValueSelectorSuppliersMaker<T> {
+
+    KeySelectorSupplier<T> makeKeySelectorSupplier();
+
+    ValueSelectorSupplier<T> makeValueSelectorSupplier();
+}

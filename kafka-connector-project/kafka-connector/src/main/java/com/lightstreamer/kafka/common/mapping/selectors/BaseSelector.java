@@ -23,16 +23,10 @@ import java.util.Objects;
 
 public abstract class BaseSelector implements Selector {
 
-    private final String name;
     private final ExtractionExpression expression;
 
-    protected BaseSelector(String name, ExtractionExpression expression) {
-        this.name = checkName(name);
+    protected BaseSelector(ExtractionExpression expression) {
         this.expression = checkExpression(expression);
-    }
-
-    protected String checkName(String name) {
-        return Objects.requireNonNull(name);
     }
 
     protected ExtractionExpression checkExpression(ExtractionExpression expression) {
@@ -45,21 +39,14 @@ public abstract class BaseSelector implements Selector {
     }
 
     @Override
-    public String name() {
-        return name;
-    }
-
-    @Override
     public int hashCode() {
-        return Objects.hash(name, expression);
+        return Objects.hash(expression);
     }
 
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
 
-        return obj instanceof BaseSelector other
-                && Objects.equals(name, other.name)
-                && Objects.equals(expression, other.expression);
+        return obj instanceof BaseSelector other && Objects.equals(expression, other.expression);
     }
 }

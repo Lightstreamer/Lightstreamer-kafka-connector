@@ -20,12 +20,15 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.StreamSupport;
 
 public interface KafkaRecord<K, V> {
 
@@ -34,11 +37,15 @@ public interface KafkaRecord<K, V> {
         String key();
 
         byte[] value();
+
+        default int localIndex() {
+            return -1;
+        }
     }
 
     public interface KafkaHeaders extends Iterable<KafkaHeader> {
 
-        KafkaHeader lastHeader(String key);
+        boolean has(String key);
 
         KafkaHeader get(int index);
 
@@ -109,85 +116,7 @@ public interface KafkaRecord<K, V> {
 
         @Override
         public KafkaHeaders headers() {
-            return new KafkaRecordHeaders(record.headers());
-        }
-    }
-
-    final record KafkaRecordHeader(String key, byte[] value) implements KafkaHeader {
-
-        private KafkaRecordHeader(Header header) {
-            this(header.key(), header.value());
-        }
-
-        private KafkaRecordHeader(org.apache.kafka.connect.header.Header header) {
-            this(header.key(), checkValue(header.value()));
-        }
-
-        private static byte[] checkValue(Object value) {
-            if (value instanceof byte[] bytes) {
-                return bytes;
-            }
-
-            return new byte[0];
-        }
-    }
-
-    final class KafkaRecordHeaders implements KafkaHeaders {
-
-        private final Headers headers;
-        private final List<Header> headersArray;
-
-        KafkaRecordHeaders(Headers headers) {
-            this.headers = headers;
-            this.headersArray = new ArrayList<>();
-            for (Header header : headers) {
-                headersArray.add(header);
-            }
-        }
-
-        @Override
-        public KafkaHeader lastHeader(String key) {
-            Header header = headers.lastHeader(key);
-            return header != null ? new KafkaRecordHeader(header) : null;
-        }
-
-        @Override
-        public KafkaHeader get(int index) {
-            Header header = headersArray.get(index);
-            return header != null ? new KafkaRecordHeader(header) : null;
-        }
-
-        @Override
-        public List<KafkaHeader> headers(String key) {
-            Iterable<Header> headersIterable = headers.headers(key);
-            List<KafkaHeader> headersArray = new ArrayList<>();
-            for (Header header : headersIterable) {
-                headersArray.add(new KafkaRecordHeader(header));
-            }
-
-            return headersArray;
-        }
-
-        @Override
-        public int size() {
-            return headersArray.size();
-        }
-
-        @Override
-        public Iterator<KafkaHeader> iterator() {
-            return new Iterator<KafkaHeader>() {
-                private final Iterator<Header> iterator = headersArray.iterator();
-
-                @Override
-                public boolean hasNext() {
-                    return iterator.hasNext();
-                }
-
-                @Override
-                public KafkaHeader next() {
-                    return new KafkaRecordHeader(iterator.next());
-                }
-            };
+            return new KafkaHeadersImpl(HeadersAdapter.from(record.headers()));
         }
     }
 
@@ -229,78 +158,188 @@ public interface KafkaRecord<K, V> {
             return record.kafkaPartition();
         }
 
-        public Schema keySchema() {
-            return record.keySchema();
+        public SchemaAndValue keySchemaAndValue() {
+            return new SchemaAndValue(record.keySchema(), record.key());
         }
 
-        public Schema valueSchema() {
-            return record.valueSchema();
+        public SchemaAndValue valueSchemaAndValue() {
+            return new SchemaAndValue(record.valueSchema(), record.value());
         }
 
         @Override
         public KafkaHeaders headers() {
-            return new KafkaConnectHeaders(record.headers());
+            return new KafkaHeadersImpl(HeadersAdapter.from(record.headers()));
         }
     }
 
-    final class KafkaConnectHeaders implements KafkaHeaders {
+    final record KafkaHeaderImpl(String key, byte[] value, int localIndex) implements KafkaHeader {
 
-        private final org.apache.kafka.connect.header.Headers headers;
-        private final List<org.apache.kafka.connect.header.Header> headersArray;
+        private KafkaHeaderImpl(HeaderAdapter header) {
+            this(header, -1);
+        }
 
-        KafkaConnectHeaders(org.apache.kafka.connect.header.Headers headers) {
-            this.headers = headers;
-            this.headersArray = new ArrayList<>();
-            for (org.apache.kafka.connect.header.Header header : headers) {
-                headersArray.add(header);
+        private KafkaHeaderImpl(HeaderAdapter header, int localIndex) {
+            this(header.key(), header.value(), localIndex);
+        }
+    }
+
+    interface HeadersAdapter extends Iterable<HeaderAdapter> {
+
+        static HeadersAdapter from(Headers headers) {
+            return new HeadersAdapter() {
+
+                @Override
+                public Iterator<HeaderAdapter> iterator() {
+                    return StreamSupport.stream(headers.spliterator(), false)
+                            .map(HeaderAdapter::from)
+                            .iterator();
+                }
+            };
+        }
+
+        static HeadersAdapter from(org.apache.kafka.connect.header.Headers headers) {
+            return new HeadersAdapter() {
+
+                @Override
+                public Iterator<HeaderAdapter> iterator() {
+                    return StreamSupport.stream(headers.spliterator(), false)
+                            .map(HeaderAdapter::from)
+                            .iterator();
+                }
+            };
+        }
+    }
+
+    interface HeaderAdapter {
+
+        String key();
+
+        byte[] value();
+
+        static HeaderAdapter from(Header header) {
+            return new HeaderAdapter() {
+
+                @Override
+                public String key() {
+                    return header.key();
+                }
+
+                @Override
+                public byte[] value() {
+                    return header.value();
+                }
+            };
+        }
+
+        static HeaderAdapter from(org.apache.kafka.connect.header.Header header) {
+            return new HeaderAdapter() {
+
+                @Override
+                public String key() {
+                    return header.key();
+                }
+
+                @Override
+                public byte[] value() {
+                    return checkValue(header.value());
+                }
+
+                private static byte[] checkValue(Object value) {
+                    if (value instanceof byte[] bytes) {
+                        return bytes;
+                    }
+
+                    return new byte[0];
+                }
+            };
+        }
+    }
+
+    static class HeaderReference {
+
+        private int totalRefs = -1;
+        private int currentRef = 0;
+
+        HeaderReference() {}
+
+        void incTotalRefs() {
+            if (totalRefs == -1) {
+                totalRefs = 1;
+            }
+            totalRefs++;
+        }
+
+        int getAndIncrement() {
+            return currentRef++;
+        }
+    }
+
+    static final class KafkaHeadersImpl implements KafkaHeaders {
+
+        private final List<KafkaHeader> headersArray = new ArrayList<>();
+        private final Map<String, List<KafkaHeader>> headersMap = new HashMap<>();
+
+        KafkaHeadersImpl(Headers headers) {
+            this(HeadersAdapter.from(headers));
+        }
+
+        KafkaHeadersImpl(org.apache.kafka.connect.header.Headers headers) {
+            this(HeadersAdapter.from(headers));
+        }
+
+        KafkaHeadersImpl(HeadersAdapter headers) {
+            Map<String, HeaderReference> refs = new HashMap<>();
+            for (HeaderAdapter header : headers) {
+                refs.compute(
+                        header.key(),
+                        (k, v) -> {
+                            if (v == null) {
+                                return new HeaderReference();
+                            } else {
+                                v.incTotalRefs();
+                            }
+                            return v;
+                        });
+            }
+
+            for (HeaderAdapter header : headers) {
+                List<KafkaHeader> list =
+                        headersMap.computeIfAbsent(header.key(), k -> new ArrayList<>());
+                HeaderReference ref = refs.get(header.key());
+                KafkaHeaderImpl kafkaRecordHeader;
+                if (ref.totalRefs == -1) {
+                    kafkaRecordHeader = new KafkaHeaderImpl(header);
+                } else {
+                    kafkaRecordHeader = new KafkaHeaderImpl(header, ref.getAndIncrement());
+                }
+                list.add(kafkaRecordHeader);
+                headersArray.add(kafkaRecordHeader);
             }
         }
 
         @Override
-        public KafkaHeader lastHeader(String key) {
-            org.apache.kafka.connect.header.Header header = headers.lastWithName(key);
-            return header != null ? new KafkaRecordHeader(header) : null;
+        public boolean has(String key) {
+            return headersMap.containsKey(key);
         }
 
         @Override
         public KafkaHeader get(int index) {
-            org.apache.kafka.connect.header.Header header = headersArray.get(index);
-            return header != null ? new KafkaRecordHeader(header) : null;
+            return headersArray.get(index);
         }
 
         @Override
         public List<KafkaHeader> headers(String key) {
-            Iterator<org.apache.kafka.connect.header.Header> iterator = headers.allWithName(key);
-            List<KafkaHeader> headersArray = new ArrayList<>();
-            while (iterator.hasNext()) {
-                org.apache.kafka.connect.header.Header header = iterator.next();
-                headersArray.add(new KafkaRecordHeader(header));
-            }
-
-            return headersArray;
+            return headersMap.get(key);
         }
 
         @Override
         public int size() {
-            return headers.size();
+            return headersArray.size();
         }
 
         @Override
         public Iterator<KafkaHeader> iterator() {
-            return new Iterator<KafkaHeader>() {
-                private final Iterator<org.apache.kafka.connect.header.Header> iterator =
-                        headers.iterator();
-
-                @Override
-                public boolean hasNext() {
-                    return iterator.hasNext();
-                }
-
-                @Override
-                public KafkaHeader next() {
-                    return new KafkaRecordHeader(iterator.next());
-                }
-            };
+            return headersArray.iterator();
         }
     }
 }

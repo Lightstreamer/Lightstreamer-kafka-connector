@@ -75,7 +75,7 @@ public class TopicMappingValidatorTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(TOPIC_MAPPINGS, value));
-        assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -84,7 +84,8 @@ public class TopicMappingValidatorTest {
                 assertThrows(
                         ConfigException.class,
                         () -> validator.ensureValid(TOPIC_MAPPINGS, new Object()));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Invalid value for configuration \"topic.mappings\": Must be a string");
     }
 }
