@@ -59,7 +59,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
                 case ARRAY -> new JsonArrayNode(name, (ArrayNode) node);
                 case NULL -> new JsonNullNode(name);
 
-                default -> new JsonScalarNode(name, node.asText(null));
+                default -> new JsonScalarNode(name, node.asText());
             };
         }
     }
