@@ -386,9 +386,10 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                  | EXPECTED_ERROR_MESSAGE
+                VALUE.a b                   | Field [a b] not found
                 VALUE.no_attrib             | Field [no_attrib] not found
                 VALUE['no_attrib']          | Field [no_attrib] not found
-                VALUE.children[0].no_attrib | Field [no_attrib] not found
+                VALUE[0]                    | Cannot retrieve index [0] from a non-array object
                 VALUE.no_children[0]        | Field [no_children] not found
                 VALUE.name[0]               | Field [name] is not indexed
                 VALUE.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
@@ -666,18 +667,20 @@ public class JsonNodeSelectorsSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                | EXPECTED_ERROR_MESSAGE
-                #KEY.no_attrib             | Field [no_attrib] not found
-                #KEY['no_attrib']          | Field [no_attrib] not found
-                #KEY.children[0].no_attrib | Field [no_attrib] not found
-                #KEY.no_children[0]        | Field [no_children] not found
-                #KEY.name[0]               | Field [name] is not indexed
-                #KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
-                #KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
-                #KEY.children[0]['no_key'] | Field [no_key] not found
+                KEY.a b                   | Field [a b] not found
+                KEY.no_attrib             | Field [no_attrib] not found
+                KEY['no_attrib']          | Field [no_attrib] not found
+                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY.children[0].no_attrib | Field [no_attrib] not found
+                KEY.no_children[0]        | Field [no_children] not found
+                KEY.name[0]               | Field [name] is not indexed
+                KEY.name['no_key']        | Cannot retrieve field [no_key] from a scalar object
+                KEY.name.no_key           | Cannot retrieve field [no_key] from a scalar object
+                KEY.children[0]['no_key'] | Field [no_key] not found
                 KEY.children[3].name      | Cannot retrieve field [name] from a null object
-                #KEY.children[4]           | Field not found at index [4]
-                #KEY.children[4].name      | Field not found at index [4]
-                #KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
+                KEY.children[4]           | Field not found at index [4]
+                KEY.children[4].name      | Field not found at index [4]
+                KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
     public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
