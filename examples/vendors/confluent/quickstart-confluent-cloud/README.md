@@ -1,4 +1,4 @@
-# Quick Start with Confluent Cloud 
+# Confluent Cloud QuickStart
 
 In this section, we illustrate a variant of the [Confluent Platform Quick Start](../quickstart-confluent-platform/) that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
 
