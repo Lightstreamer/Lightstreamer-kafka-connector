@@ -17,127 +17,58 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
-import com.lightstreamer.kafka.common.expressions.Constant;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.Parsers.GeneralizedKey;
-import com.lightstreamer.kafka.common.mapping.selectors.Parsers.LinkedNodeEvaluator;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node;
+import com.lightstreamer.kafka.common.mapping.selectors.Parsers.Node.KafkaRecordNode;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.NodeEvaluator;
 import com.lightstreamer.kafka.common.mapping.selectors.Parsers.ParsingContext;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.function.Function;
+import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-public abstract class StructuredBaseSelector<T extends Node<T>> extends BaseSelector {
-
-    private static class PropertyGetter<T extends Node<T>> implements NodeEvaluator<T> {
-
-        public static <T extends Node<T>> Node<T> get(String name, Node<T> node) {
-            if (node.isNull()) {
-                throw ValueException.nullObject(name);
-            }
-
-            if (node.isScalar()) {
-                throw ValueException.scalarObject(name);
-            }
-
-            if (!node.has(name)) {
-                throw ValueException.fieldNotFound(name);
-            }
-            return node.get(name);
-        }
-
-        private final String name;
-
-        PropertyGetter(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public Node<T> eval(Node<T> node) {
-            return get(name, node);
-        }
-    }
-
-    private static class ArrayGetter<T extends Node<T>> implements NodeEvaluator<T> {
-
-        private final String name;
-        private final PropertyGetter<T> getter;
-        private final List<GeneralizedKey> indexes;
-
-        ArrayGetter(String fieldName, List<GeneralizedKey> indexes) {
-            this.name = Objects.requireNonNull(fieldName);
-            this.indexes = Objects.requireNonNull(indexes);
-            this.getter = new PropertyGetter<T>(name);
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        Node<T> get(int index, Node<T> node) {
-            if (node.isNull()) {
-                throw ValueException.nullObject(name, index);
-            }
-            if (node.isArray()) {
-                if (index < node.size()) {
-                    return node.get(index);
-                } else {
-                    throw ValueException.indexOfOutBounds(index);
-                }
-            } else {
-                throw ValueException.noIndexedField(name);
-            }
-        }
-
-        @Override
-        public Node<T> eval(Node<T> node) {
-            Node<T> result = getter.eval(node);
-            for (GeneralizedKey i : indexes) {
-                if (i.isIndex()) {
-                    result = get(i.index(), result);
-                } else {
-                    result = PropertyGetter.get(i.key(), result);
-                }
-            }
-            return result;
-        }
-    }
+public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseSelector {
 
     private final Parsers.SelectorExpressionParser<T> parser =
-            new Parsers.SelectorExpressionParser<>(PropertyGetter::new, ArrayGetter::new);
+            new Parsers.SelectorExpressionParser<>();
 
-    private final LinkedNodeEvaluator<T> evaluator;
+    private final BiFunction<String, P, T> rootNodeFactory;
+    private final NodeEvaluator<T> evaluator;
 
     protected StructuredBaseSelector(
-            String name, ExtractionExpression expression, Constant expectedRoot)
+            ExtractionExpression expression,
+            Constant expectedRoot,
+            BiFunction<String, P, T> rootNodeFactory)
             throws ExtractionException {
-        super(name, expression);
-        ParsingContext ctx = new ParsingContext(name, expression, expectedRoot);
-        this.evaluator = parser.parse(ctx);
+        super(expression);
+        this.rootNodeFactory = rootNodeFactory;
+        this.evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
     }
 
-    protected final <P> Data eval(
-            Supplier<P> payloadSupplier, Function<P, Node<T>> nodeFactory, boolean checkScalar) {
-        Node<T> node = Node.checkNull(payloadSupplier, nodeFactory);
-        LinkedNodeEvaluator<T> current = evaluator;
-        while (current != null) {
-            node = current.eval(node);
-            current = current.next();
-        }
+    protected final Node<T> eval(Supplier<P> payloadSupplier, boolean checkScalar) {
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        Node<T> resultNode = evaluator.evaluateChain(recordNode);
 
-        if (checkScalar && !node.isScalar()) {
+        if (checkScalar && !resultNode.isScalar()) {
             throw ValueException.nonComplexObjectRequired(expression().expression());
         }
 
-        return Data.from(name(), node.asText());
+        return resultNode;
+    }
+
+    protected final Node<T> eval(String name, Supplier<P> payloadSupplier, boolean checkScalar) {
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        Node<T> resultNode = evaluator.evaluateChain(recordNode, name);
+
+        if (checkScalar && !resultNode.isScalar()) {
+            throw ValueException.nonComplexObjectRequired(expression().expression());
+        }
+
+        return resultNode;
+    }
+
+    protected final void evalInto(Supplier<P> payloadSupplier, Map<String, String> target) {
+        eval(payloadSupplier, false).flatIntoMap(target);
     }
 }

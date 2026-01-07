@@ -25,16 +25,17 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.KVP;
-import static com.lightstreamer.kafka.common.expressions.Expressions.Expression;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.test_utils.Records.fromKey;
 import static com.lightstreamer.kafka.test_utils.Records.fromValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.google.common.truth.StringSubject;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -42,11 +43,13 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class KvpNodeSelectorsSuppliersTest {
@@ -59,31 +62,30 @@ public class KvpNodeSelectorsSuppliersTest {
                             KVP.toString(),
                             RECORD_VALUE_EVALUATOR_TYPE,
                             KVP.toString()));
+
     private String INPUT =
             "QCHARTTOT=2032,TRow=12790,QV=9,PV=43,TMSTMP=2024-04-3013:23:07,QCHART=1,VTOT=81316,QTOT=2032,O=30/04/2024-13:23:07,QA=9012,Q=1,PA=40,PCHART=43,NTRAD=106,NOVALUE,NOVALUE2=";
 
-    static ValueSelector<String> valueSelector(ExtractionExpression expression)
-            throws ExtractionException {
-        return valueSelector(expression, CONFIG);
-    }
-
-    static ValueSelector<String> valueSelector(
-            ExtractionExpression expression, ConnectorConfig config) throws ExtractionException {
-        return new KvpSelectorsSuppliers(config)
-                .makeValueSelectorSupplier()
-                .newSelector("name", expression);
-    }
-
-    static KeySelector<String> keySelector(ExtractionExpression expression)
-            throws ExtractionException {
+    static KeySelector<String> keySelector(String expression) throws ExtractionException {
         return keySelector(expression, CONFIG);
     }
 
-    static KeySelector<String> keySelector(ExtractionExpression expression, ConnectorConfig config)
+    static KeySelector<String> keySelector(String expression, ConnectorConfig config)
             throws ExtractionException {
         return new KvpSelectorsSuppliers(config)
                 .makeKeySelectorSupplier()
-                .newSelector("name", expression);
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
+    }
+
+    static ValueSelector<String> valueSelector(String expression) throws ExtractionException {
+        return valueSelector(expression, CONFIG);
+    }
+
+    static ValueSelector<String> valueSelector(String expression, ConnectorConfig config)
+            throws ExtractionException {
+        return new KvpSelectorsSuppliers(config)
+                .makeValueSelectorSupplier()
+                .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
     @Test
@@ -93,8 +95,41 @@ public class KvpNodeSelectorsSuppliersTest {
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, KVP.toString()));
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
         KeySelectorSupplier<String> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(keySelectorSupplier.deserializer().getClass())
-                .isEqualTo(StringDeserializer.class);
+        assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.KVP);
+    }
+
+    @Test
+    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+        // Configure the key evaluator type, but leave default settings for
+        // RECORD_KEY_EVALUATOR_TYPE (String)
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not KVP");
+    }
+
+    @Test
+    public void shouldMakeKeySelector() throws ExtractionException {
+        KeySelector<String> selector = keySelector("KEY");
+        assertThat(selector.expression().expression()).isEqualTo("KEY");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            textBlock =
+                    """
+                EXPRESSION,       EXPECTED_ERROR_MESSAGE
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd]
+                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
+                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]]
+                    """)
+    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> keySelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
@@ -103,9 +138,25 @@ public class KvpNodeSelectorsSuppliersTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, KVP.toString()));
         KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
-        ValueSelectorSupplier<String> keySelectorSupplier = s.makeValueSelectorSupplier();
-        assertThat(keySelectorSupplier.deserializer().getClass())
-                .isEqualTo(StringDeserializer.class);
+        ValueSelectorSupplier<String> valueSelectorSupplier = s.makeValueSelectorSupplier();
+        assertThat(valueSelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.KVP);
+    }
+
+    @Test
+    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        // Configure the key evaluator type, but leave default settings for
+        // RECORD_KEY_EVALUATOR_TYPE (String)
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        KvpSelectorsSuppliers s = new KvpSelectorsSuppliers(config);
+        IllegalArgumentException ie =
+                assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
+        assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not KVP");
+    }
+
+    @Test
+    public void shouldMakeValueSelector() throws ExtractionException {
+        ValueSelector<String> selector = valueSelector("VALUE");
+        assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -113,57 +164,27 @@ public class KvpNodeSelectorsSuppliersTest {
             useHeadersInDisplayName = true,
             textBlock =
                     """
-                EXPRESSION,      EXPECTED
-                VALUE.QCHARTTOT, 2032
-                VALUE.TRow,      12790
-                VALUE.QV,        9
-                VALUE.PV,        43
-                VALUE.TMSTMP,    2024-04-3013:23:07
-                VALUE.QCHART,    1
-                VALUE.VTOT,      81316
-                VALUE.QTOT,      2032
-                VALUE.O,         30/04/2024-13:23:07
-                VALUE.QA,        9012
-                VALUE.Q,         1
-                VALUE.PA,        40
-                VALUE.PCHART,    43
-                VALUE.NTRAD,     106
-                VALUE.NOVALUE,   <EMPTY>
-                VALUE.NOVALUE2,  <EMPTY>
+                EXPRESSION,         EXPECTED_ERROR_MESSAGE
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd]
+                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
+                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldExtractValue(String expressionStr, String expected)
-            throws ExtractionException {
-        ExtractionExpression expression = Expression(expressionStr);
-        StringSubject subject =
-                assertThat(valueSelector(expression).extractValue(fromValue(INPUT)).text());
-        if (expected.equals("<EMPTY>")) {
-            subject.isEmpty();
-        } else {
-            subject.isEqualTo(expected);
-        }
+    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+        ExtractionException ee =
+                assertThrows(ExtractionException.class, () -> valueSelector(expression));
+        assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,                EXPECTED_ERROR_MESSAGE
-                VALUE,                     The expression [VALUE] must evaluate to a non-complex object
-                VALUE.no_attrib,           Field [no_attrib] not found
-                VALUE.no_children[0],      Field [no_children] not found
-                VALUE.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
-                VALUE.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
-                VALUE.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
-                VALUE.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
-                    """)
-    public void shouldNotExtractValue(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ValueException ve =
-                assertThrows(
-                        ValueException.class,
-                        () -> valueSelector(expression).extractValue(fromValue(INPUT)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+    @Test
+    public void shouldGetDeserializer() {
+        Deserializer<String> keyDeserializer =
+                new KvpSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deserializer();
+        assertThat(keyDeserializer).isInstanceOf(StringDeserializer.class);
+
+        Deserializer<String> valueDeserializer =
+                new KvpSelectorsSuppliers(CONFIG).makeValueSelectorSupplier().deserializer();
+        assertThat(valueDeserializer).isInstanceOf(StringDeserializer.class);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -172,12 +193,174 @@ public class KvpNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION | EXPECTED
-                VALUE      | {A=1, B=2}
-                VALUE.A    | 1
-                VALUE.B    | 2
+                EXPRESSION         | EXPECTED_NAME      | EXPECTED_VALUE
+                VALUE.QCHARTTOT    | QCHARTTOT          | 2032
+                VALUE['QCHARTTOT'] | QCHARTTOT          | 2032
+                VALUE.TRow         | TRow               | 12790
+                VALUE.QV           | QV                 | 9
+                VALUE.PV           | PV                 | 43
+                VALUE.TMSTMP       | TMSTMP             | 2024-04-3013:23:07
+                VALUE.QCHART       | QCHART             | 1
+                VALUE.VTOT         | VTOT               | 81316
+                VALUE.QTOT         | QTOT               | 2032
+                VALUE.O            | O                  | 30/04/2024-13:23:07
+                VALUE.QA           | QA                 | 9012
+                VALUE.Q            | Q                  | 1
+                VALUE.PA           | PA                 | 40
+                VALUE.PCHART       | PCHART             | 43
+                VALUE.NTRAD        | NTRAD              | 106
+                VALUE.NOVALUE      | NOVALUE            | ''
+                VALUE.NOVALUE2     | NOVALUE2           | ''
                     """)
-    public void shouldExtractValueWithNonDefaultSettings(String expressionString, String expected)
+    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        ValueSelector<String> valueSelector = valueSelector(expression);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(INPUT));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = valueSelector.extractValue("param", fromValue(INPUT));
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<?, String> record = fromValue(INPUT);
+
+        valueSelector("VALUE.*").extractValueInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "QCHARTTOT",
+                        "2032",
+                        "TRow",
+                        "12790",
+                        "QV",
+                        "9",
+                        "PV",
+                        "43",
+                        "TMSTMP",
+                        "2024-04-3013:23:07",
+                        "QCHART",
+                        "1",
+                        "VTOT",
+                        "81316",
+                        "QTOT",
+                        "2032",
+                        "O",
+                        "30/04/2024-13:23:07",
+                        "QA",
+                        "9012",
+                        "Q",
+                        "1",
+                        "PA",
+                        "40",
+                        "PCHART",
+                        "43",
+                        "NTRAD",
+                        "106",
+                        "NOVALUE",
+                        "",
+                        "NOVALUE2",
+                        "");
+        target.clear();
+
+        valueSelector("VALUE.QCHART").extractValueInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                VALUE                     | The expression [VALUE] must evaluate to a non-complex object
+                VALUE.*                   | The expression [VALUE.*] must evaluate to a non-complex object
+                VALUE[0]                  | Cannot retrieve index [0] from a non-array object
+                VALUE.no_attrib           | Field [no_attrib] not found
+                VALUE['no_attrib']        | Field [no_attrib] not found
+                VALUE.no_children[0]      | Field [no_children] not found
+                VALUE.QCHARTTOT[0]        | Field [QCHARTTOT] is not indexed
+                VALUE.QCHARTTOT['no_key'] | Cannot retrieve field [no_key] from a scalar object
+                VALUE.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
+                VALUE.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
+                    """)
+    public void shouldNotExtractValue(String expression, String errorMessage)
+            throws ValueException, ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue(INPUT))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> valueSelector(expression).extractValue(fromValue(INPUT)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION                | EXPECTED_ERROR_MESSAGE
+                VALUE[0]                  | Cannot retrieve index [0] from a non-array object
+                VALUE.no_attrib           | Field [no_attrib] not found
+                VALUE['no_attrib']        | Field [no_attrib] not found
+                VALUE.no_children[0]      | Field [no_children] not found
+                VALUE.QCHARTTOT[0]        | Field [QCHARTTOT] is not indexed
+                VALUE.QCHARTTOT['no_key'] | Cannot retrieve field [no_key] from a scalar object
+                VALUE.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
+                VALUE.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
+                    """)
+    public void shouldNotExtractValueIntoMap(String expression, String errorMessage)
+            throws ValueException, ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(fromValue(INPUT), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @Test
+    public void shouldExtractValueWithNonScalars() throws ExtractionException {
+        ValueSelector<String> valueSelector = valueSelector("VALUE");
+
+        Data autoBoundData = valueSelector.extractValue(fromValue("A=1,B=2"), false);
+        assertThat(autoBoundData.name()).isEqualTo("VALUE");
+        assertThat(autoBoundData.text()).isEqualTo("{A=1, B=2}");
+
+        Data boundData = valueSelector.extractValue("param", fromValue("A=1,B=2"), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo("{A=1, B=2}");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION | EXPECTED_NAME | EXPECTED_VALUE
+                VALUE      | VALUE         | {A=1, B=2}
+                VALUE.A    | A             | 1
+                VALUE.B    | B             | 2
+                    """)
+    public void shouldExtractValueWithNonDefaultSettings(
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -190,10 +373,37 @@ public class KvpNodeSelectorsSuppliersTest {
                                 "|"));
 
         String message = "A@1|B@2";
-        ExtractionExpression expression = Expression(expressionString);
-        String text =
-                valueSelector(expression, config).extractValue(fromValue(message), false).text();
-        assertThat(text).isEqualTo(expected);
+        ValueSelector<String> valueSelector = valueSelector(expression, config);
+
+        Data autoBoundData = valueSelector.extractValue(fromValue(message), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = valueSelector.extractValue("param", fromValue(message), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+
+        // Test extractIntoMap as well only for the full object case
+        if (expectedName.equals("VALUE")) {
+            Map<String, String> target = new HashMap<>();
+            KafkaRecord<?, String> record = fromValue(message);
+            valueSelector.extractValueInto(record, target);
+            assertThat(target).containsExactly("A", "1", "B", "2");
+            target.clear();
+        }
+    }
+
+    @Test
+    public void shouldHandleNullValue() throws ExtractionException {
+        ValueSelector<String> valueSelector = valueSelector("VALUE");
+
+        Data autoBoundData = valueSelector.extractValue(fromValue((String) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("VALUE");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = valueSelector.extractValue("param", fromValue((String) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -206,72 +416,34 @@ public class KvpNodeSelectorsSuppliersTest {
                 VALUE.A    | Cannot retrieve field [A] from a null object
                 VALUE.B    | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldHandleNullValue(String expressionStr, String errorMessage)
+    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
                         () ->
-                                valueSelector(Expression(expressionStr))
+                                valueSelector(expression)
                                         .extractValue(fromValue((String) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,    EXPECTED
-                KEY.QCHARTTOT, 2032
-                KEY.TRow,      12790
-                KEY.QV,        9
-                KEY.PV,        43
-                KEY.TMSTMP,    2024-04-3013:23:07
-                KEY.QCHART,    1
-                KEY.VTOT,      81316
-                KEY.QTOT,      2032
-                KEY.O,         30/04/2024-13:23:07
-                KEY.QA,        9012
-                KEY.Q,         1
-                KEY.PA,        40
-                KEY.PCHART,    43
-                KEY.NTRAD,     106
-                KEY.NOVALUE,   <EMPTY>
-                KEY.NOVALUE2,  <EMPTY>
-                    """)
-    public void shouldExtractKey(String expressionStr, String expected) throws ExtractionException {
-        ExtractionExpression expression = Expression(expressionStr);
-        StringSubject subject =
-                assertThat(keySelector(expression).extractKey(fromKey(INPUT)).text());
-        if (expected.equals("<EMPTY>")) {
-            subject.isEmpty();
-        } else {
-            subject.isEqualTo(expected);
-        }
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,              EXPECTED_ERROR_MESSAGE
-                KEY.no_attrib,           Field [no_attrib] not found
-                KEY.no_children[0],      Field [no_children] not found
-                KEY.QCHARTTOT[0],        Field [QCHARTTOT] is not indexed
-                KEY.QCHARTTOT['no_key'], Cannot retrieve field [no_key] from a scalar object
-                KEY.QCHARTTOT.no_key,    Cannot retrieve field [no_key] from a scalar object
-                KEY.NOVALUE.no_key,      Cannot retrieve field [no_key] from a scalar object
-                    """)
-    public void shouldNotExtractKey(String expressionStr, String errorMessage) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ValueException ve =
+        ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(INPUT)).text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue("param", fromValue((String) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                valueSelector(expression)
+                                        .extractValueInto(
+                                                fromValue((String) null), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -280,12 +452,170 @@ public class KvpNodeSelectorsSuppliersTest {
             delimiter = '|',
             textBlock =
                     """
-                EXPRESSION | EXPECTED
-                KEY        | {A=1, B=2}
-                KEY.A      | 1
-                KEY.B      | 2
+                EXPRESSION       | EXPECTED_NAME      | EXPECTED_VALUE
+                KEY.QCHARTTOT    | QCHARTTOT          | 2032
+                KEY['QCHARTTOT'] | QCHARTTOT          | 2032
+                KEY.TRow         | TRow               | 12790
+                KEY.QV           | QV                 | 9
+                KEY.PV           | PV                 | 43
+                KEY.TMSTMP       | TMSTMP             | 2024-04-3013:23:07
+                KEY.QCHART       | QCHART             | 1
+                KEY.VTOT         | VTOT               | 81316
+                KEY.QTOT         | QTOT               | 2032
+                KEY.O            | O                  | 30/04/2024-13:23:07
+                KEY.QA           | QA                 | 9012
+                KEY.Q            | Q                  | 1
+                KEY.PA           | PA                 | 40
+                KEY.PCHART       | PCHART             | 43
+                KEY.NTRAD        | NTRAD              | 106
+                KEY.NOVALUE      | NOVALUE            | ''
+                KEY.NOVALUE2     | NOVALUE2           | ''
                     """)
-    public void shouldExtractKeyWithNonDefaultSettings(String expressionString, String expected)
+    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+            throws ExtractionException {
+        KeySelector<String> keySelector = keySelector(expression);
+
+        Data autoBoundData = keySelector.extractKey(fromKey(INPUT));
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = keySelector.extractKey("param", fromKey(INPUT));
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+    }
+
+    @Test
+    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+        Map<String, String> target = new HashMap<>();
+        KafkaRecord<String, ?> record = fromKey(INPUT);
+
+        keySelector("KEY.*").extractKeyInto(record, target);
+        assertThat(target)
+                .containsExactly(
+                        "QCHARTTOT",
+                        "2032",
+                        "TRow",
+                        "12790",
+                        "QV",
+                        "9",
+                        "PV",
+                        "43",
+                        "TMSTMP",
+                        "2024-04-3013:23:07",
+                        "QCHART",
+                        "1",
+                        "VTOT",
+                        "81316",
+                        "QTOT",
+                        "2032",
+                        "O",
+                        "30/04/2024-13:23:07",
+                        "QA",
+                        "9012",
+                        "Q",
+                        "1",
+                        "PA",
+                        "40",
+                        "PCHART",
+                        "43",
+                        "NTRAD",
+                        "106",
+                        "NOVALUE",
+                        "",
+                        "NOVALUE2",
+                        "");
+        target.clear();
+
+        keySelector("KEY.QCHART").extractKeyInto(record, target);
+        assertThat(target).isEmpty();
+        target.clear();
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION              | EXPECTED_ERROR_MESSAGE
+                KEY                     | The expression [KEY] must evaluate to a non-complex object
+                KEY.*                   | The expression [KEY.*] must evaluate to a non-complex object
+                KEY[0]                  | Cannot retrieve index [0] from a non-array object
+                KEY.no_attrib           | Field [no_attrib] not found
+                KEY['no_attrib']        | Field [no_attrib] not found
+                KEY.no_children[0]      | Field [no_children] not found
+                KEY.QCHARTTOT[0]        | Field [QCHARTTOT] is not indexed
+                KEY.QCHARTTOT['no_key'] | Cannot retrieve field [no_key] from a scalar object
+                KEY.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
+                KEY.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
+                    """)
+    public void shouldNotExtractKey(String expression, String errorMessage) {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> keySelector(expression).extractKey("param", fromKey(INPUT)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () -> keySelector(expression).extractKey(fromKey(INPUT)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION              | EXPECTED_ERROR_MESSAGE
+                KEY[0]                  | Cannot retrieve index [0] from a non-array object
+                KEY.no_attrib           | Field [no_attrib] not found
+                KEY['no_attrib']        | Field [no_attrib] not found
+                KEY.no_children[0]      | Field [no_children] not found
+                KEY.QCHARTTOT[0]        | Field [QCHARTTOT] is not indexed
+                KEY.QCHARTTOT['no_key'] | Cannot retrieve field [no_key] from a scalar object
+                KEY.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
+                KEY.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
+                    """)
+    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage)
+            throws ValueException, ExtractionException {
+        ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(fromKey(INPUT), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+    }
+
+    @Test
+    public void shouldExtractKeyWithNonScalars() throws ExtractionException {
+        KeySelector<String> keySelector = keySelector("KEY");
+
+        Data autoBoundData = keySelector.extractKey(fromKey("A=1,B=2"), false);
+        assertThat(autoBoundData.name()).isEqualTo("KEY");
+        assertThat(autoBoundData.text()).isEqualTo("{A=1, B=2}");
+
+        Data boundData = keySelector.extractKey("param", fromKey("A=1,B=2"), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo("{A=1, B=2}");
+    }
+
+    @ParameterizedTest(name = "[{index}] {arguments}")
+    @CsvSource(
+            useHeadersInDisplayName = true,
+            delimiter = '|',
+            textBlock =
+                    """
+                EXPRESSION | EXPECTED_NAME | EXPECTED_VALUE
+                KEY        | KEY         | {A=1, B=2}
+                KEY.A      | A             | 1
+                KEY.B      | B             | 2
+                    """)
+    public void shouldExtractKeyWithNonDefaultSettings(
+            String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -298,9 +628,37 @@ public class KvpNodeSelectorsSuppliersTest {
                                 "|"));
 
         String message = "A@1|B@2";
-        ExtractionExpression expression = Expression(expressionString);
-        String text = keySelector(expression, config).extractKey(fromKey(message), false).text();
-        assertThat(text).isEqualTo(expected);
+        KeySelector<String> keySelector = keySelector(expression, config);
+
+        Data autoBoundData = keySelector.extractKey(fromKey(message), false);
+        assertThat(autoBoundData.name()).isEqualTo(expectedName);
+        assertThat(autoBoundData.text()).isEqualTo(expectedValue);
+
+        Data boundData = keySelector.extractKey("param", fromKey(message), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isEqualTo(expectedValue);
+
+        // Test extractIntoMap as well only for the full object case
+        if (expectedName.equals("VALUE")) {
+            Map<String, String> target = new HashMap<>();
+            KafkaRecord<String, ?> record = fromKey(message);
+            keySelector.extractKeyInto(record, target);
+            assertThat(target).containsExactly("A", "1", "B", "2");
+            target.clear();
+        }
+    }
+
+    @Test
+    public void shouldHandleNullKey() throws ExtractionException {
+        KeySelector<String> keySelector = keySelector("KEY");
+
+        Data autoBoundData = keySelector.extractKey(fromKey((String) null), false);
+        assertThat(autoBoundData.name()).isEqualTo("KEY");
+        assertThat(autoBoundData.text()).isNull();
+
+        Data boundData = keySelector.extractKey("param", fromKey((String) null), false);
+        assertThat(boundData.name()).isEqualTo("param");
+        assertThat(boundData.text()).isNull();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -313,53 +671,29 @@ public class KvpNodeSelectorsSuppliersTest {
                 KEY.A      | Cannot retrieve field [A] from a null object
                 KEY.B      | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldHandleNullKey(String expressionStr, String errorMessage)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
+                        () -> keySelector(expression).extractKey(fromKey((String) null)).text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
                         () ->
-                                keySelector(Expression(expressionStr))
-                                        .extractKey(fromKey((String) null))
+                                keySelector(expression)
+                                        .extractKey("param", fromKey((String) null))
                                         .text());
-        assertThat(ve.getMessage()).isEqualTo(errorMessage);
-    }
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,         EXPECTED_ERROR_MESSAGE
-                VALUE.a. .b,        Found the invalid expression [VALUE.a. .b] with missing tokens while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[0]xsd, Found the invalid indexed expression [VALUE.attrib[0]xsd] while evaluating [name]
-                VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]] while evaluating [name]
-                VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]] while evaluating [name]
-                    """)
-    public void shouldNotCreateValueSelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> valueSelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            textBlock =
-                    """
-                EXPRESSION,       EXPECTED_ERROR_MESSAGE
-                KEY.a. .b,        Found the invalid expression [KEY.a. .b] with missing tokens while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[0]xsd, Found the invalid indexed expression [KEY.attrib[0]xsd] while evaluating [name]
-                KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]] while evaluating [name]
-                KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]] while evaluating [name]
-                    """)
-    public void shouldNotCreateKeySelector(String expressionStr, String expectedErrorMessage) {
-        ExtractionExpression expression = Expression(expressionStr);
-        ExtractionException ee =
-                assertThrows(ExtractionException.class, () -> keySelector(expression));
-        assertThat(ee.getMessage()).isEqualTo(expectedErrorMessage);
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(fromKey((String) null), new HashMap<>()));
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }

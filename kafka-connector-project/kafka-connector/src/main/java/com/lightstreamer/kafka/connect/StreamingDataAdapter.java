@@ -21,7 +21,6 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -29,6 +28,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.connect.common.RecordSender;
@@ -49,7 +49,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -87,15 +86,15 @@ public final class StreamingDataAdapter implements RecordSender {
     private final ErrantRecordReporter reporter;
 
     // Map of all the subscribed items.
-    private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
-            new ConcurrentHashMap<>();
+    // private final ConcurrentHashMap<String, SubscribedItem> subscribedItems =
+    //         new ConcurrentHashMap<>();
 
     /**
      * A container of all currently subscribed items in the Lightstreamer Server. This instance is
      * created from the values of the subscribedItems map and manages the collection of active
      * subscription requests.
      */
-    private final SubscribedItems subscribed = SubscribedItems.of(subscribedItems.values());
+    private final SubscribedItems subscribed = SubscribedItems.create();
 
     // The ItemEventListener instance injected by the Remote Provider Server.
     private volatile ItemEventListener listener;
@@ -122,7 +121,7 @@ public final class StreamingDataAdapter implements RecordSender {
         this.itemTemplates = config.itemTemplates();
         this.recordMapper =
                 RecordMapper.builder()
-                        .withTemplateExtractors(itemTemplates.groupExtractors())
+                        .withCanonicalItemExtractors(itemTemplates.groupExtractors())
                         .enableRegex(itemTemplates.isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
@@ -166,7 +165,7 @@ public final class StreamingDataAdapter implements RecordSender {
             }
 
             logger.info("Subscribed to item [{}]", item);
-            subscribedItems.put(item, newItem);
+            subscribed.add(newItem);
             if (itemsCounter.addAndGet(1) == 1) {
                 setDownstreamUpdater(this::update);
             }
@@ -178,7 +177,7 @@ public final class StreamingDataAdapter implements RecordSender {
 
     @Override
     public void unsubscribe(String item) throws SubscriptionException, FailureException {
-        Item removedItem = subscribedItems.remove(item);
+        SubscribedItem removedItem = subscribed.remove(item);
         if (removedItem == null) {
             throw new SubscriptionException(
                     "Unsubscribing from unexpected item [%s]".formatted(item));
@@ -222,7 +221,8 @@ public final class StreamingDataAdapter implements RecordSender {
 
     // Only for testing purposes
     Item getSubscribedItem(String item) {
-        return subscribedItems.get(item);
+        // return subscribedItems.get(item);
+        return subscribed.get(item);
     }
 
     // Only for testing purposes

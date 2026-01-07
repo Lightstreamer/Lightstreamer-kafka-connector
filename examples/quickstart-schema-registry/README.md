@@ -1,6 +1,6 @@
-# Quick Start with Schema Registry
+# Schema Registry QuickStart
 
-This folder contains a variant of the [_Quick Start SSL_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
+This folder contains a variant of the [_SSL QuickStart_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
@@ -9,6 +9,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 - _kafka-connector_:
 
   Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+
+  - Update of the parameter `record.value.evaluator.type` to use Protobuf:
+
+    ```xml
+    <param name="record.value.evaluator.type">PROTOBUF</param>
+    ```
   
   - Enabling of the Schema Registry:
 
@@ -40,12 +46,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
 
 - _producer_:
 
-   Extension of the `producer.properties` configuration file with the settings required to communicate with the Schema Registry:
+   Configuration of `producer.properties` to enable Protobuf serialization and Schema Registry communication:
     
    ```yaml
    ...
-   # JSON serializer with support for the Schema Registry
-   value.serializer=io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer
+   # Protobuf serializer with support for the Schema Registry
+   value.serializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
    # Schema Registry URL
    schema.registry.url=https://schema-registry:8084
    # Trust store configuration to authenticate the Schema Registry

@@ -21,7 +21,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Configure](#configure)
   - [Start](#start)
     - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
-    - [2. Attach a Lightstreamer consumer](#2-attach-a-lightstreamer-consumer)
+    - [2. Attach a Lightstreamer Consumer](#2-attach-a-lightstreamer-consumer)
     - [3. Publish the Events](#3-publish-the-events)
     - [4. Check the Consumed Events](#4-check-the-consumed-events)
 - [Configuration](#configuration)
@@ -40,11 +40,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [`schema.registry.url`](#schemaregistryurl)
     - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
     - [Encryption Parameters](#encryption-parameters-1)
-    - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+    - [Schema Registry QuickStart](#schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
+- [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
@@ -110,7 +110,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
+![QuickStart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -203,7 +203,7 @@ LS_HOME/
 
 ## Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_QuickStart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -243,7 +243,7 @@ To quickly complete the installation and verify the successful integration with 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
 
   ```xml
-  <param name="field.stock_name">#{VALUE.name}</param>
+  <param name="field.name">#{VALUE.name}</param>
   <param name="field.last_price">#{VALUE.last_price}</param>
   <param name="field.ask">#{VALUE.ask}</param>
   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -304,7 +304,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 ### 3. Publish the Events
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quick Start_ app.
+   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
@@ -686,9 +686,9 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start SSL Example
+#### SSL QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 ### Broker Authentication Parameters
 
@@ -868,17 +868,17 @@ When this mechanism is specified, you can configure the following authentication
 > [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
-#### Quick Start Confluent Cloud Example
+#### Confluent Cloud QuickStart
 
 Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-#### Quick Start with Redpanda Serverless Example
+#### Redpanda Serverless QuickStart
 
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start with Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless QuickStart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
-#### Quick Start with MSK Example
+#### MSK QuickStart
 
-Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
+Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK QuickStart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
 #### Quick Start with Aiven for Apache Kafka Example
 
@@ -1157,7 +1157,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - **Record data**: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
+  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys
   - **Headers**: Retrieve values from record headers
 
   ```js
@@ -1209,13 +1209,23 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > HEADERS.['myKey']
  > ```
 
-- Expressions must evaluate to _scalar_ values
+- Expressions support **wildcards** to extract multiple values at once:
 
-  When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
+  - **`#{VALUE.*}`**: Extract all fields from the record value
+  - **`#{KEY.*}`**: Extract all fields from the record key
+  - **`#{HEADERS.*}`**: Extract all headers
+  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps)
+  - **`#{VALUE.items.*}`**: Extract all elements from an array
 
-  When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
+  Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
-  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
+- Scalar vs Non-Scalar Value Extraction
+
+  By default, expressions must evaluate to _scalar_ values. When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
+
+  When an expression evaluates to a non-scalar value (object, array, or nested structure) and non-scalar mapping is not enabled, the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
+
+  To allow complex data structures to be directly mapped to fields (preserving their structure as generic text), enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
 #### Record Routing (`map.TOPIC_NAME.to`)
 
@@ -1296,13 +1306,13 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L481) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
 <param name="field.timestamp">#{VALUE.timestamp}</param>
 <param name="field.time">#{VALUE.time}</param>
-<param name="field.stock_name">#{VALUE.name}</param>
+<param name="field.name">#{VALUE.name}</param>
 <param name="field.last_price">#{VALUE.last_price}</param>
 <param name="field.ask">#{VALUE.ask}</param>
 <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -1316,6 +1326,108 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 <param name="field.item_status">#{VALUE.item_status}</param>
 ..
 ```
+
+##### Dynamic Field Discovery (`field.*`)
+
+Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
+
+- The record schema changes frequently and you want automatic adaptation
+- You have many fields and don't want to list them individually
+- You're working with schema-less or variable-structure records
+
+To enable dynamic field discovery, use wildcard expressions in your field configuration:
+
+```xml
+<param name="field.*">#{VALUE.*}</param>
+```
+
+This configuration automatically extracts all attributes from the record value and maps them to Lightstreamer fields with matching names. For example, a Kafka record with value:
+
+```json
+{
+  "symbol": "AAPL",
+  "price": 150.25,
+  "volume": 1000000,
+  "exchange": "NASDAQ"
+}
+```
+
+will automatically create fields `symbol`, `price`, `volume`, and `exchange` without needing to explicitly configure each one.
+
+**Supported wildcard patterns:**
+
+Wildcards can be applied at any level to extract all fields from non-scalar structures:
+
+- `#{VALUE.*}` - Discover all fields from the root record value
+- `#{KEY.*}` - Discover all fields from the root record key
+- `#{HEADERS.*}` - Discover all headers
+- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map)
+- `#{VALUE.items.*}` - Discover all elements from an array
+
+**How wildcards map to field names:**
+
+Wildcards can be applied at any level to any non-scalar part of the record. The resulting field names depend on the structure type:
+
+- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
+- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`)
+
+Dynamic field discovery automatically handles both scalar and non-scalar values. Non-scalar values (objects, arrays, nested structures) are serialized as generic text (e.g., JSON strings) and mapped to their corresponding field names.
+
+For example, with nested objects or maps:
+
+```json
+{
+  "trade": {
+    "symbol": "AAPL",
+    "details": {
+      "price": 150.25,
+      "volume": 1000000,
+      "exchange": "NASDAQ"
+    }
+  }
+}
+```
+
+You can extract all fields from the nested `details` structure with:
+
+```xml
+<param name="field.*">#{VALUE.trade.details.*}</param>
+```
+
+This creates fields `price`, `volume`, and `exchange` from the nested object. The same wildcard pattern works for maps, where the map keys become field names.
+
+For arrays, the wildcard discovers all elements with indexed field names:
+
+```json
+{
+  "prices": [150.25, 155.50, 148.75, 152.30]
+}
+```
+
+```xml
+<param name="field.*">#{VALUE.prices.*}</param>
+```
+
+This creates fields `prices[0]`, `prices[1]`, `prices[2]`, and `prices[3]` containing the individual price values.
+
+You can also combine static field mapping with dynamic discovery:
+
+```xml
+<!-- Explicitly map metadata fields -->
+<param name="field.timestamp">#{TIMESTAMP}</param>
+<param name="field.partition">#{PARTITION}</param>
+
+<!-- Discover all value fields automatically -->
+<param name="field.*">#{VALUE.*}</param>
+```
+
+When combining both approaches, static field mappings take precedence over dynamic discovery. If a field name is explicitly defined with `field.fieldName`, it will not be overridden by the wildcard `field.*` pattern.
+
+> [!NOTE]
+> The `field.*` configuration parameter name is static (defined at configuration time), while the wildcard expression `#{VALUE.*}` dynamically discovers field names at runtime from the actual record content.
+
+> [!IMPORTANT]
+> Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
 
 ##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
 
@@ -1346,6 +1458,9 @@ In the following example:
 ```
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
+
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
 
 Can be one of the following:
 - `true`
@@ -1620,9 +1735,9 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start Schema Registry Example
+#### Schema Registry QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Client Side Error Handling
 
@@ -1846,7 +1961,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _QuickStart_ app.
 
 ## Supported Converters
 
@@ -2096,14 +2211,14 @@ Example:
 
 ```
 record.mappings=index:#{KEY.}, \
-                stock_name:#{VALUE.name}, \
+                name:#{VALUE.name}, \
                 last_price:#{VALUE.last_price}
 ```
 
 The configuration above specifies the following mappings:
 
 1. The record key to the Lightstreamer field `index`
-2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
+2. The `name` attribute of the record value to the Lightstreamer field `name`
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 ### `record.mappings.skip.failed.enable`

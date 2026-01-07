@@ -21,155 +21,160 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.mapping.Items.Item;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.selectors.Data;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ItemTest {
 
-    @Test
-    public void shouldHaveSchemaAndValues() {
-        SubscribedItem item = Items.subscribedFrom("source", "item", Map.of("a", "A", "b", "B"));
+    static Stream<Arguments> provideData() {
+        return Stream.of(
+                arguments("item", Set.of(), "item"),
+                arguments(
+                        "item2",
+                        Set.of(Data.from("b", "B"), Data.from("a", "A")),
+                        "item2-[a=A,b=B]"),
+                arguments("item3", Set.of(Data.from("key", "value")), "item3-[key=value]"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideData")
+    public void shouldSubscribeFromSubscriptionExpression(
+            String prefix, Set<Data> inputParams, String expectedNormalizedString) {
+        SortedSet<Data> params = new TreeSet<>(inputParams);
+        SubscribedItem item =
+                Items.subscribedFrom(new SubscriptionExpression(prefix, params), new Object());
 
         Schema schema = item.schema();
-        assertThat(schema).isNotNull();
-        assertThat(schema.name()).isEqualTo("item");
-        assertThat(schema.keys()).isNotEmpty();
-        assertThat(schema.keys()).containsExactly("a", "b");
-        assertThat(item.values()).isNotEmpty();
-        assertThat(item.values()).containsExactly("b", "B", "a", "A");
+        assertThat(schema.name()).isEqualTo(prefix);
+        assertThat(schema.keys())
+                .isEqualTo(inputParams.stream().map(Data::name).collect(Collectors.toSet()));
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
     }
 
-    @ParameterizedTest
-    @MethodSource("matching")
-    public void shouldMatch(
-            Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
-        SubscribedItem item1 = Items.subscribedFrom("source", "item", values1);
-        SubscribedItem item2 = Items.subscribedFrom("source", "item", values2);
-        assertThat(item1.matches(item2)).isTrue();
-    }
-
-    @ParameterizedTest
-    @MethodSource("matching")
-    public void shouldMatchWithNoExplicitItemHandle(
-            Map<String, String> values1, Map<String, String> values2, List<String> expectedKeys) {
-        Item item1 = Items.subscribedFrom("source", "item", values1);
-        Item item2 = Items.subscribedFrom("source", "item", values2);
-        assertThat(item1.matches(item2)).isTrue();
-    }
-
-    static Stream<Arguments> matching() {
+    static Stream<Arguments> provideExpressions() {
         return Stream.of(
-                arguments(Map.of("n1", "1"), Map.of("n1", "1"), List.of("n1")),
+                arguments("item", "item", Collections.emptySet(), "item"),
+                arguments("item-first", "item-first", Collections.emptySet(), "item-first"),
+                arguments("item_123_", "item_123_", Collections.emptySet(), "item_123_"),
+                arguments("item-", "item-", Collections.emptySet(), "item-"),
+                arguments("prefix-[]", "prefix", Collections.emptySet(), "prefix"),
+                arguments("item-[name=field1]", "item", Set.of("name"), "item-[name=field1]"),
                 arguments(
-                        Map.of("n1", "1", "n2", "2"),
-                        Map.of("n1", "1", "n2", "2"),
+                        "item-[name2=field2,name1=field1]",
+                        "item",
+                        Set.of("name2", "name1"),
+                        "item-[name1=field1,name2=field2]"),
+                arguments(
+                        "item-first-[height=12.34]",
+                        "item-first",
+                        Set.of("height"),
+                        "item-first-[height=12.34]"),
+                arguments(
+                        "item_123_-[test=\\]", "item_123_", Set.of("test"), "item_123_-[test=\\]"),
+                arguments("item-[test=\"\"]", "item", Set.of("test"), "item-[test=\"\"]"),
+                arguments("prefix-[test=]]", "prefix", Set.of("test"), "prefix-[test=]]"),
+                arguments("item-[test=value,]", "item", Set.of("test"), "item-[test=value]"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideExpressions")
+    public void shouldSubscribeFromStringExpression(
+            String expression,
+            String expectedPrefix,
+            Set<String> expectedKeys,
+            String expectedNormalizedString) {
+        Object handle = new Object();
+        SubscribedItem item = Items.subscribedFrom(expression, handle);
+        assertThat(item).isNotNull();
+        assertThat(item.itemHandle()).isSameInstanceAs(handle);
+        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
+        assertThat(item.schema().keys()).isEqualTo(expectedKeys);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+
+        SubscribedItem item2 = Items.subscribedFrom(expression);
+        assertThat(item2).isNotNull();
+        assertThat(item2.itemHandle()).isSameInstanceAs(expression);
+        assertThat(item2.schema().name()).isEqualTo(expectedPrefix);
+        assertThat(item2.schema().keys()).isEqualTo(expectedKeys);
+        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+    }
+
+    static Stream<Arguments> provideEqualValues() {
+        return Stream.of(
+                arguments(
+                        List.of(Data.from("n1", "1")),
+                        List.of(Data.from("n1", "1")),
+                        List.of("n1")),
+                arguments(
+                        List.of(Data.from("n1", "1"), Data.from("n2", "2")),
+                        List.of(Data.from("n1", "1"), Data.from("n2", "2")),
                         List.of("n1", "n2")));
     }
 
     @ParameterizedTest
-    @MethodSource("notMatching")
-    public void shouldNotMatch(Map<String, String> values1, Map<String, String> values2) {
-        SubscribedItem item1 = Items.subscribedFrom("source", "prefix", values1);
-        SubscribedItem item2 = Items.subscribedFrom("source", "prefix", values2);
-        assertThat(item1.matches(item2)).isFalse();
+    @MethodSource("provideEqualValues")
+    public void shouldSubscribeToEqualItems(
+            List<Data> values1, List<Data> values2, List<String> expectedKeys) {
+        Object itemHandle = new Object();
+        SubscribedItem item1 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("item", new TreeSet<>(values1)), itemHandle);
+        SubscribedItem item2 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("item", new TreeSet<>(values2)), itemHandle);
+        assertThat(item1.equals(item2)).isTrue();
     }
 
-    static Stream<Arguments> notMatching() {
+    static Stream<Arguments> provideNotEqualItems() {
         return Stream.of(
-                arguments(Map.of("n1", "1"), Map.of("n2", "2")),
-                arguments(Map.of("n1", "1", "n2", "2", "n3", "3"), Map.of("n1", "1", "n2", "2")),
-                arguments(Map.of("key", "value1"), Map.of("key", "value2")));
-    }
-
-    @Test
-    public void shouldNotMatchDueToDifferentPrefix() {
-        Map<String, String> sameValues = Map.of("n1", "1");
-        SubscribedItem item1 = Items.subscribedFrom("source", "aPrefix", sameValues);
-        SubscribedItem item2 = Items.subscribedFrom("source", "anotherPrefix", sameValues);
-        assertThat(item1.matches(item2)).isFalse();
-    }
-
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                    INPUT      | EXPECTED_PREFIX
-                    item       | item
-                    item-first | item-first
-                    item_123_  | item_123_
-                    item-      | item-
-                    prefix-[]  | prefix
-                    """)
-    public void shouldMakeWithEmptySchemaKeys(String input, String expectedPrefix) {
-        Object handle = new Object();
-        SubscribedItem item = Items.subscribedFrom(input, handle);
-        assertThat(item).isNotNull();
-        assertThat(item.itemHandle()).isSameInstanceAs(handle);
-        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
-        assertThat(item.schema().keys()).isEmpty();
-        assertThat(item.values()).isEmpty();
+                arguments(List.of(Data.from("n1", "1")), List.of(Data.from("n2", "2"))),
+                arguments(
+                        List.of(Data.from("n1", "1"), Data.from("n2", "2"), Data.from("n3", "3")),
+                        List.of(Data.from("n1", "1"), Data.from("n2", "2"))),
+                arguments(
+                        List.of(Data.from("key", "value1")), List.of(Data.from("key", "value2"))));
     }
 
     @ParameterizedTest
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                INPUT                     | EXPECTED_PREFIX | EXPECTED_NAME | EXPECTED_VALUE
-                item-[name=field1]        | item            | name          | field1
-                item-first-[height=12.34] | item-first      | height        | 12.34
-                item_123_-[test=\\]       | item_123_       | test          | \\
-                item-[test=""]            | item            | test          | ""
-                prefix-[test=]]           | prefix          | test          | ]
-                item-[test=value,]        | item            | test          | value
-                item-                     | item-           |               |
-                item-[]                   | item            |               |
-                    """)
-    public void shouldMakeWithValue(
-            String input, String expectedPrefix, String expectedName, String expectedValue) {
-        Object handle = new Object();
-        SubscribedItem item = Items.subscribedFrom(input, handle);
-        assertThat(item).isNotNull();
-        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
-        assertThat(item.itemHandle()).isSameInstanceAs(handle);
-
-        if (expectedName != null && expectedValue != null) {
-            assertThat(item.values()).containsExactly(expectedName, expectedValue);
-        } else {
-            assertThat(item.schema().keys()).isEmpty();
-        }
+    @MethodSource("provideNotEqualItems")
+    public void shouldSubscribeToNotEqualItems(List<Data> values1, List<Data> values2) {
+        Object itemHandle = new Object();
+        SubscribedItem item1 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("prefix", new TreeSet<>(values1)), itemHandle);
+        SubscribedItem item2 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("prefix", new TreeSet<>(values2)), itemHandle);
+        assertThat(item1.equals(item2)).isFalse();
     }
 
-    @ParameterizedTest(name = "[{index}] {arguments}")
-    @CsvSource(
-            useHeadersInDisplayName = true,
-            delimiter = '|',
-            textBlock =
-                    """
-                    INPUT                            | EXPECTED_NAME1 | EXPECTED_VALUE1 | EXPECTED_NAME2 | EXPECTED_VALUE2
-                    item-[name1=field1,name2=field2] | name1          | field1          | name2          | field2
-                    """)
-    public void shouldMakeWithMoreValues(
-            String input, String name1, String val1, String name2, String value2) {
-        Object handle = new Object();
-        SubscribedItem item = Items.subscribedFrom(input, handle);
-
-        assertThat(item).isNotNull();
-        assertThat(item.itemHandle()).isSameInstanceAs(handle);
-        assertThat(item.values()).containsExactly(name1, val1, name2, value2);
+    @Test
+    public void shouldSubscribeToNotEqualItemsDueToDifferentPrefix() {
+        List<Data> sameValues = List.of(Data.from("n1", "1"));
+        Object itemHandle = new Object();
+        SubscribedItem item1 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("aPrefix", new TreeSet<>(sameValues)),
+                        itemHandle);
+        SubscribedItem item2 =
+                Items.subscribedFrom(
+                        new SubscriptionExpression("anotherPrefix", new TreeSet<>(sameValues)),
+                        itemHandle);
+        assertThat(item1.equals(item2)).isFalse();
     }
 }

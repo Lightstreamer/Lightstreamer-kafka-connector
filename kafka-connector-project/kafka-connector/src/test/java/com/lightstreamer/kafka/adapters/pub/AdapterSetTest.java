@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.interfaces.metadata.CreditsException;
+import com.lightstreamer.interfaces.metadata.ItemsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
@@ -37,14 +38,20 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class AdapterSetTest {
 
@@ -77,13 +84,14 @@ public class AdapterSetTest {
 
     @Test
     void shouldNotInitDueToMissingRequiredParameters() {
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () ->
                                 connectorMetadataAdapter.init(
                                         metadataAdapterParams, adapterDir.toFile()));
-        assertThat(e.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [logging.configuration.path]");
     }
 
@@ -182,7 +190,7 @@ public class AdapterSetTest {
                                 connectorMetadataAdapter.notifyNewTables(
                                         "user", "sessionId", tables));
         assertThat(ce.getClientErrorCode()).isEqualTo(-1);
-        assertThat(ce.getMessage()).isEqualTo("Connection [CONNECTOR] not enabled");
+        assertThat(ce).hasMessageThat().isEqualTo("Connection [CONNECTOR] not enabled");
     }
 
     @Test
@@ -226,6 +234,46 @@ public class AdapterSetTest {
         assertThat(closedTables).isNotNull();
         assertThat(closedTables.sessionId()).isEqualTo("sessionId");
         assertThat(closedTables.tables()).isEqualTo(tables);
+    }
+
+    static Stream<Arguments> provideRemapItems() {
+        return Stream.of(
+                Arguments.of("item1 item2", List.of("item1", "item2")),
+                Arguments.of(" item1   item2 ", List.of("item1", "item2")),
+                Arguments.of("item1", List.of("item1")),
+                Arguments.of("item-1 item_2 item.3", List.of("item-1", "item_2", "item.3")),
+                Arguments.of("", Collections.emptyList()),
+                Arguments.of("   ", Collections.emptyList()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideRemapItems")
+    void shouldRemapItems(String input, List<String> expected)
+            throws MetadataProviderException, ItemsException {
+        doInit();
+
+        String[] items =
+                connectorMetadataAdapter.remapItems("user", "sessionId", input, "dataAdapter");
+        assertThat(items).asList().isEqualTo(expected);
+    }
+
+    static Stream<Arguments> provideGetIItems() {
+        return Stream.of(
+                Arguments.of(
+                        "item-[c=1,a=2,b=3] item-[b=1,c=2,a=3]",
+                        List.of("item-[a=2,b=3,c=1]", "item-[a=3,b=1,c=2]")),
+                Arguments.of("", Collections.emptyList()));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideGetIItems")
+    void shouldGetItems(String input, List<String> normalizedItems)
+            throws MetadataProviderException, ItemsException {
+        doInit();
+
+        String[] items =
+                connectorMetadataAdapter.getItems("user", "sessionId", input, "dataAdapter");
+        assertThat(items).asList().isEqualTo(normalizedItems);
     }
 
     private TableInfo[] mkTable(String adapterName, Mode mode) {

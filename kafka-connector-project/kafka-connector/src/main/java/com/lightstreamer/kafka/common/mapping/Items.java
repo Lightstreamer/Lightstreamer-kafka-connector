@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.common.mapping;
 
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.groupingBy;
@@ -26,16 +26,15 @@ import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
-import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemReference;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.SubscriptionExpression;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
-import com.lightstreamer.kafka.common.mapping.selectors.SchemaAndValues;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,11 +44,15 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 public class Items {
 
-    public interface Item extends SchemaAndValues {}
+    public interface Item {
+
+        Schema schema();
+    }
 
     public interface SubscribedItem extends Item {
 
@@ -58,6 +61,8 @@ public class Items {
         boolean isSnapshot();
 
         void setSnapshot(boolean flag);
+
+        String asCanonicalItemName();
     }
 
     /**
@@ -67,9 +72,44 @@ public class Items {
      * <p>Provides a static factory method {@code of} to create an instance of {@code
      * SubscribedItems} from a given {@link Collection} of {@link SubscribedItem}.
      */
-    public interface SubscribedItems extends Iterable<SubscribedItem> {
+    public interface SubscribedItems {
+
         static SubscribedItems of(Collection<SubscribedItem> items) {
-            return () -> items.iterator();
+            SubscribedItems subscribedItems = create();
+            items.forEach(subscribedItems::add);
+            return subscribedItems;
+        }
+
+        static SubscribedItems create() {
+            return new SubscribedItemsImpl();
+        }
+
+        void add(SubscribedItem item);
+
+        SubscribedItem remove(String item);
+
+        SubscribedItem get(String itemName);
+    }
+
+    static class SubscribedItemsImpl implements SubscribedItems {
+
+        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
+
+        SubscribedItemsImpl() {}
+
+        @Override
+        public void add(SubscribedItem item) {
+            items.put(item.asCanonicalItemName(), item);
+        }
+
+        @Override
+        public SubscribedItem remove(String itemName) {
+            return items.remove(itemName);
+        }
+
+        @Override
+        public SubscribedItem get(String itemName) {
+            return items.get(itemName);
         }
     }
 
@@ -77,7 +117,7 @@ public class Items {
 
         boolean matches(Item item);
 
-        Map<String, Set<DataExtractor<K, V>>> groupExtractors();
+        Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
         // Only for testing purposes
         Set<Schema> getExtractorSchemasByTopicName(String topic);
@@ -91,82 +131,36 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
-    private static class DefaultItem implements Item {
-
-        private final Map<String, String> valuesMap;
-        private final Schema schema;
-        private final String str;
-
-        DefaultItem(String prefix, Map<String, String> values) {
-            this.valuesMap = values;
-            this.schema = Schema.from(prefix, values.keySet());
-            this.str =
-                    String.format("(%s-<%s>), {%s}", prefix, values.toString(), schema.toString());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(valuesMap, schema);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-
-            return obj instanceof DefaultItem other
-                    && Objects.equals(valuesMap, other.valuesMap)
-                    && Objects.equals(schema, other.schema);
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public Map<String, String> values() {
-            return valuesMap;
-        }
-
-        @Override
-        public String toString() {
-            return str;
-        }
-    }
-
     private static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
-        private final DefaultItem wrappedItem;
+        private final String normalizedString;
+        private final Schema schema;
         private boolean snapshotFlag;
 
-        DefaultSubscribedItem(Object itemHandle, String prefix, Map<String, String> values) {
-            this.wrappedItem = new DefaultItem(prefix, values);
+        DefaultSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+            this.normalizedString = expression.asCanonicalItemName();
+            this.schema = expression.schema();
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, wrappedItem);
+            return Objects.hash(itemHandle, normalizedString);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             return obj instanceof DefaultSubscribedItem other
-                    && wrappedItem.equals(other.wrappedItem)
+                    && normalizedString.equals(other.normalizedString)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
 
         @Override
         public Schema schema() {
-            return wrappedItem.schema;
-        }
-
-        @Override
-        public Map<String, String> values() {
-            return wrappedItem.values();
+            return schema;
         }
 
         @Override
@@ -185,8 +179,8 @@ public class Items {
         }
 
         @Override
-        public String toString() {
-            return wrappedItem.toString();
+        public String asCanonicalItemName() {
+            return normalizedString;
         }
     }
 
@@ -194,19 +188,19 @@ public class Items {
 
         private final Schema schema;
         private final String topic;
-        private final DataExtractor<K, V> extractor;
+        private final CanonicalItemExtractor<K, V> extractor;
 
-        ItemTemplate(String topic, DataExtractor<K, V> extractor) {
+        ItemTemplate(String topic, CanonicalItemExtractor<K, V> extractor) {
             this.topic = Objects.requireNonNull(topic);
             this.extractor = Objects.requireNonNull(extractor);
             this.schema = extractor.schema();
         }
 
         public boolean matches(Item item) {
-            return schema.matches(item.schema());
+            return schema.equals(item.schema());
         }
 
-        DataExtractor<K, V> selectors() {
+        CanonicalItemExtractor<K, V> extractor() {
             return extractor;
         }
 
@@ -246,12 +240,12 @@ public class Items {
         }
 
         @Override
-        public Map<String, Set<DataExtractor<K, V>>> groupExtractors() {
+        public Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors() {
             return templates.stream()
                     .collect(
                             groupingBy(
                                     ItemTemplate::topic,
-                                    mapping(ItemTemplate::selectors, toSet())));
+                                    mapping(ItemTemplate::extractor, toSet())));
         }
 
         @Override
@@ -262,7 +256,7 @@ public class Items {
         @Override
         public Set<Schema> getExtractorSchemasByTopicName(String topic) {
             return groupExtractors().getOrDefault(topic, emptySet()).stream()
-                    .map(DataExtractor::schema)
+                    .map(CanonicalItemExtractor::schema)
                     .collect(toSet());
         }
 
@@ -288,17 +282,11 @@ public class Items {
 
     public static SubscribedItem subscribedFrom(String input, Object itemHandle)
             throws ExpressionException {
-        SubscriptionExpression result = Expressions.Subscription(input);
-        return subscribedFrom(itemHandle, result.prefix(), result.params());
+        return subscribedFrom(Expressions.Subscription(input), itemHandle);
     }
 
-    public static SubscribedItem subscribedFrom(
-            Object itemHandle, String prefix, Map<String, String> values) {
-        return new DefaultSubscribedItem(itemHandle, prefix, values);
-    }
-
-    public static Item itemFrom(String prefix, Map<String, String> values) {
-        return new DefaultItem(prefix, values);
+    static SubscribedItem subscribedFrom(SubscriptionExpression expression, Object itemHandle) {
+        return new DefaultSubscribedItem(expression, itemHandle);
     }
 
     public static <K, V> ItemTemplates<K, V> templatesFrom(
@@ -306,12 +294,10 @@ public class Items {
             throws ExtractionException {
         List<ItemTemplate<K, V>> templates = new ArrayList<>();
         for (TopicConfiguration topicConfig : topicsConfig.configurations()) {
-            for (ItemReference reference : topicConfig.itemReferences()) {
-                DataExtractor<K, V> dataExtractor =
-                        reference.isTemplate()
-                                ? extractor(sSuppliers, reference.template())
-                                : extractor(sSuppliers, reference.itemName());
-                templates.add(new ItemTemplate<>(topicConfig.topic(), dataExtractor));
+            for (TemplateExpression template : topicConfig.itemReferences()) {
+                templates.add(
+                        new ItemTemplate<>(
+                                topicConfig.topic(), canonicalItemExtractor(sSuppliers, template)));
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());

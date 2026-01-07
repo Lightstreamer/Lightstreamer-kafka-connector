@@ -33,13 +33,13 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers.KeyValueDeserializers;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -48,7 +48,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
@@ -71,13 +70,13 @@ public class Mocks {
     public static class MockConsumer<K, V>
             extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
 
-        private KafkaException commitException;
+        private RuntimeException commitException;
 
         public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
             super(offsetResetStrategy);
         }
 
-        public void setCommitException(KafkaException exception) {
+        public void setCommitException(RuntimeException exception) {
             this.commitException = exception;
         }
 
@@ -144,10 +143,10 @@ public class Mocks {
         }
 
         @Override
-        public DataExtractor<String, String> fieldsExtractor() {
+        public FieldsExtractor<String, String> fieldsExtractor() {
             try {
                 return FieldConfigs.from(Map.of("field", "#{VALUE}"))
-                        .extractor(String(), false, false);
+                        .fieldsExtractor(String(), false, false);
             } catch (ExtractionException e) {
                 throw new RuntimeException(e);
             }
@@ -168,8 +167,8 @@ public class Mocks {
         }
 
         @Override
-        public KeyValueDeserializers<String, String> deserializers() {
-            return null;
+        public KeyValueSelectorSuppliers<String, String> suppliers() {
+            return String();
         }
 
         @Override

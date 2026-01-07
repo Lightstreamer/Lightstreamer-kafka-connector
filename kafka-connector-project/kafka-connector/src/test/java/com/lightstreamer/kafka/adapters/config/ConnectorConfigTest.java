@@ -85,6 +85,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordEr
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv12;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol.TLSv13;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE;
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
@@ -101,8 +102,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -646,95 +646,111 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> new ConnectorConfig(Collections.emptyMap()));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [%s]".formatted(ADAPTERS_CONF_ID));
 
         Map<String, String> params = new HashMap<>();
 
         params.put(ADAPTERS_CONF_ID, "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(ADAPTERS_CONF_ID));
 
         params.put(ADAPTERS_CONF_ID, "adapters_conf_id");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [%s]".formatted(ADAPTER_DIR));
 
         params.put(ADAPTER_DIR, "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(ADAPTER_DIR));
 
         params.put(ADAPTER_DIR, "non-existing-directory");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found directory [non-existing-directory] specified in [%s]"
                                 .formatted(ADAPTER_DIR));
 
         params.put(ADAPTER_DIR, adapterDir.toString());
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [%s]".formatted(DATA_ADAPTER_NAME));
 
         params.put(DATA_ADAPTER_NAME, "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(DATA_ADAPTER_NAME));
 
         params.put(DATA_ADAPTER_NAME, "data_provider_name");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [%s]".formatted(BOOTSTRAP_SERVERS));
 
         params.put(BOOTSTRAP_SERVERS, "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(BOOTSTRAP_SERVERS));
 
         // Trailing "," not allowed
         params.put(BOOTSTRAP_SERVERS, "server:8080,");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(BOOTSTRAP_SERVERS));
 
         params.put(BOOTSTRAP_SERVERS, "server:8080");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [map.<...>.to]");
+        assertThat(ce).hasMessageThat().isEqualTo("Specify at least one parameter [map.<...>.to]");
 
         params.put("map.to", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [map.<...>.to]");
+        assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [map.<...>.to]");
         params.remove("map.to");
 
         params.put("map.topic.to", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         // Trailing "," not allowed
         params.put("map.topic.to", "item1,");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [map.topic.to]");
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [map.topic.to]");
 
         params.put("map.topic.to", "aTemplate");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify at least one parameter [field.<...>]");
-
+        assertThat(ce).hasMessageThat().isEqualTo("Specify at least one parameter [field.<...>]");
         params.put("field.", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid parameter [field.<...>]");
+        assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [field.<...>]");
         params.remove("field.");
 
         params.put("field.field1", "");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage()).isEqualTo("Specify a valid value for parameter [field.field1]");
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [field.field1]");
 
         params.put("field.field1", "#{}");
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Found the invalid expression [#{}] while evaluating [field1]: <Invalid expression>");
+                        "Got the following error while evaluating the field [field1] containing the expression [#{}]: <Invalid expression>");
 
         params.put("field.field1", "#{VALUE}");
         assertDoesNotThrow(() -> new ConnectorConfig(params));
@@ -920,11 +936,12 @@ public class ConnectorConfigTest {
         for (Map.Entry<String, String> entry : keys.entrySet()) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
             updatedConfig.put(entry.getKey(), "invalidType");
-            ConfigException e =
+            ConfigException ce =
                     assertThrows(
                             ConfigException.class,
                             () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-            assertThat(e.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo("Specify a valid value for parameter " + entry.getValue());
         }
     }
@@ -940,11 +957,12 @@ public class ConnectorConfigTest {
         for (Map.Entry<String, String> entry : keys.entrySet()) {
             Map<String, String> updatedConfig = new HashMap<>(standardParameters());
             updatedConfig.put(entry.getKey(), "invalidSchemaPath");
-            ConfigException e =
+            ConfigException ce =
                     assertThrows(
                             ConfigException.class,
                             () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-            assertThat(e.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Not found file [%s/invalidSchemaPath] specified in [%s]"
                                     .formatted(adapterDir, entry.getKey()));
@@ -1208,7 +1226,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.key.evaluator.kvp.pairs.separator]");
 
@@ -1218,7 +1237,8 @@ public class ConnectorConfigTest {
         ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.value.evaluator.kvp.pairs.separator]");
     }
@@ -1247,7 +1267,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.key.evaluator.kvp.key-value.separator]");
 
@@ -1257,7 +1278,8 @@ public class ConnectorConfigTest {
         ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.value.evaluator.kvp.key-value.separator]");
     }
@@ -1292,7 +1314,8 @@ public class ConnectorConfigTest {
                         () ->
                                 ConnectorConfigProvider.minimalWith(
                                         Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "invalid")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [fields.evaluate.as.command.enable]");
 
@@ -1303,7 +1326,8 @@ public class ConnectorConfigTest {
                         () ->
                                 ConnectorConfigProvider.minimalWith(
                                         Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Command mode requires a key field. Parameter [field.key] must be set");
 
         // Check that field.command is set
@@ -1317,7 +1341,8 @@ public class ConnectorConfigTest {
                                                 "true",
                                                 "field.key",
                                                 "#{KEY}")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Command mode requires a command field. Parameter [field.command] must be set");
 
@@ -1332,7 +1357,8 @@ public class ConnectorConfigTest {
                                                 "true",
                                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                                 "2")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
     }
@@ -1379,7 +1405,7 @@ public class ConnectorConfigTest {
         ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
 
         var templateConfig = cgg1.getItemTemplateConfigs();
-        assertThat(templateConfig.expressions()).isEmpty();
+        assertThat(templateConfig.templates()).isEmpty();
 
         ConnectorConfig cgg2 =
                 ConnectorConfigProvider.minimalWith(
@@ -1390,15 +1416,17 @@ public class ConnectorConfigTest {
                                 "item2-#{param2=VALUE.value2}"));
 
         var templateConfigs = cgg2.getItemTemplateConfigs();
-        assertThat(templateConfigs.expressions()).hasSize(2);
+        assertThat(templateConfigs.templates()).hasSize(2);
 
-        TemplateExpression te1 = templateConfigs.getExpression("template1");
+        TemplateExpression te1 = templateConfigs.getTemplateExpression("template1");
         assertThat(te1.prefix()).isEqualTo("item1");
-        assertThat(te1.params()).containsExactly("param1", Expressions.Expression("VALUE.value1"));
+        assertThat(te1.params())
+                .containsExactly("param1", WrappedNoWildcardCheck("#{VALUE.value1}"));
 
-        TemplateExpression te2 = templateConfigs.getExpression("template2");
+        TemplateExpression te2 = templateConfigs.getTemplateExpression("template2");
         assertThat(te2.prefix()).isEqualTo("item2");
-        assertThat(te2.params()).containsExactly("param2", Expressions.Expression("VALUE.value2"));
+        assertThat(te2.params())
+                .containsExactly("param2", WrappedNoWildcardCheck("#{VALUE.value2}"));
     }
 
     @Test
@@ -1420,7 +1448,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
     }
 
@@ -1454,7 +1483,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [fields.skip.failed.mapping.enable]");
     }
@@ -1467,7 +1497,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [fields.map.non.scalar.values.enable]");
     }
@@ -1482,7 +1513,8 @@ public class ConnectorConfigTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid regular expression for parameter [map.\\k.to]");
     }
 
@@ -1490,8 +1522,9 @@ public class ConnectorConfigTest {
     void shouldGetFieldConfigs() {
         ConnectorConfig cgg = ConnectorConfigProvider.minimal();
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
-        assertThat(fieldConfigs.expressions()).hasSize(1);
-        assertThat(fieldConfigs.getExpression("fieldName1").toString()).isEqualTo("VALUE");
+        assertThat(fieldConfigs.namedFieldsExpressions()).hasSize(1);
+        assertThat(fieldConfigs.namedFieldsExpressions().get("fieldName1").toString())
+                .isEqualTo("VALUE");
     }
 
     @Test
@@ -1581,7 +1614,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter ["
                                 + RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY
@@ -1611,7 +1645,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(e.getMessage())
+        assertThat(e)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter ["
                                 + RECORD_CONSUME_WITH_ORDER_STRATEGY
@@ -1634,11 +1669,12 @@ public class ConnectorConfigTest {
     public void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(int invalidThreadsNumber) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(invalidThreadsNumber));
-        ConfigException e =
+        ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(e.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter ["
                                 + RECORD_CONSUME_WITH_NUM_THREADS
@@ -1740,7 +1776,8 @@ public class ConnectorConfigTest {
                         () -> config.sslProvider());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo("Encryption is not enabled. Check parameter [encryption.enable]");
         }
     }
@@ -1755,7 +1792,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [encryption.truststore.path]");
 
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PATH, "aFile");
@@ -1763,7 +1801,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
@@ -1818,7 +1857,8 @@ public class ConnectorConfigTest {
                         () -> config.keyPassword());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Key store is not enabled. Check parameter [encryption.keystore.enable]");
         }
@@ -1842,7 +1882,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [encryption.truststore.password]");
         updatedConfig.put(EncryptionConfigs.TRUSTSTORE_PASSWORD, "truststore-password");
 
@@ -1894,7 +1935,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [encryption.keystore.path]");
 
         updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, "");
@@ -1902,7 +1944,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [encryption.keystore.path]");
 
         updatedConfig.put(EncryptionConfigs.KEYSTORE_PATH, "aFile");
@@ -1910,7 +1953,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
@@ -1955,7 +1999,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [encryption.keystore.password]");
 
         updatedConfig.put(EncryptionConfigs.KEYSTORE_PASSWORD, "keystore-password");
@@ -1970,7 +2015,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [encryption.keystore.key.password]");
 
@@ -2001,7 +2047,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.mechanism]");
         // Restore default SASL/PLAIN mechanism
         updatedConfig.remove(BrokerAuthenticationConfigs.SASL_MECHANISM);
@@ -2010,7 +2057,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.username]");
 
         updatedConfig.put(USERNAME, "");
@@ -2018,7 +2066,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.username]");
 
         updatedConfig.put(USERNAME, "username");
@@ -2026,7 +2075,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.password]");
 
         updatedConfig.put(PASSWORD, "");
@@ -2034,7 +2084,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.password]");
 
         updatedConfig.put(PASSWORD, "password");
@@ -2052,7 +2103,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.username]");
 
         updatedConfig.put(USERNAME, "");
@@ -2060,7 +2112,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.username]");
 
         updatedConfig.put(USERNAME, "username");
@@ -2068,7 +2121,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.password]");
 
         updatedConfig.put(PASSWORD, "");
@@ -2076,7 +2130,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.password]");
 
         updatedConfig.put(PASSWORD, "password");
@@ -2109,7 +2164,8 @@ public class ConnectorConfigTest {
                         () -> config.gssapiUseTicketCache());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Authentication is not enabled. Check parameter [authentication.enable]");
         }
@@ -2251,7 +2307,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [authentication.gssapi.kerberos.service.name]");
 
@@ -2260,7 +2317,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [authentication.gssapi.kerberos.service.name]");
 
@@ -2269,7 +2327,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.gssapi.principal]");
 
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "");
@@ -2277,7 +2336,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [authentication.gssapi.principal]");
 
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL, "kafka-user");
@@ -2393,7 +2453,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.gssapi.key.tab.path]");
 
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH, "aFile");
@@ -2401,7 +2462,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
@@ -2426,7 +2488,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo("Missing required parameter [authentication.gssapi.key.tab.path]");
 
         updatedConfig.put(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH, "aFile");
@@ -2434,7 +2497,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Not found file ["
                                 + adapterDir.toString()
@@ -2468,7 +2532,8 @@ public class ConnectorConfigTest {
                         () -> config.isSchemaRegistryBasicAuthenticationEnabled());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Neither parameter [record.key.evaluator.schema.registry.enable] nor parameter [record.value.evaluator.schema.registry.enable] are enabled");
         }
@@ -2498,7 +2563,8 @@ public class ConnectorConfigTest {
                         () -> config.schemaRegistrySslProvider());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo("Parameter [schema.registry.url] is not set with https protocol");
         }
     }
@@ -2548,7 +2614,8 @@ public class ConnectorConfigTest {
                         () -> config.schemaRegistryKeyPassword());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Parameter [schema.registry.encryption.keystore.enable] is not enabled");
         }
@@ -2657,7 +2724,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [schema.registry.encryption.keystore.key.password]");
 
@@ -2693,7 +2761,8 @@ public class ConnectorConfigTest {
                         () -> config.schemaRegistryBasicAuthenticationPassword());
         for (ThrowingRunnable executable : runnables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
-            assertThat(ce.getMessage())
+            assertThat(ce)
+                    .hasMessageThat()
                     .isEqualTo(
                             "Parameter [schema.registry.basic.authentication.enable] is not enabled");
         }
@@ -2710,7 +2779,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [schema.registry.basic.authentication.username]");
 
@@ -2719,7 +2789,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [schema.registry.basic.authentication.username]");
 
@@ -2728,7 +2799,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [schema.registry.basic.authentication.password]");
 
@@ -2737,7 +2809,8 @@ public class ConnectorConfigTest {
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [schema.registry.basic.authentication.password]");
 

@@ -75,7 +75,7 @@ public class ListValidatorTest {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(TOPIC_MAPPINGS, value));
-        assertThat(ce.getMessage()).isEqualTo(expectedErrorMessage);
+        assertThat(ce).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     static Stream<Arguments> values() {

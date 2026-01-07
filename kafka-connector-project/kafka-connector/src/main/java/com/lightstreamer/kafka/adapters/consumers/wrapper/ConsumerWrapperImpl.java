@@ -79,7 +79,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         this.adminFactory = admin;
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                        .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                         .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
@@ -92,6 +92,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         log.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
 
         Concurrency concurrency = config.concurrency();
+
         // Take care of holes in offset sequence only if parallel processing.
         boolean manageHoles = concurrency.isParallel();
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, log);
@@ -133,9 +134,13 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         } finally {
             log.atDebug().log("Start closing Kafka Consumer");
             recordConsumer.close();
-            consumer.close();
-            latch.countDown();
-            log.atDebug().log("Kafka Consumer closed");
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                log.atError().setCause(e).log("Error while closing the Kafka Consumer");
+            } finally {
+                latch.countDown();
+            }
         }
     }
 
@@ -259,12 +264,11 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     private void doPoll(java.util.function.Consumer<ConsumerRecords<K, V>> recordConsumer) {
-        log.atInfo().log("Polling records");
         try {
             ConsumerRecords<K, V> records = consumer.poll(POLL_DURATION);
             log.atDebug().log("Received records");
             recordConsumer.accept(records);
-            log.atInfo().log("Consumed {} records", records.count());
+            log.atDebug().log("Consumed {} records", records.count());
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;

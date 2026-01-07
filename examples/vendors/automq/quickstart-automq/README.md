@@ -1,6 +1,6 @@
-# Quick Start with AutoMQ
+# AutoMQ QuickStart
 
-This folder contains a variant of the [_Quick Start_](../../../quickstart/README.md#quick-start-set-up-in-5-minutes) app configured to use [_AutoMQ_](https://www.automq.com/) as the target Kafka cluster. AutoMQ is a cloud-native Kafka distribution that separates compute and storage, offering elastic scaling and cost-effective S3-based storage.
+This folder contains a variant of the [_QuickStart_](../../../quickstart/README.md#quick-start-set-up-in-5-minutes) app configured to use [_AutoMQ_](https://www.automq.com/) as the target Kafka cluster. AutoMQ is a cloud-native Kafka distribution that separates compute and storage, offering elastic scaling and cost-effective S3-based storage.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _AutoMQ_ as follows:
 
