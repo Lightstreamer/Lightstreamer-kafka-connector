@@ -25,11 +25,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [3. Publish the Events](#3-publish-the-events)
     - [4. Check the Consumed Events](#4-check-the-consumed-events)
 - [Configuration](#configuration)
-- [Global Settings](#global-settings)
-- [Connection Settings](#connection-settings)
-  - [General Parameters](#general-parameters)
-  - [Encryption Parameters](#encryption-parameters)
-  - [Broker Authentication Parameters](#broker-authentication-parameters)
+  - [Global Settings](#global-settings)
+  - [Connection Settings](#connection-settings)
+    - [General Parameters](#general-parameters)
+    - [Encryption Parameters](#encryption-parameters)
+    - [Broker Authentication Parameters](#broker-authentication-parameters)
   - [Record Evaluation](#record-evaluation)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
@@ -121,7 +121,10 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Confluent Platform`](/examples/vendors/confluent/quickstart-confluent-platform/README.md)
  - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
  - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted/README.md)
- - [`Aiven`](/examples/quickstart-aiven/README.md)
+ - [`Aiven`](/examples/vendors/aiven/quickstart-aiven/README.md)
+ - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
+ - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
+ - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
