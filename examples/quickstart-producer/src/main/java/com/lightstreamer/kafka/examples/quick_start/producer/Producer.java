@@ -176,6 +176,10 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
             }
             try (InputStream is = Files.newInputStream(Paths.get(configFile))) {
                 properties.load(is);
+
+                // Print loaded properties on standard output
+                System.out.println("Loaded the following properties from " + configFile + ":");
+                properties.forEach((key, value) -> System.out.println(key + "=" + value));
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(-1);
