@@ -1,24 +1,23 @@
 # Confluent Cloud QuickStart
 
-In this section, we illustrate a variant of the [Confluent Platform Quick Start](../quickstart-confluent-platform/) that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker. We have prepared the resources for this exercise in the [`examples/vendors/confluent/quickstart-confluent-cloud/`](/examples/vendors/confluent/quickstart-confluent-cloud/) folder.
+In this section, we illustrate a variant of the [Confluent Platform QuickStart](../quickstart-confluent-platform/) that involves using _Confluent Cloud_ Kafka brokers, which is a serverless cloud solution that does not require installing and managing a local Kafka broker.
 
 The [docker-compose.yml](./quickstart-confluent-cloud/docker-compose.yml) file has been revised to realize the integration with _Confluent Cloud_ and specifically removed the `broker` service, because replaced by the remote cluster.
 
-To run this quickstart, you need an active Confluent Cloud account. Please refer to the [Deployment](/examples/vendors/confluent#deployment) section of the Specific Confluent Readme for the requirements and how to properly configure your environment.
+To run this quickstart, you need an active Confluent Cloud account. Please refer to the [Deployment](/examples/vendors/confluent/README.md#deployment) section of the Confluent README file for the requirements and how to properly configure your environment.
 
 ### Run
 
 1. Make sure you have Docker, Docker Compose, and a JDK (Java Development Kit) v17 or newer installed on your local machine.
 2. From the [`examples/vendors/confluent/quickstart-confluent-cloud/`](../quickstart-confluent-cloud/) folder, run the following:
-  
+
    ```sh
    $ bootstrap_server=<bootstrap_server> \
    api_key=<API.key> \
    api_secret=<API.secret> \
-   ./start.sh 
+   ./start.sh
    ...
     ⠏ Network quickstart_default  Created
-    ✔ Container broker            Started
     ✔ Container producer          Started
     ✔ Container kafka-connector   Started
    ...
