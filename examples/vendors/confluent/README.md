@@ -35,17 +35,17 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [General Parameters](#general-parameters)
     - [Encryption Parameters](#encryption-parameters)
     - [Broker Authentication Parameters](#broker-authentication-parameters)
-    - [Record Evaluation](#record-evaluation)
-    - [Topic Mapping](#topic-mapping)
-      - [Data Extraction Language](#data-extraction-language)
-      - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
-      - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
-      - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
-    - [Schema Registry](#schema-registry)
-      - [`schema.registry.url`](#schemaregistryurl)
-      - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
-      - [Encryption Parameters](#encryption-parameters-1)
-      - [Schema Registry QuickStart](#schema-registry-quickstart)
+  - [Record Evaluation](#record-evaluation)
+  - [Topic Mapping](#topic-mapping)
+    - [Data Extraction Language](#data-extraction-language)
+    - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
+    - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
+    - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
+  - [Schema Registry](#schema-registry)
+    - [`schema.registry.url`](#schemaregistryurl)
+    - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
+    - [Encryption Parameters](#encryption-parameters-1)
+    - [Schema Registry QuickStart](#schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -115,9 +115,8 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 We provide two distinct quickstart examples to showcase the functionalities of the Lightstreamer Kafka Connector for both cases: _Confluent Platform_ and _Confluent Cloud_:
 
-* [_Confluent Platform_ Quick Start example](./quickstart-confluent-platform/README.md)
-* [_Confluent Cloud_ Quick Start example](./quickstart-confluent-cloud/README.md)
-
+* [_Confluent Platform_ QuickStart_](./quickstart-confluent-platform/README.md)
+* [_Confluent Cloud_ QuickStart_](./quickstart-confluent-cloud/README.md)
 
 # Deployment
 
@@ -181,35 +180,45 @@ LS_HOME/
 
 ### Configure
 
-Before starting the Kafka Connector, you need to properly configure the `adapters.xml` file. For convenience, we provide a predefined configuration which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, we provide a predefined configuration which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
-To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStartConfluentCloud` in the file as follows:
+To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
-- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the connection string of Kafka:
+- Update the [`bootstrap.servers`](#bootstrapservers) parameter with the Confluent cluster endpoint:
 
   ```xml
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Update the [`authentication.username` and `authentication.password`](#authenticationmechanism) parameters with the API key and API secret linked to your Confluent Cloud account:
+- Configure [encryption](#encryption-parameters) to establish a secure connection with the Confluent cluster:
 
   ```xml
+  <param name="encryption.enable">true</param>
+  <param name="encryption.protocol">TLSv1.2</param>
+  <param name="encryption.hostname.verification.enable">false</param>
+  ```
+
+- Configure [authentication](#broker-authentication-parameters) by setting the `authentication.username` and `authentication.password` parameters with the API key and API secret linked to your Confluent Cloud account:
+
+  ```xml
+  <param name="authentication.enable">true</param>
+  <param name="authentication.mechanism">PLAIN</param>
   <param name="authentication.username">API.key</param>
   <param name="authentication.password">API.secret</param>
   ```
 
-- Configure topic and record mapping.
+- Configure [topic and record mapping](#topic-mapping) to route Kafka events to Lightstreamer items.
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L15) comes with a straightforward mapping defined through the following settings:
+  The `QuickStart` [factory configuration](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L15) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
-    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#data-extraction-language) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` - permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#data-extraction-language) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
@@ -244,13 +253,16 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart-confluent.log` file).
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
+
+> [!TIP]
+> A ready-made configuration file is available in the [Confluent Cloud QuickStart](./quickstart-confluent-cloud/adapters.xml). You can use it as a starting point and simply update the `bootstrap.servers` parameter with your Confluent Cloud cluster endpoint, along with the `authentication.username` and `authentication.password` parameters with your credentials.
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
 ### Start
 
-To start the Kafka Connector, run the following fom the `LS_HOME/bin/unix-like` directory:
+To start the Kafka Connector, run the following from the `LS_HOME/bin/unix-like` directory:
 
    ```sh
    $ ./background_start.sh
@@ -271,7 +283,7 @@ To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps
 
 1. Copy the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
 
-2. Customize the file by editing the _data provider_ block `QuickStartConfluentCloud` as explained in the previous [Configure](#configure) section.
+2. Customize the file by editing the _data provider_ block `QuickStart` as explained in the previous [Configure](#configure) section.
 
 3. Optionally, provide a minimal version of the `log4j.properties` file similar to the following:
 
@@ -283,8 +295,8 @@ To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps
    log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
    log4j.appender.stdout.Target=System.out
 
-   # QuickStartConfluentCloud logger
-   log4j.logger.QuickStartConfluentCloud=INFO, stdout
+   # QuickStart logger
+   log4j.logger.QuickStart=INFO, stdout
    ```
 
    and put it in the [examples/docker/resources](/examples/docker/resources) folder.
@@ -383,11 +395,11 @@ As shown in the [source code](web-client/index.html), consuming live data from t
 3. **Subscribing to Live Data:**
    To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
-   The subscription references the `QuickStartConfluentCloud` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
+   The subscription references the `QuickStart` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
 
    ```js
    var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
-   stockSubscription.setDataAdapter("QuickStartConfluentCloud");
+   stockSubscription.setDataAdapter("QuickStart");
    stockSubscription.addListener(stocksGrid);
    lsClient.subscribe(stockSubscription);
    ```
@@ -407,7 +419,7 @@ This command generates the `lightstreamer-kafka-connector-utils-consumer-all-<ve
 Then, launch it with:
 
 ```sh
-$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStartConfluentCloud --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
 ```
 
 As you can see, you need to specify a few parameters:
@@ -500,15 +512,15 @@ Furthermore, the name is also used to group all logging messages belonging to th
 
 > [!TIP]
 > For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L30) provides the logger `QuickStartConfluentCloud` to print every log messages relative to the `QuickStartConfluent` connection:
+> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
 > ```java
 > ...
-> # QuickStartConfluentCloud logger
-> log4j.logger.QuickStartConfluentCloud=INFO, QuickStartConfluentCloudFile
-> log4j.appender.QuickStartConfluentCloudFile=org.apache.log4j.RollingFileAppender
-> log4j.appender.QuickStartConfluentCloudFile.layout=org.apache.log4j.PatternLayout
-> log4j.appender.QuickStartConfluentCloudFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
-> log4j.appender.QuickStartConfluentCloudFile.File=../../logs/quickstart-confluent.log
+> # QuickStart logger
+> log4j.logger.QuickStart=INFO, QuickStartFile
+> log4j.appender.QuickStartFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
+> log4j.appender.QuickStartFile.File=../../logs/quickstart.log
 > ```
 
 Example:
@@ -874,7 +886,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ## Record Evaluation
 
@@ -1290,7 +1302,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L618) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L481) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
