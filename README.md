@@ -108,7 +108,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quick start application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
 ![QuickStart Diagram](/pictures/quickstart-diagram.png)
 
@@ -120,7 +120,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/README.md)
  - [`Confluent Platform`](/examples/vendors/confluent/quickstart-confluent-platform/README.md)
  - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
- - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted/README.md)
+ - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-selfmanaged/README.md)
  - [`Aiven`](/examples/vendors/aiven/quickstart-aiven/README.md)
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
