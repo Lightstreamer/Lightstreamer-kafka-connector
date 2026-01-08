@@ -120,7 +120,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/README.md)
  - [`Confluent Platform`](/examples/vendors/confluent/quickstart-confluent-platform/README.md)
  - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
- - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-selfmanaged/README.md)
+ - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-self-managed/README.md)
  - [`Aiven`](/examples/vendors/aiven/quickstart-aiven/README.md)
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
