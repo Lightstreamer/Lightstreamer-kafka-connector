@@ -272,7 +272,7 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 ## Docker-based Deployment
 
-### Requirements:
+### Requirements
 
 - JDK (Java Development Kit) v17 or newer
 - Docker
@@ -673,7 +673,7 @@ Example:
 <param name="encryption.truststore.type">PKCS12</param>
 ```
 
-#### `encryption.truststore.password `
+#### `encryption.truststore.password`
 
 _Optional_. The password of the trust store.
 
@@ -886,7 +886,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ## Record Evaluation
 
@@ -1223,7 +1223,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
   To allow complex data structures to be directly mapped to fields (preserving their structure as generic text), enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
-#### Record Routing (`map.TOPIC_NAME.to`)
+### Record Routing (`map.TOPIC_NAME.to`)
 
 To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC_NAME.TO` parameter. The general format is:
 
@@ -1267,7 +1267,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-##### Enable Regular Expression (`map.regex.enable`)
+#### Enable Regular Expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
@@ -1284,7 +1284,7 @@ Example:
 <param name="map.regex.enable">true</param>
 ```
 
-#### Record Mapping (`field.FIELD_NAME`)
+### Record Mapping (`field.FIELD_NAME`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -1323,7 +1323,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ..
 ```
 
-##### Dynamic Field Discovery (`field.*`)
+#### Dynamic Field Discovery (`field.*`)
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
 
@@ -1425,7 +1425,7 @@ When combining both approaches, static field mappings take precedence over dynam
 > [!IMPORTANT]
 > Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
 
-##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
+#### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
 
 _Optional_. Normally, if a field mapping fails during the extraction from the Kafka record because of an issue with the data, it leads to the entire record being discarded or even cause the subscription to be terminated, depending on the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting. By enabling this parameter, the connector becomes more resilient to such errors. If a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. This allows for partial updates even in the presence of data inconsistencies or transient extraction issues.
 
@@ -1441,7 +1441,7 @@ Example:
 <param name="fields.skip.failed.mapping.enable">true</param>
 ```
 
-##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+#### Map Non-Scalar Values (`fields.map.non.scalar.values`)
 
 _Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
@@ -1470,7 +1470,7 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
-##### Evaluate As Command (`fields.evaluate.as.command.enable`)
+#### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
 _Optional_. Enable support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
@@ -1510,7 +1510,7 @@ The parameter can be one of the following:
 
 Default value : `false`.
 
-#### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
+### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
@@ -1563,7 +1563,7 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-##### Example
+#### Example
 
 Consider the following configuration:
 
@@ -1642,7 +1642,7 @@ A _Schema Registry_ is a centralized repository that manages and validates schem
 
 The Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
 
-#### `schema.registry.url`
+### `schema.registry.url`
 
 _Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
 
@@ -1660,11 +1660,11 @@ Example:
 <param name="schema.registry.url">https://localhost:8084</param>
 ```
 
-#### Basic HTTP Authentication Parameters
+### Basic HTTP Authentication Parameters
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
 
-##### `schema.registry.basic.authentication.enable`
+#### `schema.registry.basic.authentication.enable`
 
 _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
 - `true`
@@ -1678,7 +1678,7 @@ Example:
 <param name="schema.registry.basic.authentication.enable">true</param>
 ```
 
-##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+#### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
 _Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
@@ -1692,7 +1692,7 @@ Example:
 <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
 ```
 
-#### Encryption Parameters
+### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
 
@@ -1731,7 +1731,7 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Schema Registry QuickStart
+### Schema Registry QuickStart
 
 Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
