@@ -444,16 +444,16 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
                 regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
-    private Collection<PatternAndTemplateExtractors<K, V>> mayFillPatternsList() {
+    private Collection<PatternAndExtractors<K, V>> mayFillPatternsList() {
         if (!regexEnabled) {
             return Collections.emptyList();
         }
 
-        Collection<PatternAndTemplateExtractors<K, V>> pe = new ArrayList<>();
+        Collection<PatternAndExtractors<K, V>> pe = new ArrayList<>();
         Set<String> topics = templateExtractors.keySet();
         for (String topicRegEx : topics) {
             pe.add(
-                    new PatternAndTemplateExtractors<>(
+                    new PatternAndExtractors<>(
                             Pattern.compile(topicRegEx), templateExtractors.get(topicRegEx)));
         }
         return pe;
@@ -464,11 +464,11 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     private Collection<CanonicalItemExtractor<K, V>> getMatchingExtractors(String topic) {
-        Collection<CanonicalItemExtractor<K, V>> extractors = new ArrayList<>();
+        Collection<CanonicalItemExtractor<K, V>> matchingTemplateExtractors = new ArrayList<>();
         for (PatternAndExtractors<K, V> p : patterns) {
             Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
-                matchingTemplateExtractors.addAll(p.templateExtractors());
+                matchingTemplateExtractors.addAll(p.extractors());
             }
         }
         return matchingTemplateExtractors;
@@ -508,7 +508,8 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractMap(record));
+        return new DefaultMappedRecord(
+                canonicalItems, () -> fieldExtractor.extractMap(record), record.isPayloadNull());
     }
 }
 
@@ -532,10 +533,6 @@ final class DefaultMappedRecord implements MappedRecord {
 
     DefaultMappedRecord(String[] itemNames) {
         this(itemNames, EMPTY_FIELDS_MAP, true);
-    }
-
-    DefaultMappedRecord(String[] canonicalItems, Supplier<Map<String, String>> fieldsMap) {
-        this(canonicalItems, fieldsMap, false);
     }
 
     DefaultMappedRecord(
