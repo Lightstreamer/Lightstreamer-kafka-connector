@@ -19,45 +19,38 @@ package com.lightstreamer.kafka.common.records;
 
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.List;
+import java.util.function.Predicate;
 
 final class KafkaConsumerRecords<K, V> implements KafkaRecords<K, V> {
 
-    private ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords;
+    private final List<KafkaRecord<K, V>> recordList;
 
     KafkaConsumerRecords(ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords) {
-        this.consumerRecords = consumerRecords;
+        this.recordList = new ArrayList<>(consumerRecords.count());
+        consumerRecords.forEach(record -> recordList.add(KafkaRecord.from(record)));
+    }
+
+    KafkaConsumerRecords(List<KafkaRecord<K, V>> recordList) {
+        this.recordList = recordList;
     }
 
     @Override
     public int count() {
-        return consumerRecords.count();
+        return recordList.size();
     }
 
     @Override
-    public Stream<KafkaRecord<K, V>> stream() {
-        return StreamSupport.stream(spliterator(), false);
+    public KafkaRecords<K, V> filter(Predicate<KafkaRecord<K, V>> predicate) {
+        return new KafkaConsumerRecords<>(recordList.stream().filter(predicate).toList());
     }
 
     @Override
     public Iterator<KafkaRecord<K, V>> iterator() {
-        Iterator<ConsumerRecord<Deferred<K>, Deferred<V>>> iterator = consumerRecords.iterator();
-        return new Iterator<KafkaRecord<K, V>>() {
-
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
-
-            @Override
-            public KafkaRecord<K, V> next() {
-                return KafkaRecord.from(iterator.next());
-            }
-        };
+        return recordList.iterator();
     }
 }
