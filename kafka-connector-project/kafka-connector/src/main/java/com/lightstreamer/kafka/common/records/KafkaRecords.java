@@ -21,16 +21,15 @@ import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
 public interface KafkaRecords<K, V> extends Iterable<KafkaRecord<K, V>> {
 
-    public static <K, V> KafkaRecords<K, V> from(
-            ConsumerRecords<Deferred<K>, Deferred<V>> records) {
+    static <K, V> KafkaRecords<K, V> from(ConsumerRecords<Deferred<K>, Deferred<V>> records) {
         return new KafkaConsumerRecords<>(records);
     }
 
-    int count();
+    KafkaRecords<K, V> filter(Predicate<KafkaRecord<K, V>> predicate);
 
-    Stream<KafkaRecord<K, V>> stream();
+    int count();
 }
