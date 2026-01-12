@@ -116,6 +116,7 @@ public class PollBenchmarks {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
+            @SuppressWarnings("unchecked")
             Config<String, JsonNode> config =
                     (Config<String, JsonNode>)
                             BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3).consumerConfig();
@@ -197,6 +198,7 @@ public class PollBenchmarks {
             // Reuse the listener and offsetService created in setUpTrial
             ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
+            @SuppressWarnings("unchecked")
             Config<String, DynamicMessage> config =
                     (Config<String, DynamicMessage>) configurator.consumerConfig();
 
