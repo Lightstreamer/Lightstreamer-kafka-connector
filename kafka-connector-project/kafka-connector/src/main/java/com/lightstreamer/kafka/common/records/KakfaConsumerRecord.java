@@ -66,6 +66,6 @@ final class KafkaConsumerRecord<K, V> implements KafkaRecord<K, V> {
 
     @Override
     public KafkaHeaders headers() {
-        return new KafkaConsumerRecordHeaders(record.headers());
+        return new KafkaHeadersImpl(record.headers());
     }
 }
