@@ -35,13 +35,13 @@ class RemoteEventListener implements EventListener {
     }
 
     @Override
-    public void clearSnapshot(SubscribedItem sub) {
-        listener.clearSnapshot(sub.asCanonicalItemName());
+    public void clearSnapshot(SubscribedItem item) {
+        listener.clearSnapshot(item.asCanonicalItemName());
     }
 
     @Override
-    public void endOfSnapshot(SubscribedItem sub) {
-        listener.endOfSnapshot(sub.asCanonicalItemName());
+    public void endOfSnapshot(SubscribedItem item) {
+        listener.endOfSnapshot(item.asCanonicalItemName());
     }
 
     @Override
