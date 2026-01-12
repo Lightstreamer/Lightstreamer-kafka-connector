@@ -22,8 +22,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
-import com.lightstreamer.kafka.adapters.mapping.selectors.KeyValueSelectorSuppliersMaker;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -50,7 +48,7 @@ import java.util.function.Function;
 public class ConnectorConfigurator {
 
     private final ConnectorConfig config;
-    private final Logger log;
+    private final Logger logger;
 
     public ConnectorConfigurator(Map<String, String> params, File configDir)
             throws ConfigException {
@@ -59,7 +57,7 @@ public class ConnectorConfigurator {
 
     private ConnectorConfigurator(ConnectorConfig config) {
         this.config = config;
-        this.log = LoggerFactory.getLogger(config.getAdapterName());
+        this.logger = LoggerFactory.getLogger(config.getAdapterName());
     }
 
     public ConnectorConfig getConfig() {
@@ -70,7 +68,7 @@ public class ConnectorConfigurator {
         try {
             return doConsumerConfig(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
-            log.atError().setCause(e).log();
+            logger.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
