@@ -19,7 +19,9 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractor.extractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.EmptyTemplate;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -37,7 +39,6 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.Records;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
@@ -60,9 +61,15 @@ public class RecordRoutingStrategyTest {
     public void setUp() throws ExtractionException {
         this.mapper =
                 RecordMapper.<String, String>builder()
-                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item1"))
-                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item2"))
-                        .withTemplateExtractor("TEST_TOPIC", extractor(String(), "item3"))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(String(), EmptyTemplate("item1")))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(String(), EmptyTemplate("item2")))
+                        .addCanonicalItemExtractor(
+                                TEST_TOPIC_1,
+                                canonicalItemExtractor(String(), EmptyTemplate("item3")))
                         .build();
     }
 
@@ -82,7 +89,7 @@ public class RecordRoutingStrategyTest {
 
     @Test
     public void shouldDefaultStrategyRoutesToSubscribedItems() {
-        MappedRecord mappedRecord = mapper.map(Records.KafkaRecord("TEST_TOPIC", "aKey", "aValue"));
+        MappedRecord mappedRecord = mapper.map(KafkaRecord(TEST_TOPIC_1, "aKey", "aValue"));
         Set<SubscribedItem> routed = defaultStrategy("item1").route(mappedRecord);
 
         List<String> routedNames =
@@ -97,7 +104,7 @@ public class RecordRoutingStrategyTest {
 
     @Test
     public void shouldRouteAllStrategyRouteToAllItems() {
-        MappedRecord mappedRecord = mapper.map(Records.KafkaRecord("TEST_TOPIC", "aKey", "aValue"));
+        MappedRecord mappedRecord = mapper.map(KafkaRecord(TEST_TOPIC_1, "aKey", "aValue"));
         Set<SubscribedItem> routed = routeAllStrategy().route(mappedRecord);
 
         List<String> routedNames =
@@ -118,7 +125,7 @@ public class RecordRoutingStrategyTest {
                         List.of(template1, template2));
         RecordMapper<GenericRecord, JsonNode> mapper =
                 RecordMapper.<GenericRecord, JsonNode>builder()
-                        .withTemplateExtractors(templates.groupExtractors())
+                        .withCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
