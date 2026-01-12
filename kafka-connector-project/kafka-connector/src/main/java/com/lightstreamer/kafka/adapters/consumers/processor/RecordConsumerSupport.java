@@ -35,6 +35,8 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithO
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Key;
+import com.lightstreamer.kafka.common.listeners.EventListener;
+import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -98,7 +100,7 @@ class RecordConsumerSupport {
 
         protected RecordMapper<K, V> mapper;
         protected SubscribedItems subscribed;
-        protected ItemEventListener listener;
+        protected EventListener listener;
         protected CommandModeStrategy commandModeStrategy;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
@@ -135,13 +137,8 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
-            parentBuilder.listener = Objects.requireNonNull(listener, "ItemEventListener not set");
-
-            EventUpdater updater =
-                    EventUpdater.create(
-                            parentBuilder.listener,
-                            !parentBuilder.subscribed.acceptSubscriptions());
+        public StartBuildingConsumer<K, V> eventListener(EventListener listener) {
+            parentBuilder.listener = Objects.requireNonNull(listener, "EventListener not set");
 
             ProcessUpdatesStrategy processUpdatesStrategy =
                     ProcessUpdatesStrategy.fromCommandModeStrategy(
@@ -153,7 +150,7 @@ class RecordConsumerSupport {
             return new StartBuildingConsumerImpl<>(
                     new DefaultRecordProcessor<>(
                             parentBuilder.mapper,
-                            updater,
+                            listener,
                             processUpdatesStrategy,
                             recordRoutingStrategy));
         }
@@ -338,7 +335,13 @@ class RecordConsumerSupport {
 
         @Override
         public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            return mappedRecord.routeAll();
+            String[] canonicalItemNames = mappedRecord.canonicalItemNames();
+            Set<SubscribedItem> result = new HashSet<>(canonicalItemNames.length);
+
+            for (String itemName : canonicalItemNames) {
+                result.add(Items.implicitFrom(itemName));
+            }
+            return result;
         }
 
         @Override
@@ -379,18 +382,30 @@ class RecordConsumerSupport {
     static interface ProcessUpdatesStrategy {
 
         default void processUpdates(
-                EventUpdater updater, MappedRecord record, Set<SubscribedItem> routable) {
+                MappedRecord record, Set<SubscribedItem> routable, EventListener listener) {
             Map<String, String> updates = getEvent(record);
             getLogger().atDebug().log(() -> "Sending updates: %s".formatted(updates));
-            doProcessUpdates(updater, updates, routable);
+            sendUpdates(updates, routable, listener);
+        }
+
+        default void processUpdatesAsSnapshot(
+                MappedRecord record, SubscribedItem subscribedItem, EventListener listener) {
+            Map<String, String> updates = getEvent(record);
+            getLogger().atDebug().log(() -> "Sending snapshot updates: %s".formatted(updates));
+            sendUpdatesAsSnapshot(updates, subscribedItem, listener);
         }
 
         default Map<String, String> getEvent(MappedRecord record) {
             return record.fieldsMap();
         }
 
-        void doProcessUpdates(
-                EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable);
+        void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener);
+
+        default void sendUpdatesAsSnapshot(
+                Map<String, String> updates,
+                SubscribedItem subscribedItem,
+                EventListener listener) {}
 
         void useLogger(Logger logger);
 
@@ -422,22 +437,32 @@ class RecordConsumerSupport {
 
     static class DefaultUpdatesStrategy implements ProcessUpdatesStrategy {
 
-        private Logger log = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
+        private Logger logger = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
 
-        public void doProcessUpdates(
-                EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable) {
+        @Override
+        public void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
             for (SubscribedItem sub : routable) {
-                updater.update(sub, updates, false);
+                // updater.update(sub, updates, false);
+                sub.sendRealtimeEvent(updates, listener);
             }
         }
 
+        @Override
+        public void sendUpdatesAsSnapshot(
+                Map<String, String> updates,
+                SubscribedItem subscribedItem,
+                EventListener listener) {
+            subscribedItem.sendSnapshotEvent(updates, listener);
+        }
+
         public final void useLogger(Logger logger) {
-            this.log = Objects.requireNonNullElse(logger, this.log);
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
         }
 
         @Override
         public Logger getLogger() {
-            return log;
+            return logger;
         }
 
         @Override
@@ -470,7 +495,7 @@ class RecordConsumerSupport {
 
     static interface CommandMode {
 
-        static String SNAPSHOT = "snapshot";
+        static final String SNAPSHOT = "snapshot";
 
         static Map<String, String> decorate(Map<String, String> event, Command command) {
             event.put(Key.COMMAND.key(), command.toString());
@@ -533,8 +558,8 @@ class RecordConsumerSupport {
         CommandProcessUpdatesStrategy() {}
 
         @Override
-        public void doProcessUpdates(
-                EventUpdater updater, Map<String, String> updates, Set<SubscribedItem> routable) {
+        public void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
             Optional<Command> command = checkInput(updates);
             if (command.isEmpty()) {
                 getLogger()
@@ -551,10 +576,15 @@ class RecordConsumerSupport {
                 getLogger().atDebug().log("Enforce COMMAND mode semantic of records read");
 
                 if (cmd.isSnapshot()) {
-                    handleSnapshot(updater, cmd, sub);
+                    handleSnapshot(cmd, sub, listener);
                 } else {
                     getLogger().atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
-                    updater.update(sub, updates, sub.isSnapshot());
+                    // updater.update(sub, updates, sub.isSnapshot());
+                    if (sub.isSnapshot()) {
+                        sub.sendSnapshotEvent(updates, listener);
+                    } else {
+                        sub.sendRealtimeEvent(updates, listener);
+                    }
                 }
             }
         }
@@ -594,17 +624,19 @@ class RecordConsumerSupport {
             };
         }
 
-        private void handleSnapshot(EventUpdater updater, Command snapshot, SubscribedItem sub) {
+        private void handleSnapshot(Command snapshot, SubscribedItem sub, EventListener listener) {
             switch (snapshot) {
                 case CS -> {
                     getLogger().atDebug().log("Sending clearSnapshot");
-                    updater.clearSnapshot(sub);
+                    // updater.clearSnapshot(sub);
                     sub.setSnapshot(true);
+                    sub.clearSnapshot(listener);
                 }
                 case EOS -> {
                     getLogger().atDebug().log("Sending endOfSnapshot");
-                    updater.endOfSnapshot(sub);
+                    // updater.endOfSnapshot(sub);
                     sub.setSnapshot(false);
+                    sub.endOfSnapshot(listener);
                 }
                 default -> {
                     getLogger()
@@ -627,46 +659,54 @@ class RecordConsumerSupport {
         protected final RecordMapper<K, V> recordMapper;
         protected final ProcessUpdatesStrategy processUpdatesStrategy;
         protected final RecordRoutingStrategy recordRoutingStrategy;
-        protected final EventUpdater updater;
-        protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
+        protected final EventListener listener;
+        protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
-                EventUpdater updater,
+                EventListener listener,
                 ProcessUpdatesStrategy processUpdatesStrategy,
                 RecordRoutingStrategy recordRoutingStrategy) {
             this.recordMapper = recordMapper;
-            this.updater = updater;
+            this.listener = listener;
             this.processUpdatesStrategy = processUpdatesStrategy;
             this.recordRoutingStrategy = recordRoutingStrategy;
         }
 
         @Override
         public final void useLogger(Logger logger) {
-            this.log = Objects.requireNonNullElse(logger, this.log);
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
             this.processUpdatesStrategy.useLogger(logger);
         }
 
         @Override
         public final void process(KafkaRecord<K, V> record) throws ValueException {
-            log.atDebug().log(() -> "Mapping incoming Kafka record");
-            log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
+            logger.atDebug().log(() -> "Mapping incoming Kafka record");
+            logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(record);
             // As logging the mapped record is expensive, log lazily it only at trace level.
-            log.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
-            log.atDebug().log(() -> "Kafka record mapped");
+            logger.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
+            logger.atDebug().log(() -> "Kafka record mapped");
 
             route(mappedRecord);
+        }
+
+        @Override
+        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
+                throws ValueException {
+            logger.atDebug().log(() -> "Mapping incoming Kafka record for subscribed item");
+            MappedRecord mappedRecord = recordMapper.map(record);
+            processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
         }
 
         private void route(MappedRecord mappedRecord) {
             Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
             if (routable.size() > 0) {
-                log.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
-                processUpdatesStrategy.processUpdates(updater, mappedRecord, routable);
+                logger.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
+                processUpdatesStrategy.processUpdates(mappedRecord, routable, listener);
             } else {
-                log.atDebug().log("No routable items found");
+                logger.atDebug().log("No routable items found");
             }
         }
 
@@ -733,6 +773,12 @@ class RecordConsumerSupport {
         public void consumeRecords(KafkaRecords<K, V> records) {
             records.forEach(this::consumeRecord);
             offsetService.commitAsync();
+        }
+
+        @Override
+        public void consumeRecordsAsSnapshot(
+                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
+            records.forEach(this::consumeRecord);
         }
 
         private void consumeRecord(KafkaRecord<K, V> record) {
@@ -874,6 +920,13 @@ class RecordConsumerSupport {
         @Override
         void onTermination() {
             taskExecutor.shutdown();
+        }
+
+        @Override
+        public void consumeRecordsAsSnapshot(
+                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'consumeRecordFor'");
         }
     }
 
