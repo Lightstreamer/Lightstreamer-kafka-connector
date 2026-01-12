@@ -255,24 +255,20 @@ public class DefaultSubscribedItemTest {
         Map<String, String> event1 = Map.of("field1", "value1");
         subscribedItem.sendRealtimeEvent(event1, eventListener);
 
-        // Trigger enableRealtimeEvents multiple times (should be idempotent after first call)
+        // Trigger enableRealtimeEvents
         subscribedItem.enableRealtimeEvents(eventListener);
-
         int eventsAfterFirstCall = itemEventListener.getSmartRealtimeUpdateCount();
 
+        // Second call - should have no effect
         subscribedItem.enableRealtimeEvents(eventListener);
+        assertThat(itemEventListener.getSmartRealtimeUpdateCount()).isEqualTo(eventsAfterFirstCall);
 
         // Send event after
         Map<String, String> event2 = Map.of("field1", "value2");
         subscribedItem.sendRealtimeEvent(event2, eventListener);
 
-        subscribedItem.enableRealtimeEvents(eventListener);
-
-        // Should not process any additional events
-        assertThat(itemEventListener.getRealtimeUpdateCount()).isEqualTo(eventsAfterFirstCall);
-
         // Verify events were processed correctly
-        List<UpdateCall> realtimeUpdates = itemEventListener.getRealtimeUpdates();
+        List<UpdateCall> realtimeUpdates = itemEventListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(2);
         assertThat(realtimeUpdates.get(0).event()).isEqualTo(event1);
         assertThat(realtimeUpdates.get(1).event()).isEqualTo(event2);
