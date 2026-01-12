@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
-import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeItemEventListener;
@@ -110,9 +109,7 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            Config<String, JsonNode> config =
-                    (Config<String, JsonNode>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3).consumerConfig();
+            Config<String, JsonNode> config = BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3);
 
             // Configure the RecordMapper.
             RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
@@ -184,10 +181,8 @@ public class RecordConsumerBenchmark {
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
-            ConnectorConfigurator configurator =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
             Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>) configurator.consumerConfig();
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3);
 
             // Configure the RecordMapper.
             RecordMapper<String, DynamicMessage> recordMapper =

@@ -88,9 +88,8 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
-                                    .consumerConfig();
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
@@ -132,9 +131,8 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
             Config<String, JsonNode> config =
-                    (Config<String, JsonNode>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
-                                    .consumerConfig();
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);

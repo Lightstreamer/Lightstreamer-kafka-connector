@@ -73,9 +73,8 @@ public class DataExtractorBenchmarks {
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
-                                    .consumerConfig();
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+
             canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
@@ -97,9 +96,8 @@ public class DataExtractorBenchmarks {
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
             Config<String, JsonNode> config =
-                    (Config<String, JsonNode>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
-                                    .consumerConfig();
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+
             canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
