@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.common.records;
 
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 public final class KafkaSinkRecord implements KafkaRecord<Object, Object> {
@@ -63,16 +63,16 @@ public final class KafkaSinkRecord implements KafkaRecord<Object, Object> {
         return record.kafkaPartition();
     }
 
-    public Schema keySchema() {
-        return record.keySchema();
+    public SchemaAndValue keySchemaAndValue() {
+        return new SchemaAndValue(record.keySchema(), record.key());
     }
 
-    public Schema valueSchema() {
-        return record.valueSchema();
+    public SchemaAndValue valueSchemaAndValue() {
+        return new SchemaAndValue(record.valueSchema(), record.value());
     }
 
     @Override
     public KafkaHeaders headers() {
-        return new KafkaConnectHeaders(record.headers());
+        return new KafkaHeadersImpl(record.headers());
     }
 }
