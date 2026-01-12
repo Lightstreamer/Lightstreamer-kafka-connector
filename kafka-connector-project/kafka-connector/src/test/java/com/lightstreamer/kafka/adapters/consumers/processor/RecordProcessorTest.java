@@ -20,9 +20,8 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
-
-import static java.util.Collections.emptyMap;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
@@ -109,14 +108,15 @@ public class RecordProcessorTest {
     private RecordMapper<String, String> mapperForAutoCommandMode() {
         try {
             return builder()
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item1", emptyMap(), false, false))
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item2", emptyMap(), false, false))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item1")))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
                     .withFieldExtractor(
-                            extractor(
+                            namedFieldsExtractor(
                                     String(),
-                                    "fields",
                                     Map.of(
                                             "key", // Auto Command Mode requires "key" field
                                             Wrapped("#{KEY}"),
@@ -133,14 +133,15 @@ public class RecordProcessorTest {
     private static RecordMapper<String, String> mapperForCommandMode() {
         try {
             return builder()
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item1", emptyMap(), false, false))
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item2", emptyMap(), false, false))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item1")))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
                     .withFieldExtractor(
-                            extractor(
+                            namedFieldsExtractor(
                                     String(),
-                                    "fields",
                                     // Command Mode requires "key" and "command" fields
                                     Map.of(
                                             "key",
@@ -158,14 +159,15 @@ public class RecordProcessorTest {
     private static RecordMapper<String, String> defaultMapper() {
         try {
             return builder()
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item1", emptyMap(), false, false))
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item2", emptyMap(), false, false))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item1")))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
                     .withFieldExtractor(
-                            extractor(
+                            namedFieldsExtractor(
                                     String(),
-                                    "fields",
                                     Map.of(
                                             "aKey",
                                             Wrapped("#{KEY}"),
@@ -182,10 +184,12 @@ public class RecordProcessorTest {
     private static RecordMapper<String, String> mapperWithNoFieldsExtractor() {
         try {
             return builder()
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item1", emptyMap(), false, false))
-                    .withTemplateExtractor(
-                            TEST_TOPIC, extractor(String(), "item2", emptyMap(), false, false))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item1")))
+                    .addCanonicalItemExtractor(
+                            TEST_TOPIC,
+                            canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
                     .build();
         } catch (ExtractionException e) {
             throw new RuntimeException("Error building default mapper", e);
