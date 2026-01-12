@@ -50,7 +50,7 @@ public class SubscriptionsHandlerTest {
                         ItemTemplatesUtils.itemTemplates(
                                 "aTopic", "anItemTemplate,anotherItemTemplate"),
                         ItemTemplatesUtils.fieldsExtractor(),
-                        OthersSelectorSuppliers.String().deserializers(),
+                        OthersSelectorSuppliers.String(),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
