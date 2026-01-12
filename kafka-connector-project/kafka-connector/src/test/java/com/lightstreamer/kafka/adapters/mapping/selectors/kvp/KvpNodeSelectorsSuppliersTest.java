@@ -35,12 +35,12 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -216,11 +216,11 @@ public class KvpNodeSelectorsSuppliersTest {
             throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector(expression);
 
-        Data autoBoundData = valueSelector.extractValue(fromValue(INPUT));
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue(INPUT));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = valueSelector.extractValue("param", fromValue(INPUT));
+        Data boundData = valueSelector.extractValue("param", KafkaRecordFromValue(INPUT));
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -228,7 +228,7 @@ public class KvpNodeSelectorsSuppliersTest {
     @Test
     public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<?, String> record = fromValue(INPUT);
+        KafkaRecord<?, String> record = KafkaRecordFromValue(INPUT);
 
         valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
@@ -297,14 +297,17 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue(INPUT))
+                                        .extractValue("param", KafkaRecordFromValue(INPUT))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () -> valueSelector(expression).extractValue(fromValue(INPUT)).text());
+                        () ->
+                                valueSelector(expression)
+                                        .extractValue(KafkaRecordFromValue(INPUT))
+                                        .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -331,7 +334,8 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValueInto(fromValue(INPUT), new HashMap<>()));
+                                        .extractValueInto(
+                                                KafkaRecordFromValue(INPUT), new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -339,11 +343,12 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldExtractValueWithNonScalars() throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector("VALUE");
 
-        Data autoBoundData = valueSelector.extractValue(fromValue("A=1,B=2"), false);
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue("A=1,B=2"), false);
         assertThat(autoBoundData.name()).isEqualTo("VALUE");
         assertThat(autoBoundData.text()).isEqualTo("{A=1, B=2}");
 
-        Data boundData = valueSelector.extractValue("param", fromValue("A=1,B=2"), false);
+        Data boundData =
+                valueSelector.extractValue("param", KafkaRecordFromValue("A=1,B=2"), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo("{A=1, B=2}");
     }
@@ -375,18 +380,18 @@ public class KvpNodeSelectorsSuppliersTest {
         String message = "A@1|B@2";
         ValueSelector<String> valueSelector = valueSelector(expression, config);
 
-        Data autoBoundData = valueSelector.extractValue(fromValue(message), false);
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue(message), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = valueSelector.extractValue("param", fromValue(message), false);
+        Data boundData = valueSelector.extractValue("param", KafkaRecordFromValue(message), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
 
         // Test extractIntoMap as well only for the full object case
         if (expectedName.equals("VALUE")) {
             Map<String, String> target = new HashMap<>();
-            KafkaRecord<?, String> record = fromValue(message);
+            KafkaRecord<?, String> record = KafkaRecordFromValue(message);
             valueSelector.extractValueInto(record, target);
             assertThat(target).containsExactly("A", "1", "B", "2");
             target.clear();
@@ -397,11 +402,12 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector("VALUE");
 
-        Data autoBoundData = valueSelector.extractValue(fromValue((String) null), false);
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue((String) null), false);
         assertThat(autoBoundData.name()).isEqualTo("VALUE");
         assertThat(autoBoundData.text()).isNull();
 
-        Data boundData = valueSelector.extractValue("param", fromValue((String) null), false);
+        Data boundData =
+                valueSelector.extractValue("param", KafkaRecordFromValue((String) null), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isNull();
     }
@@ -423,7 +429,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue(fromValue((String) null))
+                                        .extractValue(KafkaRecordFromValue((String) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -432,7 +438,7 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue((String) null))
+                                        .extractValue("param", KafkaRecordFromValue((String) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -442,7 +448,8 @@ public class KvpNodeSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(
-                                                fromValue((String) null), new HashMap<>()));
+                                                KafkaRecordFromValue((String) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -475,11 +482,11 @@ public class KvpNodeSelectorsSuppliersTest {
             throws ExtractionException {
         KeySelector<String> keySelector = keySelector(expression);
 
-        Data autoBoundData = keySelector.extractKey(fromKey(INPUT));
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(INPUT));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = keySelector.extractKey("param", fromKey(INPUT));
+        Data boundData = keySelector.extractKey("param", KafkaRecordFromKey(INPUT));
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -487,7 +494,7 @@ public class KvpNodeSelectorsSuppliersTest {
     @Test
     public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<String, ?> record = fromKey(INPUT);
+        KafkaRecord<String, ?> record = KafkaRecordFromKey(INPUT);
 
         keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
@@ -553,13 +560,16 @@ public class KvpNodeSelectorsSuppliersTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey("param", fromKey(INPUT)).text());
+                        () ->
+                                keySelector(expression)
+                                        .extractKey("param", KafkaRecordFromKey(INPUT))
+                                        .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(INPUT)).text());
+                        () -> keySelector(expression).extractKey(KafkaRecordFromKey(INPUT)).text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -586,7 +596,8 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKeyInto(fromKey(INPUT), new HashMap<>()));
+                                        .extractKeyInto(
+                                                KafkaRecordFromKey(INPUT), new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -594,11 +605,11 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldExtractKeyWithNonScalars() throws ExtractionException {
         KeySelector<String> keySelector = keySelector("KEY");
 
-        Data autoBoundData = keySelector.extractKey(fromKey("A=1,B=2"), false);
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey("A=1,B=2"), false);
         assertThat(autoBoundData.name()).isEqualTo("KEY");
         assertThat(autoBoundData.text()).isEqualTo("{A=1, B=2}");
 
-        Data boundData = keySelector.extractKey("param", fromKey("A=1,B=2"), false);
+        Data boundData = keySelector.extractKey("param", KafkaRecordFromKey("A=1,B=2"), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo("{A=1, B=2}");
     }
@@ -630,18 +641,18 @@ public class KvpNodeSelectorsSuppliersTest {
         String message = "A@1|B@2";
         KeySelector<String> keySelector = keySelector(expression, config);
 
-        Data autoBoundData = keySelector.extractKey(fromKey(message), false);
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(message), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = keySelector.extractKey("param", fromKey(message), false);
+        Data boundData = keySelector.extractKey("param", KafkaRecordFromKey(message), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
 
         // Test extractIntoMap as well only for the full object case
         if (expectedName.equals("VALUE")) {
             Map<String, String> target = new HashMap<>();
-            KafkaRecord<String, ?> record = fromKey(message);
+            KafkaRecord<String, ?> record = KafkaRecordFromKey(message);
             keySelector.extractKeyInto(record, target);
             assertThat(target).containsExactly("A", "1", "B", "2");
             target.clear();
@@ -652,11 +663,11 @@ public class KvpNodeSelectorsSuppliersTest {
     public void shouldHandleNullKey() throws ExtractionException {
         KeySelector<String> keySelector = keySelector("KEY");
 
-        Data autoBoundData = keySelector.extractKey(fromKey((String) null), false);
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey((String) null), false);
         assertThat(autoBoundData.name()).isEqualTo("KEY");
         assertThat(autoBoundData.text()).isNull();
 
-        Data boundData = keySelector.extractKey("param", fromKey((String) null), false);
+        Data boundData = keySelector.extractKey("param", KafkaRecordFromKey((String) null), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isNull();
     }
@@ -676,15 +687,9 @@ public class KvpNodeSelectorsSuppliersTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey((String) null)).text());
-        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
-
-        ve =
-                assertThrows(
-                        ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey("param", fromKey((String) null))
+                                        .extractKey(KafkaRecordFromKey((String) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -693,7 +698,18 @@ public class KvpNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKeyInto(fromKey((String) null), new HashMap<>()));
+                                        .extractKey("param", KafkaRecordFromKey((String) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(
+                                                KafkaRecordFromKey((String) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
