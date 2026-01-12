@@ -29,7 +29,7 @@ public interface EventListener {
 
     void endOfSnapshot(SubscribedItem item);
 
-    void failure(Exception throwable);
+    void failure(Exception exception);
 
     static EventListener smartEventListener(
             com.lightstreamer.interfaces.data.ItemEventListener listener) {
