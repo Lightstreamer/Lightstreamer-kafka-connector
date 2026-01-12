@@ -1062,6 +1062,30 @@ public class RecordConsumerTest {
         };
     }
 
+    /**
+     * Converts a raw event map (typically obtained from {@code UpdateCall.event()}) into a
+     * structured {@link Event} record for easier test assertions and ordering verification.
+     *
+     * <p>This method is used to transform the flat map representation of Kafka record data, as
+     * captured by the {@link com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener}, into
+     * a typed record that can be compared, sorted, and validated in tests.
+     *
+     * <p>The position field is extracted from the "value" by parsing its numeric suffix (e.g.,
+     * "a-3" yields position 3), which allows tests to verify event ordering within a key or
+     * partition.
+     *
+     * @param map a map containing the event properties with the following keys:
+     *     <ul>
+     *       <li>"topic" - the Kafka topic name
+     *       <li>"key" - the record key
+     *       <li>"value" - the record value, expected format "{key}-{number}" (e.g., "a-3")
+     *       <li>"partition" - the partition number (as string, will be parsed to int)
+     *       <li>"offset" - the offset value (as string, will be parsed to long)
+     *     </ul>
+     *
+     * @return a new {@code Event} instance constructed from the map values and the current thread
+     *     name, useful for verifying thread affinity in concurrent processing tests
+     */
     private static Event buildEvent(Map<String, String> map) {
         String topic = map.get("topic");
         // Get the key
