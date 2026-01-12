@@ -31,17 +31,29 @@ public interface KafkaRecord<K, V> {
         String key();
 
         byte[] value();
+
+        default int localIndex() {
+            return -1;
+        }
     }
 
     public interface KafkaHeaders extends Iterable<KafkaHeader> {
 
-        KafkaHeader lastHeader(String key);
+        boolean has(String key);
 
         KafkaHeader get(int index);
 
         List<KafkaHeader> headers(String key);
 
         int size();
+
+        static KafkaHeaders from(org.apache.kafka.connect.header.Headers headers) {
+            return new KafkaHeadersImpl(headers);
+        }
+
+        static KafkaHeaders from(org.apache.kafka.common.header.Headers headers) {
+            return new KafkaHeadersImpl(headers);
+        }
     }
 
     public static <K, V> KafkaRecord<K, V> from(ConsumerRecord<Deferred<K>, Deferred<V>> record) {
