@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 
+import com.lightstreamer.kafka.adapters.RawKafkaRecord;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
@@ -32,6 +33,7 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperCo
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.records.KafkaRecords;
@@ -229,7 +231,7 @@ public class KafkaConsumerWrapper<K, V> {
         return status;
     }
 
-    FutureStatus.State init() {
+    private FutureStatus.State init() {
         if (!subscribed()) {
             logger.atWarn().log("Initialization failed because no topics are subscribed");
             closeConsumer();
@@ -259,8 +261,8 @@ public class KafkaConsumerWrapper<K, V> {
         Runtime.getRuntime().addShutdownHook(hook);
     }
 
-    protected boolean subscribed() {
-        ItemTemplates<K, V> templates = config.itemTemplates();
+    boolean subscribed() {
+        ItemTemplates<K, V> templates = this.config.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
             logger.debug("Subscribing to the requested pattern {}", pattern.pattern());
@@ -330,6 +332,17 @@ public class KafkaConsumerWrapper<K, V> {
             ConsumerRecords<Deferred<K>, Deferred<V>> records = consumer.poll(duration);
             logger.atDebug().log("Received records");
             // -- To - RocksDB
+
+            // records.forEach(
+            //         c ->
+            //                 new RawKafkaRecord(
+            //                         c.topic(),
+            //                         c.partition(),
+            //                         c.offset(),
+            //                         c.timestamp(),
+            //                         c.key().rawBytes(),
+            //                         c.value().rawBytes(),
+            //                         c.headers()));
             recordConsumer.accept(KafkaRecords.from(records));
 
             logger.atInfo().log("Consumed {} records", records.count());
@@ -356,7 +369,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Kafka Consumer closed");
     }
 
-    FutureStatus.State loop(State previousState) {
+    private FutureStatus.State loop(State previousState) {
         if (previousState.initFailed()) {
             logger.atError().log("Loop is in a failed state, no records will be consumed");
             return previousState;
@@ -397,7 +410,7 @@ public class KafkaConsumerWrapper<K, V> {
         return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
     }
 
-    void consumeRecords(KafkaRecords<K, V> records) {
+    private void consumeRecords(KafkaRecords<K, V> records) {
         recordConsumer.consumeRecords(records);
     }
 
@@ -427,6 +440,11 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Consumer woken up, waiting for graceful thread completion");
         status.join();
         logger.atInfo().log("Kafka consumer shut down");
+    }
+
+    public void consumeRecordsAsSnapshot(
+            KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
+        recordConsumer.consumeRecordsAsSnapshot(records, subscribedItem);
     }
 
     // Only for testing purposes
