@@ -40,7 +40,7 @@ import java.util.Map;
 
 public class DynamicMessageDeserializers {
 
-    static class DynamicMessageLocalDeserializer
+    public static class DynamicMessageLocalDeserializer
             extends AbstractLocalSchemaDeserializer<DynamicMessage> {
 
         private DynamicSchema dynamicSchema;
@@ -99,10 +99,10 @@ public class DynamicMessageDeserializers {
                 || (!isKey
                         && config.hasValueSchemaFile()
                         && config.getProtobufValueMessageType() != null)) {
-            DynamicMessageLocalDeserializer jsonNodeLocalDeserializer =
+            DynamicMessageLocalDeserializer localDeserializer =
                     new DynamicMessageLocalDeserializer();
-            jsonNodeLocalDeserializer.preConfigure(config, isKey);
-            return jsonNodeLocalDeserializer;
+            localDeserializer.preConfigure(config, isKey);
+            return localDeserializer;
         }
         return new KafkaProtobufDeserializer<>();
     }
