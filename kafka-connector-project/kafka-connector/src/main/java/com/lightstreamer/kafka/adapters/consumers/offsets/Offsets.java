@@ -139,7 +139,7 @@ public class Offsets {
         private volatile Throwable firstFailure;
         private final Consumer<?, ?> consumer;
         private final boolean manageHoles;
-        private final Logger log;
+        private final Logger logger;
 
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
@@ -149,7 +149,7 @@ public class Offsets {
         OffsetServiceImpl(Consumer<?, ?> consumer, boolean manageHoles, Logger logger) {
             this.consumer = consumer;
             this.manageHoles = manageHoles;
-            this.log = logger;
+            this.logger = logger;
         }
 
         @Override
@@ -179,8 +179,8 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed) {
             Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
-            log.atTrace().log("Start offsets: {}", startOffsets);
-            log.atTrace().log("Committed offsets map: {}", offsetRepo);
+            logger.atTrace().log("Start offsets: {}", startOffsets);
+            logger.atTrace().log("Committed offsets map: {}", offsetRepo);
             // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
@@ -192,8 +192,8 @@ public class Offsets {
                 // parallel).
                 pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
             }
-            log.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
-            offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, log);
+            logger.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
+            offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, logger);
         }
 
         @Override
@@ -207,12 +207,12 @@ public class Offsets {
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            log.atDebug().log("Assigned partitions {}", partitions);
+            logger.atDebug().log("Assigned partitions {}", partitions);
         }
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-            log.atWarn().log("Partitions revoked");
+            logger.atWarn().log("Partitions revoked");
             commitSyncAndIgnoreErrors();
         }
 
@@ -228,18 +228,18 @@ public class Offsets {
 
         private void commitSync(boolean ignoreErrors) {
             try {
-                log.atDebug().log("Start committing offset synchronously");
+                logger.atDebug().log("Start committing offset synchronously");
                 Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.current();
-                log.atTrace().log("Offsets to commit: {}", offsets);
+                logger.atTrace().log("Offsets to commit: {}", offsets);
                 consumer.commitSync(offsets);
-                log.atInfo().log("Offsets committed");
+                logger.atInfo().log("Offsets committed");
             } catch (RuntimeException e) {
-                log.atError().setCause(e).log("Unable to commit offsets");
+                logger.atError().setCause(e).log("Unable to commit offsets");
                 if (!ignoreErrors) {
-                    log.atDebug().log("Rethrowing the error");
+                    logger.atDebug().log("Rethrowing the error");
                     throw e;
                 }
-                log.atDebug().log("Ignoring the error");
+                logger.atDebug().log("Ignoring the error");
             }
         }
 
