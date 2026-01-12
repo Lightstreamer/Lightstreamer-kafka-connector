@@ -61,7 +61,7 @@ public class HeaderSelectorSupplierTest {
     private static final List<KafkaRecord<?, ?>> RECORDS =
             new ArrayList<>() {
                 {
-                    add(Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS));
+                    add(Records.KafkaRecordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS));
                     add(Records.sinkWithHeaders("key", "value", SAMPLE_CONNECT_HEADERS));
                 }
             };
