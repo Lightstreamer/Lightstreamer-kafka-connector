@@ -131,11 +131,11 @@ public class DynamicMessageDeserializers {
         return config.getValueEvaluator().is(PROTOBUF);
     }
 
-    static Deserializer<DynamicMessage> ValueDeserializer(ConnectorConfig config) {
+    public static Deserializer<DynamicMessage> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
 
-    static Deserializer<DynamicMessage> KeyDeserializer(ConnectorConfig config) {
+    public static Deserializer<DynamicMessage> KeyDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, true);
     }
 }
