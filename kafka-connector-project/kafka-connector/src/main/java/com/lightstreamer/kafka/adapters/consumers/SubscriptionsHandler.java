@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.deserialization.DeferredDeseri
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -46,10 +47,6 @@ import java.util.function.Supplier;
 
 public interface SubscriptionsHandler<K, V> {
 
-    static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
     void subscribe(String item, Object itemHandle) throws SubscriptionException;
 
     Optional<SubscribedItem> unsubscribe(String topic) throws SubscriptionException;
@@ -64,14 +61,20 @@ public interface SubscriptionsHandler<K, V> {
 
     boolean allowImplicitItems();
 
+    static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
+    }
+
     static class Builder<K, V> {
 
         private Config<K, V> consumerConfig;
         private MetadataListener metadataListener;
+        private SnapshotStore snapshotStore;
         private boolean consumeAtStartup = true;
         private boolean allowImplicitItems = false;
+        private Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
 
-        public Builder() {}
+        private Builder() {}
 
         public Builder<K, V> withConsumerConfig(Config<K, V> consumerConfig) {
             this.consumerConfig = consumerConfig;
@@ -83,22 +86,31 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
+        public Builder<K, V> withSnapshotStore(SnapshotStore snapshotStore) {
+            this.snapshotStore = snapshotStore;
+            return this;
+        }
+
+        public Builder<K, V> withConsumerSupplier(
+                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
+            this.consumerSupplier = consumerSupplier;
+            return this;
+        }
+
         public Builder<K, V> atStartup(boolean consumeAtStartup, boolean allowImplicitItems) {
             this.consumeAtStartup = consumeAtStartup;
-            this.allowImplicitItems = allowImplicitItems;
+            this.allowImplicitItems = this.consumeAtStartup ? allowImplicitItems : false;
             return this;
         }
 
         public SubscriptionsHandler<K, V> build() {
+            this.consumerSupplier =
+                    Objects.requireNonNullElse(
+                            this.consumerSupplier, defaultConsumerSupplier(consumerConfig));
             if (this.consumeAtStartup) {
-                return new AtStartupSubscriptionsHandler<>(
-                        consumerConfig,
-                        this.metadataListener,
-                        this.allowImplicitItems,
-                        defaultConsumerSupplier(consumerConfig));
+                return new AtStartupSubscriptionsHandler<>(this);
             }
-            return new DefaultSubscriptionsHandler<>(
-                    consumerConfig, this.metadataListener, defaultConsumerSupplier(consumerConfig));
+            return new DefaultSubscriptionsHandler<>(this);
         }
 
         private static <K, V> Supplier<Consumer<Deferred<K>, Deferred<V>>> defaultConsumerSupplier(
@@ -106,8 +118,10 @@ public interface SubscriptionsHandler<K, V> {
             return () ->
                     new KafkaConsumer<>(
                             config.consumerProperties(),
-                            new DeferredDeserializer<>(config.deserializers().keyDeserializer()),
-                            new DeferredDeserializer<>(config.deserializers().valueDeserializer()));
+                            new DeferredDeserializer<>(
+                                    config.suppliers().keySelectorSupplier().deserializer()),
+                            new DeferredDeserializer<>(
+                                    config.suppliers().valueSelectorSupplier().deserializer()));
         }
     }
 
@@ -123,25 +137,21 @@ public interface SubscriptionsHandler<K, V> {
 
         protected final SubscribedItems subscribedItems;
         private final ReentrantLock consumerLock = new ReentrantLock();
-        private volatile KafkaConsumerWrapper<K, V> consumer;
+        protected volatile KafkaConsumerWrapper<K, V> consumer;
 
         private volatile FutureStatus futureStatus;
-        protected ItemEventListener itemEventListener;
+        protected EventListener eventListener;
 
-        AbstractSubscriptionsHandler(
-                Config<K, V> config,
-                MetadataListener metadataListener,
-                boolean allowImplicitItems,
-                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
-            this.config = config;
-            this.metadataListener = metadataListener;
-            this.allowImplicitItems = allowImplicitItems;
-            this.consumerSupplier = consumerSupplier;
+        AbstractSubscriptionsHandler(Builder<K, V> builder) {
+            this.config = builder.consumerConfig;
+            this.metadataListener = builder.metadataListener;
+            this.allowImplicitItems = builder.allowImplicitItems;
+            this.consumerSupplier = builder.consumerSupplier;
             this.logger = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems =
-                    allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
+                    builder.allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
         }
 
         @Override
@@ -151,8 +161,13 @@ public interface SubscriptionsHandler<K, V> {
 
         @Override
         public final void setListener(ItemEventListener listener) {
-            this.itemEventListener =
-                    Objects.requireNonNull(listener, "ItemEventListener cannot be null");
+            if (listener == null) {
+                throw new IllegalArgumentException("ItemEventListener cannot be null");
+            }
+            this.eventListener =
+                    this.subscribedItems.acceptSubscriptions()
+                            ? EventListener.smartEventListener(listener)
+                            : EventListener.legacyEventListener(listener);
             onItemEventListenerSet();
         }
 
@@ -171,9 +186,12 @@ public interface SubscriptionsHandler<K, V> {
 
                 subscribedItems.addItem(newItem);
 
-                // getSnapshot... -> inviare gli updates di snapshot se richiesto
+                // getSnapshot... -> send snapshot updates if requested
+                // newItem.sendSnapshotEvents...
+                // newItem.sendSnapshotEvents...
+                newItem.enableRealtimeEvents(this.eventListener);
 
-                onSubscribedItem();
+                onSubscribedItem(newItem);
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
@@ -248,15 +266,15 @@ public interface SubscriptionsHandler<K, V> {
 
         void onItemEventListenerSet() {}
 
-        void onSubscribedItem() {}
+        void onSubscribedItem(SubscribedItem item) {}
 
         KafkaConsumerWrapper<K, V> newConsumer() throws KafkaException {
-            if (itemEventListener == null) {
+            if (eventListener == null) {
                 throw new RuntimeException(
-                        "ItemEventListener must be set before starting the consumer");
+                        "EventListener must be set before starting the consumer");
             }
             return new KafkaConsumerWrapper<>(
-                    config, metadataListener, itemEventListener, subscribedItems, consumerSupplier);
+                    config, metadataListener, eventListener, subscribedItems, consumerSupplier);
         }
 
         void onUnsubscribedItem() {}
@@ -276,18 +294,16 @@ public interface SubscriptionsHandler<K, V> {
 
         private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
-        DefaultSubscriptionsHandler(
-                Config<K, V> config,
-                MetadataListener metadataListener,
-                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
-            super(config, metadataListener, false, consumerSupplier);
+        DefaultSubscriptionsHandler(Builder<K, V> builder) {
+            super(builder);
         }
 
         @Override
-        void onSubscribedItem() {
+        void onSubscribedItem(SubscribedItem item) {
             if (itemsCounter.incrementAndGet() == 1) {
                 try {
                     startConsuming(false);
+                    // consumer.consumeRecordsAsSnapshot(null, item);
                 } catch (KafkaException ke) {
                     logger.atError().setCause(ke).log("Unable to connect to Kafka");
                     metadataListener.forceUnsubscriptionAll();
@@ -310,12 +326,8 @@ public interface SubscriptionsHandler<K, V> {
 
     static class AtStartupSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
-        AtStartupSubscriptionsHandler(
-                Config<K, V> config,
-                MetadataListener metadataListener,
-                boolean allowImplicitItems,
-                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
-            super(config, metadataListener, allowImplicitItems, consumerSupplier);
+        AtStartupSubscriptionsHandler(Builder<K, V> builder) {
+            super(builder);
         }
 
         @Override
@@ -339,8 +351,8 @@ public interface SubscriptionsHandler<K, V> {
             fail(new RuntimeException(message));
         }
 
-        private void fail(Throwable throwable) {
-            itemEventListener.failure(throwable);
+        private void fail(Exception throwable) {
+            eventListener.failure(throwable);
         }
     }
 }
