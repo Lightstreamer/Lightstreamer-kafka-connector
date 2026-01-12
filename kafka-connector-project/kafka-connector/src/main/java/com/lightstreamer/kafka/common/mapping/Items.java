@@ -27,6 +27,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
@@ -37,50 +38,73 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSupplier
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiConsumer;
 import java.util.regex.Pattern;
 
 public class Items {
 
     public interface Item {
 
-        Schema schema();
+        String name();
+
+        Object itemHandle();
     }
 
     public interface SubscribedItem extends Item {
 
-        Object itemHandle();
+        Schema schema();
 
         boolean isSnapshot();
 
         void setSnapshot(boolean flag);
 
         String asCanonicalItemName();
+
+        void enableRealtimeEvents(EventListener listener);
+
+        default void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
+            listener.update(this, event, false);
+        }
+
+        default void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
+            listener.update(this, event, true);
+        }
+
+        default void clearSnapshot(EventListener listener) {
+            listener.clearSnapshot(this);
+        }
+
+        default void endOfSnapshot(EventListener listener) {
+            listener.endOfSnapshot(this);
+        }
     }
 
     /**
-     * An interface representing a collection of subscribed items that can be iterated over. This
-     * collection maps item names to {@link SubscribedItem} objects and provides methods to add,
-     * remove, and retrieve items.
+     * Interface for managing a collection of subscribed items in the Lightstreamer Kafka connector.
+     *
+     * <p>This interface provides operations to manage subscriptions including adding, removing, and
+     * retrieving subscribed items. It also provides utility methods to check the state of the
+     * subscription collection and factory methods to create instances.
+     *
+     * <p>Implementations of this interface should handle the lifecycle of subscribed items and
+     * provide thread-safe operations when used in concurrent environments.
+     *
+     * <p>The interface supports both active implementations that manage actual subscriptions and
+     * no-operation implementations for scenarios where subscription management is disabled.
      *
      * @see SubscribedItem
      */
     public interface SubscribedItems {
-
-        static SubscribedItems of(Collection<SubscribedItem> items) {
-            SubscribedItems subscribedItems = SubscribedItems.create();
-            for (SubscribedItem item : items) {
-                subscribedItems.addItem(item);
-            }
-            return subscribedItems;
-        }
 
         /**
          * Creates a new empty instance of SubscribedItems.
@@ -236,7 +260,7 @@ public class Items {
 
     public interface ItemTemplates<K, V> {
 
-        boolean matches(Item item);
+        boolean matches(SubscribedItem item);
 
         Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
@@ -252,30 +276,86 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
+    private static class ImplicitItem implements SubscribedItem {
+
+        private final String name;
+
+        private boolean snapshotFlag = true;
+
+        private ImplicitItem(String name) {
+            this.name = Objects.requireNonNull(name);
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public Object itemHandle() {
+            return name;
+        }
+
+        @Override
+        public Schema schema() {
+            return Schema.nop();
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return snapshotFlag;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            this.snapshotFlag = flag;
+        }
+
+        @Override
+        public String asCanonicalItemName() {
+            return name;
+        }
+
+        @Override
+        public void enableRealtimeEvents(EventListener listener) {
+            // No operation
+        }
+    }
+
     private static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
-        private final String normalizedString;
+        private final String canonicalItemName;
         private final Schema schema;
         private boolean snapshotFlag;
 
+        private volatile Queue<Map<String, String>> pendingRealtimeEvents;
+
+        private volatile BiConsumer<Map<String, String>, EventListener> realtimeEventConsumer;
+
         DefaultSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.normalizedString = expression.asCanonicalItemName();
+            this.canonicalItemName = expression.asCanonicalItemName();
             this.schema = expression.schema();
             this.itemHandle = itemHandle;
             this.snapshotFlag = true;
+            this.pendingRealtimeEvents = new ConcurrentLinkedQueue<>();
+            this.realtimeEventConsumer =
+                    (event, listener) -> {
+                        // Queue the event for later processing
+                        pendingRealtimeEvents.add(event);
+                    };
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, normalizedString);
+            return Objects.hash(itemHandle, canonicalItemName);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
             return obj instanceof DefaultSubscribedItem other
-                    && normalizedString.equals(other.normalizedString)
+                    && canonicalItemName.equals(other.canonicalItemName)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
 
@@ -301,7 +381,81 @@ public class Items {
 
         @Override
         public String asCanonicalItemName() {
-            return normalizedString;
+            return canonicalItemName;
+        }
+
+        @Override
+        public String name() {
+            return canonicalItemName;
+        }
+
+        private BiConsumer<Map<String, String>, EventListener> directConsumer() {
+            return (event, listener) -> listener.update(this, event, false);
+        }
+
+        @Override
+        public void enableRealtimeEvents(EventListener listener) {
+            if (pendingRealtimeEvents == null) {
+                // Already enabled - no action needed
+                return;
+            }
+            // Create a final consumer that flushes queue first, then switches to direct mode
+            ReentrantLock lock = new ReentrantLock();
+            BiConsumer<Map<String, String>, EventListener> finalConsumer =
+                    (event, eventListener) -> {
+                        // First, drain any remaining events from queue to maintain ordering
+                        lock.lock();
+                        try {
+                            if (pendingRealtimeEvents != null) {
+                                drainPendingRealtimeEvents(eventListener);
+                                // Clear the queue to help GC (no longer needed)
+                                pendingRealtimeEvents = null;
+                            }
+                        } finally {
+                            lock.unlock();
+                        }
+
+                        // Then process the current event
+                        eventListener.update(this, event, false);
+
+                        // After draining queue, switch to direct consumer for optimal performance
+                        realtimeEventConsumer = directConsumer();
+                    };
+
+            // Drain any pending events before switching
+            drainPendingRealtimeEvents(listener);
+
+            // Atomic switch to self-draining consumer
+            realtimeEventConsumer = finalConsumer;
+        }
+
+        private void drainPendingRealtimeEvents(EventListener listener) {
+            Map<String, String> event;
+            // Drain all events from queue
+            while ((event = pendingRealtimeEvents.poll()) != null) {
+                listener.update(this, event, false);
+            }
+        }
+
+        @Override
+        public void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
+            // Simple volatile read + call - no synchronization needed!
+            realtimeEventConsumer.accept(event, listener);
+        }
+
+        @Override
+        public void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
+            listener.update(this, event, true);
+        }
+
+        @Override
+        public void clearSnapshot(EventListener listener) {
+            listener.clearSnapshot(this);
+        }
+
+        @Override
+        public void endOfSnapshot(EventListener listener) {
+            listener.endOfSnapshot(this);
         }
     }
 
@@ -317,7 +471,7 @@ public class Items {
             this.schema = extractor.schema();
         }
 
-        public boolean matches(Item item) {
+        public boolean matches(SubscribedItem item) {
             return schema.equals(item.schema());
         }
 
@@ -356,7 +510,7 @@ public class Items {
         }
 
         @Override
-        public boolean matches(Item item) {
+        public boolean matches(SubscribedItem item) {
             return templates.stream().anyMatch(i -> i.matches(item));
         }
 
@@ -395,6 +549,10 @@ public class Items {
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
         }
+    }
+
+    public static SubscribedItem implicitFrom(String name) {
+        return new ImplicitItem(name);
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
