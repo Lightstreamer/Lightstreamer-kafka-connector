@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
@@ -31,6 +30,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -148,16 +148,16 @@ public class KafkaConsumerWrapper<K, V> {
     public KafkaConsumerWrapper(
             Config<K, V> config,
             MetadataListener metadataListener,
-            ItemEventListener itemEventListener,
+            EventListener eventListener,
             SubscribedItems subscribedItems,
             Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier)
             throws KafkaException {
         this.config = config;
         this.metadataListener = metadataListener;
-        this.logger = LogFactory.getLogger(config.connectionName());
+        this.logger = LogFactory.getLogger(this.config.connectionName());
         this.recordMapper =
                 RecordMapper.<K, V>builder()
-                        .withTemplateExtractors(config.itemTemplates().groupExtractors())
+                        .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                         .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
@@ -170,7 +170,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
 
-        Concurrency concurrency = config.concurrency();
+        Concurrency concurrency = this.config.concurrency();
         // Take care of holes in offset sequence only if parallel processing.
         boolean manageHoles = concurrency.isParallel();
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
@@ -180,10 +180,10 @@ public class KafkaConsumerWrapper<K, V> {
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
-                        .commandMode(config.commandModeStrategy())
-                        .eventListener(itemEventListener)
+                        .commandMode(this.config.commandModeStrategy())
+                        .eventListener(eventListener)
                         .offsetService(offsetService)
-                        .errorStrategy(config.errorHandlingStrategy())
+                        .errorStrategy(this.config.errorHandlingStrategy())
                         .logger(logger)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
@@ -192,7 +192,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private String getProperty(String key) {
-        return config.consumerProperties().getProperty(key);
+        return this.config.consumerProperties().getProperty(key);
     }
 
     public FutureStatus startLoop(ExecutorService pool, boolean waitForInit) {
