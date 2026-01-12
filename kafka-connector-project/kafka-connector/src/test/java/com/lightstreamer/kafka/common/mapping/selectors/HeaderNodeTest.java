@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -28,8 +27,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.HeadersNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.SingleHeaderNode;
 import com.lightstreamer.kafka.common.mapping.selectors.HeadersSelectorSupplier.SubArrayHeaderNode;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeaders;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord.KafkaHeadersImpl;
+import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.header.Headers;
@@ -37,7 +35,6 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashMap;
@@ -53,7 +50,7 @@ public class HeaderNodeTest {
         headers.add("key", "value".getBytes(UTF_8));
 
         HeadersNode headersNode =
-                new HeadersSelectorSupplier.HeadersNode(new KafkaConsumerRecordHeaders(headers));
+                new HeadersSelectorSupplier.HeadersNode("HEADERS", KafkaHeaders.from(headers));
         assertThat(headersNode.isArray()).isTrue();
         assertThat(headersNode.isScalar()).isFalse();
         assertThat(headersNode.isNull()).isFalse();
@@ -74,22 +71,18 @@ public class HeaderNodeTest {
 
     static Stream<KafkaHeaders> multipleKeysHeaders() {
         return Stream.of(
-                arguments(
-                        new KafkaConsumerRecordHeaders(
-                                new RecordHeaders()
-                                        .add("key1", "value1ForKey1".getBytes(UTF_8))
-                                        .add("key2", "value1ForKey2".getBytes(UTF_8))
-                                        .add("key1", "value2ForKey1".getBytes(UTF_8))
-                                        .add("key2", "value2ForKey2".getBytes(UTF_8))),
-                        arguments(
-                                new KafkaConnectHeaders(
-                                        new ConnectHeaders()
-                                                .addBytes("key1", "value1ForKey1".getBytes(UTF_8))
-                                                .addBytes("key2", "value1ForKey2".getBytes(UTF_8))
-                                                .addBytes("key1", "value2ForKey1".getBytes(UTF_8))
-                                                .addBytes(
-                                                        "key2",
-                                                        "value2ForKey2".getBytes(UTF_8))))));
+                KafkaHeaders.from(
+                        new RecordHeaders()
+                                .add("key1", "value1ForKey1".getBytes(UTF_8))
+                                .add("key2", "value1ForKey2".getBytes(UTF_8))
+                                .add("key1", "value2ForKey1".getBytes(UTF_8))
+                                .add("key2", "value2ForKey2".getBytes(UTF_8))),
+                KafkaHeaders.from(
+                        new ConnectHeaders()
+                                .addBytes("key1", "value1ForKey1".getBytes(UTF_8))
+                                .addBytes("key2", "value1ForKey2".getBytes(UTF_8))
+                                .addBytes("key1", "value2ForKey1".getBytes(UTF_8))
+                                .addBytes("key2", "value2ForKey2".getBytes(UTF_8))));
     }
 
     @ParameterizedTest
@@ -211,11 +204,9 @@ public class HeaderNodeTest {
         assertThat(ve).hasMessageThat().isEqualTo("Field [singleNode] is not indexed");
     }
 
-    static Stream<Arguments> emptyHeaders() {
+    static Stream<KafkaHeaders> emptyHeaders() {
         return Stream.of(
-                arguments(
-                        new KafkaConsumerRecordHeaders(new RecordHeaders()),
-                        arguments(new KafkaConnectHeaders(new ConnectHeaders()))));
+                KafkaHeaders.from(new RecordHeaders()), KafkaHeaders.from(new ConnectHeaders()));
     }
 
     @ParameterizedTest
@@ -231,11 +222,11 @@ public class HeaderNodeTest {
 
     static Stream<KafkaHeaders> singleKeyHeaders() {
         return Stream.of(
-                new KafkaHeadersImpl(
+                KafkaHeaders.from(
                         new RecordHeaders()
                                 .add("key1", "value1".getBytes(UTF_8))
                                 .add("key2", "value2".getBytes(UTF_8))),
-                new KafkaHeadersImpl(
+                KafkaHeaders.from(
                         new ConnectHeaders()
                                 .addBytes("key1", "value1".getBytes(UTF_8))
                                 .addBytes("key2", "value2".getBytes(UTF_8))));
