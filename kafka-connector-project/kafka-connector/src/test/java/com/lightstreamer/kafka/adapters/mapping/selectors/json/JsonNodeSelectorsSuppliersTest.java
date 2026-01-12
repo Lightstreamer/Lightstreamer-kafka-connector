@@ -36,12 +36,12 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
@@ -237,11 +237,12 @@ public class JsonNodeSelectorsSuppliersTest {
             throws ExtractionException {
         ValueSelector<JsonNode> valueSelector = valueSelector(expression);
 
-        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE), false);
+        Data boundData =
+                valueSelector.extractValue("param", KafkaRecordFromValue(SAMPLE_MESSAGE), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -271,7 +272,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         """);
 
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<?, JsonNode> record = fromValue(message);
+        KafkaRecord<?, JsonNode> record = KafkaRecordFromValue(message);
 
         valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
@@ -365,7 +366,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue(SAMPLE_MESSAGE))
+                                        .extractValue("param", KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -374,7 +375,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
@@ -407,7 +408,8 @@ public class JsonNodeSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(
-                                                fromValue(SAMPLE_MESSAGE), new HashMap<>()));
+                                                KafkaRecordFromValue(SAMPLE_MESSAGE),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -451,12 +453,13 @@ public class JsonNodeSelectorsSuppliersTest {
 
         ValueSelector<JsonNode> valueSelector = valueSelector(expressionString);
 
-        Data autoBoundData = valueSelector.extractValue(fromValue(message), false);
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue(message), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
         Data boundData =
-                valueSelector(expressionString).extractValue("param", fromValue(message), false);
+                valueSelector(expressionString)
+                        .extractValue("param", KafkaRecordFromValue(message), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -465,11 +468,13 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<JsonNode> valueSelector = valueSelector("VALUE");
 
-        Data autoBoundData = valueSelector.extractValue(fromValue((JsonNode) null), false);
+        Data autoBoundData =
+                valueSelector.extractValue(KafkaRecordFromValue((JsonNode) null), false);
         assertThat(autoBoundData.name()).isEqualTo("VALUE");
         assertThat(autoBoundData.text()).isNull();
 
-        Data boundData = valueSelector.extractValue("param", fromValue((JsonNode) null), false);
+        Data boundData =
+                valueSelector.extractValue("param", KafkaRecordFromValue((JsonNode) null), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isNull();
     }
@@ -492,7 +497,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue(fromValue((JsonNode) null))
+                                        .extractValue(KafkaRecordFromValue((JsonNode) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -501,7 +506,8 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue((JsonNode) null))
+                                        .extractValue(
+                                                "param", KafkaRecordFromValue((JsonNode) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -511,7 +517,8 @@ public class JsonNodeSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(
-                                                fromValue((JsonNode) null), new HashMap<>()));
+                                                KafkaRecordFromValue((JsonNode) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -544,11 +551,12 @@ public class JsonNodeSelectorsSuppliersTest {
             throws ExtractionException {
         KeySelector<JsonNode> keySelector = keySelector(expression);
 
-        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE), false);
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE), false);
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundValueData = keySelector.extractKey(expectedName, fromKey(SAMPLE_MESSAGE));
+        Data boundValueData =
+                keySelector.extractKey(expectedName, KafkaRecordFromKey(SAMPLE_MESSAGE));
         assertThat(boundValueData.name()).isEqualTo(expectedName);
         assertThat(boundValueData.text()).isEqualTo(expectedValue);
     }
@@ -572,7 +580,7 @@ public class JsonNodeSelectorsSuppliersTest {
                         """);
 
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<JsonNode, ?> record = fromKey(message);
+        KafkaRecord<JsonNode, ?> record = KafkaRecordFromKey(message);
 
         keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
@@ -649,14 +657,17 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey("param", fromKey(SAMPLE_MESSAGE))
+                                        .extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+                        () ->
+                                keySelector(expression)
+                                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -688,7 +699,9 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
+                                        .extractKeyInto(
+                                                KafkaRecordFromKey(SAMPLE_MESSAGE),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -729,11 +742,13 @@ public class JsonNodeSelectorsSuppliersTest {
                     }
                         """);
 
-        Data autoBoundValue = keySelector(expression).extractKey(fromKey(message), false);
+        Data autoBoundValue =
+                keySelector(expression).extractKey(KafkaRecordFromKey(message), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
-        Data boundValue = keySelector(expression).extractKey("param", fromKey(message), false);
+        Data boundValue =
+                keySelector(expression).extractKey("param", KafkaRecordFromKey(message), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -742,11 +757,12 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldHandleNullKey() throws ExtractionException {
         KeySelector<JsonNode> keySelector = keySelector("KEY");
 
-        Data autoBoundData = keySelector.extractKey(fromKey((JsonNode) null), false);
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey((JsonNode) null), false);
         assertThat(autoBoundData.name()).isEqualTo("KEY");
         assertThat(autoBoundData.text()).isNull();
 
-        Data boundData = keySelector.extractKey("param", fromKey((JsonNode) null), false);
+        Data boundData =
+                keySelector.extractKey("param", KafkaRecordFromKey((JsonNode) null), false);
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isNull();
     }
@@ -767,15 +783,9 @@ public class JsonNodeSelectorsSuppliersTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey((JsonNode) null)).text());
-        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
-
-        ve =
-                assertThrows(
-                        ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey("param", fromKey((JsonNode) null))
+                                        .extractKey(KafkaRecordFromKey((JsonNode) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -784,7 +794,18 @@ public class JsonNodeSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKeyInto(fromKey((JsonNode) null), new HashMap<>()));
+                                        .extractKey("param", KafkaRecordFromKey((JsonNode) null))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKeyInto(
+                                                KafkaRecordFromKey((JsonNode) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }
