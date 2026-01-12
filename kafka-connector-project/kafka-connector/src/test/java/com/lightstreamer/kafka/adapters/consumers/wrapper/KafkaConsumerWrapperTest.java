@@ -61,7 +61,6 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -89,17 +88,11 @@ import java.util.stream.Stream;
 public class KafkaConsumerWrapperTest {
 
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
-    private MockMetadataListener metadataListener;
-    private EventListener itemEventListener;
-
-    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer;
-
-    @BeforeEach
-    public void setUp() {
-        metadataListener = new MockMetadataListener();
-        itemEventListener = EventListener.smartEventListener(new MockItemEventListener());
-        mockConsumer = new MockConsumer<>(resetStrategy);
-    }
+    private MockMetadataListener metadataListener = new MockMetadataListener();
+    private MockItemEventListener itemEventListener = new MockItemEventListener();
+    private EventListener eventListener = EventListener.smartEventListener(itemEventListener);
+    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer =
+            new MockConsumer<>(resetStrategy);
 
     private Properties makeProperties() {
         Properties properties = new Properties();
@@ -165,7 +158,7 @@ public class KafkaConsumerWrapperTest {
                 allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
 
         return new KafkaConsumerWrapper<String, String>(
-                config, metadataListener, itemEventListener, subscribedItems, () -> mockConsumer);
+                config, metadataListener, eventListener, subscribedItems, () -> mockConsumer);
     }
 
     private Config<String, String> makeConfig(
@@ -180,7 +173,7 @@ public class KafkaConsumerWrapperTest {
                     makeProperties(),
                     Items.templatesFrom(makeTopicsConfig(enableSubscriptionPattern), String()),
                     ItemTemplatesUtils.fieldsExtractor(),
-                    OthersSelectorSuppliers.String().deserializers(),
+                    OthersSelectorSuppliers.String(),
                     errorHandlingStrategy,
                     commandModeStrategy,
                     new Concurrency(orderStrategy, threads));
