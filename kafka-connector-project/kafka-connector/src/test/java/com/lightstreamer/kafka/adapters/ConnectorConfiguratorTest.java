@@ -33,10 +33,8 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.KeyValueDeserializers;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
-import com.lightstreamer.kafka.adapters.mapping.selectors.WrapperKeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -179,7 +177,7 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        FieldsExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldExtractor = consumerConfig.fieldsExtractor();
         assertThat(fieldExtractor.skipOnFailure()).isFalse();
         assertThat(fieldExtractor.mapNonScalars()).isFalse();
 
@@ -192,7 +190,7 @@ public class ConnectorConfiguratorTest {
         Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = consumerTriggerConfig.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
@@ -236,12 +234,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         assertThat(fieldsExtractor.mapNonScalars()).isTrue();
 
         Set<String> fieldNames = fieldsExtractor.mappedFields();
-        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
+        assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
@@ -256,7 +254,7 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
@@ -296,9 +294,9 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
-        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
+        assertThat(fieldNames).containsExactly("key", "command", "fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
@@ -313,7 +311,7 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("WrapperKafkaAvroDeserializer");
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
@@ -341,7 +339,7 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
@@ -358,7 +356,7 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("KafkaProtobufDeserializer");
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
@@ -403,7 +401,7 @@ public class ConnectorConfiguratorTest {
             String fieldMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+                assertThrows(ConfigException.class, () -> newConfigurator(config).consumerConfig());
         assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [field.<...>]");
     }
 
