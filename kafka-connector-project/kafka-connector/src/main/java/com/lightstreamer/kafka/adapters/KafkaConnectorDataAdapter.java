@@ -39,7 +39,7 @@ import javax.annotation.Nonnull;
 
 public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
-    private Logger log;
+    private Logger logger;
     private SubscriptionsHandler<?, ?> subscriptionsHandler;
     private Config<?, ?> consumerConfig;
     private ConnectorConfig connectorConfig;
@@ -52,7 +52,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
         this.connectorConfig = configurator.getConfig();
-        this.log = LogFactory.getLogger(connectorConfig.getAdapterName());
+        this.logger = LogFactory.getLogger(connectorConfig.getAdapterName());
         this.metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
                         new KafkaConnectorDataAdapterOpts(
@@ -63,17 +63,19 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                                 connectorConfig.isAutoCommandModeEnabled()
                                         || connectorConfig.isCommandEnforceEnabled()));
 
-        this.log.info("Configuring Kafka Connector");
-        this.consumerConfig = configurator.configure();
-        this.subscriptionsHandler =
-                SubscriptionsHandler.builder()
-                        .withConsumerConfig(consumerConfig)
-                        .withMetadataListener(metadataListener)
-                        .atStartup(
-                                connectorConfig.consumeAtStartup(),
-                                connectorConfig.implicitItemsEnabled())
-                        .build();
-        this.log.info("Configuration complete");
+        this.logger.info("Configuring Kafka Connector");
+        this.consumerConfig = configurator.consumerConfig();
+        this.subscriptionsHandler = createSubscriptionHandler(consumerConfig);
+        this.logger.info("Configuration complete");
+    }
+
+    private <K, V> SubscriptionsHandler<K, V> createSubscriptionHandler(Config<K, V> config) {
+        return SubscriptionsHandler.<K, V>builder()
+                .withConsumerConfig(config)
+                .withMetadataListener(metadataListener)
+                .atStartup(
+                        connectorConfig.consumeAtStartup(), connectorConfig.implicitItemsEnabled())
+                .build();
     }
 
     @Override
@@ -94,14 +96,14 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        log.info("Trying subscription to item [{}]", itemName);
+        logger.info("Trying subscription to item [{}]", itemName);
         subscriptionsHandler.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        log.info("Unsubscribing from item [{}]", itemName);
+        logger.info("Unsubscribing from item [{}]", itemName);
         subscriptionsHandler.unsubscribe(itemName);
     }
 
