@@ -87,8 +87,11 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
+            @SuppressWarnings("unchecked")
             Config<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+                    (Config<String, DynamicMessage>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
+                                    .consumerConfig();
 
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
@@ -130,8 +133,11 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
+            @SuppressWarnings("unchecked")
             Config<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
+                                    .consumerConfig();
 
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(
