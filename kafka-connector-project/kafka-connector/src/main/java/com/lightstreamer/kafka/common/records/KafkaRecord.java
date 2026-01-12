@@ -17,9 +17,12 @@
 
 package com.lightstreamer.kafka.common.records;
 
+import com.lightstreamer.kafka.adapters.RawKafkaRecord;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.List;
@@ -58,6 +61,26 @@ public interface KafkaRecord<K, V> {
 
     public static <K, V> KafkaRecord<K, V> from(ConsumerRecord<Deferred<K>, Deferred<V>> record) {
         return new KafkaConsumerRecord<>(record);
+    }
+
+    public static <K, V> KafkaRecord<K, V> from(
+            RawKafkaRecord record,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer)
+            throws SerializationException {
+
+        Deferred<K> deferredKey = Deferred.lazy(keyDeserializer, record.topic(), record.key());
+        Deferred<V> deferredValue =
+                Deferred.lazy(valueDeserializer, record.topic(), record.value());
+
+        return new KafkaCachedRecord<>(
+                record.topic(),
+                record.partition(),
+                record.offset(),
+                record.timestamp(),
+                deferredKey,
+                deferredValue,
+                record.headers());
     }
 
     public static KafkaRecord<Object, Object> from(SinkRecord record) {
