@@ -120,8 +120,7 @@ public class KafkaConsumerWrapperTest {
                 CommandModeStrategy.NONE,
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                 2,
-                RecordConsumeWithOrderStrategy.UNORDERED,
-                false);
+                RecordConsumeWithOrderStrategy.UNORDERED);
     }
 
     KafkaConsumerWrapper<String, String> makeWrapper(
@@ -131,8 +130,7 @@ public class KafkaConsumerWrapperTest {
             CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
-            RecordConsumeWithOrderStrategy orderStrategy,
-            boolean allowImplicitItems) {
+            RecordConsumeWithOrderStrategy orderStrategy) {
 
         // Set the available topics in the mock consumer
         for (String topic : availableTopics) {
@@ -154,8 +152,7 @@ public class KafkaConsumerWrapperTest {
                         orderStrategy);
 
         // Create the SubscribedItems
-        SubscribedItems subscribedItems =
-                allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
+        SubscribedItems subscribedItems = SubscribedItems.create();
 
         return new KafkaConsumerWrapper<String, String>(
                 config, metadataListener, eventListener, subscribedItems, () -> mockConsumer);
@@ -190,50 +187,40 @@ public class KafkaConsumerWrapperTest {
                         CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         false,
-                        false,
                         OrderStrategy.ORDER_BY_PARTITION,
-                        ProcessUpdatesType.DEFAULT,
-                        false),
+                        ProcessUpdatesType.DEFAULT),
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
                         CommandModeStrategy.ENFORCE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         false,
-                        false,
                         OrderStrategy.ORDER_BY_PARTITION,
-                        ProcessUpdatesType.COMMAND,
-                        false),
+                        ProcessUpdatesType.COMMAND),
                 Arguments.of(
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
                         CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
-                        false,
                         true,
                         OrderStrategy.ORDER_BY_KEY,
-                        ProcessUpdatesType.DEFAULT,
-                        false),
+                        ProcessUpdatesType.DEFAULT),
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
                         CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
-                        false,
                         true,
                         OrderStrategy.UNORDERED,
-                        ProcessUpdatesType.DEFAULT,
-                        false),
+                        ProcessUpdatesType.DEFAULT),
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
                         CommandModeStrategy.AUTO,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
-                        true,
                         OrderStrategy.UNORDERED,
-                        ProcessUpdatesType.AUTO_COMMAND_MODE,
-                        true));
+                        ProcessUpdatesType.AUTO_COMMAND_MODE));
     }
 
     @ParameterizedTest
@@ -243,11 +230,9 @@ public class KafkaConsumerWrapperTest {
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
             CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
-            boolean allowImplicitItems,
             boolean expectedParallelism,
             OrderStrategy expectedOrderStrategy,
-            ProcessUpdatesType expectedProcessUpdatesType,
-            boolean expectedRouteImplicitItems) {
+            ProcessUpdatesType expectedProcessUpdatesType) {
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(
                         Collections.emptySet(),
@@ -256,8 +241,7 @@ public class KafkaConsumerWrapperTest {
                         commandModeStrategy,
                         errorHandlingStrategy,
                         threads,
-                        consumedWithOrderStrategy,
-                        allowImplicitItems);
+                        consumedWithOrderStrategy);
 
         assertThat(wrapper.getInternalConsumer()).isSameInstanceAs(mockConsumer);
 
@@ -268,6 +252,8 @@ public class KafkaConsumerWrapperTest {
         } else {
             assertThat(recordConsumer.numOfThreads()).isEqualTo(threads);
         }
+
+        // Check the OrderStrategy
         Optional<OrderStrategy> orderStrategy = recordConsumer.orderStrategy();
         if (threads > 1 || threads == -1) {
             assertThat(orderStrategy).hasValue(expectedOrderStrategy);
@@ -280,7 +266,6 @@ public class KafkaConsumerWrapperTest {
         // Check the RecordProcessor
         RecordProcessor<String, String> recordProcessor = recordConsumer.recordProcessor();
         assertThat(recordProcessor.processUpdatesType()).isEqualTo(expectedProcessUpdatesType);
-        assertThat(recordProcessor.canRouteImplicitItems()).isEqualTo(expectedRouteImplicitItems);
 
         // Check the OffsetService
         OffsetService offsetService = wrapper.getOffsetService();
@@ -298,8 +283,7 @@ public class KafkaConsumerWrapperTest {
                         CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
-                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        false);
+                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
         assertThat(wrapper.subscribed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
