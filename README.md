@@ -509,6 +509,30 @@ Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly gene
 <param name="group.id">kafka-connector-group</param>
 ```
 
+#### `consumer.session.timeout.ms`
+
+_Optional_. The timeout used to detect client failures when using Kafka's group management facility.
+
+The client sends periodic heartbeats to indicate its liveness to the broker. If no heartbeats are received by the broker before the expiration of this session timeout, then the broker will remove this client from the group and initiate a rebalance. Note that the value must be in the allowable range as configured in the broker configuration by `group.min.session.timeout.ms` and `group.max.session.timeout.ms`. Note that this client configuration is not supported when group.protocol is set to "consumer". In that case, session timeout is controlled by the broker config group.consumer.session.timeout.ms.
+
+Default value: 800
+
+```xml
+<param name="consumer.session.timeout.ms">30000</param>
+```
+
+#### `consumer.max.poll.interval.ms`
+
+_Optional_. The maximum delay between invocations of poll() when using consumer group management. This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+
+If poll() is not called before expiration of this timeout, then the consumer is considered failed and the group will rebalance in order to reassign the partitions to another member. For consumers using a non-null `group.id` which reach this timeout, partitions will not be immediately reassigned. Instead, the consumer will stop sending heartbeats and partitions will be reassigned after expiration of the session timeout (defined by the client config `session.timeout.ms` if using the Classic rebalance protocol, or by the broker config group. `consumer.session.timeout.ms` if using the Consumer protocol). This mirrors the behavior of a static consumer which has shutdown.
+
+Default value: 5000
+
+```xml
+<param name="consumer.max.poll.interval.ms">50000</param>
+```
+
 ### Encryption Parameters
 
 A TCP secure connection to Kafka is configured through parameters with the prefix `encryption`.
