@@ -125,15 +125,6 @@ public class Items {
         }
 
         /**
-         * Determines whether subscriptions should be accepted.
-         *
-         * @return {@code true} if subscriptions are accepted, {@code false} otherwise
-         */
-        default boolean acceptSubscriptions() {
-            return true;
-        }
-
-        /**
          * Adds a subscribed item to the collection.
          *
          * @param item the subscribed item to be added to the collection
@@ -182,11 +173,6 @@ public class Items {
         private static final NOPSubscribedItems NOP = new NOPSubscribedItems();
 
         private NOPSubscribedItems() {}
-
-        @Override
-        public boolean acceptSubscriptions() {
-            return false; // No subscriptions are accepted in NOP mode
-        }
 
         @Override
         public void addItem(SubscribedItem item) {
@@ -274,52 +260,6 @@ public class Items {
         }
 
         Optional<Pattern> subscriptionPattern();
-    }
-
-    private static class ImplicitItem implements SubscribedItem {
-
-        private final String name;
-
-        private boolean snapshotFlag = true;
-
-        private ImplicitItem(String name) {
-            this.name = Objects.requireNonNull(name);
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return name;
-        }
-
-        @Override
-        public Schema schema() {
-            return Schema.nop();
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return snapshotFlag;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            this.snapshotFlag = flag;
-        }
-
-        @Override
-        public String asCanonicalItemName() {
-            return name;
-        }
-
-        @Override
-        public void enableRealtimeEvents(EventListener listener) {
-            // No operation
-        }
     }
 
     private static class DefaultSubscribedItem implements SubscribedItem {
@@ -549,10 +489,6 @@ public class Items {
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
         }
-    }
-
-    public static SubscribedItem implicitFrom(String name) {
-        return new ImplicitItem(name);
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
