@@ -44,11 +44,6 @@ public class SubscribedItemsTest {
     }
 
     @Test
-    public void shouldAcceptSubscriptions() {
-        assertThat(subscribedItems.acceptSubscriptions()).isTrue();
-    }
-
-    @Test
     public void shouldAddAndRetrieveSimpleItems() {
         SubscribedItem testItem1 = Items.subscribedFrom("item1");
         SubscribedItem testItem2 = Items.subscribedFrom("item2");
@@ -112,7 +107,6 @@ public class SubscribedItemsTest {
     @Test
     public void shouldNotManageSubscriptionsFromNop() {
         SubscribedItems subscribedItems = SubscribedItems.nop();
-        assertThat(subscribedItems.acceptSubscriptions()).isFalse();
 
         SubscribedItem item = subscribedFrom("anItem");
         subscribedItems.addItem(item);
