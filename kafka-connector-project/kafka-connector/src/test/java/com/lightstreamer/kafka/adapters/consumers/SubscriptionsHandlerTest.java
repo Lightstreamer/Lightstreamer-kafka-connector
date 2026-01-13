@@ -22,7 +22,6 @@ import static com.google.common.truth.Truth.assertThat;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AtStartupSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -31,8 +30,7 @@ import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
@@ -56,39 +54,14 @@ public class SubscriptionsHandlerTest {
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldCreateDefaultSubscriptionsHandler(boolean allowImplicitItems) {
+    @Test
+    public void shouldCreateDefaultSubscriptionsHandler() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
                         .withMetadataListener(metadataListener)
-                        .atStartup(false, allowImplicitItems)
                         .build();
         assertThat(subscriptionsHandler).isInstanceOf(DefaultSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        // Verify that the allowImplicitItems flag is irrelevant for DefaultSubscriptionsHandler
-        assertThat(
-                        ((DefaultSubscriptionsHandler<?, ?>) subscriptionsHandler)
-                                .getSubscribedItems()
-                                .acceptSubscriptions())
-                .isEqualTo(true);
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldCreateAtSubscriptionsHandler(boolean allowImplicitItems) {
-        SubscriptionsHandler<String, String> subscriptionsHandler =
-                SubscriptionsHandler.<String, String>builder()
-                        .withConsumerConfig(config)
-                        .withMetadataListener(metadataListener)
-                        .atStartup(true, allowImplicitItems)
-                        .build();
-        assertThat(subscriptionsHandler).isInstanceOf(AtStartupSubscriptionsHandler.class);
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        AtStartupSubscriptionsHandler<?, ?> atStartupHandler =
-                (AtStartupSubscriptionsHandler<?, ?>) subscriptionsHandler;
-        assertThat(atStartupHandler.getSubscribedItems().acceptSubscriptions())
-                .isEqualTo(!allowImplicitItems);
     }
 }
