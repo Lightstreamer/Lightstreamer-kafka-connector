@@ -80,9 +80,6 @@ loadScripts(document, 'script');</script>
 <dt>Record Components:</dt>
 <dd><code><span id="param-dataAdapterName">dataAdapterName</span></code> - the name of the Kafka Connector Data Adapter</dd>
 <dd><code><span id="param-enabled">enabled</span></code> - indicates whether the calling DataProvider is enabled</dd>
-<dd><code><span id="param-consumeAtStartup">consumeAtStartup</span></code> - indicates whether the Kafka Connector should consume message at
-     connector startup</dd>
-<dd><code><span id="param-implicitItemsEnabled">implicitItemsEnabled</span></code> - indicates whether the Kafka Connector should allow implicit items</dd>
 <dd><code><span id="param-useCommandMode">useCommandMode</span></code> - indicates whether the Kafka Connector is configured to use the command
      mode through one of the available settings (<code>fields.auto.command.mode.enable</code> and
      <code>fields.evaluate.as.command.enable</code> )</dd>
@@ -92,7 +89,7 @@ loadScripts(document, 'script');</script>
 <dd><a href="KafkaConnectorMetadataAdapter.html" title="class in com.lightstreamer.kafka.adapters.pub">KafkaConnectorMetadataAdapter</a></dd>
 </dl>
 <hr>
-<div class="type-signature"><span class="modifiers">public static record </span><span class="element-name type-name-label">KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts</span>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;dataAdapterName, boolean&nbsp;enabled, boolean&nbsp;consumeAtStartup, boolean&nbsp;implicitItemsEnabled, boolean&nbsp;useCommandMode)
+<div class="type-signature"><span class="modifiers">public static record </span><span class="element-name type-name-label">KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts</span>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;dataAdapterName, boolean&nbsp;enabled, boolean&nbsp;useCommandMode)
 <span class="extends-implements">extends <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Record.html" title="class or interface in java.lang" class="external-link">Record</a></span></div>
 <div class="block">Only used internally.
 
@@ -108,10 +105,8 @@ loadScripts(document, 'script');</script>
 <div class="summary-table two-column-summary">
 <div class="table-header col-first">Constructor</div>
 <div class="table-header col-last">Description</div>
-<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(java.lang.String,boolean,boolean,boolean,boolean)" class="member-name-link">KafkaConnectorDataAdapterOpts</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;dataAdapterName,
+<div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(java.lang.String,boolean,boolean)" class="member-name-link">KafkaConnectorDataAdapterOpts</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;dataAdapterName,
  boolean&nbsp;enabled,
- boolean&nbsp;consumeAtStartup,
- boolean&nbsp;implicitItemsEnabled,
  boolean&nbsp;useCommandMode)</code></div>
 <div class="col-last even-row-color">
 <div class="block">Creates an instance of a <code>KafkaConnectorDataAdapterOpts</code> record class.</div>
@@ -130,35 +125,25 @@ loadScripts(document, 'script');</script>
 <div class="table-header col-first">Modifier and Type</div>
 <div class="table-header col-second">Method</div>
 <div class="table-header col-last">Description</div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#consumeAtStartup()" class="member-name-link">consumeAtStartup</a>()</code></div>
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#dataAdapterName()" class="member-name-link">dataAdapterName</a>()</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Returns the value of the <a href="#param-consumeAtStartup"><code>consumeAtStartup</code></a> record component.</div>
-</div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#dataAdapterName()" class="member-name-link">dataAdapterName</a>()</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Returns the value of the <a href="#param-dataAdapterName"><code>dataAdapterName</code></a> record component.</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#enabled()" class="member-name-link">enabled</a>()</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#enabled()" class="member-name-link">enabled</a>()</code></div>
+<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Returns the value of the <a href="#param-enabled"><code>enabled</code></a> record component.</div>
 </div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final boolean</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#equals(java.lang.Object)" class="member-name-link">equals</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&nbsp;o)</code></div>
-<div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
+<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final boolean</code></div>
+<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#equals(java.lang.Object)" class="member-name-link">equals</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a>&nbsp;o)</code></div>
+<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
 <div class="block">Indicates whether some other object is "equal to" this one.</div>
 </div>
-<div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final int</code></div>
-<div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#hashCode()" class="member-name-link">hashCode</a>()</code></div>
-<div class="col-last even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Returns a hash code value for this object.</div>
-</div>
-<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>boolean</code></div>
-<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#implicitItemsEnabled()" class="member-name-link">implicitItemsEnabled</a>()</code></div>
+<div class="col-first odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final int</code></div>
+<div class="col-second odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#hashCode()" class="member-name-link">hashCode</a>()</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4">
-<div class="block">Returns the value of the <a href="#param-implicitItemsEnabled"><code>implicitItemsEnabled</code></a> record component.</div>
+<div class="block">Returns a hash code value for this object.</div>
 </div>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code>final <a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a></code></div>
 <div class="col-second even-row-color method-summary-table method-summary-table-tab2 method-summary-table-tab4"><code><a href="#toString()" class="member-name-link">toString</a>()</code></div>
@@ -188,20 +173,16 @@ loadScripts(document, 'script');</script>
 <h2>Constructor Details</h2>
 <ul class="member-list">
 <li>
-<section class="detail" id="&lt;init&gt;(java.lang.String,boolean,boolean,boolean,boolean)">
+<section class="detail" id="&lt;init&gt;(java.lang.String,boolean,boolean)">
 <h3>KafkaConnectorDataAdapterOpts</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">KafkaConnectorDataAdapterOpts</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;dataAdapterName,
  boolean&nbsp;enabled,
- boolean&nbsp;consumeAtStartup,
- boolean&nbsp;implicitItemsEnabled,
  boolean&nbsp;useCommandMode)</span></div>
 <div class="block">Creates an instance of a <code>KafkaConnectorDataAdapterOpts</code> record class.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>dataAdapterName</code> - the value for the <a href="#param-dataAdapterName"><code>dataAdapterName</code></a> record component</dd>
 <dd><code>enabled</code> - the value for the <a href="#param-enabled"><code>enabled</code></a> record component</dd>
-<dd><code>consumeAtStartup</code> - the value for the <a href="#param-consumeAtStartup"><code>consumeAtStartup</code></a> record component</dd>
-<dd><code>implicitItemsEnabled</code> - the value for the <a href="#param-implicitItemsEnabled"><code>implicitItemsEnabled</code></a> record component</dd>
 <dd><code>useCommandMode</code> - the value for the <a href="#param-useCommandMode"><code>useCommandMode</code></a> record component</dd>
 </dl>
 </section>
@@ -274,28 +255,6 @@ loadScripts(document, 'script');</script>
 <dl class="notes">
 <dt>Returns:</dt>
 <dd>the value of the <a href="#param-enabled"><code>enabled</code></a> record component</dd>
-</dl>
-</section>
-</li>
-<li>
-<section class="detail" id="consumeAtStartup()">
-<h3>consumeAtStartup</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">boolean</span>&nbsp;<span class="element-name">consumeAtStartup</span>()</div>
-<div class="block">Returns the value of the <a href="#param-consumeAtStartup"><code>consumeAtStartup</code></a> record component.</div>
-<dl class="notes">
-<dt>Returns:</dt>
-<dd>the value of the <a href="#param-consumeAtStartup"><code>consumeAtStartup</code></a> record component</dd>
-</dl>
-</section>
-</li>
-<li>
-<section class="detail" id="implicitItemsEnabled()">
-<h3>implicitItemsEnabled</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type">boolean</span>&nbsp;<span class="element-name">implicitItemsEnabled</span>()</div>
-<div class="block">Returns the value of the <a href="#param-implicitItemsEnabled"><code>implicitItemsEnabled</code></a> record component.</div>
-<dl class="notes">
-<dt>Returns:</dt>
-<dd>the value of the <a href="#param-implicitItemsEnabled"><code>implicitItemsEnabled</code></a> record component</dd>
 </dl>
 </section>
 </li>
