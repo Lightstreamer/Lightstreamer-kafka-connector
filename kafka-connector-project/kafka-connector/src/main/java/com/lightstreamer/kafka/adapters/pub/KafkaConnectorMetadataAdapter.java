@@ -118,22 +118,15 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *
      * @param dataAdapterName the name of the Kafka Connector Data Adapter
      * @param enabled indicates whether the calling DataProvider is enabled
-     * @param consumeAtStartup indicates whether the Kafka Connector should consume message at
-     *     connector startup
-     * @param implicitItemsEnabled indicates whether the Kafka Connector should allow implicit items
      * @param useCommandMode indicates whether the Kafka Connector is configured to use the command
      *     mode through one of the available settings ({@code fields.auto.command.mode.enable} and
      *     {@code fields.evaluate.as.command.enable} )
      */
     public static record KafkaConnectorDataAdapterOpts(
-            String dataAdapterName,
-            boolean enabled,
-            boolean consumeAtStartup,
-            boolean implicitItemsEnabled,
-            boolean useCommandMode) {
+            String dataAdapterName, boolean enabled, boolean useCommandMode) {
 
         boolean supportMode(Mode mode) {
-            if (implicitItemsEnabled() && useCommandMode()) {
+            if (useCommandMode()) {
                 return Mode.COMMAND.equals(mode);
             }
             return true;
@@ -390,7 +383,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
         @Override
         public void forceUnsubscriptionAll() {
-            if (!opts.consumeAtStartup() && metadataAdapter != null) {
+            if (metadataAdapter != null) {
                 metadataAdapter.forceUnsubscriptionAll(opts.dataAdapterName);
             }
         }
