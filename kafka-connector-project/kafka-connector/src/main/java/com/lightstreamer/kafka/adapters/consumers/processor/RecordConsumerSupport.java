@@ -36,7 +36,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithS
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Key;
 import com.lightstreamer.kafka.common.listeners.EventListener;
-import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -306,14 +305,8 @@ class RecordConsumerSupport {
 
         Set<SubscribedItem> route(MappedRecord mappedRecord);
 
-        default boolean canRouteImplicitItems() {
-            return false;
-        }
-
         static RecordRoutingStrategy fromSubscribedItems(SubscribedItems subscribedItems) {
-            return subscribedItems.acceptSubscriptions()
-                    ? new DefaultRoutingStrategy(subscribedItems)
-                    : new RouteAllStrategy();
+            return new DefaultRoutingStrategy(subscribedItems);
         }
     }
 
@@ -328,25 +321,6 @@ class RecordConsumerSupport {
         @Override
         public Set<SubscribedItem> route(MappedRecord mappedRecord) {
             return mappedRecord.route(subscribedItems);
-        }
-    }
-
-    static class RouteAllStrategy implements RecordRoutingStrategy {
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            String[] canonicalItemNames = mappedRecord.canonicalItemNames();
-            Set<SubscribedItem> result = new HashSet<>(canonicalItemNames.length);
-
-            for (String itemName : canonicalItemNames) {
-                result.add(Items.implicitFrom(itemName));
-            }
-            return result;
-        }
-
-        @Override
-        public boolean canRouteImplicitItems() {
-            return true;
         }
     }
 
@@ -366,16 +340,6 @@ class RecordConsumerSupport {
             }
 
             return routedItems;
-        }
-
-        @Override
-        public boolean canRouteImplicitItems() {
-            for (RecordRoutingStrategy strategy : strategies) {
-                if (strategy.canRouteImplicitItems()) {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 
@@ -713,11 +677,6 @@ class RecordConsumerSupport {
         @Override
         public ProcessUpdatesType processUpdatesType() {
             return processUpdatesStrategy.type();
-        }
-
-        @Override
-        public boolean canRouteImplicitItems() {
-            return recordRoutingStrategy.canRouteImplicitItems();
         }
     }
 
