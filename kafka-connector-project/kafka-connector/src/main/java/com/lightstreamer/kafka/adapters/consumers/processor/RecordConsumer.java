@@ -83,10 +83,6 @@ public interface RecordConsumer<K, V> {
         void useLogger(Logger logger);
 
         ProcessUpdatesType processUpdatesType();
-
-        default boolean canRouteImplicitItems() {
-            return false;
-        }
     }
 
     public interface StartBuildingProcessor<K, V> {
