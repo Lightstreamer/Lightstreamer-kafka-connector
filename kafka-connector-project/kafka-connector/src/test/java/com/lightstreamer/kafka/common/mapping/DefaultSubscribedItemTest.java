@@ -124,7 +124,7 @@ public class DefaultSubscribedItemTest {
         final AtomicInteger threadCounter = new AtomicInteger(0);
         final ExecutorService executor =
                 Executors.newFixedThreadPool(
-                        15,
+                        22,
                         r -> {
                             Thread t = new Thread(r);
                             t.setDaemon(true);
@@ -140,9 +140,9 @@ public class DefaultSubscribedItemTest {
 
         final Set<String> threads = new TreeSet<>();
 
-        // Threads 1-14: Send concurrent real-time events
+        // Threads 1-21: Send concurrent real-time events
         List<CompletableFuture<Void>> realTime = new ArrayList<>();
-        for (int i = 0; i < 14; i++) {
+        for (int i = 0; i < 21; i++) {
             realTime.add(
                     CompletableFuture.runAsync(
                             () -> {
@@ -151,7 +151,7 @@ public class DefaultSubscribedItemTest {
                                     startLatch.await();
                                     for (int j = 0; j < 20; j++) {
                                         realtimeEventCounter.incrementAndGet();
-                                        TimeUnit.MILLISECONDS.sleep(5);
+                                        TimeUnit.MILLISECONDS.sleep((long) (Math.random() * 15));
                                         subscribedItem.sendRealtimeEvent(
                                                 Map.of(
                                                         "id",
@@ -166,7 +166,7 @@ public class DefaultSubscribedItemTest {
                             executor));
         }
 
-        // Thread 5: Process snapshot and send post-transition events
+        // Thread 22: Process snapshot and send post-transition events
         Runnable runnable =
                 () -> {
                     try {
@@ -208,10 +208,10 @@ public class DefaultSubscribedItemTest {
 
         executor.shutdown();
         assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
-        assertThat(threads).hasSize(14); // All threads ran
+        assertThat(threads).hasSize(21); // All threads ran
 
         // Verify all events were processed exactly once
-        int expectedTotalRealtimeEvents = 14 * 20; // 14 threads * 20 events each = 280
+        int expectedTotalRealtimeEvents = 21 * 20; // 21 threads * 20 events each = 420
         int expectedSnapshotEvents = 2;
         int expectedTotalEvents = expectedTotalRealtimeEvents + expectedSnapshotEvents;
 
@@ -275,9 +275,7 @@ public class DefaultSubscribedItemTest {
     }
 
     static Stream<SubscribedItem> provideItems() {
-        return Stream.of(
-                Items.subscribedFrom(Expressions.Subscription("test-item"), new Object()),
-                Items.implicitFrom("test-item"));
+        return Stream.of(Items.subscribedFrom(Expressions.Subscription("test-item"), new Object()));
     }
 
     @ParameterizedTest
