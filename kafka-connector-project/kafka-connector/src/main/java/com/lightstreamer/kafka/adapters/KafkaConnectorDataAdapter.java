@@ -51,7 +51,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
     public KafkaConnectorDataAdapter() {}
 
     @Override
-    // @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
         this.connectorConfig = configurator.getConfig();
@@ -67,15 +67,14 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                                         || connectorConfig.isCommandEnforceEnabled()));
 
         this.logger.info("Configuring Kafka Connector");
-        this.subscriptionsHandler = subscriptionHandler(configurator);
+        this.subscriptionsHandler = subscriptionHandler(configurator.consumerConfig());
         this.logger.info("Configuration complete");
     }
 
-    @SuppressWarnings("unchecked")
-    private <K, V> SubscriptionsHandler<K, V> subscriptionHandler(
-            ConnectorConfigurator configurator) {
+    private <K, V> SubscriptionsHandler<K, V> subscriptionHandler(Config<K, V> consumerConfig)
+            throws DataProviderException {
         return SubscriptionsHandler.<K, V>builder()
-                .withConsumerConfig((Config<K, V>) configurator.consumerConfig())
+                .withConsumerConfig(consumerConfig)
                 .withMetadataListener(metadataListener)
                 .atStartup(
                         connectorConfig.consumeAtStartup(), connectorConfig.implicitItemsEnabled())
