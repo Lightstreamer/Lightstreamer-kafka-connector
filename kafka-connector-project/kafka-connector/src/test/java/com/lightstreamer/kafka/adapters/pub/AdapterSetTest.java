@@ -20,8 +20,6 @@ package com.lightstreamer.kafka.adapters.pub;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -108,8 +106,6 @@ public class AdapterSetTest {
         Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfig();
         assertDoesNotThrow(
                 () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
-        assertThat(connectorDataAdapter1.getSubscriptionsHandler().consumeAtStartup()).isFalse();
-        assertThat(connectorDataAdapter1.getSubscriptionsHandler().allowImplicitItems()).isFalse();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         Map<String, String> dataAdapterParams2 =
@@ -156,34 +152,6 @@ public class AdapterSetTest {
         connectorMetadataAdapter.notifyNewTables("user", "sessionId", tables);
         Optional<Set<String>> items = connectorMetadataAdapter.itemsBySession("sessionId");
         assertThat(items.isPresent()).isFalse();
-    }
-
-    static Stream<Arguments> consumeAtStartupConfig() {
-        return Stream.of(
-                Arguments.of(false, false), Arguments.of(true, false), Arguments.of(true, true));
-    }
-
-    @ParameterizedTest
-    @MethodSource("consumeAtStartupConfig")
-    public void shouldHandleEventsAtStartup(boolean consumeAtStartup, boolean allowImplicitItems)
-            throws MetadataProviderException {
-        doInit();
-
-        KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
-        Map<String, String> dataAdapterParams =
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(
-                                ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                String.valueOf(consumeAtStartup),
-                                ConnectorConfig
-                                        .RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                String.valueOf(allowImplicitItems)));
-        assertDoesNotThrow(
-                () -> connectorDataAdapter1.init(dataAdapterParams, adapterDir.toFile()));
-        assertThat(connectorDataAdapter1.getSubscriptionsHandler().consumeAtStartup())
-                .isEqualTo(consumeAtStartup);
-        assertThat(connectorDataAdapter1.getSubscriptionsHandler().allowImplicitItems())
-                .isEqualTo(allowImplicitItems);
     }
 
     @Test
@@ -327,52 +295,16 @@ public class AdapterSetTest {
 
     static Stream<Arguments> modes() {
         return Stream.of(
+                // Test with with no usage of command mode
                 Arguments.of(Mode.DISTINCT, Collections.emptyMap(), true),
                 Arguments.of(Mode.MERGE, Collections.emptyMap(), true),
                 Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
                 Arguments.of(Mode.RAW, Collections.emptyMap(), true),
-                // Test with implicit items enabled but with no usage of command mode
-                Arguments.of(
-                        Mode.DISTINCT,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"),
-                        true),
-                Arguments.of(
-                        Mode.COMMAND,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"),
-                        true),
-                Arguments.of(
-                        Mode.MERGE,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"),
-                        true),
-                Arguments.of(
-                        Mode.RAW,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"),
-                        true),
-                // Test with implicit items enabled but with usage of command mode through
+                // Test with usage of command mode through
                 // "fields.evaluate.as.command.enable"
                 Arguments.of(
                         Mode.DISTINCT,
                         Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
                                 "field.key",
@@ -383,10 +315,6 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.MERGE,
                         Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
                                 "field.key",
@@ -397,10 +325,6 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.RAW,
                         Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
                                 "field.key",
@@ -411,10 +335,6 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.COMMAND,
                         Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true",
                                 "field.key",
@@ -422,55 +342,22 @@ public class AdapterSetTest {
                                 "field.command",
                                 "#{VALUE}"),
                         true),
-                // Test with implicit items enabled but with usage of command mode through
-                // "fields.auto.command.mode.enable"
+                // Test with usage of command mode through "fields.auto.command.mode.enable"
                 Arguments.of(
                         Mode.DISTINCT,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}"),
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.MERGE,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}"),
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.RAW,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}"),
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.COMMAND,
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true",
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}"),
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
                         true));
     }
 
