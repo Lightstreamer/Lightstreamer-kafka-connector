@@ -55,12 +55,6 @@ public interface SubscriptionsHandler<K, V> {
 
     void setListener(ItemEventListener listener);
 
-    default boolean consumeAtStartup() {
-        return false;
-    }
-
-    boolean allowImplicitItems();
-
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
     }
@@ -69,9 +63,6 @@ public interface SubscriptionsHandler<K, V> {
 
         private Config<K, V> consumerConfig;
         private MetadataListener metadataListener;
-        private SnapshotStore snapshotStore;
-        private boolean consumeAtStartup = true;
-        private boolean allowImplicitItems = false;
         private Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
 
         private Builder() {}
@@ -86,20 +77,9 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-        public Builder<K, V> withSnapshotStore(SnapshotStore snapshotStore) {
-            this.snapshotStore = snapshotStore;
-            return this;
-        }
-
         public Builder<K, V> withConsumerSupplier(
                 Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
             this.consumerSupplier = consumerSupplier;
-            return this;
-        }
-
-        public Builder<K, V> atStartup(boolean consumeAtStartup, boolean allowImplicitItems) {
-            this.consumeAtStartup = consumeAtStartup;
-            this.allowImplicitItems = this.consumeAtStartup ? allowImplicitItems : false;
             return this;
         }
 
@@ -107,9 +87,6 @@ public interface SubscriptionsHandler<K, V> {
             this.consumerSupplier =
                     Objects.requireNonNullElse(
                             this.consumerSupplier, defaultConsumerSupplier(consumerConfig));
-            if (this.consumeAtStartup) {
-                return new AtStartupSubscriptionsHandler<>(this);
-            }
             return new DefaultSubscriptionsHandler<>(this);
         }
 
@@ -129,7 +106,6 @@ public interface SubscriptionsHandler<K, V> {
 
         private final Config<K, V> config;
         protected final MetadataListener metadataListener;
-        private final boolean allowImplicitItems;
         private final Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
 
         protected final Logger logger;
@@ -145,18 +121,11 @@ public interface SubscriptionsHandler<K, V> {
         AbstractSubscriptionsHandler(Builder<K, V> builder) {
             this.config = builder.consumerConfig;
             this.metadataListener = builder.metadataListener;
-            this.allowImplicitItems = builder.allowImplicitItems;
             this.consumerSupplier = builder.consumerSupplier;
             this.logger = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
-            this.subscribedItems =
-                    builder.allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
-        }
-
-        @Override
-        public final boolean allowImplicitItems() {
-            return allowImplicitItems;
+            this.subscribedItems = SubscribedItems.create();
         }
 
         @Override
@@ -164,10 +133,7 @@ public interface SubscriptionsHandler<K, V> {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
-            this.eventListener =
-                    this.subscribedItems.acceptSubscriptions()
-                            ? EventListener.smartEventListener(listener)
-                            : EventListener.legacyEventListener(listener);
+            this.eventListener = EventListener.smartEventListener(listener);
             onItemEventListenerSet();
         }
 
@@ -185,10 +151,6 @@ public interface SubscriptionsHandler<K, V> {
                 logger.atInfo().log("Subscribed to item [{}]", item);
 
                 subscribedItems.addItem(newItem);
-
-                // getSnapshot... -> send snapshot updates if requested
-                // newItem.sendSnapshotEvents...
-                // newItem.sendSnapshotEvents...
                 newItem.enableRealtimeEvents(this.eventListener);
 
                 onSubscribedItem(newItem);
@@ -321,38 +283,6 @@ public interface SubscriptionsHandler<K, V> {
         // Only for testing purposes
         int getItemsCounter() {
             return itemsCounter.get();
-        }
-    }
-
-    static class AtStartupSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
-
-        AtStartupSubscriptionsHandler(Builder<K, V> builder) {
-            super(builder);
-        }
-
-        @Override
-        public boolean consumeAtStartup() {
-            return true;
-        }
-
-        void onItemEventListenerSet() {
-            try {
-                FutureStatus status = startConsuming(true);
-                if (status.initFailed()) {
-                    fail("Failed to start consuming from Kafka");
-                }
-            } catch (KafkaException ke) {
-                logger.atError().setCause(ke).log("Unable to connect to Kafka");
-                fail(ke);
-            }
-        }
-
-        private void fail(String message) {
-            fail(new RuntimeException(message));
-        }
-
-        private void fail(Exception throwable) {
-            eventListener.failure(throwable);
         }
     }
 }
