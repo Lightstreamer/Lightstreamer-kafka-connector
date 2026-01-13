@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 
-import com.lightstreamer.kafka.adapters.RawKafkaRecord;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
