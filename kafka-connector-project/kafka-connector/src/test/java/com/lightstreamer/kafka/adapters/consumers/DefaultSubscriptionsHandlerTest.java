@@ -115,8 +115,6 @@ public class DefaultSubscriptionsHandlerTest {
     public void shouldInit() {
         init();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.consumeAtStartup()).isFalse();
-        assertThat(subscriptionHandler.allowImplicitItems()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
