@@ -964,36 +964,6 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-#### `record.consume.at.connector.startup.enable`
-
-_Optional_. Specifies when to start consuming events from:
-
-- If set to `true`, the Kafka Connector will start consuming records immediately after initialization, before any Lightstreamer client subscription request.
-
-- If set to `false`, the Kafka Connector will conserve resources by waiting until at least one Lightstreamer client requests a subscription to an item mapped to a Kafka topic.
-
-Default value: `false`.
-
-Example:
-
-```xml
-<param name="record.consume.at.connector.startup.enable">true</param>
-```
-
-#### `record.consume.at.connector.startup.with.implicit.items.enable`
-
-_Optional but only effective if [`record.consume.at.connector.startup.enable`](README.md#recordconsumeatconnectorstartupenable) is enabled_. Enables the subscription of implicit items.
-
-For every record whose values match any the configured _item templates_, an implicit item will be internally created and subscribed to the Kafka Connector.
-
-Default value: `false`.
-
-Example:
-
-```xml
-<param name="record.consume.at.connector.startup.with.implicit.items.enable">true</param>
-```
-
 #### `record.consume.with.num.threads`
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
