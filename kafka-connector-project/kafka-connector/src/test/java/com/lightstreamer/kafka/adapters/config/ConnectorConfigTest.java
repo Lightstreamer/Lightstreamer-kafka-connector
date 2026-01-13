@@ -47,8 +47,6 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
@@ -435,29 +433,6 @@ public class ConnectorConfigTest {
         assertThat(recordExtractionErrorHandling.mutable()).isTrue();
         assertThat(recordExtractionErrorHandling.defaultValue()).isEqualTo("IGNORE_AND_CONTINUE");
         assertThat(recordExtractionErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
-
-        ConfParameter recordConsumeAtConnectorStartUp =
-                configSpec.getParameter(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
-        assertThat(recordConsumeAtConnectorStartUp.name())
-                .isEqualTo(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
-        assertThat(recordConsumeAtConnectorStartUp.required()).isFalse();
-        assertThat(recordConsumeAtConnectorStartUp.multiple()).isFalse();
-        assertThat(recordConsumeAtConnectorStartUp.mutable()).isTrue();
-        assertThat(recordConsumeAtConnectorStartUp.defaultValue()).isEqualTo("false");
-        assertThat(recordConsumeAtConnectorStartUp.type()).isEqualTo(ConfType.BOOL);
-
-        ConfParameter recordConsumeAtConnectorStartUpWithImplicitItems =
-                configSpec.getParameter(
-                        RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE);
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.name())
-                .isEqualTo(RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE);
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.required()).isFalse();
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.multiple()).isFalse();
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.mutable()).isTrue();
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.defaultValue())
-                .isEqualTo("false");
-        assertThat(recordConsumeAtConnectorStartUpWithImplicitItems.type())
-                .isEqualTo(ConfType.BOOL);
 
         ConfParameter recordConsumeWithOrderStrategy =
                 configSpec.getParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
@@ -1788,84 +1763,6 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter ["
                                 + RECORD_CONSUME_WITH_ORDER_STRATEGY
                                 + "]");
-    }
-
-    @Test
-    public void shouldGetRecordConsumeAtConnectorStartUp() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.consumeAtStartup()).isEqualTo(false);
-
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE, "true");
-        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(config.consumeAtStartup()).isEqualTo(true);
-    }
-
-    @Test
-    public void shouldFailDueToInvalidRecordConsumeAtConnectorStartUp() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE, "invalidType");
-        ConfigException e =
-                assertThrows(
-                        ConfigException.class,
-                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
-        assertThat(e.getMessage())
-                .isEqualTo(
-                        "Specify a valid value for parameter ["
-                                + RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE
-                                + "]");
-    }
-
-    @Test
-    public void shouldGetImplicitItemsEnabled() {
-        // Verify that the implicit items enabled flag is false irrespective of the
-        // RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE setting
-        // when RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE is not set or set to false
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
-
-        config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "false"));
-        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
-
-        config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"));
-        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
-
-        config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "false",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "false"));
-        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
-
-        // Verify the implicit items enabled flag when
-        // RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE is set to true
-        config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "false"));
-        assertThat(config.implicitItemsEnabled()).isEqualTo(false);
-
-        config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE,
-                                "true",
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                "true"));
-        assertThat(config.implicitItemsEnabled()).isEqualTo(true);
     }
 
     @Test
