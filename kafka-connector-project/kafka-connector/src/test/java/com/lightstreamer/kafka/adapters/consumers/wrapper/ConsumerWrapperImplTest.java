@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
@@ -290,9 +291,9 @@ public class ConsumerWrapperImplTest {
         ConsumerRecords<String, String> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
-        // Invoke the method and verify that the task has been actually invoked with the
+        // Invoke the method and verify that the task has been actually executed with the
         // expected simulated records
-        ConsumerRecords<String, String> filtered = consumer.initStoreAndConsume(records);
+        RecordsBatch filtered = consumer.initStoreAndConsume(records);
         assertThat(filtered.count()).isEqualTo(records.count() - 2);
     }
 
