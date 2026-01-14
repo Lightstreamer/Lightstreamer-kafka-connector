@@ -67,6 +67,10 @@ public interface RecordConsumer<K, V> {
 
     interface RecordsBatch {
 
+        default int count() {
+            return 0;
+        }
+
         void join();
 
         static final RecordsBatch NO_OP_RECORDS_BATCH =
@@ -151,11 +155,10 @@ public interface RecordConsumer<K, V> {
                                         toList())));
     }
 
-    default ConsumerRecords<K, V> consumeFilteredRecords(
+    default RecordsBatch consumeFilteredRecords(
             ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
         ConsumerRecords<K, V> filtered = filter(records, predicate);
-        consumeRecords(filtered);
-        return filtered;
+        return consumeRecords(filtered);
     }
 
     RecordsBatch consumeRecords(ConsumerRecords<K, V> records);
