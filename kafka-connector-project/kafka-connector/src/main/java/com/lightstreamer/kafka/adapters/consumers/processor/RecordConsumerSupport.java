@@ -695,7 +695,8 @@ class RecordConsumerSupport {
             return records;
         }
 
-        int getRecordsCount() {
+        @Override
+        public int count() {
             return recordsCount;
         }
 
@@ -977,7 +978,9 @@ class RecordConsumerSupport {
                 logger.debug("Starting processing thread {}", threadIndex);
             }
 
-            while (!shutdownRequested) {
+            // Continue processing until shutdown is requested AND the buffer is fully drained
+            // This ensures all records are processed before exit on shutdown
+            while (!shutdownRequested || !ringBuffer.isEmpty()) {
                 try {
                     // Efficient batch drain - reuse ArrayList to minimize GC
                     RecordWithBatch<K, V> firstRecord = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
@@ -1065,8 +1068,6 @@ class RecordConsumerSupport {
 
         @Override
         public void close() {
-            super.close();
-
             logger.atInfo().log("Shutting down high-throughput ring buffer processors");
             shutdownRequested = true;
 
@@ -1090,6 +1091,7 @@ class RecordConsumerSupport {
                 ringBufferPool.shutdownNow();
                 Thread.currentThread().interrupt();
             }
+            super.close();
         }
 
         public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
