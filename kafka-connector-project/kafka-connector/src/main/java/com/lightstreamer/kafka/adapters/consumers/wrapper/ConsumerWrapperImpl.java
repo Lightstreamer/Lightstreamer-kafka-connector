@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -158,7 +159,7 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    ConsumerRecords<K, V> initStoreAndConsume(ConsumerRecords<K, V> records) {
+    RecordsBatch initStoreAndConsume(ConsumerRecords<K, V> records) {
         offsetService.initStore(isFromLatest());
         // Consume all the records that don't have a pending offset, which have therefore
         // already delivered to the clients.
@@ -191,8 +192,8 @@ class ConsumerWrapperImpl<K, V> implements ConsumerWrapper<K, V> {
     }
 
     @Override
-    public void consumeRecords(ConsumerRecords<K, V> records) {
-        recordConsumer.consumeRecords(records);
+    public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
+        return recordConsumer.consumeRecords(records);
     }
 
     private Thread setShutdownHook() {
