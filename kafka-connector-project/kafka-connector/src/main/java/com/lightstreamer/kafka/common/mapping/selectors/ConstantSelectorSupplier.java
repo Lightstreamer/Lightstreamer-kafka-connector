@@ -21,6 +21,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Const
 
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;

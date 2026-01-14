@@ -27,25 +27,33 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.test_utils.Mocks.MockRecordProcessor;
+import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -83,18 +91,23 @@ public class RecordConsumerTest {
             long offset,
             String threadName) {}
 
-    private static RecordMapper<String, String> newRecordMapper(
-            ConsumerTriggerConfig<String, String> config) {
+    private static RecordMapper<String, String> newRecordMapper(Config<String, String> config) {
         return RecordMapper.<String, String>builder()
                 .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
 
+    private static ProcessUpdatesType getProcessUpdatesType(CommandModeStrategy commandMode) {
+        ProcessUpdatesStrategy processUpdateStrategy =
+                ProcessUpdatesStrategy.fromCommandModeStrategy(commandMode);
+        return processUpdateStrategy.type();
+    }
+
     private static final Logger logger = LogFactory.getLogger("connection");
 
     private RecordConsumer<String, String> recordConsumer;
-    private ConsumerTriggerConfig<String, String> config;
+    private Config<String, String> config;
     private RecordMapper<String, String> recordMapper;
     private Items.SubscribedItems subscriptions;
 
@@ -115,21 +128,28 @@ public class RecordConsumerTest {
                 new ConnectorConfigurator(
                         ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
 
-        this.config = (ConsumerTriggerConfig<String, String>) connectorConfigurator.configure();
+        this.config = (Config<String, String>) connectorConfigurator.consumerConfig();
 
-        String item = "item";
-        this.subscriptions =
-                SubscribedItems.of(Collections.singleton(Items.subscribedFrom(item, new Object())));
+        this.subscriptions = SubscribedItems.create();
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(config);
     }
 
+    void subscribe(EventListener listener) {
+        SubscribedItem item = Items.subscribedFrom("item", new Object());
+        this.subscriptions.addItem(item);
+        item.enableRealtimeEvents(listener);
+    }
+
     private RecordConsumer<String, String> mkRecordConsumer(
-            ItemEventListener listener, int threads, OrderStrategy orderStrategy) {
+            EventListener listener,
+            int threads,
+            CommandModeStrategy commandStrategy,
+            OrderStrategy orderStrategy) {
         return RecordConsumer.<String, String>recordMapper(recordMapper)
                 .subscribedItems(subscriptions)
-                .enforceCommandMode(false)
+                .commandMode(commandStrategy)
                 .eventListener(listener)
                 .offsetService(new MockOffsetService())
                 .errorStrategy(config.errorHandlingStrategy())
@@ -142,7 +162,7 @@ public class RecordConsumerTest {
     @AfterEach
     public void tearDown() {
         if (this.recordConsumer != null) {
-            this.recordConsumer.close();
+            this.recordConsumer.terminate();
         }
     }
 
@@ -162,18 +182,20 @@ public class RecordConsumerTest {
 
     @Test
     public void testRecordGeneration() {
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 generateRecords("topic", 40, List.of("a", "b", "c"));
         assertThat(records).hasSize(40);
 
-        List<ConsumerRecord<String, String>> recordByPartition =
+        List<ConsumerRecord<Deferred<String>, Deferred<String>>> recordByPartition =
                 records.records(new TopicPartition("topic", 0));
         Map<String, List<Integer>> byKey =
                 recordByPartition.stream()
                         .collect(
                                 groupingBy(
-                                        ConsumerRecord::key,
-                                        mapping(r -> extractNumberedSuffix(r.value()), toList())));
+                                        r -> r.key().load(),
+                                        mapping(
+                                                r -> extractNumberedSuffix(r.value().load()),
+                                                toList())));
         Collection<List<Integer>> keyOrdered = byKey.values();
         for (List<Integer> list : keyOrdered) {
             assertThat(list).isInOrder();
@@ -187,20 +209,19 @@ public class RecordConsumerTest {
                 .isEqualTo(orderStrategy.toString());
     }
 
-    @ParameterizedTest
-    @EnumSource(RecordErrorHandlingStrategy.class)
-    public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues(
-            RecordErrorHandlingStrategy error) {
+    @Test
+    public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .enforceCommandMode(false)
+                        .commandMode(CommandModeStrategy.NONE) // Default value
                         .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(error)
+                        .errorStrategy(
+                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE) // Default value
                         .logger(logger)
                         .build();
 
@@ -212,10 +233,11 @@ public class RecordConsumerTest {
                 (ParallelRecordConsumer<String, String>) recordConsumer;
         assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
         assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
         assertThat(parallelRecordConsumer.recordProcessor)
                 .isInstanceOf(DefaultRecordProcessor.class);
         // Default values
+        assertThat(parallelRecordConsumer.errorStrategy())
+                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
         assertThat(parallelRecordConsumer.orderStrategy())
                 .hasValue(OrderStrategy.ORDER_BY_PARTITION);
         assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
@@ -226,21 +248,25 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
+        assertThat(recordProcessor.recordRoutingStrategy)
+                .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
+
+        DefaultRoutingStrategy routingStrategy =
+                (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
+        assertThat(routingStrategy.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
-    @ParameterizedTest
-    @EnumSource(RecordErrorHandlingStrategy.class)
-    public void shouldBuildParallelRecordConsumerFromRecordProcessorDefaultValues(
-            RecordErrorHandlingStrategy error) {
+    @Test
+    public void shouldBuildParallelRecordConsumerFromRecordProcessorWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordProcessor(new MockRecordProcessor<>())
                         .offsetService(offsetService)
-                        .errorStrategy(error)
+                        .errorStrategy(
+                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE) // Default value
                         .logger(logger)
                         .build();
 
@@ -252,9 +278,10 @@ public class RecordConsumerTest {
                 (ParallelRecordConsumer<String, String>) recordConsumer;
         assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
         assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
         assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
         // Default values
+        assertThat(parallelRecordConsumer.errorStrategy())
+                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
         assertThat(parallelRecordConsumer.orderStrategy())
                 .hasValue(OrderStrategy.ORDER_BY_PARTITION);
         assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
@@ -263,33 +290,60 @@ public class RecordConsumerTest {
         assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
     }
 
-    @SuppressWarnings("unused")
     static Stream<Arguments> parallelConsumerArgs() {
         return Stream.of(
-                arguments(-1, OrderStrategy.ORDER_BY_KEY, true),
-                arguments(2, OrderStrategy.ORDER_BY_PARTITION, true),
-                arguments(4, OrderStrategy.UNORDERED, true));
+                arguments(
+                        -1,
+                        OrderStrategy.ORDER_BY_KEY,
+                        CommandModeStrategy.AUTO,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE),
+                arguments(
+                        -1,
+                        OrderStrategy.ORDER_BY_KEY,
+                        CommandModeStrategy.NONE,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                arguments(
+                        2,
+                        OrderStrategy.ORDER_BY_PARTITION,
+                        CommandModeStrategy.AUTO,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                arguments(
+                        2,
+                        OrderStrategy.ORDER_BY_PARTITION,
+                        CommandModeStrategy.NONE,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE),
+                arguments(
+                        4,
+                        OrderStrategy.UNORDERED,
+                        CommandModeStrategy.AUTO,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                arguments(
+                        4,
+                        OrderStrategy.UNORDERED,
+                        CommandModeStrategy.NONE,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE));
     }
 
     @ParameterizedTest
     @MethodSource("parallelConsumerArgs")
     public void shouldBuildParallelRecordConsumerFromRecordMapperWithNonDefaultValues(
-            int threads, OrderStrategy order, boolean preferSingleThread) {
+            int threads,
+            OrderStrategy order,
+            CommandModeStrategy command,
+            RecordErrorHandlingStrategy error) {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .enforceCommandMode(false)
+                        .commandMode(command)
                         .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                        .errorStrategy(error)
                         .logger(logger)
                         .threads(threads)
                         .ordering(order)
-                        .preferSingleThread(
-                                preferSingleThread) // Pointless due to threads > 1 (or = -1)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
@@ -300,11 +354,10 @@ public class RecordConsumerTest {
                 (ParallelRecordConsumer<String, String>) recordConsumer;
         assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
         assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.errorStrategy())
-                .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
         assertThat(parallelRecordConsumer.recordProcessor)
                 .isInstanceOf(DefaultRecordProcessor.class);
         // Non-default values
+        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
         assertThat(parallelRecordConsumer.orderStrategy()).hasValue(order);
         assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
         if (threads == -1) {
@@ -318,25 +371,33 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
+        assertThat(recordProcessor.recordRoutingStrategy)
+                .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
+
+        DefaultRoutingStrategy routingStrategy =
+                (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
+        assertThat(routingStrategy.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
     @ParameterizedTest
     @MethodSource("parallelConsumerArgs")
     public void shouldBuildParallelRecordConsumerFromRecordProcessorWithNonDefaultValues(
-            int threads, OrderStrategy order, boolean preferSingleThread) {
+            int threads,
+            OrderStrategy order,
+            CommandModeStrategy commandMode,
+            RecordErrorHandlingStrategy error) {
         MockOffsetService offsetService = new MockOffsetService();
 
         recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(new MockRecordProcessor<>())
+                RecordConsumer.<String, String>recordProcessor(
+                                new MockRecordProcessor<>(getProcessUpdatesType(commandMode)))
                         .offsetService(offsetService)
-                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                        .errorStrategy(error)
                         .logger(logger)
                         .threads(threads)
                         .ordering(order)
-                        .preferSingleThread(preferSingleThread) // Pointless due to threads > 1
                         .build();
 
         assertThat(recordConsumer).isNotNull();
@@ -347,10 +408,9 @@ public class RecordConsumerTest {
                 (ParallelRecordConsumer<String, String>) recordConsumer;
         assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
         assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.errorStrategy())
-                .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
         assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
         // Non-default values
+        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
         assertThat(parallelRecordConsumer.orderStrategy()).hasValue(order);
         assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
         if (threads == -1) {
@@ -362,15 +422,17 @@ public class RecordConsumerTest {
         assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
     }
 
-    @Test
-    public void shouldBuildSingleThreadedRecordConsumerFromRecordMapper() {
+    @ParameterizedTest
+    @EnumSource(CommandModeStrategy.class)
+    public void shouldBuildSingleThreadedRecordConsumerFromRecordMapper(
+            CommandModeStrategy commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
-        MockItemEventListener listener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .enforceCommandMode(false)
+                        .commandMode(commandMode)
                         .eventListener(listener)
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
@@ -397,17 +459,27 @@ public class RecordConsumerTest {
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) monoThreadedConsumer.recordProcessor;
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
+        assertThat(recordProcessor.recordRoutingStrategy)
+                .isInstanceOf(RecordConsumerSupport.DefaultRoutingStrategy.class);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.log).isSameInstanceAs(logger);
+        assertThat(recordProcessor.processUpdatesType())
+                .isEqualTo(getProcessUpdatesType(commandMode));
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
+
+        DefaultRoutingStrategy routingStrategy =
+                (DefaultRoutingStrategy) recordProcessor.recordRoutingStrategy;
+        assertThat(routingStrategy.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
-    @Test
-    public void shouldBuildSingleThreadedRecordConsumerFromRecordProcessor() {
+    @ParameterizedTest
+    @EnumSource(CommandModeStrategy.class)
+    public void shouldBuildSingleThreadedRecordConsumerFromRecordProcessor(
+            CommandModeStrategy commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
 
         recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(new MockRecordProcessor<>())
+                RecordConsumer.<String, String>recordProcessor(
+                                new MockRecordProcessor<>(getProcessUpdatesType(commandMode)))
                         .offsetService(offsetService)
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
@@ -456,10 +528,9 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(null);
+                                    .commandMode(null);
                         });
-        assertThat(ne).hasMessageThat().isEqualTo("ItemEventListener not set");
+        assertThat(ne).hasMessageThat().isEqualTo("CommandModeStrategy not set");
 
         ne =
                 assertThrows(
@@ -467,8 +538,21 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(null);
+                        });
+        assertThat(ne).hasMessageThat().isEqualTo("EventListener not set");
+
+        ne =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            RecordConsumer.<String, String>recordMapper(recordMapper)
+                                    .subscribedItems(subscriptions)
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OffsetService not set");
@@ -479,8 +563,10 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(null);
                         });
@@ -492,8 +578,10 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(null);
@@ -506,8 +594,10 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -532,8 +622,10 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(false)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -548,12 +640,34 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .enforceCommandMode(true)
-                                    .eventListener(new MockItemEventListener())
+                                    .commandMode(CommandModeStrategy.ENFORCE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
                                     .threads(2)
+                                    .build();
+                        });
+        assertThat(ie)
+                .hasMessageThat()
+                .isEqualTo("Command mode does not support parallel processing");
+
+        ie =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            RecordConsumer.<String, String>recordMapper(recordMapper)
+                                    .subscribedItems(subscriptions)
+                                    .commandMode(CommandModeStrategy.ENFORCE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
+                                    .offsetService(new MockOffsetService())
+                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                                    .logger(logger)
+                                    .threads(-1)
                                     .build();
                         });
         assertThat(ie)
@@ -593,26 +707,29 @@ public class RecordConsumerTest {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
         // the same topic
         List<String> keys = List.of("a", "b", "c", "d");
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 2);
-
-        // Create a list to store all the delivered events
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 2);
 
         // Make the RecordConsumer.
+        MockItemEventListener testListener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        threads,
-                        OrderStrategy.ORDER_BY_KEY);
+                        listener, threads, CommandModeStrategy.NONE, OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
+            assertThat(events.size()).isEqualTo(numOfRecords);
 
             for (String key : keys) {
                 // Get the list of positions stored in all received events relative to the same key
                 List<Integer> list =
-                        deliveredEvents.stream()
+                        events.stream()
                                 .filter(e -> e.key().equals(key))
                                 .map(Event::position)
                                 .toList();
@@ -620,8 +737,8 @@ public class RecordConsumerTest {
                 // in order
                 assertThat(list).isInOrder();
             }
-            // Reset the event list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener list for next iteration
+            testListener.reset();
         }
     }
 
@@ -636,15 +753,15 @@ public class RecordConsumerTest {
         int partitionsOnTopic2 = 2;
 
         // Generate records on different topics
-        ConsumerRecords<String, String> recordsOnTopic1 =
+        ConsumerRecords<Deferred<String>, Deferred<String>> recordsOnTopic1 =
                 generateRecords("topic1", numOfRecords, keys, partitionsOnTopic1);
-        ConsumerRecords<String, String> recordsOnTopic2 =
+        ConsumerRecords<Deferred<String>, Deferred<String>> recordsOnTopic2 =
                 generateRecords("topic2", numOfRecords, keys, partitionsOnTopic2);
 
         // Assemble an instance of ConsumerRecords with the generated records
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> recordsByPartition =
-                new HashMap<>();
-        Consumer<? super ConsumerRecord<String, String>> action =
+        Map<TopicPartition, List<ConsumerRecord<Deferred<String>, Deferred<String>>>>
+                recordsByPartition = new HashMap<>();
+        Consumer<? super ConsumerRecord<Deferred<String>, Deferred<String>>> action =
                 consumerRecord ->
                         recordsByPartition.compute(
                                 new TopicPartition(
@@ -658,29 +775,38 @@ public class RecordConsumerTest {
                                 });
         recordsOnTopic1.forEach(action);
         recordsOnTopic2.forEach(action);
-        ConsumerRecords<String, String> allRecords = new ConsumerRecords<>(recordsByPartition);
+        ConsumerRecords<Deferred<String>, Deferred<String>> allRecords =
+                new ConsumerRecords<>(recordsByPartition);
 
         // Create a list to store all the delivered events
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        // List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
 
         // Make the RecordConsumer
+        MockItemEventListener testListener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
+                        listener,
                         threads,
+                        CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(allRecords);
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords * 2);
+            recordConsumer.consumeRecords(KafkaRecords.from(allRecords));
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
+            assertThat(events.size()).isEqualTo(numOfRecords * 2);
             for (int partition = 0; partition < partitionsOnTopic1; partition++) {
-                assertDeliveredEventsOrder(partition, deliveredEvents, "topic1");
+                assertDeliveredEventsOrder(partition, events, "topic1");
             }
             for (int partition = 0; partition < partitionsOnTopic2; partition++) {
-                assertDeliveredEventsOrder(partition, deliveredEvents, "topic2");
+                assertDeliveredEventsOrder(partition, events, "topic2");
             }
-            // Reset the event list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -708,18 +834,26 @@ public class RecordConsumerTest {
     public void shouldDeliverPartitionBasedOrderWithNoKey(
             int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> events = Collections.synchronizedList(new ArrayList<>());
+        MockItemEventListener testListener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
                 mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(events)),
+                        listener,
                         threads,
+                        CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            List<Event> events =
+                    testListener.getSmartRealtimeUpdates().stream()
+                            .map(u -> buildEvent(u.event()))
+                            .toList();
             assertThat(events.size()).isEqualTo(numOfRecords);
             // Get the list of offsets per partition stored in all received events
             Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
@@ -729,8 +863,8 @@ public class RecordConsumerTest {
             for (List<Number> orderedList : orderedLists) {
                 assertThat(orderedList).isInOrder();
             }
-            // Reset the event list for next iteration
-            events.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -738,21 +872,24 @@ public class RecordConsumerTest {
     @MethodSource("iterations")
     public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        MockItemEventListener testListener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
-                mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        2,
-                        OrderStrategy.UNORDERED);
+                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+            List<Event> deliveredEvents =
+                    realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
-            // Reset the delivered events list for next iteration
-            deliveredEvents.clear();
+            // Reset the listener for next iteration
+            testListener.reset();
         }
     }
 
@@ -760,20 +897,20 @@ public class RecordConsumerTest {
     public void shouldConsumeFiltered() {
         // Generate records distributed into three partitions
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<String, String> records = generateRecords("topic", 99, keys, 3);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 99, keys, 3);
 
         // Make the RecordConsumer.
-        List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        MockItemEventListener testListener = new MockItemEventListener();
+        EventListener listener = EventListener.smartEventListener(testListener);
+        subscribe(listener);
         recordConsumer =
-                mkRecordConsumer(
-                        new MockItemEventListener(buildEvent(deliveredEvents)),
-                        2,
-                        OrderStrategy.UNORDERED);
+                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         // Consume only the records published to partition 0
-        recordConsumer.consumeFilteredRecords(records, c -> c.partition() == 0);
+        recordConsumer.consumeFilteredRecords(KafkaRecords.from(records), c -> c.partition() == 0);
         // Verify that only 1/3 of total published record have been consumed
-        assertThat(deliveredEvents.size()).isEqualTo(records.count() / 3);
+        assertThat(testListener.getSmartRealtimeUpdates().size()).isEqualTo(records.count() / 3);
     }
 
     @SuppressWarnings("unused")
@@ -789,7 +926,8 @@ public class RecordConsumerTest {
     @MethodSource("handleErrors")
     public void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -810,7 +948,9 @@ public class RecordConsumerTest {
                         .preferSingleThread(true)
                         .build();
 
-        assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
+        assertThrows(
+                KafkaException.class,
+                () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
 
         List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
         // For single-threaded processing, processing will stop upon first failure, therefore only
@@ -828,7 +968,8 @@ public class RecordConsumerTest {
     public void shouldIgnoreErrorsOnlyIfValueException(
             int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<String, String> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -851,12 +992,14 @@ public class RecordConsumerTest {
                         .build();
 
         if (exception instanceof ValueException) {
-            recordConsumer.consumeRecords(records);
+            recordConsumer.consumeRecords(KafkaRecords.from(records));
             // Ensure that all offsets are committed (even the offending ones)
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             assertThat(consumedRecords).hasSize(records.count());
         } else {
-            assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(records));
+            assertThrows(
+                    KafkaException.class,
+                    () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             int expectedNumOfProcessedRecords =
                     numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
@@ -917,5 +1060,49 @@ public class RecordConsumerTest {
                             Long.parseLong(offset),
                             Thread.currentThread().getName()));
         };
+    }
+
+    /**
+     * Converts a raw event map (typically obtained from {@code UpdateCall.event()}) into a
+     * structured {@link Event} record for easier test assertions and ordering verification.
+     *
+     * <p>This method is used to transform the flat map representation of Kafka record data, as
+     * captured by the {@link com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener}, into
+     * a typed record that can be compared, sorted, and validated in tests.
+     *
+     * <p>The position field is extracted from the "value" by parsing its numeric suffix (e.g.,
+     * "a-3" yields position 3), which allows tests to verify event ordering within a key or
+     * partition.
+     *
+     * @param map a map containing the event properties with the following keys:
+     *     <ul>
+     *       <li>"topic" - the Kafka topic name
+     *       <li>"key" - the record key
+     *       <li>"value" - the record value, expected format "{key}-{number}" (e.g., "a-3")
+     *       <li>"partition" - the partition number (as string, will be parsed to int)
+     *       <li>"offset" - the offset value (as string, will be parsed to long)
+     *     </ul>
+     *
+     * @return a new {@code Event} instance constructed from the map values and the current thread
+     *     name, useful for verifying thread affinity in concurrent processing tests
+     */
+    private static Event buildEvent(Map<String, String> map) {
+        String topic = map.get("topic");
+        // Get the key
+        String key = map.get("key");
+        // Extract the position from the value: "a-3" -> "3"
+        int position = extractNumberedSuffix(map.get("value"));
+        // Get the partition
+        String partition = map.get("partition");
+        // Get the offset
+        String offset = map.get("offset");
+        // Create and return the event
+        return new Event(
+                topic,
+                key,
+                position,
+                Integer.parseInt(partition),
+                Long.parseLong(offset),
+                Thread.currentThread().getName());
     }
 }

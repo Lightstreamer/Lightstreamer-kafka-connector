@@ -30,10 +30,11 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -162,9 +163,9 @@ public class ConnectorConfiguratorTest {
     @Test
     public void shouldConfigureWithBasicParameters() throws IOException {
         ConnectorConfigurator configurator = newConfigurator(basicParameters());
-        ConsumerTriggerConfig<?, ?> consumerTriggerConfig = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        Properties consumerProperties = consumerTriggerConfig.consumerProperties();
+        Properties consumerProperties = consumerConfig.consumerProperties();
         assertThat(consumerProperties)
                 .containsAtLeast(
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -176,30 +177,30 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        FieldsExtractor<?, ?> fieldExtractor = consumerTriggerConfig.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldExtractor = consumerConfig.fieldsExtractor();
         assertThat(fieldExtractor.skipOnFailure()).isFalse();
         assertThat(fieldExtractor.mapNonScalars()).isFalse();
 
         Set<String> fieldNames = fieldExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1");
 
-        ItemTemplates<?, ?> itemTemplates = consumerTriggerConfig.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1");
 
         Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = consumerTriggerConfig.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
 
-        assertThat(consumerTriggerConfig.errorHandlingStrategy())
+        assertThat(consumerConfig.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(consumerTriggerConfig.isCommandEnforceEnabled()).isFalse();
+        assertThat(consumerConfig.commandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
 
-        Concurrency concurrency = consumerTriggerConfig.concurrency();
+        Concurrency concurrency = consumerConfig.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
         assertThat(concurrency.orderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
@@ -215,6 +216,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic2.to", "item-template.template1");
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
+        updatedConfigs.put(ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE, "true");
+        updatedConfigs.put("field.key", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put("field.*", "#{VALUE.*}");
@@ -226,16 +229,16 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerTriggerConfig<?, ?> config = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         assertThat(fieldsExtractor.mapNonScalars()).isTrue();
 
         Set<String> fieldNames = fieldsExtractor.mappedFields();
-        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
+        assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
@@ -248,13 +251,17 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
 
-        Concurrency concurrency = config.concurrency();
+        assertThat(consumerConfig.errorHandlingStrategy())
+                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
+        assertThat(consumerConfig.commandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
+
+        Concurrency concurrency = consumerConfig.concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
         assertThat(concurrency.isParallel()).isTrue();
@@ -269,6 +276,9 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true");
+        updatedConfigs.put("field.key", "#{VALUE.key}");
+        updatedConfigs.put("field.command", "#{VALUE.command}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put("field.*", "#{VALUE.*}");
@@ -277,13 +287,13 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerTriggerConfig<?, ?> config = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
-        assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
+        assertThat(fieldNames).containsExactly("key", "command", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
@@ -296,11 +306,13 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("WrapperKafkaAvroDeserializer");
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
+
+        assertThat(consumerConfig.commandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
     }
 
     @Test
@@ -320,13 +332,13 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
-        ConsumerTriggerConfig<?, ?> config = configurator.configure();
+        Config<?, ?> consumerConfig = configurator.consumerConfig();
 
-        FieldsExtractor<?, ?> fieldsExtractor = config.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = consumerConfig.fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = config.itemTemplates();
+        ItemTemplates<?, ?> itemTemplates = consumerConfig.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
@@ -339,7 +351,7 @@ public class ConnectorConfiguratorTest {
         assertThat(schemasForTopic3.stream().map(Schema::name))
                 .containsExactly("simple-item1", "simple-item2");
 
-        KeyValueSelectorSuppliers<?, ?> wrapper = config.suppliers();
+        KeyValueSelectorSuppliers<?, ?> wrapper = consumerConfig.suppliers();
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass().getSimpleName())
                 .isEqualTo("KafkaProtobufDeserializer");
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass().getSimpleName())
@@ -384,7 +396,7 @@ public class ConnectorConfiguratorTest {
             String fieldMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+                assertThrows(ConfigException.class, () -> newConfigurator(config).consumerConfig());
         assertThat(ce).hasMessageThat().isEqualTo("Specify a valid parameter [field.<...>]");
     }
 
@@ -442,7 +454,7 @@ public class ConnectorConfiguratorTest {
         configs.put("map.topic1.to", "item-template.no-valid-template");
         Map<String, String> config = minimalConfigWith(configs);
         ConfigException ce =
-                assertThrows(ConfigException.class, () -> newConfigurator(config).configure());
+                assertThrows(ConfigException.class, () -> newConfigurator(config).consumerConfig());
 
         assertThat(ce).hasMessageThat().isEqualTo("No item template [no-valid-template] found");
     }
@@ -475,7 +487,7 @@ public class ConnectorConfiguratorTest {
                         () ->
                                 new ConnectorConfigurator(
                                                 updatedConfigs, new File("src/test/resources"))
-                                        .configure());
+                                        .consumerConfig());
         assertThat(e).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
@@ -505,7 +517,8 @@ public class ConnectorConfiguratorTest {
 
         ConfigException e =
                 assertThrows(
-                        ConfigException.class, () -> newConfigurator(updatedConfigs).configure());
+                        ConfigException.class,
+                        () -> newConfigurator(updatedConfigs).consumerConfig());
         assertThat(e)
                 .hasMessageThat()
                 .isEqualTo(

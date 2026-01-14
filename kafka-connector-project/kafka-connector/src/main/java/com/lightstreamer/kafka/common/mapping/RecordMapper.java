@@ -24,8 +24,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -191,11 +192,20 @@ public interface RecordMapper<K, V> {
          * "stock-[symbol=MSFT]"] but only "stock-[symbol=AAPL]" has active subscribers, only that
          * item will be returned.
          *
-         * @param subscribed the collection of currently active item subscriptions to match against
+         * @param items the collection of currently active item subscriptions to match against
          * @return the subset of subscribed items that match this record's item names; never null
          *     but may be empty
          */
-        Set<SubscribedItem> route(SubscribedItems subscribed);
+        Set<SubscribedItem> route(SubscribedItems items);
+
+        /**
+         * Determines whether the payload of the record is null.
+         *
+         * @return {@code true} if the payload is null, {@code false} otherwise
+         */
+        default boolean isPayloadNull() {
+            return false;
+        }
     }
 
     /**
@@ -454,14 +464,14 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     }
 
     private Collection<CanonicalItemExtractor<K, V>> getMatchingExtractors(String topic) {
-        Collection<CanonicalItemExtractor<K, V>> extractors = new ArrayList<>();
+        Collection<CanonicalItemExtractor<K, V>> matchingTemplateExtractors = new ArrayList<>();
         for (PatternAndExtractors<K, V> p : patterns) {
             Matcher matcher = p.pattern().matcher(topic);
             if (matcher.matches()) {
-                extractors.addAll(p.extractors());
+                matchingTemplateExtractors.addAll(p.extractors());
             }
         }
-        return extractors;
+        return matchingTemplateExtractors;
     }
 
     @Override
@@ -498,7 +508,8 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(canonicalItems, () -> fieldExtractor.extractMap(record));
+        return new DefaultMappedRecord(
+                canonicalItems, () -> fieldExtractor.extractMap(record), record.isPayloadNull());
     }
 }
 
@@ -514,17 +525,21 @@ final class DefaultMappedRecord implements MappedRecord {
     // when not needed (i.e. when routing only).
     private final Supplier<Map<String, String>> fieldsMapSupplier;
 
+    private boolean payloadNull;
+
     private DefaultMappedRecord() {
-        this(new String[0], EMPTY_FIELDS_MAP);
+        this(new String[0], EMPTY_FIELDS_MAP, true);
     }
 
     DefaultMappedRecord(String[] itemNames) {
-        this(itemNames, EMPTY_FIELDS_MAP);
+        this(itemNames, EMPTY_FIELDS_MAP, true);
     }
 
-    DefaultMappedRecord(String[] canonicalItems, Supplier<Map<String, String>> fieldsMap) {
+    DefaultMappedRecord(
+            String[] canonicalItems, Supplier<Map<String, String>> fieldsMap, boolean payloadNull) {
         this.itemNames = canonicalItems;
         this.fieldsMapSupplier = fieldsMap;
+        this.payloadNull = payloadNull;
     }
 
     @Override
@@ -533,13 +548,13 @@ final class DefaultMappedRecord implements MappedRecord {
     }
 
     @Override
-    public Set<SubscribedItem> route(SubscribedItems subscribedItems) {
+    public Set<SubscribedItem> route(SubscribedItems items) {
         Set<SubscribedItem> result = new HashSet<>();
 
         for (String itemName : itemNames) {
-            SubscribedItem item = subscribedItems.get(itemName);
-            if (item != null) {
-                result.add(item);
+            Optional<SubscribedItem> item = items.getItem(itemName);
+            if (item.isPresent()) {
+                result.add(item.get());
             }
         }
         return result;
@@ -548,6 +563,11 @@ final class DefaultMappedRecord implements MappedRecord {
     @Override
     public Map<String, String> fieldsMap() {
         return fieldsMapSupplier.get();
+    }
+
+    @Override
+    public boolean isPayloadNull() {
+        return payloadNull;
     }
 
     @Override

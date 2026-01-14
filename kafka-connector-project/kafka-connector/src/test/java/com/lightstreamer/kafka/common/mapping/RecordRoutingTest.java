@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
-import static com.lightstreamer.kafka.test_utils.Records.recordWithHeaders;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
@@ -36,7 +36,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Records;
 
@@ -79,26 +79,31 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("itemArgs")
-    public void shouldRoutesFromSimpleItems(
+    public void shouldRouteFromSimpleItems(
             List<String> topics,
-            String item,
+            String itemName,
             List<SubscribedItem> routable,
             List<SubscribedItem> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.mkSimpleItems(
-                        OthersSelectorSuppliers.String(), topics, List.of(item));
+                        OthersSelectorSuppliers.String(), topics, List.of(itemName));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
                         .withCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
-            SubscribedItems all =
-                    SubscribedItems.of(
-                            Stream.concat(routable.stream(), nonRoutable.stream()).toList());
-            Set<SubscribedItem> routed = mapped.route(all);
+            MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
+            SubscribedItems subscribedItems = SubscribedItems.create();
+            for (SubscribedItem item : routable) {
+                subscribedItems.addItem(item);
+            }
+            for (SubscribedItem item : nonRoutable) {
+                subscribedItems.addItem(item);
+            }
+
+            Set<SubscribedItem> routed = mapped.route(subscribedItems);
             assertThat(routed).containsExactlyElementsIn(routable);
         }
     }
@@ -155,7 +160,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    public void shouldRoutesFromTemplates(
+    public void shouldRouteFromTemplates(
             List<String> topics,
             List<String> templateStr,
             Map<String, List<SubscribedItem>> routable,
@@ -170,15 +175,17 @@ public class RecordRoutingTest {
                         .build();
 
         for (String topic : topics) {
-            MappedRecord mapped = mapper.map(Records.record(topic, "key", "value"));
+            MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
             List<SubscribedItem> routableForTopic = routable.get(topic);
             List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
-            SubscribedItems all =
-                    SubscribedItems.of(
-                            Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream())
-                                    .toList());
+            List<SubscribedItem> all =
+                    Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream()).toList();
+            SubscribedItems subscribed = SubscribedItems.create();
+            for (SubscribedItem item : all) {
+                subscribed.addItem(item);
+            }
 
-            Set<SubscribedItem> routed = mapped.route(all);
+            Set<SubscribedItem> routed = mapped.route(subscribed);
             assertThat(routed).containsExactlyElementsIn(routableForTopic);
         }
     }
@@ -207,7 +214,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgsJson")
-    public void shouldRoutesFromTemplateWithJsonValueRecord(
+    public void shouldRouteFromTemplateWithJsonValueRecord(
             String jsonString,
             List<String> templateStr,
             List<SubscribedItem> routable,
@@ -220,12 +227,17 @@ public class RecordRoutingTest {
                         .withCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
-        ObjectMapper om = new ObjectMapper();
-        JsonNode jsonNode = om.readTree(jsonString);
-        MappedRecord mapped = mapper.map(Records.record(TEST_TOPIC_1, "key", jsonNode));
-        SubscribedItems all =
-                SubscribedItems.of(Stream.concat(routable.stream(), nonRoutable.stream()).toList());
-        Set<SubscribedItem> routed = mapped.route(all);
+        JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
+        MappedRecord mapped = mapper.map(Records.KafkaRecord(TEST_TOPIC_1, "key", jsonNode));
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        for (SubscribedItem item : routable) {
+            subscribedItems.addItem(item);
+        }
+        for (SubscribedItem item : nonRoutable) {
+            subscribedItems.addItem(item);
+        }
+
+        Set<SubscribedItem> routed = mapped.route(subscribedItems);
         assertThat(routed).containsExactlyElementsIn(routable);
     }
 
@@ -235,7 +247,7 @@ public class RecordRoutingTest {
             useHeadersInDisplayName = true,
             delimiter = '|')
     public void shouldRoute(
-            String template, String subscribingItem, boolean canSubscribe, boolean routable)
+            String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, GenericRecord> templates =
                 ItemTemplatesUtils.AvroAvroTemplates(TEST_TOPIC_1, template);
@@ -245,7 +257,7 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
-                Records.recordWithHeaders(
+                Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
                         SampleGenericRecordProvider().sampleMessage(),
@@ -253,10 +265,12 @@ public class RecordRoutingTest {
                                 .add("header-key1", "header-value1".getBytes())
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
-
+        SubscribedItem subscribedItem = subscribedFrom(subscribingItemName, new Object());
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
-        Set<SubscribedItem> routed = mapped.route(SubscribedItems.of(Set.of(subscribedItem)));
+
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        subscribedItems.addItem(subscribedItem);
+        Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {
@@ -270,7 +284,7 @@ public class RecordRoutingTest {
             useHeadersInDisplayName = true,
             delimiter = '|')
     public void shouldRouteWithMixedKeyAndValueTypes(
-            String template, String subscribingItem, boolean canSubscribe, boolean routable)
+            String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, JsonNode> templates =
                 ItemTemplatesUtils.AvroJsonTemplates(TEST_TOPIC_1, template);
@@ -280,7 +294,7 @@ public class RecordRoutingTest {
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =
-                recordWithHeaders(
+                KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         SampleGenericRecordProvider().sampleMessage(),
                         SampleJsonNodeProvider().sampleMessage(),
@@ -288,10 +302,12 @@ public class RecordRoutingTest {
                                 .add("header-key1", "header-value1".getBytes())
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subscribedFrom(subscribingItem, new Object());
-
+        SubscribedItem subscribedItem = subscribedFrom(subscribingItemName, new Object());
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
-        Set<SubscribedItem> routed = mapped.route(SubscribedItems.of(Set.of(subscribedItem)));
+
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        subscribedItems.addItem(subscribedItem);
+        Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
             assertThat(routed).containsExactly(subscribedItem);
         } else {

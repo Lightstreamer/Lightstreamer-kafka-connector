@@ -18,22 +18,36 @@
 package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.junit.Assert.assertThrows;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.listeners.EventListener;
+import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecords;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -44,9 +58,9 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -63,28 +77,22 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-public class ConsumerWrapperImplTest {
+public class KafkaConsumerWrapperTest {
 
-    private MockMetadataListener metadataListener;
-    private MockItemEventListener itemEventListener;
-    private final SubscribedItems subscribedItems = SubscribedItems.of(Collections.emptyList());
-    private MockConsumer<String, String> mockConsumer;
     private final OffsetResetStrategy resetStrategy = OffsetResetStrategy.EARLIEST;
-
-    @BeforeEach
-    public void setUp() {
-        metadataListener = new Mocks.MockMetadataListener();
-        itemEventListener = new Mocks.MockItemEventListener();
-        mockConsumer = new MockConsumer<>(resetStrategy);
-    }
+    private MockMetadataListener metadataListener = new MockMetadataListener();
+    private MockItemEventListener itemEventListener = new MockItemEventListener();
+    private EventListener eventListener = EventListener.smartEventListener(itemEventListener);
+    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer =
+            new MockConsumer<>(resetStrategy);
 
     private Properties makeProperties() {
         Properties properties = new Properties();
@@ -103,37 +111,72 @@ public class ConsumerWrapperImplTest {
                 enableSubscriptionPattern);
     }
 
-    ConsumerWrapperImpl<String, String> mkConsumerWrapper(AdminInterface admin) {
-        return mkConsumerWrapper(
-                admin,
+    KafkaConsumerWrapper<String, String> makeWrapper(
+            Set<String> availableTopics, boolean trowExceptionWhileCheckingExistingTopic) {
+        return makeWrapper(
+                availableTopics,
+                trowExceptionWhileCheckingExistingTopic,
                 false,
-                false,
+                CommandModeStrategy.NONE,
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                 2,
                 RecordConsumeWithOrderStrategy.UNORDERED);
     }
 
-    ConsumerWrapperImpl<String, String> mkConsumerWrapper(
-            AdminInterface admin,
+    KafkaConsumerWrapper<String, String> makeWrapper(
+            Set<String> availableTopics,
+            boolean trowExceptionWhileCheckingExistingTopic,
             boolean enableSubscriptionPattern,
-            boolean enforceCommandMode,
+            CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy) {
-        return (ConsumerWrapperImpl<String, String>)
-                ConsumerWrapper.create(
-                        new Mocks.MockTriggerConfig(
-                                makeTopicsConfig(enableSubscriptionPattern),
-                                makeProperties(),
-                                enforceCommandMode,
-                                errorHandlingStrategy,
-                                threads,
-                                orderStrategy),
-                        itemEventListener,
-                        metadataListener,
-                        subscribedItems,
-                        () -> mockConsumer,
-                        p -> admin);
+
+        // Set the available topics in the mock consumer
+        for (String topic : availableTopics) {
+            mockConsumer.updatePartitions(
+                    topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
+        }
+        if (trowExceptionWhileCheckingExistingTopic) {
+            mockConsumer.setListTopicException(
+                    new KafkaException("Fake Exception while checking existing topics"));
+        }
+
+        // Create the configuration
+        Config<String, String> config =
+                makeConfig(
+                        enableSubscriptionPattern,
+                        commandModeStrategy,
+                        errorHandlingStrategy,
+                        threads,
+                        orderStrategy);
+
+        // Create the SubscribedItems
+        SubscribedItems subscribedItems = SubscribedItems.create();
+
+        return new KafkaConsumerWrapper<String, String>(
+                config, metadataListener, eventListener, subscribedItems, () -> mockConsumer);
+    }
+
+    private Config<String, String> makeConfig(
+            boolean enableSubscriptionPattern,
+            CommandModeStrategy commandModeStrategy,
+            RecordErrorHandlingStrategy errorHandlingStrategy,
+            int threads,
+            RecordConsumeWithOrderStrategy orderStrategy) {
+        try {
+            return new Config<>(
+                    "TestConnection",
+                    makeProperties(),
+                    Items.templatesFrom(makeTopicsConfig(enableSubscriptionPattern), String()),
+                    ItemTemplatesUtils.fieldsExtractor(),
+                    OthersSelectorSuppliers.String(),
+                    errorHandlingStrategy,
+                    commandModeStrategy,
+                    new Concurrency(orderStrategy, threads));
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     static Stream<Arguments> wrapperArgs() {
@@ -141,60 +184,76 @@ public class ConsumerWrapperImplTest {
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         false,
-                        OrderStrategy.ORDER_BY_PARTITION),
+                        OrderStrategy.ORDER_BY_PARTITION,
+                        ProcessUpdatesType.DEFAULT),
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        true,
+                        CommandModeStrategy.ENFORCE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         false,
-                        OrderStrategy.ORDER_BY_PARTITION),
+                        OrderStrategy.ORDER_BY_PARTITION,
+                        ProcessUpdatesType.COMMAND),
                 Arguments.of(
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
-                        OrderStrategy.ORDER_BY_KEY),
+                        OrderStrategy.ORDER_BY_KEY,
+                        ProcessUpdatesType.DEFAULT),
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        false,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
-                        OrderStrategy.UNORDERED));
+                        OrderStrategy.UNORDERED,
+                        ProcessUpdatesType.DEFAULT),
+                Arguments.of(
+                        -1,
+                        RecordConsumeWithOrderStrategy.UNORDERED,
+                        CommandModeStrategy.AUTO,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        true,
+                        OrderStrategy.UNORDERED,
+                        ProcessUpdatesType.AUTO_COMMAND_MODE));
     }
 
     @ParameterizedTest
     @MethodSource("wrapperArgs")
-    public void shouldCreateConsumerWrapper(
+    public void shouldCreateWrapper(
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
-            boolean enforceCommandMode,
+            CommandModeStrategy commandModeStrategy,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean expectedParallelism,
-            OrderStrategy expectedOrderStrategy) {
-        ConsumerWrapperImpl<String, String> consumerWrapper =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.emptySet()),
+            OrderStrategy expectedOrderStrategy,
+            ProcessUpdatesType expectedProcessUpdatesType) {
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(
+                        Collections.emptySet(),
                         false,
-                        enforceCommandMode,
+                        false,
+                        commandModeStrategy,
                         errorHandlingStrategy,
                         threads,
                         consumedWithOrderStrategy);
 
-        assertThat(consumerWrapper.getConsumer()).isSameInstanceAs(mockConsumer);
+        assertThat(wrapper.getInternalConsumer()).isSameInstanceAs(mockConsumer);
 
         // Check the RecordConsumer
-        RecordConsumer<String, String> recordConsumer = consumerWrapper.getRecordConsumer();
+        RecordConsumer<String, String> recordConsumer = wrapper.getRecordConsumer();
         if (threads == -1) {
             assertThat(recordConsumer.numOfThreads()).isGreaterThan(1);
         } else {
             assertThat(recordConsumer.numOfThreads()).isEqualTo(threads);
         }
+
+        // Check the OrderStrategy
         Optional<OrderStrategy> orderStrategy = recordConsumer.orderStrategy();
         if (threads > 1 || threads == -1) {
             assertThat(orderStrategy).hasValue(expectedOrderStrategy);
@@ -202,66 +261,40 @@ public class ConsumerWrapperImplTest {
             assertThat(orderStrategy).isEmpty();
         }
         assertThat(recordConsumer.isParallel()).isEqualTo(expectedParallelism);
-        assertThat(recordConsumer.isCommandEnforceEnabled()).isEqualTo(enforceCommandMode);
         assertThat(recordConsumer.errorStrategy()).isEqualTo(errorHandlingStrategy);
 
+        // Check the RecordProcessor
+        RecordProcessor<String, String> recordProcessor = recordConsumer.recordProcessor();
+        assertThat(recordProcessor.processUpdatesType()).isEqualTo(expectedProcessUpdatesType);
+
         // Check the OffsetService
-        OffsetService offsetService = consumerWrapper.getOffsetService();
+        OffsetService offsetService = wrapper.getOffsetService();
         assertThat(offsetService.canManageHoles()).isEqualTo(expectedParallelism);
-        assertThat(consumerWrapper.getOffsetService().offsetStore()).isPresent();
-    }
-
-    @Test
-    public void shouldNotSubscribeDueToNotExistingTopic() {
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
-        assertThat(consumer.subscribed()).isFalse();
-        assertThat(mockConsumer.subscription()).isEmpty();
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
-    }
-
-    @Test
-    public void shouldNotSubscribeDueToExceptionWhileCheckingExistingTopic() {
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.singleton("topic"), true));
-        assertThat(consumer.subscribed()).isFalse();
-        assertThat(mockConsumer.subscription()).isEmpty();
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
-    }
-
-    @Test
-    public void shouldSubscribeToTopic() {
-        String topic = "topic";
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
-        assertThat(consumer.subscribed()).isTrue();
-        assertThat(mockConsumer.subscription()).containsExactly(topic);
-        assertThat(metadataListener.forcedUnsubscription()).isFalse();
+        assertThat(wrapper.getOffsetService().offsetStore()).isPresent();
     }
 
     @Test
     public void shouldSubscribeToPattern() {
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.emptySet()),
-                        true,
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(
+                        Collections.emptySet(),
                         false,
+                        true,
+                        CommandModeStrategy.NONE,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
-        assertThat(consumer.subscribed()).isTrue();
+        assertThat(wrapper.subscribed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
-    public void shouldInitAndStore() {
+    public void shouldInitStoreAndConsume() {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -280,13 +313,13 @@ public class ConsumerWrapperImplTest {
                         new OffsetAndMetadata(0L, "1")));
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
         // Invoke the method and verify that the task has been actually invoked with the
         // expected simulated records
-        ConsumerRecords<String, String> filtered = consumer.initStoreAndConsume(records);
-        assertThat(filtered.count()).isEqualTo(records.count() - 2);
+        int filtered = wrapper.initStoreAndConsume(KafkaRecords.from(records));
+        assertThat(filtered).isEqualTo(records.count() - 2);
     }
 
     private void updateOffsets(HashMap<TopicPartition, Long> offsets) {
@@ -302,8 +335,8 @@ public class ConsumerWrapperImplTest {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -315,7 +348,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -325,26 +358,80 @@ public class ConsumerWrapperImplTest {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecords<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        holder.add(received);
+                        for (KafkaRecord<String, String> record : received) {
+                            holder.add(record);
+                        }
                     }
                 };
 
         // Invoke the method and verify that task has been actually
         // invoked with the expected simulated records.
-        consumer.pollOnce(task);
-        assertThat(holder.get(0).count()).isEqualTo(records.count());
+        wrapper.pollOnce(task);
         // Received only the scheduled records
-        assertThat(holder).hasSize(1);
-        // Invoked only once
+        assertThat(holder).hasSize(records.count());
+        // Invoked two times: one for the records and one for the empty poll
         assertThat(invocationCounter.get()).isEqualTo(1);
+        // Regular interruption
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
+    }
+
+    @Test
+    public void shouldPollAllAvailableRecords() {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
+
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+
+        // Set the start offset for each partition
+        HashMap<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(partition0, 0L);
+        offsets.put(partition1, 0L);
+        updateOffsets(offsets);
+
+        // Generate then simulated records to be polled from the mocked consumer
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                Records.generateRecords(topic, 10, List.of("a", "b"));
+        mockConsumer.schedulePollTask(
+                () -> records.forEach(record -> mockConsumer.addRecord(record)));
+        mockConsumer.subscribe(Set.of(topic));
+        // The following poll is only required to trigger the rebalance set above.
+        // Subsequent poll will return the expected records.
+        mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+
+        // Define the task that should be invoked upon polling
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
+        AtomicInteger invocationCounter = new AtomicInteger();
+        Consumer<KafkaRecords<String, String>> task =
+                received -> {
+                    // Track invocations
+                    invocationCounter.incrementAndGet();
+                    // Store only if records were actually fetched
+                    if (received.count() > 0) {
+                        for (KafkaRecord<String, String> record : received) {
+                            holder.add(record);
+                        }
+                    }
+                };
+
+        // Invoke the method and verify that task has been actually
+        // invoked with the expected simulated records.
+        wrapper.pollAvailable(task);
+        // Received only the scheduled records
+        assertThat(holder).hasSize(records.count());
+        // Invoked two times: one for the records and one for the empty poll
+        assertThat(invocationCounter.get()).isEqualTo(2);
         // Regular interruption
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
@@ -354,8 +441,8 @@ public class ConsumerWrapperImplTest {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // A rebalance must be scheduled to later use the subscribe method
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
@@ -367,7 +454,7 @@ public class ConsumerWrapperImplTest {
         updateOffsets(offsets);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -381,21 +468,23 @@ public class ConsumerWrapperImplTest {
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecords<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        holder.add(received);
+                        for (KafkaRecord<String, String> record : received) {
+                            holder.add(record);
+                        }
                     }
                 };
 
         // Invoke the method and verify that task has been actually
         // invoked with the expected simulated records.
-        assertThrows(KafkaException.class, () -> consumer.pollOnce(task));
+        assertThrows(KafkaException.class, () -> wrapper.pollAvailable(task));
         // Never invoked
         assertThat(invocationCounter.get()).isEqualTo(0);
         // Forced interruption
@@ -417,11 +506,11 @@ public class ConsumerWrapperImplTest {
         offsets.put(partition1, 0L);
         updateOffsets(offsets);
 
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -438,15 +527,17 @@ public class ConsumerWrapperImplTest {
         mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecords<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        holder.add(received);
+                        for (KafkaRecord<String, String> record : received) {
+                            holder.add(record);
+                        }
                     }
                 };
 
@@ -458,7 +549,7 @@ public class ConsumerWrapperImplTest {
                 CompletableFuture.runAsync(
                         () -> {
                             try {
-                                consumer.pollForEver(task);
+                                wrapper.pollForEver(task);
                             } catch (WakeupException e) {
                                 wokenUp.set(true);
                             }
@@ -467,7 +558,7 @@ public class ConsumerWrapperImplTest {
         // A WakeupException has been thrown
         assertThat(wokenUp.get()).isTrue();
         // Received only the scheduled records
-        assertThat(holder).hasSize(1);
+        assertThat(holder).hasSize(records.count());
         // Invoked more than once.
         assertThat(invocationCounter.get()).isGreaterThan(1);
         // Regular interruption
@@ -489,11 +580,11 @@ public class ConsumerWrapperImplTest {
         offsets.put(partition1, 0L);
         updateOffsets(offsets);
 
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -508,15 +599,17 @@ public class ConsumerWrapperImplTest {
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
 
         // Define the task that should be invoked upon polling
-        List<ConsumerRecords<String, String>> holder = new ArrayList<>();
+        List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<ConsumerRecords<String, String>> task =
+        Consumer<KafkaRecords<String, String>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
                     if (received.count() > 0) {
-                        holder.add(received);
+                        for (KafkaRecord<String, String> record : received) {
+                            holder.add(record);
+                        }
                     }
                 };
 
@@ -529,7 +622,7 @@ public class ConsumerWrapperImplTest {
                 CompletableFuture.runAsync(
                         () -> {
                             try {
-                                consumer.pollForEver(task);
+                                wrapper.pollForEver(task);
                             } catch (WakeupException e) {
                                 wokenUp.set(true);
                             } catch (KafkaException ke) {
@@ -547,96 +640,10 @@ public class ConsumerWrapperImplTest {
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
-    @Test
-    public void shouldRun() {
-        String topic = "topic";
-        TopicPartition partition0 = new TopicPartition(topic, 0);
-        TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
-
-        // Set the start offset for each partition
-        HashMap<TopicPartition, Long> offsets = new HashMap<>();
-        offsets.put(partition0, 0L);
-        offsets.put(partition1, 0L);
-        updateOffsets(offsets);
-
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
-
-        // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
-        // The first poll will return the simulated records
-        mockConsumer.schedulePollTask(
-                () -> records.forEach(record -> mockConsumer.addRecord(record)));
-        // The second poll will return nothing
-        mockConsumer.scheduleNopPollTask();
-        // The third poll will trigger a WakeupException so that the infinite loop can be broken
-        mockConsumer.schedulePollTask(() -> mockConsumer.wakeup());
-
-        consumer.run();
-
-        assertThat(mockConsumer.closed());
-        assertThat(metadataListener.forcedUnsubscription()).isFalse();
-        OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
-        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
-        assertThat(map.keySet()).containsExactly(partition0, partition1);
-        // Verify that offsets have been moved reasonably
-        assertThat(map.get(partition0).offset()).isGreaterThan(records.count() / 3);
-        assertThat(map.get(partition1).offset()).isGreaterThan(records.count() / 3);
-    }
-
-    @Test
-    public void shouldRunAndCloseDueToFailure() throws InterruptedException, ExecutionException {
-        String topic = "topic";
-        TopicPartition partition0 = new TopicPartition(topic, 0);
-        TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
-
-        // Set the start offset for each partition
-        HashMap<TopicPartition, Long> offsets = new HashMap<>();
-        offsets.put(partition0, 0L);
-        offsets.put(partition1, 0L);
-        updateOffsets(offsets);
-
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
-
-        // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
-                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
-        // The first poll will return the simulated records
-        mockConsumer.schedulePollTask(
-                () -> records.forEach(record -> mockConsumer.addRecord(record)));
-        // The second poll will return nothing
-        mockConsumer.scheduleNopPollTask();
-
-        // Run the consumer for at least 1 second
-        CompletableFuture<Void> completable = CompletableFuture.runAsync(() -> consumer.run());
-        TimeUnit.SECONDS.sleep(1);
-
-        // Trigger a KafkaException
-        mockConsumer.setPollException(new KafkaException("Fake Exception"));
-        CompletionException ce = assertThrows(CompletionException.class, () -> completable.join());
-        assertThat(ce).hasCauseThat().isInstanceOf(KafkaException.class);
-
-        assertThat(mockConsumer.closed());
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
-        Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
-        assertThat(map.keySet()).containsExactly(partition0, partition1);
-        // Verify that offsets have been moved reasonably
-        assertThat(map.get(partition0).offset()).isGreaterThan(records.count() / 3);
-        assertThat(map.get(partition1).offset()).isGreaterThan(records.count() / 3);
-    }
-
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldClose(boolean forceCommitException) throws InterruptedException {
+    public void shouldStartLoopAndShutdown(boolean forceCommitException)
+            throws InterruptedException {
         if (forceCommitException) {
             // Set the exception to be thrown when committing offsets
             mockConsumer.setCommitException(new KafkaException("Fake Exception"));
@@ -655,11 +662,11 @@ public class ConsumerWrapperImplTest {
         offsets.put(partition1, 0L);
         updateOffsets(offsets);
 
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(new Mocks.MockAdminInterface(Collections.singleton(topic)));
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<String, String> records =
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
                 Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -668,16 +675,21 @@ public class ConsumerWrapperImplTest {
         mockConsumer.scheduleNopPollTask();
 
         // Run the consumer for at least 1 second
-        CompletableFuture<Void> completable = CompletableFuture.runAsync(() -> consumer.run());
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        assertThat(awaitClose.isStateAvailable()).isFalse();
         TimeUnit.SECONDS.sleep(1);
+        assertThat(awaitClose.isStateAvailable()).isFalse();
 
-        // Wake up it
-        consumer.close();
-        completable.join();
+        // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
+        FutureStatus finalStatus = wrapper.shutdown();
+        assertThat(awaitClose.isStateAvailable()).isTrue();
+        assertThat(awaitClose.join()).isEqualTo(State.LOOP_CLOSED_BY_WAKEUP);
+        assertThat(finalStatus.isShutdown());
 
         assertThat(mockConsumer.closed());
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
-        OffsetStore offsetStore = consumer.getOffsetService().offsetStore().get();
+        OffsetStore offsetStore = wrapper.getOffsetService().offsetStore().get();
         Map<TopicPartition, OffsetAndMetadata> map = offsetStore.current();
         assertThat(map.keySet()).containsExactly(partition0, partition1);
         // Verify that offsets have been moved reasonably
@@ -686,28 +698,211 @@ public class ConsumerWrapperImplTest {
     }
 
     @Test
-    public void shouldRunWithNoSubscriptionDueToNotExistingTopic() {
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic")));
+    public void shouldChangeStatusConsistently() throws InterruptedException {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);
 
-        consumer.run();
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
-        assertThat(mockConsumer.subscription()).isEmpty();
-        assertThat(mockConsumer.closed());
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        // Set the start offset for each partition
+        HashMap<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(partition0, 0L);
+        offsets.put(partition1, 0L);
+        updateOffsets(offsets);
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
+
+        // Generate then simulated records to be polled from the mocked consumer
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                Records.generateRecords(topic, 100, List.of("a", "b"), 2);
+        // The first poll will return the simulated records
+        mockConsumer.schedulePollTask(
+                () -> records.forEach(record -> mockConsumer.addRecord(record)));
+        // The second poll will return nothing
+        mockConsumer.scheduleNopPollTask();
+
+        // Run the consumer for at least 1 second
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        assertThat(awaitClose.isStateAvailable()).isFalse();
+        TimeUnit.SECONDS.sleep(1);
+
+        // Try to start the loop again and verify that the status has not changed
+        FutureStatus awaitClose2 = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        assertThat(awaitClose2).isSameInstanceAs(awaitClose);
+
+        // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
+        FutureStatus finalStatus = wrapper.shutdown();
+        assertThat(awaitClose2.join()).isEqualTo(State.LOOP_CLOSED_BY_WAKEUP);
+        assertThat(finalStatus.isShutdown());
+
+        // Try to start the loop again and verify that the status is stull SHUTDOWN
+        FutureStatus currentStatus = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        assertThat(currentStatus).isSameInstanceAs(finalStatus);
+
+        assertThat(wrapper.shutdown()).isSameInstanceAs(finalStatus);
     }
 
     @Test
-    public void shouldRunWithNoSubscriptionDueToExceptionWhileCheckingExistingTopic() {
-        ConsumerWrapperImpl<String, String> consumer =
-                mkConsumerWrapper(
-                        new Mocks.MockAdminInterface(Collections.singleton("anotherTopic"), true));
+    public void shouldShutdownEvenWithoutStartingLoop() throws InterruptedException {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);
 
-        consumer.run();
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
+        // Set the start offset for each partition
+        HashMap<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(partition0, 0L);
+        offsets.put(partition1, 0L);
+        updateOffsets(offsets);
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
+
+        // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
+        FutureStatus status = wrapper.shutdown();
+        assertThat(status.isStateAvailable()).isTrue();
+        assertThat(status.join()).isEqualTo(State.SHUTDOWN);
+        assertThat(mockConsumer.closed());
+        // The RecordConsumer is not terminated because the loop was never started
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldNotStartLoopDueToNotExistingTopic(boolean waitForInit) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        // Create a wrapper for a non-existing topic
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton("anotherTopic"), false);
+
+        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
+        if (waitForInit) {
+            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_SUBSCRIPTION
+            assertThat(status.initFailed()).isTrue();
+        }
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_SUBSCRIPTION);
         assertThat(mockConsumer.subscription()).isEmpty();
         assertThat(mockConsumer.closed());
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldNotStartLoopDueToExceptionWhileCheckingExistingTopic(boolean waitForInit) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        // Create a wrapper for a topic that exists but cannot be subscribed due to an exception
+        // throw
+        // while checking the topic's existence
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton("topic"), true);
+
+        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
+        if (waitForInit) {
+            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_SUBSCRIPTION
+            assertThat(status.initFailed()).isTrue();
+        }
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_SUBSCRIPTION);
+        assertThat(mockConsumer.subscription()).isEmpty();
+        assertThat(mockConsumer.closed());
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldNotStartLoopDueToPollExceptionWhileInitPolling(boolean waitForInit) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton("topic"), false);
+
+        mockConsumer.setPollException(new KafkaException("Fake Exception"));
+        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
+        if (waitForInit) {
+            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_EXCEPTION
+            assertThat(status.initFailed()).isTrue();
+        }
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_EXCEPTION);
+        // Verify that the consumer has subscribed
+        assertThat(mockConsumer.subscription()).containsExactly("topic");
+        // But everything else is in the expected state as per the exception
+        assertThat(mockConsumer.closed());
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldNotStartLoopDueToOffsetExceptionWhileInitPolling(boolean waitForInit) {
+        ExecutorService executorService = Executors.newSingleThreadExecutor();
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton("topic"), false);
+
+        mockConsumer.setOffsetsException(new KafkaException("Fake Exception"));
+        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
+        if (waitForInit) {
+            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_EXCEPTION
+            assertThat(status.initFailed()).isTrue();
+        }
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_EXCEPTION);
+        // Verify that the consumer has subscribed
+        assertThat(mockConsumer.subscription()).containsExactly("topic");
+        // But everything else is in the expected state as per the exception
+        assertThat(mockConsumer.closed());
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
+    }
+
+    @Test
+    public void shouldInterruptLoopDueToKafkaException() throws Exception {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);
+
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        mockConsumer.setOffsetsException(null);
+
+        // Set the start offset for each partition
+        HashMap<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(partition0, 0L);
+        offsets.put(partition1, 0L);
+        updateOffsets(offsets);
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
+
+        // Generate the simulated records to be polled from the mocked consumer
+        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+                Records.generateRecords(topic, 10, List.of("a", "b"));
+        // The first poll will return the simulated records
+        mockConsumer.schedulePollTask(
+                () -> records.forEach(record -> mockConsumer.addRecord(record)));
+        // The second poll will return nothing
+        mockConsumer.scheduleNopPollTask();
+        mockConsumer.scheduleNopPollTask();
+
+        // Run the consumer for at least 1 second
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        TimeUnit.SECONDS.sleep(1);
+        assertThat(awaitClose.isStateAvailable()).isFalse();
+
+        // Set the KafkaException to be thrown at next poll invocation inside pollForEver
+        mockConsumer.setPollException(new KafkaException("Fake Exception"));
+
+        // Verify that the loop has been interrupted by the simulated exception
+        assertThat(awaitClose.join()).isEqualTo(State.LOOP_CLOSED_BY_EXCEPTION);
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+        assertThat(mockConsumer.closed());
+        assertThat(wrapper.getRecordConsumer().isTerminated()).isTrue();
+
+        FutureStatus shutdown = wrapper.shutdown();
+        assertThat(shutdown.isStateAvailable()).isTrue();
+        assertThat(shutdown.join()).isEqualTo(State.SHUTDOWN);
     }
 }

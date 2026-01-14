@@ -39,7 +39,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ItemTest {
+public class ItemsTest {
 
     static Stream<Arguments> provideData() {
         return Stream.of(
@@ -54,7 +54,7 @@ public class ItemTest {
     @ParameterizedTest
     @MethodSource("provideData")
     public void shouldSubscribeFromSubscriptionExpression(
-            String prefix, Set<Data> inputParams, String expectedNormalizedString) {
+            String prefix, Set<Data> inputParams, String expectedCanonicalItemName) {
         SortedSet<Data> params = new TreeSet<>(inputParams);
         SubscribedItem item =
                 Items.subscribedFrom(new SubscriptionExpression(prefix, params), new Object());
@@ -63,7 +63,7 @@ public class ItemTest {
         assertThat(schema.name()).isEqualTo(prefix);
         assertThat(schema.keys())
                 .isEqualTo(inputParams.stream().map(Data::name).collect(Collectors.toSet()));
-        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
     }
 
     static Stream<Arguments> provideExpressions() {
@@ -97,21 +97,24 @@ public class ItemTest {
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
-            String expectedNormalizedString) {
+            String expectedCanonicalItemName) {
         Object handle = new Object();
         SubscribedItem item = Items.subscribedFrom(expression, handle);
         assertThat(item).isNotNull();
         assertThat(item.itemHandle()).isSameInstanceAs(handle);
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
+        assertThat(item.equals(item)).isTrue();
 
         SubscribedItem item2 = Items.subscribedFrom(expression);
         assertThat(item2).isNotNull();
+        // The handle is the expression itself
         assertThat(item2.itemHandle()).isSameInstanceAs(expression);
         assertThat(item2.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item2.schema().keys()).isEqualTo(expectedKeys);
-        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedNormalizedString);
+        assertThat(item2.asCanonicalItemName()).isEqualTo(expectedCanonicalItemName);
+        assertThat(item2.equals(item2)).isTrue();
     }
 
     static Stream<Arguments> provideEqualValues() {
@@ -137,6 +140,16 @@ public class ItemTest {
         SubscribedItem item2 =
                 Items.subscribedFrom(
                         new SubscriptionExpression("item", new TreeSet<>(values2)), itemHandle);
+        assertThat(item1.equals(item2)).isTrue();
+    }
+
+    @Test
+    public void shouldSubscribeToEqualItemsIrrespectiveOfTheParamOrders() {
+        Object itemHandle = new Object();
+        SubscribedItem item1 =
+                Items.subscribedFrom("prefix-[name1=field1,name2=field2]", itemHandle);
+        SubscribedItem item2 =
+                Items.subscribedFrom("prefix-[name2=field2,name1=field1]", itemHandle);
         assertThat(item1.equals(item2)).isTrue();
     }
 

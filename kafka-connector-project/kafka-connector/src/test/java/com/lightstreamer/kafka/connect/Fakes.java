@@ -18,11 +18,8 @@
 package com.lightstreamer.kafka.connect;
 
 import com.lightstreamer.adapters.remote.DataProviderException;
-import com.lightstreamer.adapters.remote.DiffAlgorithm;
 import com.lightstreamer.adapters.remote.ExceptionHandler;
 import com.lightstreamer.adapters.remote.FailureException;
-import com.lightstreamer.adapters.remote.IndexedItemEvent;
-import com.lightstreamer.adapters.remote.ItemEvent;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.RemotingException;
 import com.lightstreamer.adapters.remote.SubscriptionException;
@@ -44,9 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.SocketException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -375,53 +370,6 @@ public class Fakes {
         @Override
         public ErrantRecordReporter errantRecordReporter() {
             return errantRecordReporter;
-        }
-    }
-
-    /**
-     * Implements a fake {@code ItemEventListener} to track all the notified events, which can be
-     * later investigated in the unit tests.
-     */
-    public static class FakeItemEventListener implements ItemEventListener {
-
-        // Stores all item events sent through the update method.
-        public List<Map<String, ?>> events = new ArrayList<>();
-
-        @Override
-        public void update(String itemName, ItemEvent itemEvent, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(String itemName, Map<String, ?> itemEvent, boolean isSnapshot) {
-            // Store the events.
-            events.add(itemEvent);
-        }
-
-        @Override
-        public void update(String itemName, IndexedItemEvent itemEvent, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void endOfSnapshot(String itemName) {
-            throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
-        }
-
-        @Override
-        public void clearSnapshot(String itemName) {
-            throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
-        }
-
-        @Override
-        public void declareFieldDiffOrder(
-                String itemName, Map<String, DiffAlgorithm[]> algorithmsMap) {
-            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
-        }
-
-        @Override
-        public void failure(Exception exception) {
-            throw new UnsupportedOperationException("Unimplemented method 'failure'");
         }
     }
 

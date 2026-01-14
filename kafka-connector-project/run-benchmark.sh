@@ -3,7 +3,7 @@ echo "Building project and compiling JMH benchmarks..."
 echo "Profile options: $PROFILE_OPTS"
 
 # Compile JMH benchmarks
-./gradlew compileJmhJava
+./gradlew clean compileJmhJava
 
 # Expression evaluation benchmark - Tests expression parsing and evaluation performance
 # ./gradlew jmh --args="ExpressionsBenchmark -wi 3 -w 3 -i 10 -r 3 -f 1 -t 1 -p params=1,3,5 ${PROFILE_OPTS}""
@@ -37,3 +37,6 @@ echo "Profile options: $PROFILE_OPTS"
 
 # End-to-end record consumption from Protobuf - Benchmarks complete consumption workflow from records to subscriber notifications
 # ./gradlew jmh --args="RecordConsumerBenchmark.consumeWithProtobuf -wi 3 -w 3  -i 10 -r 3 -f 1 -t 1 -p numOfRecords=1000,10000 -p numOfSubscriptions=1000,2000 -p partitions=2,4 -p threads=1,2,4 ${PROFILE_OPTS}"
+
+# Poll processing benchmark - Tests end-to-end Protobuf polling with configurable load parameters
+./gradlew jmh --args="PollBenchmarks.pollProtoDeferred -wi 3 -w 3  -i 10 -r 3 -f 1 -t 1 -p numOfRecords=1000,10000 -p numOfSubscriptions=1000,2000 -p partitions=1 -p threads=1 "

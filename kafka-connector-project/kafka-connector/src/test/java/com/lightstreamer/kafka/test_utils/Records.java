@@ -23,7 +23,8 @@ import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -45,59 +46,59 @@ import java.util.function.Function;
 
 public class Records {
 
-    public static KafkaRecord<GenericRecord, ?> fromKey(GenericRecord key) {
-        return record(key, null);
+    public static KafkaRecord<GenericRecord, ?> KafkaRecordFromKey(GenericRecord key) {
+        return KafkaRecord(key, null);
     }
 
-    public static KafkaRecord<?, GenericRecord> fromValue(GenericRecord value) {
-        return record(null, value);
+    public static KafkaRecord<?, GenericRecord> KafkaRecordFromValue(GenericRecord value) {
+        return KafkaRecord(null, value);
     }
 
-    public static KafkaRecord<?, DynamicMessage> fromValue(DynamicMessage value) {
-        return record(null, value);
+    public static KafkaRecord<?, DynamicMessage> KafkaRecordFromValue(DynamicMessage value) {
+        return KafkaRecord(null, value);
     }
 
-    public static KafkaRecord<DynamicMessage, ?> fromKey(DynamicMessage key) {
-        return record(key, null);
+    public static KafkaRecord<DynamicMessage, ?> KafkaRecordFromKey(DynamicMessage key) {
+        return KafkaRecord(key, null);
     }
 
-    public static KafkaRecord<JsonNode, ?> fromKey(JsonNode key) {
-        return record(key, null);
+    public static KafkaRecord<JsonNode, ?> KafkaRecordFromKey(JsonNode key) {
+        return KafkaRecord(key, null);
     }
 
-    public static KafkaRecord<?, JsonNode> fromValue(JsonNode value) {
-        return record(null, value);
+    public static KafkaRecord<?, JsonNode> KafkaRecordFromValue(JsonNode value) {
+        return KafkaRecord(null, value);
     }
 
-    public static KafkaRecord<String, ?> fromKey(String key) {
-        return record(key, null);
+    public static KafkaRecord<String, ?> KafkaRecordFromKey(String key) {
+        return KafkaRecord(key, null);
     }
 
-    public static KafkaRecord<?, String> fromValue(String value) {
-        return record(null, value);
+    public static KafkaRecord<?, String> KafkaRecordFromValue(String value) {
+        return KafkaRecord(null, value);
     }
 
-    public static KafkaRecord<Object, ?> fromKey(Object key) {
-        return record(key, null);
+    public static KafkaRecord<Object, ?> KafkaRecordFromKey(Object key) {
+        return KafkaRecord(key, null);
     }
 
-    public static KafkaRecord<?, Object> fromValue(Object value) {
-        return record(null, value);
+    public static KafkaRecord<?, Object> KafkaRecordFromValue(Object value) {
+        return KafkaRecord(null, value);
     }
 
-    public static KafkaRecord<?, Integer> fromIntValue(int value) {
-        return record(null, value);
+    public static KafkaRecord<?, Integer> KafkaRecordFromIntValue(int value) {
+        return KafkaRecord(null, value);
     }
 
-    public static <K, V> KafkaRecord<K, V> record(K key, V value) {
-        return recordWithHeaders(key, value, new RecordHeaders());
+    public static <K, V> KafkaRecord<K, V> KafkaRecord(K key, V value) {
+        return KafkaRecordWithHeaders(key, value, new RecordHeaders());
     }
 
-    public static <K, V> KafkaRecord<K, V> recordWithHeaders(K key, V value, Headers headers) {
-        return recordWithHeaders("record-topic", key, value, headers);
+    public static <K, V> KafkaRecord<K, V> KafkaRecordWithHeaders(K key, V value, Headers headers) {
+        return KafkaRecordWithHeaders("record-topic", key, value, headers);
     }
 
-    public static <K, V> KafkaRecord<K, V> recordWithHeaders(
+    public static <K, V> KafkaRecord<K, V> KafkaRecordWithHeaders(
             String topic, K key, V value, Headers headers) {
         return KafkaRecord.from(
                 new ConsumerRecord<>(
@@ -108,14 +109,15 @@ public class Records {
                         TimestampType.NO_TIMESTAMP_TYPE,
                         ConsumerRecord.NULL_SIZE,
                         ConsumerRecord.NULL_SIZE,
-                        key,
-                        value,
+                        Deferred.resolved(key),
+                        Deferred.resolved(value),
                         headers,
                         Optional.empty()));
     }
 
-    public static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
-        return KafkaRecord.from(ConsumerRecord(topic, key, value));
+    public static <K, V> KafkaRecord<K, V> KafkaRecord(String topic, K key, V value) {
+        return KafkaRecord.from(
+                ConsumerRecord(topic, Deferred.resolved(key), Deferred.resolved(value)));
     }
 
     public static <K, V> ConsumerRecord<K, V> ConsumerRecord(String topic, K key, V value) {
@@ -133,13 +135,18 @@ public class Records {
                 Optional.empty());
     }
 
-    public static ConsumerRecord<String, String> ConsumerRecord(
+    public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
+        return KafkaRecord.from(ConsumerRecord(topic, partition, id));
+    }
+
+    public static ConsumerRecord<Deferred<String>, Deferred<String>> ConsumerRecord(
             String topic, int partition, String id) {
         String[] tokens = id.split("-");
         String key = tokens[0];
         long offset = Long.parseLong(tokens[1]);
         String value = offset + key;
-        return new ConsumerRecord<>(topic, partition, offset, key, value);
+        return new ConsumerRecord<>(
+                topic, partition, offset, Deferred.resolved(key), Deferred.resolved(value));
     }
 
     public static KafkaRecord<Object, Object> sinkFromValue(
@@ -197,15 +204,15 @@ public class Records {
                         TimestampType.NO_TIMESTAMP_TYPE));
     }
 
-    public static ConsumerRecords<String, String> generateRecords(
+    public static ConsumerRecords<Deferred<String>, Deferred<String>> generateRecords(
             String topic, int size, List<String> keys) {
         return generateRecords(topic, size, keys, 1);
     }
 
-    public static ConsumerRecords<String, String> generateRecords(
+    public static ConsumerRecords<Deferred<String>, Deferred<String>> generateRecords(
             String topic, int size, List<String> keys, int partitions) {
 
-        List<ConsumerRecord<String, String>> records = new ArrayList<>();
+        List<ConsumerRecord<Deferred<String>, Deferred<String>>> records = new ArrayList<>();
         Map<String, Integer> eventCounter = new HashMap<>();
         Map<Integer, Integer> offsetCounter = new HashMap<>();
         SecureRandom secureRandom = new SecureRandom();
@@ -239,16 +246,25 @@ public class Records {
 
             // Increment the offset relative to the selected partition
             int offset = offsetCounter.compute(partition, (p, o) -> o == null ? 0 : ++o);
-            records.add(new ConsumerRecord<>(topic, partition, offset, recordKey, recordValue));
+            records.add(
+                    new ConsumerRecord<>(
+                            topic,
+                            partition,
+                            offset,
+                            Deferred.resolved(recordKey),
+                            Deferred.resolved(recordValue)));
         }
 
         // Group records by partition to be passed to the ConsumerRecords instance
-        Map<TopicPartition, List<ConsumerRecord<String, String>>> partitionsToRecords =
-                records.stream()
-                        .collect(
-                                groupingBy(
-                                        record -> new TopicPartition(topic, record.partition()),
-                                        mapping(Function.identity(), toList())));
+        Map<TopicPartition, List<ConsumerRecord<Deferred<String>, Deferred<String>>>>
+                partitionsToRecords =
+                        records.stream()
+                                .collect(
+                                        groupingBy(
+                                                record ->
+                                                        new TopicPartition(
+                                                                topic, record.partition()),
+                                                mapping(Function.identity(), toList())));
         return new ConsumerRecords<>(partitionsToRecords);
     }
 }

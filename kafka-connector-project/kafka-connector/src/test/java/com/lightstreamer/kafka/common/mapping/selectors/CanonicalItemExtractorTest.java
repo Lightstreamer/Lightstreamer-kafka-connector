@@ -22,6 +22,8 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.EmptyTemplate;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
@@ -30,7 +32,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
-import com.lightstreamer.kafka.test_utils.Records;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.TestSelectorSuppliers;
 
 import org.apache.kafka.common.header.Headers;
@@ -124,8 +126,7 @@ public class CanonicalItemExtractorTest {
         assertThat(extractor.schema()).isEqualTo(expectedSchema);
 
         Headers headers = new RecordHeaders().add("header-key1", "header-value1".getBytes());
-        KafkaRecord<String, String> kafkaRecord =
-                Records.recordWithHeaders("aKey", "aValue", headers);
+        KafkaRecord<String, String> kafkaRecord = KafkaRecordWithHeaders("aKey", "aValue", headers);
 
         assertThat(extractor.extractCanonicalItem(kafkaRecord)).isEqualTo(expectedCompactedString);
     }
@@ -136,7 +137,7 @@ public class CanonicalItemExtractorTest {
                 canonicalItemExtractor(String(), EmptyTemplate(TEST_SCHEMA));
         assertThat(extractor.schema()).isEqualTo(Schema.empty(TEST_SCHEMA));
 
-        KafkaRecord<String, String> kafkaRecord = Records.record("aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord = KafkaRecord("aKey", "aValue");
         assertThat(extractor.extractCanonicalItem(kafkaRecord)).isEqualTo(TEST_SCHEMA);
     }
 
@@ -152,7 +153,7 @@ public class CanonicalItemExtractorTest {
                         ValueException.class,
                         () ->
                                 extractor.extractCanonicalItem(
-                                        Records.record(
+                                        KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
     }

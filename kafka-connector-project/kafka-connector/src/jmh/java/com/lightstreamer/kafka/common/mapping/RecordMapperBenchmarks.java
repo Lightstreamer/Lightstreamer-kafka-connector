@@ -20,12 +20,12 @@ package com.lightstreamer.kafka.common.mapping;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -87,8 +87,12 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
-            ConsumerTriggerConfig<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+            @SuppressWarnings("unchecked")
+            Config<String, DynamicMessage> config =
+                    (Config<String, DynamicMessage>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
+                                    .consumerConfig();
+
             this.records =
                     BenchmarksUtils.ProtoRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);
@@ -129,8 +133,12 @@ public class RecordMapperBenchmarks {
 
         @Setup(Level.Iteration)
         public void setUp() throws Exception {
-            ConsumerTriggerConfig<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+            @SuppressWarnings("unchecked")
+            Config<String, JsonNode> config =
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
+                                    .consumerConfig();
+
             this.records =
                     BenchmarksUtils.JsonRecords.kafkaRecords(
                             TOPICS, partitions, numOfRecords, numOfKeys);

@@ -25,13 +25,14 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.common.mapping.Items.Item;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.connect.Fakes.FakeItemEventListener;
 import com.lightstreamer.kafka.connect.Fakes.FakeSinkContext;
 import com.lightstreamer.kafka.connect.Fakes.FakeSinkContext.FakeErrantRecordReporter;
 import com.lightstreamer.kafka.connect.StreamingDataAdapter.DownstreamUpdater;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.lightstreamer.kafka.test_utils.Mocks.RemoteTestEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -49,6 +50,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -128,9 +130,9 @@ public class StreamingDataAdapterTest {
     @Test
     void shouldSetItemEventListener() {
         StreamingDataAdapter adapter = newAdapter();
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
-        assertThat(adapter.getItemEventListener()).isSameInstanceAs(eventListener);
+        assertThat(adapter.getEventListener()).isNotNull();
     }
 
     @Test
@@ -139,24 +141,24 @@ public class StreamingDataAdapterTest {
         assertThat(adapter.getUpdater()).isSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.subscribe("item1");
-        Item subscribedItem = adapter.getSubscribedItem("item1");
-        assertThat(subscribedItem.schema().name()).isEqualTo("item1");
+        Optional<SubscribedItem> subscribedItem = adapter.getSubscribedItem("item1");
+        assertThat(subscribedItem.get().schema().name()).isEqualTo("item1");
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(1);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.subscribe("item2");
-        Item subscribedItem2 = adapter.getSubscribedItem("item2");
-        assertThat(subscribedItem2.schema().name()).isEqualTo("item2");
+        Optional<SubscribedItem> subscribedItem2 = adapter.getSubscribedItem("item2");
+        assertThat(subscribedItem2.get().schema().name()).isEqualTo("item2");
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(2);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.unsubscribe("item1");
-        assertThat(adapter.getSubscribedItem("item1")).isNull();
+        assertThat(adapter.getSubscribedItem("item1")).isEmpty();
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(1);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.unsubscribe("item2");
-        assertThat(adapter.getSubscribedItem("item2")).isNull();
+        assertThat(adapter.getSubscribedItem("item2")).isEmpty();
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(0);
         assertThat(adapter.getUpdater()).isSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
     }
@@ -213,7 +215,7 @@ public class StreamingDataAdapterTest {
         // Initialize a StreamingAdapter with an NOP Updater to track events that will not be
         // forwarded to any items.
         StreamingDataAdapter adapter = newAdapter(records -> counter.incrementAndGet());
-        FakeItemEventListener eventsListener = new FakeItemEventListener();
+        RemoteTestEventListener eventsListener = new RemoteTestEventListener();
         adapter.setListener(eventsListener);
         adapter.sendRecords(Collections.singleton(mkRecord()));
 
@@ -233,7 +235,7 @@ public class StreamingDataAdapterTest {
             Collection<SinkRecord> records, int expectedOffset, int expectedDeliveredEvents)
             throws SubscriptionException, FailureException {
         StreamingDataAdapter adapter = newAdapter();
-        FakeItemEventListener eventsListener = new FakeItemEventListener();
+        RemoteTestEventListener eventsListener = new RemoteTestEventListener();
         adapter.setListener(eventsListener);
         adapter.subscribe("item1");
         adapter.subscribe("item2");
@@ -242,7 +244,7 @@ public class StreamingDataAdapterTest {
 
         // Since we have subscribed to two items, we expect the total number of real-time updates to
         // be twice the number of records.
-        assertThat(eventsListener.events).hasSize(expectedDeliveredEvents);
+        assertThat(eventsListener.getRealtimeUpdateCount()).isEqualTo(expectedDeliveredEvents);
 
         // Verify that the next offset for the involved partition
         Map<TopicPartition, OffsetAndMetadata> currentOffsets = adapter.getCurrentOffsets();
@@ -265,7 +267,7 @@ public class StreamingDataAdapterTest {
         // Create new StreamingDataAdapter with ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(true);
         StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
         adapter.subscribe("item1");
 
@@ -274,7 +276,7 @@ public class StreamingDataAdapterTest {
         adapter.sendRecords(Collections.singleton(record));
 
         // Verify that the ItemEventListener has NOT been updated.
-        assertThat(eventListener.events).isEmpty();
+        assertThat(eventListener.getRealtimeUpdateCount()).isEqualTo(0);
 
         // Verify that the Reporter has NOT been involved.
         FakeErrantRecordReporter reporter =
@@ -307,7 +309,7 @@ public class StreamingDataAdapterTest {
         // Create new StreamingDataAdapter with ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(true);
         StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
         adapter.subscribe("item1");
 
@@ -316,7 +318,8 @@ public class StreamingDataAdapterTest {
         adapter.sendRecords(Collections.singleton(record));
 
         // Verify that the ItemEventListener has been updated only with the non-failed field.
-        assertThat(eventListener.events).containsExactly(Map.of("field2", "213"));
+        assertThat(eventListener.getRealtimeUpdates())
+                .containsExactly(new UpdateCall("item1", Map.of("field2", "213"), false));
 
         // Verify that the Reporter has NOT been involved.
         FakeErrantRecordReporter reporter =
@@ -345,7 +348,7 @@ public class StreamingDataAdapterTest {
         // Create new StreamingDataAdapter with ErrantRecordReporter enabled
         FakeSinkContext sinkContext = new FakeSinkContext(true);
         StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
         adapter.subscribe("item1");
 
@@ -355,7 +358,8 @@ public class StreamingDataAdapterTest {
         adapter.sendRecords(List.of(record1, record2));
 
         // Verify that the ItemEventListener has been updated only with the first record.
-        assertThat(eventListener.events).containsExactly(Map.of("field1", "213"));
+        assertThat(eventListener.getRealtimeUpdates())
+                .containsExactly(new UpdateCall("item1", Map.of("field1", "213"), false));
 
         // Verify that the Reporter has been updated with the second record and the related thrown
         // exception.
@@ -385,7 +389,7 @@ public class StreamingDataAdapterTest {
         // Create new StreamingDataAdapter with no ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(false);
         StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
         adapter.subscribe("item1");
 
@@ -399,7 +403,7 @@ public class StreamingDataAdapterTest {
         assertThat(ce).hasCauseThat().isInstanceOf(ValueException.class);
 
         // Verify that the ItemEventListener has NOT been updated.
-        assertThat(eventListener.events).isEmpty();
+        assertThat(eventListener.getRealtimeUpdates()).isEmpty();
 
         // Verify that the next offset for the involved partition has NOT been updated
         assertThat(adapter.getCurrentOffsets()).isEmpty();
@@ -418,7 +422,7 @@ public class StreamingDataAdapterTest {
         // Create new StreamingDataAdapter with no ErrantRecordReporter enabled.
         FakeSinkContext sinkContext = new FakeSinkContext(false);
         StreamingDataAdapter adapter = newAdapter(sinkContext, otherSettings);
-        FakeItemEventListener eventListener = new FakeItemEventListener();
+        RemoteTestEventListener eventListener = new RemoteTestEventListener();
         adapter.setListener(eventListener);
         adapter.subscribe("item1");
 
@@ -432,7 +436,7 @@ public class StreamingDataAdapterTest {
         assertThat(ce).hasCauseThat().isInstanceOf(ValueException.class);
 
         // Verify that the ItemEventListener has NOT been updated.
-        assertThat(eventListener.events).isEmpty();
+        assertThat(eventListener.getRealtimeUpdates()).isEmpty();
 
         // Verify that the next offset for the involved partition has NOT been updated.
         assertThat(adapter.getCurrentOffsets()).isEmpty();

@@ -24,11 +24,11 @@ import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -72,8 +72,12 @@ public class DataExtractorBenchmarks {
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
-            ConsumerTriggerConfig<String, DynamicMessage> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
+            @SuppressWarnings("unchecked")
+            Config<String, DynamicMessage> config =
+                    (Config<String, DynamicMessage>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
+                                    .consumerConfig();
+
             canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
@@ -94,8 +98,12 @@ public class DataExtractorBenchmarks {
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
-            ConsumerTriggerConfig<String, JsonNode> config =
-                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
+            @SuppressWarnings("unchecked")
+            Config<String, JsonNode> config =
+                    (Config<String, JsonNode>)
+                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
+                                    .consumerConfig();
+
             canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();

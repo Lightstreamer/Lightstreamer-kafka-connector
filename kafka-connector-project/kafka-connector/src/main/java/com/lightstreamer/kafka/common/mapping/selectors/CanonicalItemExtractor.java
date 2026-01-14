@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+
 /**
  * Interface for extracting canonical Lightstreamer item names from Kafka records through template
  * expansion and data transformation.

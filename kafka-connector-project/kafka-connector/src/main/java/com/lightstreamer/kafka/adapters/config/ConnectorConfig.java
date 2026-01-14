@@ -49,6 +49,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -106,6 +107,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
             "fields.evaluate.as.command.enable";
+
+    public static final String FIELDS_AUTO_COMMAND_MODE_ENABLE = "fields.auto.command.mode.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -240,6 +243,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -469,22 +478,31 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandMode() {
+        if (isAutoCommandModeEnabled()) {
+            checkCommandKey();
+            return;
+        }
+
         if (isCommandEnforceEnabled()) {
             if (getRecordConsumeWithNumThreads() != 1) {
                 throw new ConfigException(
                         "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
                                 .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
             }
-            if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
-                throw new ConfigException(
-                        "Command mode requires a key field. Parameter [%s] must be set"
-                                .formatted("field.key"));
-            }
+            checkCommandKey();
             if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
                 throw new ConfigException(
                         "Command mode requires a command field. Parameter [%s] must be set"
                                 .formatted("field.command"));
             }
+        }
+    }
+
+    private void checkCommandKey() {
+        if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
+            throw new ConfigException(
+                    "Command mode requires a key field. Parameter [%s] must be set"
+                            .formatted("field.key"));
         }
     }
 
@@ -561,6 +579,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isCommandEnforceEnabled() {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+    }
+
+    public boolean isAutoCommandModeEnabled() {
+        return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
+    }
+
+    public CommandModeStrategy getCommandModeStrategy() {
+        return CommandModeStrategy.from(isAutoCommandModeEnabled(), isCommandEnforceEnabled());
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {
