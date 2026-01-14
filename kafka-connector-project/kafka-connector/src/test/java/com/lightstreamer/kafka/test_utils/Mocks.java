@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTrigge
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
@@ -224,7 +225,7 @@ public class Mocks {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
+        public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
             throw new UnsupportedOperationException("Unimplemented method 'consumeRecords'");
         }
     }
