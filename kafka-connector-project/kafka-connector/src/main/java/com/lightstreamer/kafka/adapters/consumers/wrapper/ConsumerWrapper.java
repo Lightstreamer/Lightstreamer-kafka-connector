@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.apache.kafka.clients.admin.Admin;
@@ -35,7 +36,7 @@ import java.util.function.Supplier;
 
 public interface ConsumerWrapper<K, V> extends Runnable {
 
-    void consumeRecords(ConsumerRecords<K, V> records);
+    RecordsBatch consumeRecords(ConsumerRecords<K, V> records);
 
     default void close() {}
 
