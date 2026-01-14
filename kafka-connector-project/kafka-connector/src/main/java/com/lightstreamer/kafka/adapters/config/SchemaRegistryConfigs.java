@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -121,8 +120,10 @@ public class SchemaRegistryConfigs {
             return props.unmodifiable();
         }
 
+        String provider = cfg.schemaRegistryProvider();
         props.setProperty(
                 AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
+        props.setProperty(ConnectorConfig.SCHEMA_REGISTRY_PROVIDER, provider);
 
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(

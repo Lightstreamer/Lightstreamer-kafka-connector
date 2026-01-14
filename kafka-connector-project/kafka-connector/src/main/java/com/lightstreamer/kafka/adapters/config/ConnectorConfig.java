@@ -1,4 +1,3 @@
-
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -118,6 +117,8 @@ public final class ConnectorConfig extends AbstractConfig {
             "record.value.evaluator.schema.path";
     public static final String RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
             "record.value.evaluator.schema.registry.enable";
+
+    public static final String SCHEMA_REGISTRY_PROVIDER = "schema.registry.provider";
 
     public static final String RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR =
             "record.key.evaluator.kvp.pairs.separator";
@@ -264,6 +265,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
+                        .add(
+                                SCHEMA_REGISTRY_PROVIDER,
+                                false,
+                                false,
+                                TEXT,
+                                defaultValue("CONFLUENT"))
                         .add(
                                 RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR,
                                 false,
@@ -961,6 +968,11 @@ public final class ConnectorConfig extends AbstractConfig {
     public String schemaRegistryBasicAuthenticationPassword() {
         checkSchemaRegistryBasicAuthentication();
         return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
+    }
+
+    public String schemaRegistryProvider() {
+        checkSchemaRegistryEnabled();
+        return getText(SCHEMA_REGISTRY_PROVIDER);
     }
 
     public ItemTemplateConfigs getItemTemplateConfigs() {
