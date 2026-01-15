@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -31,13 +32,18 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class GenericRecordDeserializers {
+
+    private static final String SCHEMA_REGISTRY_PROVIDER_AZURE = "AZURE";
 
     static class WrapperKafkaAvroDeserializer implements Deserializer<GenericRecord> {
 
@@ -88,6 +94,112 @@ public class GenericRecordDeserializers {
         }
     }
 
+    static class AzureSchemaRegistryDeserializer implements Deserializer<GenericRecord> {
+
+        private com.azure.data.schemaregistry.SchemaRegistryClient schemaRegistryClient;
+        private final Map<String, Schema> schemaCache = new ConcurrentHashMap<>();
+        private String schemaIdHeader;
+        private String schemaRegistryNamespace;
+        private String tenantId;
+        private String clientId;
+        private String clientSecret;
+
+        public void preConfigure(ConnectorConfig config, boolean isKey) {
+            // Retrieve the header name from configuration
+            schemaIdHeader = config.azureSchemaIdHeader();
+            if (schemaIdHeader == null || schemaIdHeader.isBlank()) {
+                schemaIdHeader = ""; // fallback to default
+            }
+
+            // Create the SchemaRegistryClient using configurations
+            schemaRegistryNamespace = config.schemaRegistryUrl();
+            if (schemaRegistryNamespace != null && schemaRegistryNamespace.startsWith("https://")) {
+                schemaRegistryNamespace = schemaRegistryNamespace.substring(8);
+            }
+            if (schemaRegistryNamespace != null && schemaRegistryNamespace.endsWith("/")) {
+                schemaRegistryNamespace = schemaRegistryNamespace.substring(0, schemaRegistryNamespace.length() - 1);
+            }
+            
+            // If specified, use Service Principal credentials
+            tenantId = config.azureTenantId();
+            clientId = config.azureClientId();
+            clientSecret = config.azureClientSecret();
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            // Initialize the Azure Schema Registry client
+            com.azure.identity.DefaultAzureCredentialBuilder credentialBuilder = 
+                new com.azure.identity.DefaultAzureCredentialBuilder();
+            
+            com.azure.core.credential.TokenCredential credential;
+            if (clientId != null && clientSecret != null && tenantId != null) {
+                credential = new com.azure.identity.ClientSecretCredentialBuilder()
+                    .tenantId(tenantId)
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .build();
+            } else {
+                credential = credentialBuilder.build();
+            }
+            
+            this.schemaRegistryClient = new com.azure.data.schemaregistry.SchemaRegistryClientBuilder()
+                .fullyQualifiedNamespace(schemaRegistryNamespace)
+                .credential(credential)
+                .buildClient();
+        }
+
+        @Override
+        public GenericRecord deserialize(String topic, byte[] data) {
+            return deserialize(topic, null, data);
+        }
+
+        @Override
+        public GenericRecord deserialize(String topic, Headers headers, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
+            
+            // Extract the schema ID from the header
+            String schemaId = resolveSchemaId(headers);
+            if (schemaId == null || schemaId.isBlank()) {
+                throw new SerializationException("Schema ID header not found");
+            }
+            
+            try {
+                Schema schema = schemaCache.computeIfAbsent(schemaId, this::resolveSchema);
+                
+                GenericDatumReader<GenericRecord> reader = new GenericDatumReader<>(schema);
+                BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(data, null);
+                return reader.read(null, decoder);
+            } catch (IOException ex) {
+                throw new SerializationException("Failed to decode Avro payload", ex);
+            }
+        }
+        
+        private String resolveSchemaId(Headers headers) {
+            if (headers == null) {
+                return null;
+            }
+            org.apache.kafka.common.header.Header header = headers.lastHeader(schemaIdHeader);
+            if (header == null || header.value() == null) {
+                return null;
+            }
+            return new String(header.value(), StandardCharsets.UTF_8);
+        }
+        
+        private Schema resolveSchema(String schemaId) {
+            com.azure.data.schemaregistry.models.SchemaRegistrySchema schema = 
+                schemaRegistryClient.getSchema(schemaId);
+            return new Schema.Parser().parse(schema.getDefinition());
+        }
+
+        @Override
+        public void close() {
+            // The client does not have an explicit close method
+        }
+    }
+
     static Deserializer<GenericRecord> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
@@ -100,7 +212,18 @@ public class GenericRecordDeserializers {
             ConnectorConfig config, boolean isKey) {
         checkEvaluator(config, isKey);
         Deserializer<GenericRecord> deserializer = newDeserializer(config, isKey);
-        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+        
+        if ((isKey && config.isSchemaRegistryEnabledForKey())
+                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
+                deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+            } else {
+                deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+            }
+        } else {
+            deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+        }
+        
         return deserializer;
     }
 
@@ -111,6 +234,17 @@ public class GenericRecordDeserializers {
                     new GenericRecordLocalSchemaDeserializer();
             localSchemaDeser.preConfigure(config, isKey);
             return localSchemaDeser;
+        }
+        
+        if ((isKey && config.isSchemaRegistryEnabledForKey())
+                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
+                AzureSchemaRegistryDeserializer azureDeserializer = new AzureSchemaRegistryDeserializer();
+                azureDeserializer.preConfigure(config, isKey);
+                return azureDeserializer;
+            } else {
+                return new WrapperKafkaAvroDeserializer();
+            }
         }
 
         return new WrapperKafkaAvroDeserializer();

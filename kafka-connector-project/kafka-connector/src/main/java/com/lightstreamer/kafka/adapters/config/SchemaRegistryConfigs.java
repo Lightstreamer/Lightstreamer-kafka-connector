@@ -75,12 +75,21 @@ public class SchemaRegistryConfigs {
     public static final String BASIC_AUTHENTICATION_USER_PASSWORD =
             ns("basic.authentication.password");
 
+    public static final String AZURE_SCHEMA_ID_HEADER = ns("azure.schema.id.header");
+    public static final String AZURE_TENANT_ID = ns("azure.tenant.id");
+    public static final String AZURE_CLIENT_ID = ns("azure.client.id");
+    public static final String AZURE_CLIENT_SECRET = ns("azure.client.secret");
+
     private static ConfigsSpec CONFIG_SPEC;
 
     static {
         CONFIG_SPEC =
                 new ConfigsSpec("schemaRegistry")
                         .add(URL, true, false, ConfType.URL)
+                        .add(AZURE_SCHEMA_ID_HEADER, false, false, TEXT, defaultValue(""))
+                        .add(AZURE_TENANT_ID, false, false, TEXT)
+                        .add(AZURE_CLIENT_ID, false, false, TEXT)
+                        .add(AZURE_CLIENT_SECRET, false, false, TEXT)
                         .add(ENABLE_BASIC_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
                         .withEnabledChildConfigs(
                                 new ConfigsSpec("basicAuthentication")
@@ -124,6 +133,10 @@ public class SchemaRegistryConfigs {
         props.setProperty(
                 AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
         props.setProperty(ConnectorConfig.SCHEMA_REGISTRY_PROVIDER, provider);
+        props.setProperty(AZURE_SCHEMA_ID_HEADER, cfg.azureSchemaIdHeader());
+        props.setProperty(AZURE_TENANT_ID, cfg.getText(AZURE_TENANT_ID));
+        props.setProperty(AZURE_CLIENT_ID, cfg.getText(AZURE_CLIENT_ID));
+        props.setProperty(AZURE_CLIENT_SECRET, cfg.getText(AZURE_CLIENT_SECRET));
 
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(

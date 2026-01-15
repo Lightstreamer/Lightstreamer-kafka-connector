@@ -975,6 +975,26 @@ public final class ConnectorConfig extends AbstractConfig {
         return getText(SCHEMA_REGISTRY_PROVIDER);
     }
 
+    public String azureSchemaIdHeader() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_SCHEMA_ID_HEADER);
+    }
+
+    public String azureTenantId() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_TENANT_ID);
+    }
+
+    public String azureClientId() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+    }
+
+    public String azureClientSecret() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+    }
+
     public ItemTemplateConfigs getItemTemplateConfigs() {
         return itemTemplateConfigs;
     }
