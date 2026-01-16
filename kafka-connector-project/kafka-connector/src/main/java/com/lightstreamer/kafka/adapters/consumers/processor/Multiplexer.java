@@ -302,14 +302,4 @@ public class Multiplexer<S> implements TaskExecutor<S> {
             }
         }
     }
-
-    @Override
-    public void waitBatch() {
-        if (emptinessChecker == null) {
-            throw new UnsupportedOperationException();
-        }
-        synchronized (emptinessChecker) {
-            emptinessChecker.waitEmpty();
-        }
-    }
 }
