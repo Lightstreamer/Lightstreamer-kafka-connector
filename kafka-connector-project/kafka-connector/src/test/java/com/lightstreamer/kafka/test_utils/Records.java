@@ -100,7 +100,7 @@ public class Records {
 
     public static <K, V> KafkaRecord<K, V> KafkaRecordWithHeaders(
             String topic, K key, V value, Headers headers) {
-        return KafkaRecord.from(
+        return KafkaRecord.fromDeferred(
                 new ConsumerRecord<>(
                         topic,
                         150,
@@ -116,7 +116,7 @@ public class Records {
     }
 
     public static <K, V> KafkaRecord<K, V> KafkaRecord(String topic, K key, V value) {
-        return KafkaRecord.from(
+        return KafkaRecord.fromDeferred(
                 ConsumerRecord(topic, Deferred.resolved(key), Deferred.resolved(value)));
     }
 
@@ -136,7 +136,7 @@ public class Records {
     }
 
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
-        return KafkaRecord.from(ConsumerRecord(topic, partition, id));
+        return KafkaRecord.fromDeferred(ConsumerRecord(topic, partition, id));
     }
 
     public static ConsumerRecord<Deferred<String>, Deferred<String>> ConsumerRecord(
