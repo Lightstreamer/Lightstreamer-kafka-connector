@@ -17,15 +17,15 @@
 
 package com.lightstreamer.kafka.common.records;
 
-import com.lightstreamer.kafka.adapters.RawKafkaRecord;
 import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.connect.sink.SinkRecord;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public interface KafkaRecord<K, V> {
 
@@ -59,32 +59,59 @@ public interface KafkaRecord<K, V> {
         }
     }
 
-    public static <K, V> KafkaRecord<K, V> from(ConsumerRecord<Deferred<K>, Deferred<V>> record) {
-        return new KafkaConsumerRecord<>(record);
+    public static <K, V> KafkaRecord<K, V> fromDeferred(
+            ConsumerRecord<Deferred<K>, Deferred<V>> record) {
+        return new DeferredKafkaConsumerRecord<>(record);
     }
 
-    public static <K, V> KafkaRecord<K, V> from(
-            RawKafkaRecord record,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer)
-            throws SerializationException {
-
-        Deferred<K> deferredKey = Deferred.lazy(keyDeserializer, record.topic(), record.key());
-        Deferred<V> deferredValue =
-                Deferred.lazy(valueDeserializer, record.topic(), record.value());
-
-        return new KafkaCachedRecord<>(
-                record.topic(),
-                record.partition(),
-                record.offset(),
-                record.timestamp(),
-                deferredKey,
-                deferredValue,
-                record.headers());
+    public static <K, V> KafkaRecord<K, V> from(ConsumerRecord<K, V> record) {
+        return new KafkaConsumerRecord<>(record);
     }
 
     public static KafkaRecord<Object, Object> from(SinkRecord record) {
         return new KafkaSinkRecord(record);
+    }
+
+    static <K, V> List<KafkaRecord<K, V>> listFrom(ConsumerRecords<K, V> consumerRecords) {
+        List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
+        consumerRecords
+                .partitions()
+                .forEach(
+                        partition -> {
+                            List<ConsumerRecord<K, V>> recordsByPartition =
+                                    consumerRecords.records(partition);
+                            for (int i = 0; i < recordsByPartition.size(); i++) {
+                                ConsumerRecord<K, V> record = recordsByPartition.get(i);
+                                kafkaRecords.add(KafkaRecord.from(record));
+                            }
+                        });
+        return kafkaRecords;
+    }
+
+    static <K, V> List<KafkaRecord<K, V>> listFromDeferred(
+            ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords) {
+        return consumerRecords.partitions().parallelStream()
+                .flatMap(partition -> consumerRecords.records(partition).stream())
+                .map(KafkaRecord::fromDeferred)
+                .collect(Collectors.toList());
+    }
+
+    static <K, V> List<KafkaRecord<K, V>> listFromDeferred2(
+            ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords) {
+        List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
+        consumerRecords
+                .partitions()
+                .forEach(
+                        partition -> {
+                            List<ConsumerRecord<Deferred<K>, Deferred<V>>> recordsByPartition =
+                                    consumerRecords.records(partition);
+                            for (int i = 0, n = recordsByPartition.size(); i < n; i++) {
+                                ConsumerRecord<Deferred<K>, Deferred<V>> record =
+                                        recordsByPartition.get(i);
+                                kafkaRecords.add(KafkaRecord.fromDeferred(record));
+                            }
+                        });
+        return kafkaRecords;
     }
 
     K key();
