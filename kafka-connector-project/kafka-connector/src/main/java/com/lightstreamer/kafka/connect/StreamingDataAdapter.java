@@ -214,7 +214,7 @@ public final class StreamingDataAdapter implements RecordSender {
     }
 
     // Only for testing purposes
-    Optional<SubscribedItem> getSubscribedItem(String item) {
+    SubscribedItem getSubscribedItem(String item) {
         return subscribed.getItem(item);
     }
 
