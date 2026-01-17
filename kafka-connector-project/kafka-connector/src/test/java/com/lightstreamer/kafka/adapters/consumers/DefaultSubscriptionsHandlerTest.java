@@ -137,13 +137,13 @@ public class DefaultSubscriptionsHandlerTest {
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         // Verify that the items have been registered
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
-        assertThat(item1).isPresent();
-        assertThat(item1.get()).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(item1).isNotNull();
+        assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
-        assertThat(item2).isPresent();
-        assertThat(item2.get()).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(item2).isNotNull();
+        assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
     }
 
     @Test
@@ -218,10 +218,10 @@ public class DefaultSubscriptionsHandlerTest {
         Object itemHandle2 = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
 
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
 
         Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
@@ -230,8 +230,8 @@ public class DefaultSubscriptionsHandlerTest {
         Optional<SubscribedItem> removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
 
-        assertThat(removed1.get()).isSameInstanceAs(item1.get());
-        assertThat(removed2.get()).isSameInstanceAs(item2.get());
+        assertThat(removed1.get()).isSameInstanceAs(item1);
+        assertThat(removed2.get()).isSameInstanceAs(item2);
 
         // After unsubscription, the handler should not be consuming anymore
         assertThat(subscriptionHandler.isConsuming()).isFalse();
