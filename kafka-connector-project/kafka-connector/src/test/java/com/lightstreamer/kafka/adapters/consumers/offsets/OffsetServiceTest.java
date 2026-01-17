@@ -238,7 +238,7 @@ public class OffsetServiceTest {
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.from(record)));
+        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
         offsetService.commitSync();
 
         // Check the committed map
@@ -290,7 +290,7 @@ public class OffsetServiceTest {
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.from(record)));
+        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
         offsetService.commitSyncAndIgnoreErrors();
 
         // Check the committed map has not changed
@@ -336,7 +336,7 @@ public class OffsetServiceTest {
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.from(record)));
+        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
         offsetService.commitAsync();
 
         // Check the committed map
@@ -368,7 +368,7 @@ public class OffsetServiceTest {
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.from(record)));
+        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
 
         // Trigger a rebalance, which in turn make the OffsetService invoke onPartitionsRevoked.
         // The rebalance event remove partition0.
@@ -407,7 +407,7 @@ public class OffsetServiceTest {
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.from(record)));
+        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
 
         // Trigger a rebalance, which in turn make the OffsetService invoke onPartitionsRevoked.
         // The rebalance event remove partition0.
@@ -441,7 +441,8 @@ public class OffsetServiceTest {
                         ConsumerRecord(TOPIC, 0, "A-20"));
 
         for (ConsumerRecord<Deferred<String>, Deferred<String>> record : havePendingOffsets) {
-            assertThat(offsetService.notHasPendingOffset(KafkaRecord.from(record))).isFalse();
+            assertThat(offsetService.notHasPendingOffset(KafkaRecord.fromDeferred(record)))
+                    .isFalse();
         }
 
         // The following records do not have their offsets stored as pending in the metadata
@@ -458,7 +459,8 @@ public class OffsetServiceTest {
                         ConsumerRecord(TOPIC, 0, "A-21"),
                         ConsumerRecord(TOPIC, 1, "B-21"));
         for (ConsumerRecord<Deferred<String>, Deferred<String>> record : haveNoPendingOffsets) {
-            assertThat(offsetService.notHasPendingOffset(KafkaRecord.from(record))).isTrue();
+            assertThat(offsetService.notHasPendingOffset(KafkaRecord.fromDeferred(record)))
+                    .isTrue();
         }
     }
 }
