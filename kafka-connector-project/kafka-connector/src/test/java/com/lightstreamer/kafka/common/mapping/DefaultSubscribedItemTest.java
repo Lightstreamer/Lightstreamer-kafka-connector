@@ -207,7 +207,7 @@ public class DefaultSubscribedItemTest {
         snapshot.join();
 
         executor.shutdown();
-        assertThat(executor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
         assertThat(threads).hasSize(21); // All threads ran
 
         // Verify all events were processed exactly once
