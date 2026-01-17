@@ -27,10 +27,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
 
 import org.slf4j.Logger;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -136,15 +136,13 @@ public interface RecordConsumer<K, V> {
     }
 
     default int consumeFilteredRecords(
-            KafkaRecords<K, V> records, Predicate<KafkaRecord<K, V>> predicate) {
-        KafkaRecords<K, V> filtered = records.filter(predicate);
+            List<KafkaRecord<K, V>> records, Predicate<KafkaRecord<K, V>> predicate) {
+        List<KafkaRecord<K, V>> filtered = records.stream().filter(predicate).toList();
         consumeRecords(filtered);
-        return filtered.count();
+        return filtered.size();
     }
 
-    void consumeRecords(KafkaRecords<K, V> records);
-
-    void consumeRecordsAsSnapshot(KafkaRecords<K, V> records, SubscribedItem subscribedItem);
+    void consumeRecords(List<KafkaRecord<K, V>> records);
 
     default void consumeRecords(Stream<KafkaRecord<K, V>> records) {}
 
