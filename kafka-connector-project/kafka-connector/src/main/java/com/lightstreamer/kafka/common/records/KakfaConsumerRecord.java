@@ -17,31 +17,29 @@
 
 package com.lightstreamer.kafka.common.records;
 
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 final class KafkaConsumerRecord<K, V> implements KafkaRecord<K, V> {
 
-    private final ConsumerRecord<Deferred<K>, Deferred<V>> record;
+    private final ConsumerRecord<K, V> record;
 
-    KafkaConsumerRecord(ConsumerRecord<Deferred<K>, Deferred<V>> record) {
+    KafkaConsumerRecord(ConsumerRecord<K, V> record) {
         this.record = record;
     }
 
     @Override
     public K key() {
-        return record.key().load();
+        return record.key();
     }
 
     @Override
     public V value() {
-        return record.value().load();
+        return record.value();
     }
 
     @Override
     public boolean isPayloadNull() {
-        return record.value().isNull();
+        return record.value() == null;
     }
 
     @Override
