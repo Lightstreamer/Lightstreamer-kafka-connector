@@ -46,7 +46,6 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -318,7 +317,7 @@ public class KafkaConsumerWrapperTest {
 
         // Invoke the method and verify that the task has been actually invoked with the
         // expected simulated records
-        int filtered = wrapper.initStoreAndConsume(KafkaRecords.from(records));
+        int filtered = wrapper.initStoreAndConsume(KafkaRecord.listFromDeferred(records));
         assertThat(filtered).isEqualTo(records.count() - 2);
     }
 
@@ -360,12 +359,12 @@ public class KafkaConsumerWrapperTest {
         // Define the task that should be invoked upon polling
         List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<KafkaRecords<String, String>> task =
+        Consumer<List<KafkaRecord<String, String>>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
-                    if (received.count() > 0) {
+                    if (received.size() > 0) {
                         for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
@@ -413,12 +412,12 @@ public class KafkaConsumerWrapperTest {
         // Define the task that should be invoked upon polling
         List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<KafkaRecords<String, String>> task =
+        Consumer<List<KafkaRecord<String, String>>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
-                    if (received.count() > 0) {
+                    if (received.size() > 0) {
                         for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
@@ -470,12 +469,12 @@ public class KafkaConsumerWrapperTest {
         // Define the task that should be invoked upon polling
         List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<KafkaRecords<String, String>> task =
+        Consumer<List<KafkaRecord<String, String>>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
-                    if (received.count() > 0) {
+                    if (received.size() > 0) {
                         for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
@@ -529,12 +528,12 @@ public class KafkaConsumerWrapperTest {
         // Define the task that should be invoked upon polling
         List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<KafkaRecords<String, String>> task =
+        Consumer<List<KafkaRecord<String, String>>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
-                    if (received.count() > 0) {
+                    if (received.size() > 0) {
                         for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
@@ -601,12 +600,12 @@ public class KafkaConsumerWrapperTest {
         // Define the task that should be invoked upon polling
         List<KafkaRecord<String, String>> holder = new ArrayList<>();
         AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<KafkaRecords<String, String>> task =
+        Consumer<List<KafkaRecord<String, String>>> task =
                 received -> {
                     // Track invocations
                     invocationCounter.incrementAndGet();
                     // Store only if records were actually fetched
-                    if (received.count() > 0) {
+                    if (received.size() > 0) {
                         for (KafkaRecord<String, String> record : received) {
                             holder.add(record);
                         }
