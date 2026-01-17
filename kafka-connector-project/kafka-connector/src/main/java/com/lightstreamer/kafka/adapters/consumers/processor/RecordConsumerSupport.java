@@ -42,7 +42,6 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
 
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
@@ -50,10 +49,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -407,8 +408,8 @@ class RecordConsumerSupport {
         public void sendUpdates(
                 Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
             for (SubscribedItem sub : routable) {
-                // updater.update(sub, updates, false);
                 sub.sendRealtimeEvent(updates, listener);
+                // listener.update(sub, updates, false);
             }
         }
 
@@ -729,15 +730,11 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(KafkaRecords<K, V> records) {
-            records.forEach(this::consumeRecord);
+        public void consumeRecords(List<KafkaRecord<K, V>> records) {
+            for (int i = 0; i < records.size(); i++) {
+                consumeRecord(records.get(i));
+            }
             offsetService.commitAsync();
-        }
-
-        @Override
-        public void consumeRecordsAsSnapshot(
-                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
-            records.forEach(this::consumeRecord);
         }
 
         private void consumeRecord(KafkaRecord<K, V> record) {
@@ -781,11 +778,14 @@ class RecordConsumerSupport {
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
             this.actualThreads = getActualThreadsNumber(configuredThreads);
-
+            AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
                     TaskExecutor.create(
                             newFixedThreadPool(
-                                    actualThreads, r -> newThread(r, new AtomicInteger())));
+                                    actualThreads,
+                                    r -> {
+                                        return newThread(r, threadCount);
+                                    }));
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -796,7 +796,8 @@ class RecordConsumerSupport {
         }
 
         private Thread newThread(Runnable r, AtomicInteger threadCount) {
-            return new Thread(r, "ParallelConsumer-" + threadCount.getAndIncrement());
+            int andIncrement = threadCount.getAndIncrement();
+            return new Thread(r, "ParallelConsumer-" + andIncrement);
         }
 
         @Override
@@ -815,8 +816,23 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(KafkaRecords<K, V> records) {
-            taskExecutor.executeKafkaBatch(records, orderStrategy::getSequence, this::consume);
+        public void consumeRecords(List<KafkaRecord<K, V>> records) {
+            int size = records.size();
+            CountDownLatch latch = new CountDownLatch(size);
+            for (int i = 0; i < size; i++) {
+                final KafkaRecord<K, V> record = records.get(i);
+                String seq = orderStrategy.getSequence(record);
+                taskExecutor.execute(
+                        seq,
+                        () -> {
+                            consume(seq, record, latch);
+                        });
+            }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
@@ -828,7 +844,7 @@ class RecordConsumerSupport {
             }
         }
 
-        void consume(String sequence, KafkaRecord<K, V> record) {
+        void consume(String sequence, KafkaRecord<K, V> record, CountDownLatch latch) {
             try {
                 logger.atDebug().log(
                         () ->
@@ -843,6 +859,8 @@ class RecordConsumerSupport {
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
                 offsetService.onAsyncFailure(t);
+            } finally {
+                latch.countDown();
             }
         }
 
@@ -879,13 +897,6 @@ class RecordConsumerSupport {
         @Override
         void onTermination() {
             taskExecutor.shutdown();
-        }
-
-        @Override
-        public void consumeRecordsAsSnapshot(
-                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'consumeRecordFor'");
         }
     }
 
