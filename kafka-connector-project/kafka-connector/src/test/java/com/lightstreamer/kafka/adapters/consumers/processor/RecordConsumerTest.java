@@ -47,7 +47,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
@@ -719,7 +719,7 @@ public class RecordConsumerTest {
                         listener, threads, CommandModeStrategy.NONE, OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records));
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
                             .map(u -> buildEvent(u.event()))
@@ -793,7 +793,7 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(KafkaRecords.from(allRecords));
+            recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(allRecords));
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
                             .map(u -> buildEvent(u.event()))
@@ -849,7 +849,7 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records));
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
                             .map(u -> buildEvent(u.event()))
@@ -883,7 +883,7 @@ public class RecordConsumerTest {
                 mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
-            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records));
             List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
             List<Event> deliveredEvents =
                     realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
@@ -908,7 +908,8 @@ public class RecordConsumerTest {
                 mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         // Consume only the records published to partition 0
-        recordConsumer.consumeFilteredRecords(KafkaRecords.from(records), c -> c.partition() == 0);
+        recordConsumer.consumeFilteredRecords(
+                KafkaRecord.listFromDeferred(records), c -> c.partition() == 0);
         // Verify that only 1/3 of total published record have been consumed
         assertThat(testListener.getSmartRealtimeUpdates().size()).isEqualTo(records.count() / 3);
     }
@@ -950,7 +951,7 @@ public class RecordConsumerTest {
 
         assertThrows(
                 KafkaException.class,
-                () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
+                () -> recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records)));
 
         List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
         // For single-threaded processing, processing will stop upon first failure, therefore only
@@ -992,14 +993,14 @@ public class RecordConsumerTest {
                         .build();
 
         if (exception instanceof ValueException) {
-            recordConsumer.consumeRecords(KafkaRecords.from(records));
+            recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records));
             // Ensure that all offsets are committed (even the offending ones)
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             assertThat(consumedRecords).hasSize(records.count());
         } else {
             assertThrows(
                     KafkaException.class,
-                    () -> recordConsumer.consumeRecords(KafkaRecords.from(records)));
+                    () -> recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records)));
             List<ConsumedRecordInfo> consumedRecords = offsetService.getConsumedRecords();
             int expectedNumOfProcessedRecords =
                     numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
