@@ -37,7 +37,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -552,9 +551,9 @@ final class DefaultMappedRecord implements MappedRecord {
         Set<SubscribedItem> result = new HashSet<>();
 
         for (String itemName : itemNames) {
-            Optional<SubscribedItem> item = items.getItem(itemName);
-            if (item.isPresent()) {
-                result.add(item.get());
+            SubscribedItem item = items.getItem(itemName);
+            if (item != null) {
+                result.add(item);
             }
         }
         return result;
