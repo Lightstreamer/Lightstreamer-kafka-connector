@@ -32,10 +32,9 @@ import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperCo
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -307,7 +306,7 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    void pollOnce(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
+    void pollOnce(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed");
@@ -315,7 +314,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("First poll completed");
     }
 
-    void pollAvailable(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
+    void pollAvailable(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log("Polling all available records");
         while (pool(recordConsumer, Duration.ofMillis(100)) > 0)
@@ -324,28 +323,17 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private int pool(
-            java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer, Duration duration)
+            java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer, Duration duration)
             throws KafkaException {
         logger.atInfo().log("Polling records");
         try {
             ConsumerRecords<Deferred<K>, Deferred<V>> records = consumer.poll(duration);
             logger.atDebug().log("Received records");
-            // -- To - RocksDB
-
-            // records.forEach(
-            //         c ->
-            //                 new RawKafkaRecord(
-            //                         c.topic(),
-            //                         c.partition(),
-            //                         c.offset(),
-            //                         c.timestamp(),
-            //                         c.key().rawBytes(),
-            //                         c.value().rawBytes(),
-            //                         c.headers()));
-            recordConsumer.accept(KafkaRecords.from(records));
-
-            logger.atInfo().log("Consumed {} records", records.count());
-            return records.count();
+            List<KafkaRecord<K, V>> kafkaRecords = KafkaRecord.listFromDeferred(records);
+            recordConsumer.accept(kafkaRecords);
+            int count = kafkaRecords.size();
+            logger.atInfo().log("Consumed {} records", count);
+            return count;
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
@@ -390,7 +378,7 @@ public class KafkaConsumerWrapper<K, V> {
         return FutureStatus.State.LOOP_CLOSED_BY_WAKEUP;
     }
 
-    void pollForEver(java.util.function.Consumer<KafkaRecords<K, V>> recordConsumer)
+    void pollForEver(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log("Starting infinite pool");
         for (; ; ) {
@@ -402,14 +390,14 @@ public class KafkaConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    int initStoreAndConsume(KafkaRecords<K, V> records) {
+    int initStoreAndConsume(List<KafkaRecord<K, V>> records) {
         offsetService.initStore(isFromLatest());
         // Consume all the records that don't have a pending offset, which have therefore
         // already delivered to the clients.
         return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
     }
 
-    private void consumeRecords(KafkaRecords<K, V> records) {
+    private void consumeRecords(List<KafkaRecord<K, V>> records) {
         recordConsumer.consumeRecords(records);
     }
 
@@ -419,8 +407,9 @@ public class KafkaConsumerWrapper<K, V> {
             if (status.isShutdown()) {
                 return status;
             }
-            // if (status.isConnected()
+
             doShutdown();
+
             if (this.hook != null) {
                 logger.atDebug().log("Removing shutdown hook");
                 Runtime.getRuntime().removeShutdownHook(this.hook);
@@ -439,11 +428,6 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Consumer woken up, waiting for graceful thread completion");
         status.join();
         logger.atInfo().log("Kafka consumer shut down");
-    }
-
-    public void consumeRecordsAsSnapshot(
-            KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
-        recordConsumer.consumeRecordsAsSnapshot(records, subscribedItem);
     }
 
     // Only for testing purposes
