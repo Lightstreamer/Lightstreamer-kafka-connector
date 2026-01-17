@@ -17,14 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
-
-import java.util.Collection;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public interface TaskExecutor<S> {
 
@@ -35,51 +29,6 @@ public interface TaskExecutor<S> {
     default <E> void execute(E event, S sequence, BiConsumer<? super S, ? super E> task) {
         execute(sequence, () -> task.accept(sequence, event));
     }
-
-    default <E> void executeBatch(
-            Collection<? extends E> events,
-            Function<? super E, ? extends S> sequence,
-            BiConsumer<? super S, ? super E> task) {
-        CountDownLatch latch = new CountDownLatch(events.size());
-        for (E event : events) {
-            S seq = sequence.apply(event);
-            execute(event, seq, wrapTask(task, latch));
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    default <K, V> void executeKafkaBatch(
-            KafkaRecords<K, V> records,
-            Function<KafkaRecord<K, V>, ? extends S> sequence,
-            BiConsumer<? super S, KafkaRecord<K, V>> task) {
-        CountDownLatch latch = new CountDownLatch(records.count());
-        for (KafkaRecord<K, V> event : records) {
-            S seq = sequence.apply(event);
-            execute(event, seq, wrapTask(task, latch));
-        }
-        try {
-            latch.await();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    default <E> BiConsumer<? super S, ? super E> wrapTask(
-            BiConsumer<? super S, ? super E> task, CountDownLatch latch) {
-        return (s, e) -> {
-            try {
-                task.accept(s, e);
-            } finally {
-                latch.countDown();
-            }
-        };
-    }
-
-    default void waitBatch() {}
 
     static <S> TaskExecutor<S> create(ExecutorService pool) {
         return new Multiplexer<>(pool, false);
