@@ -144,10 +144,10 @@ public class Items {
          * Retrieves a subscribed item by its name.
          *
          * @param itemName the name of the item to retrieve
-         * @return an {@code Optional} containing the {@link SubscribedItem} if found, or empty if
-         *     no item with the given name exists
+         * @return the {@link SubscribedItem} associated with the given name, or {@code null} if no
+         *     item with the specified name is found
          */
-        Optional<SubscribedItem> getItem(String itemName);
+        SubscribedItem getItem(String itemName);
 
         /**
          * Checks if this collection of subscribed items is empty.
@@ -184,9 +184,8 @@ public class Items {
             return Optional.empty();
         }
 
-        @Override
-        public Optional<SubscribedItem> getItem(String itemName) {
-            return Optional.empty();
+        public SubscribedItem getItem(String itemName) {
+            return null;
         }
 
         @Override
@@ -224,8 +223,8 @@ public class Items {
         }
 
         @Override
-        public Optional<SubscribedItem> getItem(String itemName) {
-            return Optional.ofNullable(sourceItems.get(itemName));
+        public SubscribedItem getItem(String itemName) {
+            return sourceItems.get(itemName);
         }
 
         @Override
