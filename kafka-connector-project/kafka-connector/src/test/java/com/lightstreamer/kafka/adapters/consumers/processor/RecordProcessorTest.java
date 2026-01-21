@@ -27,7 +27,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -201,11 +200,7 @@ public class RecordProcessorTest {
             EventListener listener,
             SubscribedItems subscribedItems,
             ProcessUpdatesStrategy updatesStrategy) {
-        return new DefaultRecordProcessor<>(
-                mapper,
-                listener,
-                updatesStrategy,
-                RecordRoutingStrategy.fromSubscribedItems(subscribedItems));
+        return new DefaultRecordProcessor<>(mapper, subscribedItems, listener, updatesStrategy);
     }
 
     static Stream<Arguments> records() {
