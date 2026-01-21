@@ -35,7 +35,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 public interface RecordConsumer<K, V> {
 
@@ -143,8 +142,6 @@ public interface RecordConsumer<K, V> {
     }
 
     void consumeRecords(List<KafkaRecord<K, V>> records);
-
-    default void consumeRecords(Stream<KafkaRecord<K, V>> records) {}
 
     default int numOfThreads() {
         return 1;
