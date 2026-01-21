@@ -19,6 +19,14 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.utils.Utils;
+import org.everit.json.schema.ValidationException;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -28,16 +36,7 @@ import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.utils.Utils;
-import org.everit.json.schema.ValidationException;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
-class JsonNodeDeserializers {
+public class JsonNodeDeserializers {
 
     static class JsonNodeLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
@@ -74,26 +73,12 @@ class JsonNodeDeserializers {
         }
     }
 
-    static Deserializer<JsonNode> ValueDeserializer() {
-        return makeDeserializerNoConfig(false);
-    }
-
-    static Deserializer<JsonNode> ValueDeserializer(ConnectorConfig config) {
+    public static Deserializer<JsonNode> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
 
-    static Deserializer<JsonNode> KeyDeserializer(ConnectorConfig config) {
+    public static Deserializer<JsonNode> KeyDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, true);
-    }
-
-    static Deserializer<JsonNode> KeyDeserializer() {
-        return makeDeserializerNoConfig(true);
-    }
-
-    private static Deserializer<JsonNode> makeDeserializerNoConfig(boolean isKey) {
-        Deserializer<JsonNode> deserializer = new KafkaJsonDeserializer<>();
-        deserializer.configure(Collections.emptyMap(), isKey);
-        return deserializer;
     }
 
     private static Deserializer<JsonNode> configuredDeserializer(
