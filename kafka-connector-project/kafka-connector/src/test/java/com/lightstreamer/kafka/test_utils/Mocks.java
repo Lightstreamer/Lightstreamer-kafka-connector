@@ -49,8 +49,8 @@ import java.util.function.Supplier;
 
 public class Mocks {
 
-    public static class MockConsumer<K, V>
-            extends org.apache.kafka.clients.consumer.MockConsumer<K, V> {
+    public static class MockConsumer
+            extends org.apache.kafka.clients.consumer.MockConsumer<byte[], byte[]> {
 
         private RuntimeException commitException;
         private KafkaException listTopicException;
@@ -84,22 +84,22 @@ public class Mocks {
             return super.listTopics();
         }
 
-        public static <K, V> Supplier<Consumer<K, V>> supplier() {
+        public static Supplier<Consumer<byte[], byte[]>> supplier() {
             return supplier(false);
         }
 
-        public static <K, V> Supplier<Consumer<K, V>> supplier(boolean exceptionOnConnection) {
+        public static Supplier<Consumer<byte[], byte[]>> supplier(boolean exceptionOnConnection) {
             return () -> {
                 if (exceptionOnConnection) {
                     throw new KafkaException("Simulated Exception");
                 }
-                return new MockConsumer<>(OffsetResetStrategy.EARLIEST);
+                return new MockConsumer(OffsetResetStrategy.EARLIEST);
             };
         }
 
-        public static <K, V> Supplier<Consumer<K, V>> supplier(String... topics) {
+        public static Supplier<Consumer<byte[], byte[]>> supplier(String... topics) {
             return () -> {
-                MockConsumer<K, V> mockConsumer = new MockConsumer<>(OffsetResetStrategy.EARLIEST);
+                MockConsumer mockConsumer = new MockConsumer(OffsetResetStrategy.EARLIEST);
                 for (String topic : topics) {
                     mockConsumer.updatePartitions(
                             topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
