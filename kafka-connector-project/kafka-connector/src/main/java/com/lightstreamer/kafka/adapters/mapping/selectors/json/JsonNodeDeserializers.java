@@ -61,6 +61,9 @@ class JsonNodeDeserializers {
 
         @Override
         public JsonNode deserialize(String topic, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
             try {
                 JsonNode node = deserializer.deserialize(topic, data);
                 schema.validate(node);
