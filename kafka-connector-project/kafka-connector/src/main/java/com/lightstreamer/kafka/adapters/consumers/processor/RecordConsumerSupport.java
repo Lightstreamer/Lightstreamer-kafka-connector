@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
@@ -48,13 +47,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -144,15 +141,12 @@ class RecordConsumerSupport {
                     ProcessUpdatesStrategy.fromCommandModeStrategy(
                             parentBuilder.commandModeStrategy);
 
-            RecordRoutingStrategy recordRoutingStrategy =
-                    RecordRoutingStrategy.fromSubscribedItems(parentBuilder.subscribed);
-
             return new StartBuildingConsumerImpl<>(
                     new DefaultRecordProcessor<>(
                             parentBuilder.mapper,
+                            parentBuilder.subscribed,
                             listener,
-                            processUpdatesStrategy,
-                            recordRoutingStrategy));
+                            processUpdatesStrategy));
         }
     }
 
@@ -230,120 +224,6 @@ class RecordConsumerSupport {
         }
     }
 
-    public static interface EventUpdater {
-
-        void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot);
-
-        void clearSnapshot(SubscribedItem sub);
-
-        void endOfSnapshot(SubscribedItem sub);
-
-        ItemEventListener listener();
-
-        static EventUpdater create(ItemEventListener listener, boolean isLegacy) {
-            if (isLegacy) {
-                return new LegacyEventUpdater(listener);
-            } else {
-                return new SmartEventUpdater(listener);
-            }
-        }
-    }
-
-    abstract static sealed class AbstractEventUpdater implements EventUpdater
-            permits LegacyEventUpdater, SmartEventUpdater {
-
-        private final ItemEventListener listener;
-
-        AbstractEventUpdater(ItemEventListener listener) {
-            this.listener = listener;
-        }
-
-        @Override
-        public final ItemEventListener listener() {
-            return listener;
-        }
-    }
-
-    static final class LegacyEventUpdater extends AbstractEventUpdater {
-
-        LegacyEventUpdater(ItemEventListener listener) {
-            super(listener);
-        }
-
-        public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().update(sub.asCanonicalItemName(), updates, isSnapshot);
-        }
-
-        public void clearSnapshot(SubscribedItem sub) {
-            listener().clearSnapshot(sub.asCanonicalItemName());
-        }
-
-        public void endOfSnapshot(SubscribedItem sub) {
-            listener().endOfSnapshot(sub.asCanonicalItemName());
-        }
-    }
-
-    static final class SmartEventUpdater extends AbstractEventUpdater {
-
-        SmartEventUpdater(ItemEventListener listener) {
-            super(listener);
-        }
-
-        public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().smartUpdate(sub.itemHandle(), updates, isSnapshot);
-        }
-
-        public void clearSnapshot(SubscribedItem sub) {
-            listener().smartClearSnapshot(sub.itemHandle());
-        }
-
-        public void endOfSnapshot(SubscribedItem sub) {
-            listener().smartEndOfSnapshot(sub.itemHandle());
-        }
-    }
-
-    static interface RecordRoutingStrategy {
-
-        Set<SubscribedItem> route(MappedRecord mappedRecord);
-
-        static RecordRoutingStrategy fromSubscribedItems(SubscribedItems subscribedItems) {
-            return new DefaultRoutingStrategy(subscribedItems);
-        }
-    }
-
-    static class DefaultRoutingStrategy implements RecordRoutingStrategy {
-
-        protected final SubscribedItems subscribedItems;
-
-        DefaultRoutingStrategy(SubscribedItems subscribedItems) {
-            this.subscribedItems = subscribedItems;
-        }
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            return mappedRecord.route(subscribedItems);
-        }
-    }
-
-    static class ComposedRoutingStrategy implements RecordRoutingStrategy {
-
-        private final RecordRoutingStrategy[] strategies;
-
-        ComposedRoutingStrategy(RecordRoutingStrategy... strategies) {
-            this.strategies = strategies;
-        }
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            Set<SubscribedItem> routedItems = new HashSet<>();
-            for (RecordRoutingStrategy strategy : strategies) {
-                routedItems.addAll(strategy.route(mappedRecord));
-            }
-
-            return routedItems;
-        }
-    }
-
     static interface ProcessUpdatesStrategy {
 
         default void processUpdates(
@@ -409,7 +289,6 @@ class RecordConsumerSupport {
                 Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
             for (SubscribedItem sub : routable) {
                 sub.sendRealtimeEvent(updates, listener);
-                // listener.update(sub, updates, false);
             }
         }
 
@@ -623,19 +502,19 @@ class RecordConsumerSupport {
 
         protected final RecordMapper<K, V> recordMapper;
         protected final ProcessUpdatesStrategy processUpdatesStrategy;
-        protected final RecordRoutingStrategy recordRoutingStrategy;
         protected final EventListener listener;
+        protected final SubscribedItems subscribedItems;
         protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
+                SubscribedItems subscribedItems,
                 EventListener listener,
-                ProcessUpdatesStrategy processUpdatesStrategy,
-                RecordRoutingStrategy recordRoutingStrategy) {
+                ProcessUpdatesStrategy processUpdatesStrategy) {
             this.recordMapper = recordMapper;
             this.listener = listener;
             this.processUpdatesStrategy = processUpdatesStrategy;
-            this.recordRoutingStrategy = recordRoutingStrategy;
+            this.subscribedItems = subscribedItems;
         }
 
         @Override
@@ -646,33 +525,30 @@ class RecordConsumerSupport {
 
         @Override
         public final void process(KafkaRecord<K, V> record) throws ValueException {
-            logger.atDebug().log(() -> "Mapping incoming Kafka record");
+            logger.atDebug().log("Mapping incoming Kafka record");
             logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
 
             MappedRecord mappedRecord = recordMapper.map(record);
             // As logging the mapped record is expensive, log lazily it only at trace level.
             logger.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
-            logger.atDebug().log(() -> "Kafka record mapped");
+            logger.atDebug().log("Kafka record mapped");
 
-            route(mappedRecord);
+            Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
+            int size = routable.size();
+            if (size > 0) {
+                logger.atDebug().log("Routing record to {} items", size);
+                processUpdatesStrategy.processUpdates(mappedRecord, routable, listener);
+            } else {
+                logger.atDebug().log("No routable items found");
+            }
         }
 
         @Override
         public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
                 throws ValueException {
-            logger.atDebug().log(() -> "Mapping incoming Kafka record for subscribed item");
+            logger.atDebug().log("Mapping incoming Kafka record for subscribed item");
             MappedRecord mappedRecord = recordMapper.map(record);
             processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
-        }
-
-        private void route(MappedRecord mappedRecord) {
-            Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
-            if (routable.size() > 0) {
-                logger.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
-                processUpdatesStrategy.processUpdates(mappedRecord, routable, listener);
-            } else {
-                logger.atDebug().log("No routable items found");
-            }
         }
 
         @Override
@@ -731,7 +607,7 @@ class RecordConsumerSupport {
 
         @Override
         public void consumeRecords(List<KafkaRecord<K, V>> records) {
-            for (int i = 0; i < records.size(); i++) {
+            for (int i = 0, n = records.size(); i < n; i++) {
                 consumeRecord(records.get(i));
             }
             offsetService.commitAsync();
@@ -778,6 +654,7 @@ class RecordConsumerSupport {
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
             this.actualThreads = getActualThreadsNumber(configuredThreads);
+
             AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
                     TaskExecutor.create(
@@ -817,22 +694,7 @@ class RecordConsumerSupport {
 
         @Override
         public void consumeRecords(List<KafkaRecord<K, V>> records) {
-            int size = records.size();
-            CountDownLatch latch = new CountDownLatch(size);
-            for (int i = 0; i < size; i++) {
-                final KafkaRecord<K, V> record = records.get(i);
-                String seq = orderStrategy.getSequence(record);
-                taskExecutor.execute(
-                        seq,
-                        () -> {
-                            consume(seq, record, latch);
-                        });
-            }
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            taskExecutor.executeBatch(records, orderStrategy::getSequence, this::consume);
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
@@ -844,7 +706,7 @@ class RecordConsumerSupport {
             }
         }
 
-        void consume(String sequence, KafkaRecord<K, V> record, CountDownLatch latch) {
+        void consume(String sequence, KafkaRecord<K, V> record) {
             try {
                 logger.atDebug().log(
                         () ->
@@ -859,8 +721,6 @@ class RecordConsumerSupport {
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
                 offsetService.onAsyncFailure(t);
-            } finally {
-                latch.countDown();
             }
         }
 
