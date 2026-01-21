@@ -63,8 +63,9 @@ public interface TestSelectorSuppliers {
                 g.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> JsonKeyJsonValue() {
-        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
+    public static KeyValueSelectorSuppliers<JsonNode, JsonNode> Json() {
+        ConnectorConfig config = jsonKeyJsonValueConfig();
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
         return KeyValueSelectorSuppliers.of(
                 j.makeKeySelectorSupplier(), j.makeValueSelectorSupplier());
     }
@@ -76,7 +77,8 @@ public interface TestSelectorSuppliers {
     }
 
     public static KeyValueSelectorSuppliers<String, JsonNode> JsonValue() {
-        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers();
+        ConnectorConfig config = avroKeyJsonValueConfig();
+        JsonNodeSelectorsSuppliers j = new JsonNodeSelectorsSuppliers(config);
         return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
@@ -93,6 +95,16 @@ public interface TestSelectorSuppliers {
         return KeyValueSelectorSuppliers.of(
                 s.makeKeySelectorSupplier(), s.makeValueSelectorSupplier());
     }
+
+    private static ConnectorConfig jsonKeyJsonValueConfig() {
+        return ConnectorConfigProvider.minimalWith(
+                "src/test/resources",
+                Map.of(
+                        RECORD_KEY_EVALUATOR_TYPE,
+                        JSON.toString(),
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        JSON.toString()));
+    }    
 
     private static ConnectorConfig avroKeyJsonValueConfig() {
         return ConnectorConfigProvider.minimalWith(
