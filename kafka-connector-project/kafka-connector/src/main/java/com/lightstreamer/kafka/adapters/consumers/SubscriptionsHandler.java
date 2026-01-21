@@ -17,12 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
+import static org.apache.kafka.common.serialization.Serdes.ByteArray;
+
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.DeferredDeserializer;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -35,6 +35,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionEx
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -61,9 +62,12 @@ public interface SubscriptionsHandler<K, V> {
 
     static class Builder<K, V> {
 
+        private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER =
+                ByteArray().deserializer();
+
         private Config<K, V> consumerConfig;
         private MetadataListener metadataListener;
-        private Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
+        private Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
         private Builder() {}
 
@@ -78,7 +82,7 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         public Builder<K, V> withConsumerSupplier(
-                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
+                Supplier<Consumer<byte[], byte[]>> consumerSupplier) {
             this.consumerSupplier = consumerSupplier;
             return this;
         }
@@ -90,15 +94,13 @@ public interface SubscriptionsHandler<K, V> {
             return new DefaultSubscriptionsHandler<>(this);
         }
 
-        private static <K, V> Supplier<Consumer<Deferred<K>, Deferred<V>>> defaultConsumerSupplier(
+        private static <K, V> Supplier<Consumer<byte[], byte[]>> defaultConsumerSupplier(
                 Config<K, V> config) {
             return () ->
                     new KafkaConsumer<>(
                             config.consumerProperties(),
-                            new DeferredDeserializer<>(
-                                    config.suppliers().keySelectorSupplier().deserializer()),
-                            new DeferredDeserializer<>(
-                                    config.suppliers().valueSelectorSupplier().deserializer()));
+                            BYTE_ARRAY_DESERIALIZER,
+                            BYTE_ARRAY_DESERIALIZER);
         }
     }
 
@@ -106,7 +108,7 @@ public interface SubscriptionsHandler<K, V> {
 
         private final Config<K, V> config;
         protected final MetadataListener metadataListener;
-        private final Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
+        private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
         protected final Logger logger;
         private final ExecutorService pool;
