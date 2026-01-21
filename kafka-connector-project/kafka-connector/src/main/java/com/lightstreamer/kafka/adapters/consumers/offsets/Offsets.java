@@ -280,7 +280,7 @@ public class Offsets {
 
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
         private final Logger logger;
-        private OffsetAndMetadataFactory factory;
+        private final OffsetAndMetadataFactory factory;
 
         OffsetStoreImpl(
                 Map<TopicPartition, OffsetAndMetadata> committed,
