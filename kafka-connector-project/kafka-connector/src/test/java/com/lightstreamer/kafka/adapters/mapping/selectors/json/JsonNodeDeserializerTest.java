@@ -56,7 +56,8 @@ public class JsonNodeDeserializerTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            deser.deserialize("topic", s.getBytes());
+            JsonNode node = deser.deserialize("topic", s.getBytes());
+            assertThat(node).isNotNull();
         }
     }
 
