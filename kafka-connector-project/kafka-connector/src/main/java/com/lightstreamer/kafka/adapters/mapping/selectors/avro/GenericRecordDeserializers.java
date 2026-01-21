@@ -74,6 +74,9 @@ public class GenericRecordDeserializers {
 
         @Override
         public GenericRecord deserialize(String topic, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
             DatumReader<GenericRecord> datumReader = new GenericDatumReader<GenericRecord>(schema);
             // ByteBuffer b = ByteBuffer.wrap(data);
             // b.position(5);
