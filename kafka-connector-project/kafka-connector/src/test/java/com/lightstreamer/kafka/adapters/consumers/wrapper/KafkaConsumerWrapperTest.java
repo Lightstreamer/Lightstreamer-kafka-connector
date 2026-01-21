@@ -26,7 +26,6 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
@@ -45,6 +44,7 @@ import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
@@ -59,7 +59,9 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -90,8 +92,12 @@ public class KafkaConsumerWrapperTest {
     private MockMetadataListener metadataListener = new MockMetadataListener();
     private MockItemEventListener itemEventListener = new MockItemEventListener();
     private EventListener eventListener = EventListener.smartEventListener(itemEventListener);
-    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer =
-            new MockConsumer<>(resetStrategy);
+    private MockConsumer mockConsumer = new MockConsumer(resetStrategy);
+    private KeyValueSelectorSuppliers<String, String> suppliers = OthersSelectorSuppliers.String();
+
+    private Deserializer<String> keyDeserializer = suppliers.keySelectorSupplier().deserializer();
+    private Deserializer<String> valueDeserializer =
+            suppliers.valueSelectorSupplier().deserializer();
 
     private Properties makeProperties() {
         Properties properties = new Properties();
@@ -133,11 +139,11 @@ public class KafkaConsumerWrapperTest {
 
         // Set the available topics in the mock consumer
         for (String topic : availableTopics) {
-            mockConsumer.updatePartitions(
+            this.mockConsumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
         if (trowExceptionWhileCheckingExistingTopic) {
-            mockConsumer.setListTopicException(
+            this.mockConsumer.setListTopicException(
                     new KafkaException("Fake Exception while checking existing topics"));
         }
 
@@ -154,7 +160,7 @@ public class KafkaConsumerWrapperTest {
         SubscribedItems subscribedItems = SubscribedItems.create();
 
         return new KafkaConsumerWrapper<String, String>(
-                config, metadataListener, eventListener, subscribedItems, () -> mockConsumer);
+                config, metadataListener, eventListener, subscribedItems, () -> this.mockConsumer);
     }
 
     private Config<String, String> makeConfig(
@@ -169,7 +175,7 @@ public class KafkaConsumerWrapperTest {
                     makeProperties(),
                     Items.templatesFrom(makeTopicsConfig(enableSubscriptionPattern), String()),
                     ItemTemplatesUtils.fieldsExtractor(),
-                    OthersSelectorSuppliers.String(),
+                    suppliers,
                     errorHandlingStrategy,
                     commandModeStrategy,
                     new Concurrency(orderStrategy, threads));
@@ -312,12 +318,14 @@ public class KafkaConsumerWrapperTest {
                         new OffsetAndMetadata(0L, "1")));
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"), 2);
 
         // Invoke the method and verify that the task has been actually invoked with the
         // expected simulated records
-        int filtered = wrapper.initStoreAndConsume(KafkaRecord.listFromDeferred(records));
+        int filtered =
+                wrapper.initStoreAndConsume(
+                        KafkaRecord.listFromDeferred(records, keyDeserializer, valueDeserializer));
         assertThat(filtered).isEqualTo(records.count() - 2);
     }
 
@@ -347,7 +355,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -400,7 +408,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -453,7 +461,7 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         mockConsumer.schedulePollTask(
                 () -> records.forEach(record -> mockConsumer.addRecord(record)));
@@ -509,7 +517,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -583,7 +591,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -639,6 +647,65 @@ public class KafkaConsumerWrapperTest {
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
+    @Test
+    public void shouldNotPollForEverDueToExceptionWhileConsumingRecords() throws Exception {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);
+
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+
+        // Set the start offset for each partition
+        HashMap<TopicPartition, Long> offsets = new HashMap<>();
+        offsets.put(partition0, 0L);
+        offsets.put(partition1, 0L);
+        updateOffsets(offsets);
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton(topic), false);
+
+        // Generate the simulated records to be polled from the mocked consumer
+        ConsumerRecords<byte[], byte[]> records =
+                Records.generateRecords(topic, 10, List.of("a", "b"));
+        // The first poll will return the simulated records
+        mockConsumer.schedulePollTask(
+                () -> records.forEach(record -> mockConsumer.addRecord(record)));
+
+        // Must subscribe
+        mockConsumer.subscribe(Set.of(topic));
+        // The following poll is only required to trigger the rebalance set above.
+        mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+
+        // Define the task that should be invoked upon polling
+        Consumer<List<KafkaRecord<String, String>>> task =
+                received -> {
+                    throw new SerializationException("Fake Exception while consuming records");
+                };
+
+        AtomicBoolean wokenUp =
+                new AtomicBoolean(false); // Signals that a WakeupException has been thrown
+        AtomicBoolean triggeredException = new AtomicBoolean();
+        CompletableFuture<Void> completable =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                wrapper.pollForEver(task);
+                            } catch (WakeupException e) {
+                                wokenUp.set(true);
+                            } catch (KafkaException ke) {
+                                triggeredException.set(true);
+                            }
+                        });
+        completable.join();
+        // A KafkaException has been triggered
+        assertThat(triggeredException.get()).isTrue();
+        // A WakeupException has NOT been thrown
+        assertThat(wokenUp.get()).isFalse();
+        // Forced interruption
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+    }
+
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void shouldStartLoopAndShutdown(boolean forceCommitException)
@@ -665,7 +732,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -715,7 +782,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 100, List.of("a", "b"), 2);
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
@@ -795,9 +862,8 @@ public class KafkaConsumerWrapperTest {
     @ValueSource(booleans = {true, false})
     public void shouldNotStartLoopDueToExceptionWhileCheckingExistingTopic(boolean waitForInit) {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
-        // Create a wrapper for a topic that exists but cannot be subscribed due to an exception
-        // throw
-        // while checking the topic's existence
+        // Create a wrapper for a topic that exists but cannot be subscribed due to
+        // an exception thrown while checking the topic's existence
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(Collections.singleton("topic"), true);
 
@@ -877,7 +943,7 @@ public class KafkaConsumerWrapperTest {
                 makeWrapper(Collections.singleton(topic), false);
 
         // Generate the simulated records to be polled from the mocked consumer
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 Records.generateRecords(topic, 10, List.of("a", "b"));
         // The first poll will return the simulated records
         mockConsumer.schedulePollTask(
