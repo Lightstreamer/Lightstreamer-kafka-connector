@@ -17,15 +17,14 @@
 
 package com.lightstreamer.kafka.common.records;
 
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.header.Headers;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public interface KafkaRecord<K, V> {
 
@@ -60,8 +59,31 @@ public interface KafkaRecord<K, V> {
     }
 
     public static <K, V> KafkaRecord<K, V> fromDeferred(
-            ConsumerRecord<Deferred<K>, Deferred<V>> record) {
-        return new DeferredKafkaConsumerRecord<>(record);
+            ConsumerRecord<byte[], byte[]> record,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer) {
+        return new DeferredKafkaConsumerRecord<>(record, keyDeserializer, valueDeserializer);
+    }
+
+    public static <K, V> KafkaRecord<K, V> fromEager(
+            ConsumerRecord<byte[], byte[]> record,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer) {
+        return new EagerKafkaConsumerRecord<>(record, keyDeserializer, valueDeserializer);
+    }
+
+    // Only for testing purposes
+    public static <K, V> KafkaRecord<K, V> from(
+            String topic,
+            int partition,
+            long offset,
+            long timestamp,
+            K key,
+            V value,
+            Headers headers) {
+        KafkaHeaders kafkaHeaders = headers != null ? KafkaHeaders.from(headers) : null;
+        return new SimpleKafkaRecord<>(
+                topic, partition, offset, timestamp, key, value, kafkaHeaders);
     }
 
     public static <K, V> KafkaRecord<K, V> from(ConsumerRecord<K, V> record) {
@@ -72,43 +94,45 @@ public interface KafkaRecord<K, V> {
         return new KafkaSinkRecord(record);
     }
 
-    static <K, V> List<KafkaRecord<K, V>> listFrom(ConsumerRecords<K, V> consumerRecords) {
+    static <K, V> List<KafkaRecord<K, V>> listFromEager(
+            ConsumerRecords<byte[], byte[]> consumerRecords,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer) {
         List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
         consumerRecords
                 .partitions()
                 .forEach(
                         partition -> {
-                            List<ConsumerRecord<K, V>> recordsByPartition =
+                            List<ConsumerRecord<byte[], byte[]>> records =
                                     consumerRecords.records(partition);
-                            for (int i = 0; i < recordsByPartition.size(); i++) {
-                                ConsumerRecord<K, V> record = recordsByPartition.get(i);
-                                kafkaRecords.add(KafkaRecord.from(record));
+                            for (int i = 0, n = records.size(); i < n; i++) {
+                                kafkaRecords.add(
+                                        fromEager(
+                                                records.get(i),
+                                                keyDeserializer,
+                                                valueDeserializer));
                             }
                         });
         return kafkaRecords;
     }
 
     static <K, V> List<KafkaRecord<K, V>> listFromDeferred(
-            ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords) {
-        return consumerRecords.partitions().parallelStream()
-                .flatMap(partition -> consumerRecords.records(partition).stream())
-                .map(KafkaRecord::fromDeferred)
-                .collect(Collectors.toList());
-    }
-
-    static <K, V> List<KafkaRecord<K, V>> listFromDeferred2(
-            ConsumerRecords<Deferred<K>, Deferred<V>> consumerRecords) {
+            ConsumerRecords<byte[], byte[]> consumerRecords,
+            Deserializer<K> keyDeserializer,
+            Deserializer<V> valueDeserializer) {
         List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
         consumerRecords
                 .partitions()
                 .forEach(
                         partition -> {
-                            List<ConsumerRecord<Deferred<K>, Deferred<V>>> recordsByPartition =
+                            List<ConsumerRecord<byte[], byte[]>> records =
                                     consumerRecords.records(partition);
-                            for (int i = 0, n = recordsByPartition.size(); i < n; i++) {
-                                ConsumerRecord<Deferred<K>, Deferred<V>> record =
-                                        recordsByPartition.get(i);
-                                kafkaRecords.add(KafkaRecord.fromDeferred(record));
+                            for (int i = 0, n = records.size(); i < n; i++) {
+                                kafkaRecords.add(
+                                        fromDeferred(
+                                                records.get(i),
+                                                keyDeserializer,
+                                                valueDeserializer));
                             }
                         });
         return kafkaRecords;
