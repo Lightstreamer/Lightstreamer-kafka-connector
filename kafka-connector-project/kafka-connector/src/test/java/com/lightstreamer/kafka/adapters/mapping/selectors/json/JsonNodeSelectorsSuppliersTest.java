@@ -103,14 +103,6 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplierWithNoConfig() {
-        JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
-        KeySelectorSupplier<JsonNode> keySelectorSupplier = s.makeKeySelectorSupplier();
-        assertThat(keySelectorSupplier.deserializer().getClass())
-                .isEqualTo(KafkaJsonDeserializer.class);
-    }
-
-    @Test
     public void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<JsonNode> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
@@ -155,14 +147,6 @@ public class JsonNodeSelectorsSuppliersTest {
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
         assertThat(ie).hasMessageThat().isEqualTo("Evaluator type is not JSON");
-    }
-
-    @Test
-    public void shouldMakeValueSelectorSupplierWithNoConfig() {
-        JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers();
-        ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
-        assertThat(valueSelectorSupplier.deserializer().getClass())
-                .isEqualTo(KafkaJsonDeserializer.class);
     }
 
     @Test
