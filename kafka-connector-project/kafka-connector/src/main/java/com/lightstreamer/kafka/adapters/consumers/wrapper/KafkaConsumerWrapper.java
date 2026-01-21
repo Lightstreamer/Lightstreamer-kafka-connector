@@ -22,7 +22,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
@@ -41,6 +40,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -138,21 +138,26 @@ public class KafkaConsumerWrapper<K, V> {
     private final MetadataListener metadataListener;
     private final Logger logger;
     private final RecordMapper<K, V> recordMapper;
-    private final Consumer<Deferred<K>, Deferred<V>> consumer;
+    private final Consumer<byte[], byte[]> consumer;
     private final OffsetService offsetService;
     private final RecordConsumer<K, V> recordConsumer;
     private volatile Thread hook;
     private volatile FutureStatus status;
     private ReentrantLock lock = new ReentrantLock();
 
+    private final Deserializer<K> keyDeserializer;
+    private Deserializer<V> valueDeserializer;
+
     public KafkaConsumerWrapper(
             Config<K, V> config,
             MetadataListener metadataListener,
             EventListener eventListener,
             SubscribedItems subscribedItems,
-            Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier)
+            Supplier<Consumer<byte[], byte[]>> consumerSupplier)
             throws KafkaException {
         this.config = config;
+        this.keyDeserializer = config.suppliers().keySelectorSupplier().deserializer();
+        this.valueDeserializer = config.suppliers().valueSelectorSupplier().deserializer();
         this.metadataListener = metadataListener;
         this.logger = LogFactory.getLogger(this.config.connectionName());
         this.recordMapper =
@@ -325,14 +330,14 @@ public class KafkaConsumerWrapper<K, V> {
     private int pool(
             java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer, Duration duration)
             throws KafkaException {
-        logger.atInfo().log("Polling records");
         try {
-            ConsumerRecords<Deferred<K>, Deferred<V>> records = consumer.poll(duration);
+            ConsumerRecords<byte[], byte[]> records = consumer.poll(duration);
             logger.atDebug().log("Received records");
-            List<KafkaRecord<K, V>> kafkaRecords = KafkaRecord.listFromDeferred(records);
+            List<KafkaRecord<K, V>> kafkaRecords =
+                    KafkaRecord.listFromDeferred(records, keyDeserializer, valueDeserializer);
             recordConsumer.accept(kafkaRecords);
             int count = kafkaRecords.size();
-            logger.atInfo().log("Consumed {} records", count);
+            logger.atDebug().log("Consumed {} records", count);
             return count;
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
@@ -431,7 +436,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     // Only for testing purposes
-    Consumer<Deferred<K>, Deferred<V>> getInternalConsumer() {
+    Consumer<byte[], byte[]> getInternalConsumer() {
         return consumer;
     }
 
