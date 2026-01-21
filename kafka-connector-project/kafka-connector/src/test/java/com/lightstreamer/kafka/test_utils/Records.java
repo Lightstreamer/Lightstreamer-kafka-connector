@@ -107,6 +107,18 @@ public class Records {
         return KafkaRecord.from(topic, 150, 120, -1, key, value, headers);
     }
 
+    public static KafkaRecord<String, String> StringKafkaRecord(
+            String topic, String key, String value) {
+        ConsumerRecord<byte[], byte[]> record =
+                new ConsumerRecord<>(
+                        topic,
+                        150,
+                        120,
+                        String().serializer().serialize(topic, key),
+                        String().serializer().serialize(topic, value));
+        return KafkaRecord.fromDeferred(record, String().deserializer(), String().deserializer());
+    }
+
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
         return KafkaRecord.fromDeferred(
                 ConsumerRecord(topic, partition, id),
