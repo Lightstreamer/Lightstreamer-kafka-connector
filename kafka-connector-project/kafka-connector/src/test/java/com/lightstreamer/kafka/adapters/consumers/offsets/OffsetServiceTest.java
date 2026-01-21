@@ -23,10 +23,10 @@ import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST;
+import static org.apache.kafka.common.serialization.Serdes.String;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
@@ -39,6 +39,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -58,10 +59,14 @@ public class OffsetServiceTest {
 
     private static final String TOPIC = "topic";
 
-    private MockConsumer<Deferred<String>, Deferred<String>> mockConsumer;
+    private MockConsumer mockConsumer;
     private OffsetService offsetService;
     private static final TopicPartition partition0 = new TopicPartition(TOPIC, 0);
     private static final TopicPartition partition1 = new TopicPartition(TOPIC, 1);
+
+    private Deserializer<String> keyDeserializer = String().deserializer();
+
+    private Deserializer<String> valueDeserializer = String().deserializer();
 
     @BeforeEach
     void beforeEach() {
@@ -78,7 +83,7 @@ public class OffsetServiceTest {
     }
 
     private void setUp(boolean earliest) {
-        this.mockConsumer = new MockConsumer<>(earliest ? EARLIEST : LATEST);
+        this.mockConsumer = new MockConsumer(earliest ? EARLIEST : LATEST);
 
         // A rebalance must be scheduled to later use the subscribe method
         this.mockConsumer.schedulePollTask(
@@ -233,12 +238,16 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
+        records.forEach(
+                record -> {
+                    offsetService.updateOffsets(
+                            KafkaRecord.fromDeferred(record, keyDeserializer, valueDeserializer));
+                });
         offsetService.commitSync();
 
         // Check the committed map
@@ -285,12 +294,16 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(
+                                        record, keyDeserializer, valueDeserializer)));
         offsetService.commitSyncAndIgnoreErrors();
 
         // Check the committed map has not changed
@@ -331,12 +344,16 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets and then commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(
+                                        record, keyDeserializer, valueDeserializer)));
         offsetService.commitAsync();
 
         // Check the committed map
@@ -363,12 +380,16 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<Deferred<String>, Deferred<String>>
-                records = mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(
+                                        record, keyDeserializer, valueDeserializer)));
 
         // Trigger a rebalance, which in turn make the OffsetService invoke onPartitionsRevoked.
         // The rebalance event remove partition0.
@@ -402,13 +423,16 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        ConsumerRecords<Deferred<String>, Deferred<String>> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(KafkaRecord.fromDeferred(record)));
-
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(
+                                        record, keyDeserializer, valueDeserializer)));
         // Trigger a rebalance, which in turn make the OffsetService invoke onPartitionsRevoked.
         // The rebalance event remove partition0.
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition1)));
@@ -434,19 +458,22 @@ public class OffsetServiceTest {
         offsetService.initStore(Map.of(partition0, 0L, partition1, 0L), committed);
 
         // The following three records have their offsets stored in the metadata
-        List<ConsumerRecord<Deferred<String>, Deferred<String>>> havePendingOffsets =
+        List<ConsumerRecord<byte[], byte[]>> havePendingOffsets =
                 List.of(
                         ConsumerRecord(TOPIC, 0, "A-11"),
                         ConsumerRecord(TOPIC, 0, "A-14"),
                         ConsumerRecord(TOPIC, 0, "A-20"));
 
-        for (ConsumerRecord<Deferred<String>, Deferred<String>> record : havePendingOffsets) {
-            assertThat(offsetService.notHasPendingOffset(KafkaRecord.fromDeferred(record)))
+        for (ConsumerRecord<byte[], byte[]> record : havePendingOffsets) {
+            assertThat(
+                            offsetService.notHasPendingOffset(
+                                    KafkaRecord.fromDeferred(
+                                            record, keyDeserializer, valueDeserializer)))
                     .isFalse();
         }
 
         // The following records do not have their offsets stored as pending in the metadata
-        List<ConsumerRecord<Deferred<String>, Deferred<String>>> haveNoPendingOffsets =
+        List<ConsumerRecord<byte[], byte[]>> haveNoPendingOffsets =
                 List.of(
                         ConsumerRecord(TOPIC, 0, "A-10"),
                         ConsumerRecord(TOPIC, 0, "A-12"),
@@ -458,8 +485,11 @@ public class OffsetServiceTest {
                         ConsumerRecord(TOPIC, 0, "A-19"),
                         ConsumerRecord(TOPIC, 0, "A-21"),
                         ConsumerRecord(TOPIC, 1, "B-21"));
-        for (ConsumerRecord<Deferred<String>, Deferred<String>> record : haveNoPendingOffsets) {
-            assertThat(offsetService.notHasPendingOffset(KafkaRecord.fromDeferred(record)))
+        for (ConsumerRecord<byte[], byte[]> record : haveNoPendingOffsets) {
+            assertThat(
+                            offsetService.notHasPendingOffset(
+                                    KafkaRecord.fromDeferred(
+                                            record, keyDeserializer, valueDeserializer)))
                     .isTrue();
         }
     }
