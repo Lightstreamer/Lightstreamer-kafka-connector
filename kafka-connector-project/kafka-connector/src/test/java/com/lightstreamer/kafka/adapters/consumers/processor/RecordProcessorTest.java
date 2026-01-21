@@ -294,7 +294,7 @@ public class RecordProcessorTest {
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
                         Map.of("key", "a", "valueField", "1a", "command", "ADD")),
                 Arguments.of(
-                        Records.KafkaRecord(TEST_TOPIC, "a", null),
+                        Records.StringKafkaRecord(TEST_TOPIC, "a", null),
                         Map.of("key", "a", "command", "DELETE")));
     }
 
