@@ -93,6 +93,24 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
+    public void shouldDeserializeNullWithLocalSchema() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
+
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            JsonNode node = deserializer.deserialize("topic", null);
+            assertThat(node).isNull();
+        }
+    }
+
+    @Test
     public void shouldNotDeserializeWithLocalSchemaDueToInvalidRecord() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
