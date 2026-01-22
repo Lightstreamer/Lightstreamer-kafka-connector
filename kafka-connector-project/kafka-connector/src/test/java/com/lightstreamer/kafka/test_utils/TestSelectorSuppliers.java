@@ -104,7 +104,7 @@ public interface TestSelectorSuppliers {
                         JSON.toString(),
                         RECORD_VALUE_EVALUATOR_TYPE,
                         JSON.toString()));
-    }    
+    }
 
     private static ConnectorConfig avroKeyJsonValueConfig() {
         return ConnectorConfigProvider.minimalWith(
