@@ -1587,9 +1587,9 @@ Example:
 <param name="schema.registry.provider">AZURE</param>
 ```
 
-#### Azure Schema Registry Parameters
+### Azure Schema Registry Parameters
 
-When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters can be configured to enable proper authentication and integration with Azure Event Hubs.
+When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
 ##### `schema.registry.azure.schema.id.header`
 
@@ -1632,6 +1632,10 @@ Example:
 ```xml
 <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
 ```
+
+### Confluent Schema Registry Parameters
+
+When using Confluent Schema Registry (`schema.registry.provider` set to `AZUCOCONFLUENTNFLUENTRE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
 #### Basic HTTP Authentication Parameters
 
