@@ -44,7 +44,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 
 public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
