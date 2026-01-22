@@ -25,6 +25,7 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
     private final ConsumerRecord<byte[], byte[]> record;
     private final Deserializer<K> keyDeserializer;
     private final Deserializer<V> valueDeserializer;
+    private final byte[] rawKey;
     private final byte[] rawValue;
     private volatile boolean isValueCached = false;
     private volatile boolean isKeyCached = false;
@@ -36,6 +37,7 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer) {
         this.record = record;
+        this.rawKey = record.key();
         this.rawValue = record.value();
         this.keyDeserializer = keyDeserializer;
         this.valueDeserializer = valueDeserializer;
@@ -44,7 +46,7 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
     @Override
     public K key() {
         if (!isKeyCached) {
-            cachedKey = keyDeserializer.deserialize(record.topic(), record.key());
+            cachedKey = keyDeserializer.deserialize(record.topic(), rawKey);
             isKeyCached = true;
         }
         return cachedKey;
