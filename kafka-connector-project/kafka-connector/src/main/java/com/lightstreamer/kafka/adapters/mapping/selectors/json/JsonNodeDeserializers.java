@@ -19,14 +19,6 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 
-import java.io.IOException;
-import java.util.Map;
-
-import org.apache.kafka.common.errors.SerializationException;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.utils.Utils;
-import org.everit.json.schema.ValidationException;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -35,6 +27,14 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDes
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
+
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.utils.Utils;
+import org.everit.json.schema.ValidationException;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class JsonNodeDeserializers {
 
