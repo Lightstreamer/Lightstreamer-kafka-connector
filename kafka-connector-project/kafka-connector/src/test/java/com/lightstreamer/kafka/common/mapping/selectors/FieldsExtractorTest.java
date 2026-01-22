@@ -205,8 +205,7 @@ public class FieldsExtractorTest {
             throws ExtractionException {
 
         FieldsExtractor<JsonNode, JsonNode> extractor =
-                DataExtractors.discoveredFieldsExtractor(
-                        Json(), expressions, skipOnFailure);
+                DataExtractors.discoveredFieldsExtractor(Json(), expressions, skipOnFailure);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(true);
 
