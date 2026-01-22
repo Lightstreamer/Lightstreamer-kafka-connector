@@ -1553,11 +1553,11 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-The Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
+The Kafka Connector supports integration with both the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) and the [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview) through the configuration of parameters with the prefix `schema.registry`.
 
 #### `schema.registry.url`
 
-_Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
+_Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
 
 Example:
 
@@ -1571,6 +1571,66 @@ Example:
 
 ```xml
 <param name="schema.registry.url">https://localhost:8084</param>
+```
+
+#### `schema.registry.provider`
+
+_Optional_. Specifies the Schema Registry provider implementation to use. The Kafka Connector supports multiple Schema Registry providers to accommodate different cloud and on-premise environments. Can be one of the following:
+- `CONFLUENT`: Use the Confluent Schema Registry implementation
+- `AZURE`: Use the Azure Schema Registry implementation
+
+Default value: `CONFLUENT`.
+
+Example:
+
+```xml
+<param name="schema.registry.provider">AZURE</param>
+```
+
+#### Azure Schema Registry Parameters
+
+When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters can be configured to enable proper authentication and integration with Azure Event Hubs.
+
+##### `schema.registry.azure.schema.id.header`
+
+_Optional_. Specifies the name of the header containing the schema ID in Azure Schema Registry messages. Azure Schema Registry may use custom headers to identify schemas. If not specified, the default behavior will be applied.
+
+Default value: `""` (empty string).
+
+Example:
+
+```xml
+<param name="schema.registry.azure.schema.id.header">ce-schemaId</param>
+```
+
+##### `schema.registry.azure.tenant.id`
+
+_Mandatory if Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+```
+
+##### `schema.registry.azure.client.id`
+
+_Mandatory if Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
+```
+
+##### `schema.registry.azure.client.secret`
+
+_Mandatory if Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by `schema.registry.azure.client.id`. This secret is used to authenticate the application against Azure AD.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
 ```
 
 #### Basic HTTP Authentication Parameters
