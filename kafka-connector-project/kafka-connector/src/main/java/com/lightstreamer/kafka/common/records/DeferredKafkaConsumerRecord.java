@@ -20,9 +20,25 @@ package com.lightstreamer.kafka.common.records;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 
-public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V> {
+/**
+ * A {@link KafkaRecord} implementation that lazily deserializes key and value.
+ *
+ * <p>Deserialization is deferred until the {@link #key()} or {@link #value()} methods are called,
+ * and results are cached for subsequent accesses. This approach is useful when not all records will
+ * be fully consumed, or when deserialization is expensive.
+ *
+ * <p>Thread safety: The deserialization result caching uses {@code volatile} fields to ensure
+ * visibility across threads. However, synchronization is not required as records are guaranteed to
+ * not be consumed concurrently. The {@code volatile} semantics ensure that if a record is accessed
+ * by different threads (non-concurrently), the deserialized values are properly propagated.
+ *
+ * @param <K> the type of the deserialized key
+ * @param <V> the type of the deserialized value
+ * @see #key()
+ * @see #value()
+ */
+public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K, V> {
 
-    private final ConsumerRecord<byte[], byte[]> record;
     private final Deserializer<K> keyDeserializer;
     private final Deserializer<V> valueDeserializer;
     private final byte[] rawKey;
@@ -32,17 +48,32 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
     private volatile V cachedValue = null;
     private volatile K cachedKey = null;
 
+    /**
+     * Constructs a {@link DeferredKafkaConsumerRecord}.
+     *
+     * @param record the raw Kafka consumer record with byte array key and value
+     * @param keyDeserializer the deserializer for the key
+     * @param valueDeserializer the deserializer for the value
+     */
     DeferredKafkaConsumerRecord(
             ConsumerRecord<byte[], byte[]> record,
             Deserializer<K> keyDeserializer,
             Deserializer<V> valueDeserializer) {
-        this.record = record;
+        super(record);
         this.rawKey = record.key();
         this.rawValue = record.value();
         this.keyDeserializer = keyDeserializer;
         this.valueDeserializer = valueDeserializer;
     }
 
+    /**
+     * Returns the deserialized key, deserializing lazily on first access.
+     *
+     * <p>The deserialized key is cached after the first call. No synchronization is required as
+     * records are not consumed concurrently.
+     *
+     * @return the deserialized key, or {@code null} if the raw key is null
+     */
     @Override
     public K key() {
         if (!isKeyCached) {
@@ -52,6 +83,14 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
         return cachedKey;
     }
 
+    /**
+     * Returns the deserialized value, deserializing lazily on first access.
+     *
+     * <p>The deserialized value is cached after the first call. No synchronization is required as
+     * records are not consumed concurrently.
+     *
+     * @return the deserialized value, or {@code null} if the raw value is null
+     */
     @Override
     public V value() {
         if (!isValueCached) {
@@ -63,31 +102,6 @@ public final class DeferredKafkaConsumerRecord<K, V> implements KafkaRecord<K, V
 
     @Override
     public boolean isPayloadNull() {
-        return rawValue == null || rawValue.length == 0;
-    }
-
-    @Override
-    public long timestamp() {
-        return record.timestamp();
-    }
-
-    @Override
-    public long offset() {
-        return record.offset();
-    }
-
-    @Override
-    public String topic() {
-        return record.topic();
-    }
-
-    @Override
-    public int partition() {
-        return record.partition();
-    }
-
-    @Override
-    public KafkaHeaders headers() {
-        return KafkaHeaders.from(record.headers());
+        return rawValue == null;
     }
 }
