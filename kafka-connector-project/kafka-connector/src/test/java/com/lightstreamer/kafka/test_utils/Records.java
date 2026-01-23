@@ -26,6 +26,7 @@ import static java.util.stream.Collectors.toList;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -117,14 +118,14 @@ public class Records {
                         120,
                         String().serializer().serialize(topic, key),
                         String().serializer().serialize(topic, value));
-        return KafkaRecord.fromDeferred(record, String().deserializer(), String().deserializer());
+        return KafkaRecord.fromDeferred(
+                record, new DeserializerPair<>(String().deserializer(), String().deserializer()));
     }
 
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
         return KafkaRecord.fromDeferred(
                 ConsumerRecord(topic, partition, id),
-                String().deserializer(),
-                String().deserializer());
+                new DeserializerPair<>(String().deserializer(), String().deserializer()));
     }
 
     public static ConsumerRecord<byte[], byte[]> ConsumerRecord(
