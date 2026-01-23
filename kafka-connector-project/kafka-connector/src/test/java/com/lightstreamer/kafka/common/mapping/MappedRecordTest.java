@@ -36,7 +36,6 @@ import java.util.stream.Stream;
 public class MappedRecordTest {
 
     static Stream<Arguments> provideRecordsForRouting() {
-        // --- IGNORE ---
         return Stream.of(
                 Arguments.of(
                         new String[] {"schema-[key=aKey]"},
