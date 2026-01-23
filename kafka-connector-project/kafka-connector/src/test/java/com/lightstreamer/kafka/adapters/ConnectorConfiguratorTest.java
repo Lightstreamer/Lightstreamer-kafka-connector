@@ -25,6 +25,13 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CON
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
 
+import static org.apache.kafka.common.serialization.Serdes.ByteArray;
+import static org.apache.kafka.common.serialization.Serdes.ByteBuffer;
+import static org.apache.kafka.common.serialization.Serdes.Double;
+import static org.apache.kafka.common.serialization.Serdes.Float;
+import static org.apache.kafka.common.serialization.Serdes.Integer;
+import static org.apache.kafka.common.serialization.Serdes.Short;
+import static org.apache.kafka.common.serialization.Serdes.String;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
@@ -88,47 +95,47 @@ public class ConnectorConfiguratorTest {
                         "LONG",
                         Serdes.Long().deserializer().getClass(),
                         "STRING",
-                        Serdes.String().deserializer().getClass()),
+                        String().deserializer().getClass()),
                 Arguments.of(
                         "INTEGER",
-                        Serdes.Integer().deserializer().getClass(),
+                        Integer().deserializer().getClass(),
                         "JSON",
                         KafkaJsonDeserializer.class),
                 Arguments.of(
                         "INTEGER",
-                        Serdes.Integer().deserializer().getClass(),
+                        Integer().deserializer().getClass(),
                         "PROTOBUF",
                         KafkaProtobufDeserializer.class),
                 Arguments.of(
                         "INTEGER",
-                        Serdes.Integer().deserializer().getClass(),
+                        Integer().deserializer().getClass(),
                         "KVP",
-                        Serdes.String().deserializer().getClass()),
+                        String().deserializer().getClass()),
                 Arguments.of(
                         "FLOAT",
-                        Serdes.Float().deserializer().getClass(),
+                        Float().deserializer().getClass(),
                         "BOOLEAN",
                         BooleanDeserializer.class),
                 Arguments.of(
                         "SHORT",
-                        Serdes.Short().deserializer().getClass(),
+                        Short().deserializer().getClass(),
                         "UUID",
                         Serdes.UUID().deserializer().getClass()),
                 Arguments.of(
                         "DOUBLE",
-                        Serdes.Double().deserializer().getClass(),
+                        Double().deserializer().getClass(),
                         "BYTE_ARRAY",
-                        Serdes.ByteArray().deserializer().getClass()),
+                        ByteArray().deserializer().getClass()),
                 Arguments.of(
                         "PROTOBUF",
                         KafkaProtobufDeserializer.class,
                         "BYTE_ARRAY",
-                        Serdes.ByteArray().deserializer().getClass()),
+                        ByteArray().deserializer().getClass()),
                 Arguments.of(
                         "BYTES",
                         Serdes.Bytes().deserializer().getClass(),
                         "BYTE_BUFFER",
-                        Serdes.ByteBuffer().deserializer().getClass()));
+                        ByteBuffer().deserializer().getClass()));
     }
 
     @ParameterizedTest
