@@ -40,7 +40,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 
 import java.time.Duration;
@@ -132,6 +131,53 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
+    enum DeserializationTiming {
+        DEFERRED,
+        EAGER
+    }
+
+    abstract static class RecordDeserializationMode<K, V> {
+
+        protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
+        protected final DeserializationTiming timing;
+
+        RecordDeserializationMode(
+                DeserializationTiming timing, KafkaRecord.DeserializerPair<K, V> deserializerPair) {
+            this.deserializerPair = deserializerPair;
+            this.timing = timing;
+        }
+
+        abstract List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records);
+
+        DeserializationTiming getTiming() {
+            return timing;
+        }
+    }
+
+    static class DeferredDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
+
+        DeferredDeserializationMode(KafkaRecord.DeserializerPair<K, V> deserializerPair) {
+            super(DeserializationTiming.DEFERRED, deserializerPair);
+        }
+
+        @Override
+        public List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records) {
+            return KafkaRecord.listFromDeferred(records, deserializerPair);
+        }
+    }
+
+    static class EagerDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
+
+        EagerDeserializationMode(KafkaRecord.DeserializerPair<K, V> deserializerPair) {
+            super(DeserializationTiming.EAGER, deserializerPair);
+        }
+
+        @Override
+        public List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records) {
+            return KafkaRecord.listFromEager(records, deserializerPair);
+        }
+    }
+
     private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
 
     private final Config<K, V> config;
@@ -145,8 +191,7 @@ public class KafkaConsumerWrapper<K, V> {
     private volatile FutureStatus status;
     private ReentrantLock lock = new ReentrantLock();
 
-    private final Deserializer<K> keyDeserializer;
-    private Deserializer<V> valueDeserializer;
+    private final RecordDeserializationMode<K, V> deserializationMode;
 
     public KafkaConsumerWrapper(
             Config<K, V> config,
@@ -156,8 +201,7 @@ public class KafkaConsumerWrapper<K, V> {
             Supplier<Consumer<byte[], byte[]>> consumerSupplier)
             throws KafkaException {
         this.config = config;
-        this.keyDeserializer = config.suppliers().keySelectorSupplier().deserializer();
-        this.valueDeserializer = config.suppliers().valueSelectorSupplier().deserializer();
+
         this.metadataListener = metadataListener;
         this.logger = LogFactory.getLogger(this.config.connectionName());
         this.recordMapper =
@@ -194,6 +238,15 @@ public class KafkaConsumerWrapper<K, V> {
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
                         .build();
+
+        KafkaRecord.DeserializerPair<K, V> deserializers =
+                new KafkaRecord.DeserializerPair<>(
+                        config.suppliers().keySelectorSupplier().deserializer(),
+                        config.suppliers().valueSelectorSupplier().deserializer());
+        this.deserializationMode =
+                recordConsumer.isParallel()
+                        ? new DeferredDeserializationMode<>(deserializers)
+                        : new EagerDeserializationMode<>(deserializers);
     }
 
     private String getProperty(String key) {
@@ -333,8 +386,7 @@ public class KafkaConsumerWrapper<K, V> {
         try {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(duration);
             logger.atDebug().log("Received records");
-            List<KafkaRecord<K, V>> kafkaRecords =
-                    KafkaRecord.listFromDeferred(records, keyDeserializer, valueDeserializer);
+            List<KafkaRecord<K, V>> kafkaRecords = deserializationMode.toRecords(records);
             recordConsumer.accept(kafkaRecords);
             int count = kafkaRecords.size();
             logger.atDebug().log("Consumed {} records", count);
@@ -443,6 +495,11 @@ public class KafkaConsumerWrapper<K, V> {
     // Only for testing purposes
     OffsetService getOffsetService() {
         return offsetService;
+    }
+
+    // Only for testing purposes
+    DeserializationTiming getRecordDeserializationTiming() {
+        return deserializationMode.getTiming();
     }
 
     // Only for testing purposes
