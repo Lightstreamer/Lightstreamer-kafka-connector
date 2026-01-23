@@ -19,6 +19,8 @@ package com.lightstreamer.kafka.common.records;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.apache.kafka.common.serialization.Serdes.String;
+
 import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -26,8 +28,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -43,8 +43,8 @@ import java.util.stream.Stream;
 
 public class KafkaRecordTest {
 
-    private Deserializer<String> keyDeserializer = Serdes.String().deserializer();
-    private Deserializer<String> valueDeserializer = Serdes.String().deserializer();
+    private KafkaRecord.DeserializerPair<String, String> deserializerPair =
+            new KafkaRecord.DeserializerPair<>(String().deserializer(), String().deserializer());
 
     static Stream<Arguments> consumerRecords() {
         return Stream.of(
@@ -120,7 +120,7 @@ public class KafkaRecordTest {
                         Optional.empty());
 
         KafkaRecord<String, String> kafkaRecord =
-                KafkaRecord.fromDeferred(consumerRecord, keyDeserializer, valueDeserializer);
+                KafkaRecord.fromDeferred(consumerRecord, deserializerPair);
 
         // Verify metadata
         assertThat(kafkaRecord.topic()).isEqualTo(expectedTopic);
@@ -175,7 +175,7 @@ public class KafkaRecordTest {
                         Optional.empty());
 
         KafkaRecord<String, String> kafkaRecord =
-                KafkaRecord.fromEager(consumerRecord, keyDeserializer, valueDeserializer);
+                KafkaRecord.fromEager(consumerRecord, deserializerPair);
 
         // Verify metadata
         assertThat(kafkaRecord.topic()).isEqualTo(expectedTopic);
@@ -252,7 +252,7 @@ public class KafkaRecordTest {
         ConsumerRecords<byte[], byte[]> records =
                 makeRecords("topic", partitions, recordsPerPartitions);
         List<KafkaRecord<String, String>> deferred =
-                KafkaRecord.listFromDeferred(records, keyDeserializer, valueDeserializer);
+                KafkaRecord.listFromDeferred(records, deserializerPair);
 
         // Verify total size
         assertThat(deferred).hasSize(partitions * recordsPerPartitions);
@@ -292,7 +292,7 @@ public class KafkaRecordTest {
         ConsumerRecords<byte[], byte[]> records =
                 makeRecords("topic", partitions, recordsPerPartitions);
         List<KafkaRecord<String, String>> eager =
-                KafkaRecord.listFromEager(records, keyDeserializer, valueDeserializer);
+                KafkaRecord.listFromEager(records, deserializerPair);
 
         // Verify total size
         assertThat(eager).hasSize(partitions * recordsPerPartitions);
