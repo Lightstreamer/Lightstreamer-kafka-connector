@@ -34,6 +34,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 
@@ -208,6 +209,9 @@ public class Records {
         Map<Integer, Integer> offsetCounter = new HashMap<>();
         SecureRandom secureRandom = new SecureRandom();
 
+        Serializer<String> keySerializer = String().serializer();
+        Serializer<String> valueSerializer = String().serializer();
+
         // Generate the records list
         for (int i = 0; i < size; i++) {
             String recordKey = null;
@@ -242,8 +246,8 @@ public class Records {
                             topic,
                             partition,
                             offset,
-                            String().serializer().serialize(topic, recordKey),
-                            String().serializer().serialize(topic, recordValue)));
+                            keySerializer.serialize(topic, recordKey),
+                            valueSerializer.serialize(topic, recordValue)));
         }
 
         // Group records by partition to be passed to the ConsumerRecords instance
