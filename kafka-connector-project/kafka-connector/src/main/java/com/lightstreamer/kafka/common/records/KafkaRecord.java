@@ -139,6 +139,18 @@ public interface KafkaRecord<K, V> {
     }
 
     /**
+     * A pair of deserializers for Kafka record keys and values.
+     *
+     * <p>This record encapsulates a key deserializer and a value deserializer, used for converting
+     * byte arrays to typed objects during record deserialization.
+     *
+     * @param <K> the type of the deserialized key
+     * @param <V> the type of the deserialized value
+     */
+    public record DeserializerPair<K, V>(
+            Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {}
+
+    /**
      * Creates a {@link KafkaRecord} with deferred deserialization of key and value.
      *
      * <p>Deserialization is performed lazily when {@link #key()} or {@link #value()} methods are
@@ -148,16 +160,14 @@ public interface KafkaRecord<K, V> {
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param record the raw Kafka consumer record with byte array key and value
-     * @param keyDeserializer the deserializer for the key
-     * @param valueDeserializer the deserializer for the value
+     * @param deserializerPair the pair of deserializers for key and value
      * @return a new {@link KafkaRecord} with deferred deserialization
      * @see DeferredKafkaConsumerRecord
      */
     public static <K, V> KafkaRecord<K, V> fromDeferred(
-            ConsumerRecord<byte[], byte[]> record,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
-        return new DeferredKafkaConsumerRecord<>(record, keyDeserializer, valueDeserializer);
+            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
+        return new DeferredKafkaConsumerRecord<>(
+                record, deserializerPair.keyDeserializer(), deserializerPair.valueDeserializer());
     }
 
     /**
@@ -170,16 +180,14 @@ public interface KafkaRecord<K, V> {
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param record the raw Kafka consumer record with byte array key and value
-     * @param keyDeserializer the deserializer for the key
-     * @param valueDeserializer the deserializer for the value
+     * @param deserializerPair the pair of deserializers for key and value
      * @return a new {@link KafkaRecord} with eager deserialization
      * @see EagerKafkaConsumerRecord
      */
     public static <K, V> KafkaRecord<K, V> fromEager(
-            ConsumerRecord<byte[], byte[]> record,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
-        return new EagerKafkaConsumerRecord<>(record, keyDeserializer, valueDeserializer);
+            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
+        return new EagerKafkaConsumerRecord<>(
+                record, deserializerPair.keyDeserializer(), deserializerPair.valueDeserializer());
     }
 
     /**
@@ -234,15 +242,13 @@ public interface KafkaRecord<K, V> {
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param consumerRecords the consumer records batch to convert
-     * @param keyDeserializer the deserializer for keys
-     * @param valueDeserializer the deserializer for values
+     * @param deserializerPair the pair of deserializers for keys and values
      * @return a list of {@link KafkaRecord}s with eagerly deserialized keys and values
-     * @see #fromEager(ConsumerRecord, Deserializer, Deserializer)
+     * @see #fromEager(ConsumerRecord, DeserializerPair)
      */
     static <K, V> List<KafkaRecord<K, V>> listFromEager(
             ConsumerRecords<byte[], byte[]> consumerRecords,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
+            DeserializerPair<K, V> deserializerPair) {
         List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
         consumerRecords
                 .partitions()
@@ -251,11 +257,7 @@ public interface KafkaRecord<K, V> {
                             List<ConsumerRecord<byte[], byte[]>> records =
                                     consumerRecords.records(partition);
                             for (int i = 0, n = records.size(); i < n; i++) {
-                                kafkaRecords.add(
-                                        fromEager(
-                                                records.get(i),
-                                                keyDeserializer,
-                                                valueDeserializer));
+                                kafkaRecords.add(fromEager(records.get(i), deserializerPair));
                             }
                         });
         return kafkaRecords;
@@ -268,15 +270,13 @@ public interface KafkaRecord<K, V> {
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param consumerRecords the consumer records batch to convert
-     * @param keyDeserializer the deserializer for keys
-     * @param valueDeserializer the deserializer for values
+     * @param deserializerPair the pair of deserializers for keys and values
      * @return a list of {@link KafkaRecord}s with deferred deserialization of keys and values
-     * @see #fromDeferred(ConsumerRecord, Deserializer, Deserializer)
+     * @see #fromDeferred(ConsumerRecord, DeserializerPair)
      */
     static <K, V> List<KafkaRecord<K, V>> listFromDeferred(
             ConsumerRecords<byte[], byte[]> consumerRecords,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
+            KafkaRecord.DeserializerPair<K, V> deserializerPair) {
         List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
         consumerRecords
                 .partitions()
@@ -285,11 +285,7 @@ public interface KafkaRecord<K, V> {
                             List<ConsumerRecord<byte[], byte[]>> records =
                                     consumerRecords.records(partition);
                             for (int i = 0, n = records.size(); i < n; i++) {
-                                kafkaRecords.add(
-                                        fromDeferred(
-                                                records.get(i),
-                                                keyDeserializer,
-                                                valueDeserializer));
+                                kafkaRecords.add(fromDeferred(records.get(i), deserializerPair));
                             }
                         });
         return kafkaRecords;
