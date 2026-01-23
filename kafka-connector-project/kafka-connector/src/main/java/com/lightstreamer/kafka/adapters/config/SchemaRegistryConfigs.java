@@ -41,6 +41,7 @@ public class SchemaRegistryConfigs {
 
     public static final String NAME_SPACE = "schema.registry";
     public static final String URL = ns("url");
+    public static final String SCHEMA_REGISTRY_PROVIDER = ns("provider");
 
     public static final String ENCRYPTION_NAME_SPACE = ns("encryption");
     public static final String SSL_ENABLED_PROTOCOLS = nse(TlsConfigs.SSL_ENABLED_PROTOCOLS);
@@ -86,6 +87,7 @@ public class SchemaRegistryConfigs {
         CONFIG_SPEC =
                 new ConfigsSpec("schemaRegistry")
                         .add(URL, true, false, ConfType.URL)
+                        .add(SCHEMA_REGISTRY_PROVIDER, false, false, TEXT, defaultValue("CONFLUENT"))
                         .add(AZURE_SCHEMA_ID_HEADER, false, false, TEXT, defaultValue(""))
                         .add(AZURE_TENANT_ID, false, false, TEXT)
                         .add(AZURE_CLIENT_ID, false, false, TEXT)
@@ -132,7 +134,7 @@ public class SchemaRegistryConfigs {
         String provider = cfg.schemaRegistryProvider();
         props.setProperty(
                 AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
-        props.setProperty(ConnectorConfig.SCHEMA_REGISTRY_PROVIDER, provider);
+        props.setProperty(SCHEMA_REGISTRY_PROVIDER, provider);
         props.setProperty(AZURE_SCHEMA_ID_HEADER, cfg.azureSchemaIdHeader());
         props.setProperty(AZURE_TENANT_ID, cfg.getText(AZURE_TENANT_ID));
         props.setProperty(AZURE_CLIENT_ID, cfg.getText(AZURE_CLIENT_ID));

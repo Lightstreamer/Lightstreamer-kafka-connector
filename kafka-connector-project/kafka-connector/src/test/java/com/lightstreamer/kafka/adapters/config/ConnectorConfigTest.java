@@ -66,6 +66,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.TOPIC_MAPP
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION;
+import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_PASSWORD;

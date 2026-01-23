@@ -118,8 +118,6 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE =
             "record.value.evaluator.schema.registry.enable";
 
-    public static final String SCHEMA_REGISTRY_PROVIDER = "schema.registry.provider";
-
     public static final String RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR =
             "record.key.evaluator.kvp.pairs.separator";
 
@@ -265,12 +263,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
-                        .add(
-                                SCHEMA_REGISTRY_PROVIDER,
-                                false,
-                                false,
-                                TEXT,
-                                defaultValue("CONFLUENT"))
                         .add(
                                 RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR,
                                 false,
@@ -972,7 +964,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public String schemaRegistryProvider() {
         checkSchemaRegistryEnabled();
-        return getText(SCHEMA_REGISTRY_PROVIDER);
+        return getText(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER);
     }
 
     public String azureSchemaIdHeader() {

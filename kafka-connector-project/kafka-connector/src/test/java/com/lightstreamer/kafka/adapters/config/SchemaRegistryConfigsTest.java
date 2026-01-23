@@ -40,6 +40,16 @@ public class SchemaRegistryConfigsTest {
         assertThat(url.defaultValue()).isNull();
         assertThat(url.type()).isEqualTo(URL);
 
+        ConfParameter schemaRegistryProvider =
+                configSpec.getParameter(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER);
+        assertThat(schemaRegistryProvider.name())
+                .isEqualTo(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER);
+        assertThat(schemaRegistryProvider.required()).isFalse();
+        assertThat(schemaRegistryProvider.multiple()).isFalse();
+        assertThat(schemaRegistryProvider.mutable()).isTrue();
+        assertThat(schemaRegistryProvider.defaultValue()).isEqualTo("CONFLUENT");
+        assertThat(schemaRegistryProvider.type()).isEqualTo(ConfType.TEXT);
+
         ConfParameter sslProtocol = configSpec.getParameter(SchemaRegistryConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.name()).isEqualTo(SchemaRegistryConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.required()).isFalse();
@@ -183,5 +193,42 @@ public class SchemaRegistryConfigsTest {
         assertThat(keyPassword.mutable()).isTrue();
         assertThat(keyPassword.defaultValue()).isNull();
         assertThat(keyPassword.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter azureSchemaIdHeader =
+                configSpec.getParameter(SchemaRegistryConfigs.AZURE_SCHEMA_ID_HEADER);
+        assertThat(azureSchemaIdHeader.name())
+                .isEqualTo(SchemaRegistryConfigs.AZURE_SCHEMA_ID_HEADER);
+        assertThat(azureSchemaIdHeader.required()).isFalse();
+        assertThat(azureSchemaIdHeader.multiple()).isFalse();
+        assertThat(azureSchemaIdHeader.mutable()).isTrue();
+        assertThat(azureSchemaIdHeader.defaultValue()).isEqualTo("");
+        assertThat(azureSchemaIdHeader.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter azureTenantId =
+                configSpec.getParameter(SchemaRegistryConfigs.AZURE_TENANT_ID);
+        assertThat(azureTenantId.name()).isEqualTo(SchemaRegistryConfigs.AZURE_TENANT_ID);
+        assertThat(azureTenantId.required()).isFalse();
+        assertThat(azureTenantId.multiple()).isFalse();
+        assertThat(azureTenantId.mutable()).isTrue();
+        assertThat(azureTenantId.defaultValue()).isNull();
+        assertThat(azureTenantId.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter azureClientId =
+                configSpec.getParameter(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+        assertThat(azureClientId.name()).isEqualTo(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+        assertThat(azureClientId.required()).isFalse();
+        assertThat(azureClientId.multiple()).isFalse();
+        assertThat(azureClientId.mutable()).isTrue();
+        assertThat(azureClientId.defaultValue()).isNull();
+        assertThat(azureClientId.type()).isEqualTo(ConfType.TEXT);
+
+        ConfParameter azureClientSecret =
+                configSpec.getParameter(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+        assertThat(azureClientSecret.name()).isEqualTo(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+        assertThat(azureClientSecret.required()).isFalse();
+        assertThat(azureClientSecret.multiple()).isFalse();
+        assertThat(azureClientSecret.mutable()).isTrue();
+        assertThat(azureClientSecret.defaultValue()).isNull();
+        assertThat(azureClientSecret.type()).isEqualTo(ConfType.TEXT);
     }
 }
