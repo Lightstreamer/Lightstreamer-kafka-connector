@@ -32,6 +32,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
@@ -46,6 +47,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -53,6 +55,7 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetResetStrategy;
@@ -61,7 +64,6 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -95,9 +97,10 @@ public class KafkaConsumerWrapperTest {
     private MockConsumer mockConsumer = new MockConsumer(resetStrategy);
     private KeyValueSelectorSuppliers<String, String> suppliers = OthersSelectorSuppliers.String();
 
-    private Deserializer<String> keyDeserializer = suppliers.keySelectorSupplier().deserializer();
-    private Deserializer<String> valueDeserializer =
-            suppliers.valueSelectorSupplier().deserializer();
+    private DeserializerPair<String, String> deserializerPair =
+            new DeserializerPair<>(
+                    suppliers.keySelectorSupplier().deserializer(),
+                    suppliers.valueSelectorSupplier().deserializer());
 
     private Properties makeProperties() {
         Properties properties = new Properties();
@@ -272,6 +275,15 @@ public class KafkaConsumerWrapperTest {
         RecordProcessor<String, String> recordProcessor = recordConsumer.recordProcessor();
         assertThat(recordProcessor.processUpdatesType()).isEqualTo(expectedProcessUpdatesType);
 
+        // Check the DeserializationMode
+        DeserializationTiming recordDeserializationTiming =
+                wrapper.getRecordDeserializationTiming();
+        if (expectedParallelism) {
+            assertThat(recordDeserializationTiming).isEqualTo(DeserializationTiming.DEFERRED);
+        } else {
+            assertThat(recordDeserializationTiming).isEqualTo(DeserializationTiming.EAGER);
+        }
+
         // Check the OffsetService
         OffsetService offsetService = wrapper.getOffsetService();
         assertThat(offsetService.canManageHoles()).isEqualTo(expectedParallelism);
@@ -325,7 +337,7 @@ public class KafkaConsumerWrapperTest {
         // expected simulated records
         int filtered =
                 wrapper.initStoreAndConsume(
-                        KafkaRecord.listFromDeferred(records, keyDeserializer, valueDeserializer));
+                        KafkaRecord.listFromDeferred(records, deserializerPair));
         assertThat(filtered).isEqualTo(records.count() - 2);
     }
 
@@ -969,5 +981,59 @@ public class KafkaConsumerWrapperTest {
         FutureStatus shutdown = wrapper.shutdown();
         assertThat(shutdown.isStateAvailable()).isTrue();
         assertThat(shutdown.join()).isEqualTo(State.SHUTDOWN);
+    }
+
+    private static Stream<Arguments> deserializationModes() {
+        KafkaRecord.DeserializerPair<String, String> pair =
+                new DeserializerPair<>(
+                        OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
+                        OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer());
+        return Stream.of(
+                Arguments.of(
+                        "Deferred",
+                        new KafkaConsumerWrapper.DeferredDeserializationMode<>(pair),
+                        DeserializationTiming.DEFERRED),
+                Arguments.of(
+                        "Eager",
+                        new KafkaConsumerWrapper.EagerDeserializationMode<>(pair),
+                        DeserializationTiming.EAGER));
+    }
+
+    @ParameterizedTest
+    @MethodSource("deserializationModes")
+    void shouldConvertConsumerRecordsToKafkaRecords(
+            String modeName,
+            KafkaConsumerWrapper.RecordDeserializationMode<String, String> mode,
+            DeserializationTiming expectedTiming) {
+        assertThat(mode.getTiming()).isEqualTo(expectedTiming);
+
+        ConsumerRecords<byte[], byte[]> consumerRecords = createConsumerRecords(2);
+        List<KafkaRecord<String, String>> result = mode.toRecords(consumerRecords);
+        assertThat(result).hasSize(2);
+
+        // Verify that records are of the expected implementation class
+        Class<?> expectedClass =
+                expectedTiming == DeserializationTiming.DEFERRED
+                        ? com.lightstreamer.kafka.common.records.DeferredKafkaConsumerRecord.class
+                        : com.lightstreamer.kafka.common.records.EagerKafkaConsumerRecord.class;
+        for (KafkaRecord<String, String> record : result) {
+            assertThat(record).isInstanceOf(expectedClass);
+        }
+
+        // Verify empty records handling
+        ConsumerRecords<byte[], byte[]> emptyRecords =
+                new ConsumerRecords<>(Collections.emptyMap());
+
+        result = mode.toRecords(emptyRecords);
+        assertThat(result).isEmpty();
+    }
+
+    private ConsumerRecords<byte[], byte[]> createConsumerRecords(int count) {
+        List<ConsumerRecord<byte[], byte[]>> recordList = new ArrayList<>();
+        for (int i = 1; i <= count; i++) {
+            recordList.add(Records.ConsumerRecord("test-topic", 0, "key" + i + "-" + i));
+        }
+        return new ConsumerRecords<>(
+                Collections.singletonMap(new TopicPartition("test-topic", 0), recordList));
     }
 }
