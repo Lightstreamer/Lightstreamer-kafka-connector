@@ -21,15 +21,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 
+import org.apache.kafka.common.serialization.Serdes;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -67,21 +72,33 @@ public class DataExtractorBenchmarks {
 
         CanonicalItemExtractor<String, DynamicMessage> canonicalItemExtractor;
         FieldsExtractor<String, DynamicMessage> fieldsExtractor;
-        List<KafkaRecord<String, DynamicMessage>> records;
+        List<KafkaRecord<String, DynamicMessage>> kafkaRecords;
 
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
+            ConnectorConfigurator configurator =
+                    BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams);
             @SuppressWarnings("unchecked")
             Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", numOfTemplateParams)
-                                    .consumerConfig();
+                    (Config<String, DynamicMessage>) configurator.consumerConfig();
 
-            canonicalItemExtractor =
+            this.canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
-            fieldsExtractor = config.fieldsExtractor();
-            records = ProtoRecords.kafkaRecords(TOPICS, 1, 1, 10);
+            this.fieldsExtractor = config.fieldsExtractor();
+            DeserializerPair<String, DynamicMessage> deserializerPair =
+                    new DeserializerPair<>(
+                            Serdes.String().deserializer(),
+                            DynamicMessageDeserializers.ValueDeserializer(
+                                    configurator.getConfig()));
+            this.kafkaRecords =
+                    KafkaRecord.listFromEager(
+                            ProtoRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair);
+            // this.kafkaRecords =
+            //         KafkaRecord.listFromDeferred(
+            //                 ProtoRecords.pollRecords(TOPICS, 1, 1, 10),
+            //                 keyDeserializer,
+            //                 valueDeserializer);
         }
     }
 
@@ -93,85 +110,132 @@ public class DataExtractorBenchmarks {
 
         CanonicalItemExtractor<String, JsonNode> canonicalItemExtractor;
         FieldsExtractor<String, JsonNode> fieldsExtractor;
-        private List<KafkaRecord<String, JsonNode>> records;
+        private List<KafkaRecord<String, JsonNode>> kafkaRecords;
 
         @Setup(Level.Iteration)
         public void setUp()
                 throws ExtractionException, JsonMappingException, JsonProcessingException {
+            ConnectorConfigurator configurator =
+                    BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams);
             @SuppressWarnings("unchecked")
             Config<String, JsonNode> config =
-                    (Config<String, JsonNode>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", numOfTemplateParams)
-                                    .consumerConfig();
+                    (Config<String, JsonNode>) configurator.consumerConfig();
 
             canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
             fieldsExtractor = config.fieldsExtractor();
-            records = JsonRecords.kafkaRecords(TOPICS, 1, 1, 1);
+            DeserializerPair<String, JsonNode> deserializerPair =
+                    new DeserializerPair<>(
+                            Serdes.String().deserializer(),
+                            JsonNodeDeserializers.ValueDeserializer(configurator.getConfig()));
+            // this.kafkaRecords =
+            //         KafkaRecord.listFromDeferred(
+            //                 JsonRecords.pollRecords(TOPICS, 1, 1, 10),
+            //                 keyDeserializer,
+            //                 valueDeserializer);
+            this.kafkaRecords =
+                    KafkaRecord.listFromEager(
+                            JsonRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair);
         }
     }
 
     /**
      * Benchmarks the extraction of canonical item names from Protobuf-formatted Kafka records.
-     * Measures the performance of converting Protobuf data into canonical string format.
+     *
+     * <p>This benchmark measures the performance of converting Protobuf data into canonical string
+     * format. The extracted canonical item name is consumed by the blackhole to prevent dead code
+     * elimination and ensure accurate performance measurements.
+     *
+     * @param proto the Protobuf benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
-        String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.records.get(0));
+        String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.kafkaRecords.get(0));
         bh.consume(data);
     }
 
     /**
-     * Benchmarks the extraction of canonical item names from JSON-formatted Kafka records. Measures
-     * the performance of converting JSON data into canonical string format.
+     * Benchmarks the extraction of canonical item names from JSON-formatted Kafka records.
+     *
+     * <p>This benchmark measures the performance of converting JSON data into canonical string
+     * format. The extracted canonical item name is consumed by the blackhole to prevent dead code
+     * elimination and ensure accurate performance measurements.
+     *
+     * @param json the JSON benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
-        String data = json.canonicalItemExtractor.extractCanonicalItem(json.records.get(0));
+        String data = json.canonicalItemExtractor.extractCanonicalItem(json.kafkaRecords.get(0));
         bh.consume(data);
     }
 
     /**
-     * Benchmarks extraction of Protobuf records into a new Map structure. Tests the performance of
-     * creating and populating a new Map with extracted field data.
+     * Benchmarks extraction of Protobuf records into a new Map structure.
+     *
+     * <p>This benchmark measures the performance of creating and populating a new Map with
+     * extracted field data from Protobuf records. The Map is consumed by the blackhole to prevent
+     * dead code elimination and ensure accurate performance measurements.
+     *
+     * @param proto the Protobuf benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
-        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.records.get(0));
+        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.kafkaRecords.get(0));
         bh.consume(data);
     }
 
     /**
-     * Benchmarks extraction of Protobuf records into a pre-existing Map. Tests the performance of
-     * populating an existing Map with extracted field data, which may be more efficient than
-     * creating a new Map.
+     * Benchmarks extraction of JSON records into a new Map structure.
+     *
+     * <p>This benchmark measures the performance of creating and populating a new Map with
+     * extracted field data from JSON records. The Map is consumed by the blackhole to prevent dead
+     * code elimination and ensure accurate performance measurements.
+     *
+     * @param json the JSON benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
+     */
+    @Benchmark
+    public void extractAsMapJson(Json json, Blackhole bh) {
+        Map<String, String> data = json.fieldsExtractor.extractMap(json.kafkaRecords.get(0));
+        bh.consume(data);
+    }
+
+    /**
+     * Benchmarks extraction of Protobuf records into a pre-existing Map.
+     *
+     * <p>This benchmark measures the performance of populating an existing Map with extracted field
+     * data from Protobuf records. This approach may be more efficient than creating a new Map. The
+     * populated Map is consumed by the blackhole to prevent dead code elimination and ensure
+     * accurate performance measurements.
+     *
+     * @param proto the Protobuf benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
         Map<String, String> target = new HashMap<>();
-        proto.fieldsExtractor.extractIntoMap(proto.records.get(0), target);
+        proto.fieldsExtractor.extractIntoMap(proto.kafkaRecords.get(0), target);
         bh.consume(target);
     }
 
     /**
-     * Benchmarks extraction of JSON records into a new Map structure. Tests the performance of
-     * creating and populating a new Map with extracted field data from JSON.
-     */
-    @Benchmark
-    public void extractAsMapJson(Json json, Blackhole bh) {
-        Map<String, String> data = json.fieldsExtractor.extractMap(json.records.get(0));
-        bh.consume(data);
-    }
-
-    /**
-     * Benchmarks extraction of JSON records into a pre-existing Map. Tests the performance of
-     * populating an existing Map with extracted field data from JSON, which may be more efficient
-     * than creating a new Map.
+     * Benchmarks extraction of JSON records into a pre-existing Map.
+     *
+     * <p>This benchmark measures the performance of populating an existing Map with extracted field
+     * data from JSON records. This approach may be more efficient than creating a new Map. The
+     * populated Map is consumed by the blackhole to prevent dead code elimination and ensure
+     * accurate performance measurements.
+     *
+     * @param json the JSON benchmark state containing records and extractors
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void extractIntoMapJson(Json json, Blackhole bh) {
         Map<String, String> target = new HashMap<>();
-        json.fieldsExtractor.extractIntoMap(json.records.get(0), target);
+        json.fieldsExtractor.extractIntoMap(json.kafkaRecords.get(0), target);
         bh.consume(target);
     }
 }
