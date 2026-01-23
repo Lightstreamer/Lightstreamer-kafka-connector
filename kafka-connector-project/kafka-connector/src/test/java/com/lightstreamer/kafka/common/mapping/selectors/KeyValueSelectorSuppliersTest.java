@@ -19,6 +19,8 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.apache.kafka.common.serialization.Serdes.String;
+
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 
 import org.apache.kafka.common.serialization.Deserializer;
@@ -79,7 +81,7 @@ public class KeyValueSelectorSuppliersTest {
 
     @Test
     void shouldCreate() {
-        Deserializer<String> stringDeserializer = Serdes.String().deserializer();
+        Deserializer<String> stringDeserializer = String().deserializer();
         KeySelectorSupplierImpl<String> keySelectorSupplier =
                 new KeySelectorSupplierImpl<String>(stringDeserializer);
         Deserializer<Long> longDeserializer = Serdes.Long().deserializer();
