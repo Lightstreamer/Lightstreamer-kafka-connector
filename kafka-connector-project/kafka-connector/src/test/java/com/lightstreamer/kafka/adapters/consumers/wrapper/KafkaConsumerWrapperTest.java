@@ -403,59 +403,6 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldPollAllAvailableRecords() {
-        String topic = "topic";
-        TopicPartition partition0 = new TopicPartition(topic, 0);
-        TopicPartition partition1 = new TopicPartition(topic, 1);
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false);
-
-        // A rebalance must be scheduled to later use the subscribe method
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
-
-        // Set the start offset for each partition
-        HashMap<TopicPartition, Long> offsets = new HashMap<>();
-        offsets.put(partition0, 0L);
-        offsets.put(partition1, 0L);
-        updateOffsets(offsets);
-
-        // Generate then simulated records to be polled from the mocked consumer
-        ConsumerRecords<byte[], byte[]> records =
-                Records.generateRecords(topic, 10, List.of("a", "b"));
-        mockConsumer.schedulePollTask(
-                () -> records.forEach(record -> mockConsumer.addRecord(record)));
-        mockConsumer.subscribe(Set.of(topic));
-        // The following poll is only required to trigger the rebalance set above.
-        // Subsequent poll will return the expected records.
-        mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-
-        // Define the task that should be invoked upon polling
-        List<KafkaRecord<String, String>> holder = new ArrayList<>();
-        AtomicInteger invocationCounter = new AtomicInteger();
-        Consumer<List<KafkaRecord<String, String>>> task =
-                received -> {
-                    // Track invocations
-                    invocationCounter.incrementAndGet();
-                    // Store only if records were actually fetched
-                    if (received.size() > 0) {
-                        for (KafkaRecord<String, String> record : received) {
-                            holder.add(record);
-                        }
-                    }
-                };
-
-        // Invoke the method and verify that task has been actually
-        // invoked with the expected simulated records.
-        wrapper.pollAvailable(task);
-        // Received only the scheduled records
-        assertThat(holder).hasSize(records.count());
-        // Invoked two times: one for the records and one for the empty poll
-        assertThat(invocationCounter.get()).isEqualTo(2);
-        // Regular interruption
-        assertThat(metadataListener.forcedUnsubscription()).isFalse();
-    }
-
-    @Test
     public void shouldNotPollOnceDueToKafkaException() {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
@@ -503,7 +450,7 @@ public class KafkaConsumerWrapperTest {
 
         // Invoke the method and verify that task has been actually
         // invoked with the expected simulated records.
-        assertThrows(KafkaException.class, () -> wrapper.pollAvailable(task));
+        assertThrows(KafkaException.class, () -> wrapper.pollOnce(task));
         // Never invoked
         assertThat(invocationCounter.get()).isEqualTo(0);
         // Forced interruption
