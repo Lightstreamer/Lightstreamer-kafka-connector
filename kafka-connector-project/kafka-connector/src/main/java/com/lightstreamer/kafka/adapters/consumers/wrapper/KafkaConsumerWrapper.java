@@ -295,9 +295,7 @@ public class KafkaConsumerWrapper<K, V> {
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
         }
         try {
-            offsetService.initStore(isFromLatest());
             pollOnce(this::initStoreAndConsume);
-            pollAvailable(this::consumeRecords);
         } catch (KafkaException e) {
             logger.atWarn().log("Initialization failed because of an exception");
             closeConsumer();
@@ -368,19 +366,11 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         logger.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed");
-        pool(recordConsumer, Duration.ofMillis(100));
+        poll(recordConsumer, POLL_DURATION);
         logger.atInfo().log("First poll completed");
     }
 
-    void pollAvailable(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
-            throws KafkaException {
-        logger.atInfo().log("Polling all available records");
-        while (pool(recordConsumer, Duration.ofMillis(100)) > 0)
-            ;
-        logger.atInfo().log("All available records polled");
-    }
-
-    private int pool(
+    private int poll(
             java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer, Duration duration)
             throws KafkaException {
         try {
@@ -439,7 +429,7 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         logger.atInfo().log("Starting infinite pool");
         for (; ; ) {
-            pool(recordConsumer, POLL_DURATION);
+            poll(recordConsumer, POLL_DURATION);
         }
     }
 
