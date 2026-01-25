@@ -636,7 +636,7 @@ class RecordConsumerSupport {
                     }
                 }
             } catch (Throwable t) {
-                logger.atError().log("Serious error while processing record!");
+                logger.atError().setCause(t).log("Serious error while processing record!");
                 throw new KafkaException(t);
             }
         }
