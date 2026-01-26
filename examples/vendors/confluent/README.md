@@ -211,7 +211,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStart` [factory configuration](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L15) comes with a straightforward mapping defined through the following settings:
+  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -1302,7 +1302,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L481) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L482) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1503,37 +1503,6 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
   - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
-
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
-
-##### Auto Command Mode (`fields.auto.command.mode.enable`)
-
-_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
-
-When enabled, the connector:
-
-- Automatically adds a Lightstreamer command field to each update
-- Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed)
-  - **`UPDATE`**: For records with a mapped key that has been previously processed
-  - **`DELETE`**: For records with a null message payload (_tombstone records_)
-
-You only need to map the `key` field from your record structure:
-
-```xml
-<param name="fields.auto.command.mode.enable">true</param>
-<param name="field.key">#{KEY}</param>
-...
-```
-
-> [!TIP]
-> The `key` field can be mapped from any part of the Kafka record structure.
-
-This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
 
 The parameter can be one of the following:
 - `true`
