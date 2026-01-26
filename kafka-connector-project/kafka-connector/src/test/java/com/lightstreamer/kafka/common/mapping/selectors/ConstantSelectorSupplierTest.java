@@ -26,7 +26,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Const
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.TOPIC;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant.VALUE;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
-import static com.lightstreamer.kafka.test_utils.Records.record;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
@@ -136,11 +136,12 @@ public class ConstantSelectorSupplierTest {
             throws ExtractionException {
         GenericSelector selector = selector(expression);
 
-        Data autoBoundData = selector.extract("field_name", record("record-key", "record-value"));
+        Data autoBoundData =
+                selector.extract("field_name", KafkaRecord("record-key", "record-value"));
         assertThat(autoBoundData.name()).isEqualTo("field_name");
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = selector.extract(record("record-key", "record-value"));
+        Data boundData = selector.extract(KafkaRecord("record-key", "record-value"));
         assertThat(boundData.name()).isEqualTo(expression);
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -149,12 +150,12 @@ public class ConstantSelectorSupplierTest {
     public void shouldExtractNullData() throws ExtractionException {
         GenericSelector keySelector = selector("KEY");
 
-        Data nullKey = keySelector.extract(record(null, "record-value"));
+        Data nullKey = keySelector.extract(KafkaRecord(null, "record-value"));
         assertThat(nullKey.name()).isEqualTo("KEY");
         assertThat(nullKey.text()).isNull();
 
         GenericSelector valueSelector = selector("VALUE");
-        Data nullValue = valueSelector.extract(record("record-key", null));
+        Data nullValue = valueSelector.extract(KafkaRecord("record-key", null));
         assertThat(nullValue.name()).isEqualTo("VALUE");
         assertThat(nullValue.text()).isNull();
     }

@@ -285,7 +285,7 @@
         -->
 
         <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
-             authentication MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+             authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role</param>
@@ -307,15 +307,16 @@
 
         <!-- ##### RECORD EVALUATION SETTINGS ##### -->
 
-        <!-- Optional. Specifies where to start consuming events from:
-             - LATEST: start consuming events from the end of the topic partition
-             - EARLIEST: start consuming events from the beginning of the topic partition
+        <!-- Optional. Specifies where to start consuming events from. Can be one of the following:
+
+             - LATEST: Start consuming events from the end of the topic partition.
+             - EARLIEST: Start consuming events from the beginning of the topic partition.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
-             incoming deserialized records. If set to `-1`, the number of threads will be automatically
+             incoming deserialized records. If set to -1, the number of threads will be automatically
              determined based on the number of available CPU cores.
 
              Default value: 1. -->
@@ -523,13 +524,14 @@
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
 
-        <!-- Optional. Enables support for the COMMAND mode.
-             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key` and "command" fields:
+        <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode.
+             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
              - "key": Identifies the unique key for each element in the list generated from the item.
              - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
 
              For example:
 
+             <param name="fields.evaluate.as.command.enable">true</param>
              <param name="field.key">#{KEY}</param>
              <param name="field.command">#{VALUE.command}</param>
 
@@ -544,6 +546,31 @@
              Default value: false. -->
         <!--
         <param name="fields.evaluate.as.command.enable">true</param>
+        -->
+
+        <!-- Optional. Enables automatic COMMAND mode support by generating appropriate command operations for Lightstreamer items
+             without requiring your Kafka records to contain explicit command fields.
+
+             When enabled, the connector:
+
+             - Automatically adds a Lightstreamer command field to each update
+             - Assigns the appropriate command value based on the record state:
+               - "ADD": For records with a new mapped key (not previously processed)
+               - "UPDATE": For records with a mapped key that has been previously processed
+               - "DELETE": For records with a null message payload (tombstone records)
+
+             You only need to map the `key` field from your record structure:
+
+             <param name="fields.auto.command.mode.enable">true</param>
+             <param name="field.key">#{KEY}</param>
+
+             The parameter can be one of the following:
+             - `true`
+             - `false`
+
+             Default value: false. -->
+        <!---
+        <param name="fields.auto.command.mode.enable">true</param>
         -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->

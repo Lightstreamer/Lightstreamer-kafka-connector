@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 
 import static org.junit.Assert.assertThrows;
 
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.common.header.Headers;
@@ -60,7 +61,7 @@ public class HeaderSelectorSupplierTest {
     private static final List<KafkaRecord<?, ?>> RECORDS =
             new ArrayList<>() {
                 {
-                    add(Records.recordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS));
+                    add(Records.KafkaRecordWithHeaders("key", "value", SAMPLE_RECORD_HEADERS));
                     add(Records.sinkWithHeaders("key", "value", SAMPLE_CONNECT_HEADERS));
                 }
             };

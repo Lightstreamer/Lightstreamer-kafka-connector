@@ -17,32 +17,27 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DynamicMessage;
-import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
-import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.header.internals.RecordHeaders;
-import org.apache.kafka.common.record.TimestampType;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.io.File;
@@ -51,119 +46,61 @@ import java.nio.file.Files;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class BenchmarksUtils {
 
-    public static class FakeItemEventListener implements ItemEventListener {
+    private static List<String> TEMPLATES =
+            List.of(
+                    "users-#{key=KEY}",
+                    "users-#{key=KEY,tag=VALUE.tag}",
+                    "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
 
-        // Stores all item events sent through the update method.
-        public List<Map<String, ?>> events = new ArrayList<>();
+    private static List<String> SUBSCRIPTIONS =
+            List.of("users-[key=%s]", "users-[key=%s,tag=%s]", "users-[key=%s,tag=%s,sonTag=%s]");
+
+    public static class FakeEventListener implements EventListener {
+
         private Blackhole blackHole;
 
-        public FakeItemEventListener(Blackhole bh) {
+        public FakeEventListener(Blackhole bh) {
             this.blackHole = bh;
+            this.counter = new AtomicInteger();
         }
 
         @Override
-        public void update(
-                String itemName,
-                com.lightstreamer.interfaces.data.ItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        public void update(SubscribedItem item, Map<String, String> updates, boolean isSnapshot) {
+            blackHole.consume(updates);
+            // System.out.println(Received update for item " + item.asCanonicalItemName() + ": " +
+            // updates);
+            counter.incrementAndGet();
         }
 
         @Override
-        public void update(String itemName, OldItemEvent event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(String itemName, Map event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void update(
-                String itemName,
-                com.lightstreamer.interfaces.data.IndexedItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'update'");
-        }
-
-        @Override
-        public void smartUpdate(
-                Object itemHandle,
-                com.lightstreamer.interfaces.data.ItemEvent event,
-                boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
-        }
-
-        @Override
-        public void smartUpdate(Object itemHandle, OldItemEvent event, boolean isSnapshot) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
-        }
-
-        @Override
-        public void smartUpdate(Object itemHandle, Map event, boolean isSnapshot) {
-            blackHole.consume(event);
-            // counter.incrementAndGet();
-        }
-
-        @Override
-        public void smartUpdate(
-                Object itemHandle,
-                com.lightstreamer.interfaces.data.IndexedItemEvent event,
-                boolean isSnapshot) {}
-
-        @Override
-        public void endOfSnapshot(String itemName) {
+        public void endOfSnapshot(SubscribedItem itemName) {
             throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
         }
 
         @Override
-        public void smartEndOfSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartEndOfSnapshot'");
-        }
-
-        @Override
-        public void clearSnapshot(String itemName) {
+        public void clearSnapshot(SubscribedItem itemName) {
             throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
         }
 
         @Override
-        public void smartClearSnapshot(Object itemHandle) {
-            throw new UnsupportedOperationException("Unimplemented method 'smartClearSnapshot'");
-        }
-
-        @Override
-        public void declareFieldDiffOrder(
-                String itemName,
-                Map<String, com.lightstreamer.interfaces.data.DiffAlgorithm[]> algorithmsMap) {
-            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
-        }
-
-        @Override
-        public void smartDeclareFieldDiffOrder(
-                Object itemHandle,
-                Map<String, com.lightstreamer.interfaces.data.DiffAlgorithm[]> algorithmsMap) {
-            throw new UnsupportedOperationException(
-                    "Unimplemented method 'smartDeclareFieldDiffOrder'");
-        }
-
-        @Override
-        public void failure(Throwable e) {
+        public void failure(Exception e) {
             throw new UnsupportedOperationException("Unimplemented method 'failure'");
         }
 
-        public void show() {}
+        public void show() {
+            System.out.println("Total events processed: " + counter.get());
+            counter.set(0);
+        }
     }
 
     public static class FakeOffsetService implements OffsetService {
@@ -175,10 +112,13 @@ public class BenchmarksUtils {
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
-        public void maybeCommit() {}
+        public void commitSync() {}
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {}
+        public void commitAsync() {}
+
+        @Override
+        public void updateOffsets(KafkaRecord<?, ?> record) {}
 
         @Override
         public void onAsyncFailure(Throwable ve) {}
@@ -194,7 +134,7 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
             throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
         }
 
@@ -215,9 +155,82 @@ public class BenchmarksUtils {
         public boolean canManageHoles() {
             return false;
         }
+    }
+
+    public static class FakeMetadataListener implements MetadataListener {
 
         @Override
-        public void onConsumerShutdown() {}
+        public void forceUnsubscription(String item) {}
+
+        @Override
+        public void forceUnsubscriptionAll() {}
+    }
+
+    public static class RawRecord {
+
+        private final String topic;
+        private final byte[] rawKey;
+        private final byte[] rawBytes;
+        private final int partition;
+        private final int offset;
+
+        public RawRecord(String topic, int partition, int offset, byte[] rawKey, byte[] rawValue) {
+            this.topic = topic;
+            this.partition = partition;
+            this.offset = offset;
+            this.rawKey = rawKey;
+            this.rawBytes = rawValue;
+        }
+
+        public String topic() {
+            return topic;
+        }
+
+        public int partition() {
+            return partition;
+        }
+
+        public int offset() {
+            return offset;
+        }
+
+        public byte[] rawKey() {
+            return rawKey;
+        }
+
+        public byte[] rawValue() {
+            return rawBytes;
+        }
+    }
+
+    public static ConsumerRecords<byte[], byte[]> pollRecordsFromRaw(
+            String[] topics, int partitions, List<RawRecord> rawRecords) {
+        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
+        for (int i = 0; i < partitions; i++) {
+            for (int t = 0; t < topics.length; t++) {
+                TopicPartition tp = new TopicPartition(topics[t], i);
+                recordsMap.put(tp, new java.util.ArrayList<>());
+            }
+        }
+
+        for (int i = 0; i < rawRecords.size(); i++) {
+            RawRecord rawRecord = rawRecords.get(i);
+            ConsumerRecord<byte[], byte[]> consumerRecord =
+                    new ConsumerRecord<>(
+                            rawRecord.topic(),
+                            rawRecord.partition(),
+                            rawRecord.offset(),
+                            rawRecord.rawKey(),
+                            rawRecord.rawValue());
+            TopicPartition tp = new TopicPartition(rawRecord.topic(), rawRecord.partition());
+            recordsMap.get(tp).add(consumerRecord);
+        }
+
+        return new ConsumerRecords<>(recordsMap);
+    }
+
+    private static String generateKey(TopicPartition tp, int keySize, int index) {
+        return String.valueOf(tp.partition() * keySize + index % keySize);
     }
 
     public static class JsonRecords {
@@ -228,38 +241,49 @@ public class BenchmarksUtils {
             }
         }
 
-        public static List<KafkaRecord<String, JsonNode>> kafkaRecords(
+        public static List<RawRecord> rawRecords(
                 String[] topics, int partitions, int numOfRecords, int keySize) {
-            ConsumerRecords<String, JsonNode> records =
-                    consumerRecords(topics, partitions, numOfRecords, keySize);
-            List<KafkaRecord<String, JsonNode>> kafkaRecords = new ArrayList<>(records.count());
-            records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
-            return kafkaRecords;
-        }
-
-        public static ConsumerRecords<String, JsonNode> consumerRecords(
-                String[] topics, int partitions, int numOfRecords, int keys) {
-            var recordsToPartition =
-                    new HashMap<TopicPartition, List<ConsumerRecord<String, JsonNode>>>();
+            List<RawRecord> allRecords = new ArrayList<>(numOfRecords);
+            ObjectMapper om = new ObjectMapper();
             for (String topic : topics) {
                 for (int partition = 0; partition < partitions; partition++) {
                     TopicPartition tp = new TopicPartition(topic, partition);
-                    recordsToPartition.put(
-                            tp, makeRecords(tp, numOfRecords / partitions, keys / partitions));
+                    List<JsonNode> messages =
+                            generateMessages(tp, numOfRecords / partitions, keySize / partitions);
+                    for (int i = 0; i < messages.size(); i++) {
+                        byte[] rawKey = generateKey(tp, keySize / partitions, i).getBytes();
+                        try {
+                            allRecords.add(
+                                    new RawRecord(
+                                            tp.topic(),
+                                            tp.partition(),
+                                            i,
+                                            rawKey,
+                                            om.writeValueAsBytes(messages.get(i))));
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
                 }
             }
-
-            return new ConsumerRecords<>(recordsToPartition);
+            return allRecords;
         }
 
-        private static List<ConsumerRecord<String, JsonNode>> makeRecords(
+        public static ConsumerRecords<byte[], byte[]> pollRecords(
+                String[] topics, int partitions, int numRecords, int keySize) {
+
+            List<RawRecord> rawRecords = rawRecords(topics, partitions, numRecords, keySize);
+            return pollRecordsFromRaw(topics, partitions, rawRecords);
+        }
+
+        private static List<JsonNode> generateMessages(
                 TopicPartition tp, int recordsPerPartition, int keySize) {
             ObjectMapper om = new ObjectMapper();
 
             Function<Integer, String> keyGenerator =
                     offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
 
-            List<ConsumerRecord<String, JsonNode>> records = new ArrayList<>(recordsPerPartition);
+            List<JsonNode> messages = new ArrayList<>(recordsPerPartition);
             for (int i = 0; i < recordsPerPartition; i++) {
                 // Setup the record attribute
                 String name =
@@ -288,46 +312,48 @@ public class BenchmarksUtils {
 
                 // Build the ConsumerRecord from the JSON and add it to the collection
                 JsonNode node = om.valueToTree(parent);
-                records.add(new ConsumerRecord<>(tp.topic(), tp.partition(), i, key, node));
+                messages.add(node);
             }
-            return records;
+            return messages;
         }
     }
 
     public static class ProtoRecords {
 
-        public static List<KafkaRecord<String, DynamicMessage>> kafkaRecords(
+        public static List<RawRecord> rawRecords(
                 String[] topics, int partitions, int numOfRecords, int keySize) {
-            ConsumerRecords<String, DynamicMessage> records =
-                    consumerRecords(topics, partitions, numOfRecords, keySize);
-            List<KafkaRecord<String, DynamicMessage>> kafkaRecords =
-                    new ArrayList<>(records.count());
-            records.forEach(record -> kafkaRecords.add(KafkaRecord.from(record)));
-            return kafkaRecords;
-        }
-
-        public static ConsumerRecords<String, DynamicMessage> consumerRecords(
-                String[] topics, int partitions, int numOfRecords, int keys) {
-            var recordsToPartition =
-                    new HashMap<TopicPartition, List<ConsumerRecord<String, DynamicMessage>>>();
+            List<RawRecord> allRecords = new ArrayList<>(numOfRecords);
             for (String topic : topics) {
                 for (int partition = 0; partition < partitions; partition++) {
                     TopicPartition tp = new TopicPartition(topic, partition);
-                    recordsToPartition.put(
-                            tp, makeRecords(tp, numOfRecords / partitions, keys / partitions));
+                    List<DynamicMessage> messages =
+                            generateMessages(tp, numOfRecords / partitions, keySize / partitions);
+                    for (int i = 0; i < messages.size(); i++) {
+                        byte[] rawKey = generateKey(tp, keySize / partitions, i).getBytes();
+                        allRecords.add(
+                                new RawRecord(
+                                        tp.topic(),
+                                        tp.partition(),
+                                        i,
+                                        rawKey,
+                                        messages.get(i).toByteArray()));
+                    }
                 }
             }
-
-            return new ConsumerRecords<>(recordsToPartition);
+            return allRecords;
         }
 
-        private static List<ConsumerRecord<String, DynamicMessage>> makeRecords(
-                TopicPartition tp, int recordsPerPartition, int keySize) {
-            Function<Integer, String> keyGenerator =
-                    offset -> String.valueOf(tp.partition() * keySize + offset % keySize);
+        public static ConsumerRecords<byte[], byte[]> pollRecords(
+                String[] topics, int partitions, int numRecords, int keySize) {
 
-            List<ConsumerRecord<String, DynamicMessage>> records =
-                    new ArrayList<>(recordsPerPartition);
+            List<RawRecord> rawRecords = rawRecords(topics, partitions, numRecords, keySize);
+            return pollRecordsFromRaw(topics, partitions, rawRecords);
+        }
+
+        private static List<DynamicMessage> generateMessages(
+                TopicPartition tp, int recordsPerPartition, int keySize) {
+
+            List<DynamicMessage> messages = new ArrayList<>(recordsPerPartition);
             for (int i = 0; i < recordsPerPartition; i++) {
                 // Setup the record attribute
                 String name =
@@ -345,7 +371,7 @@ public class BenchmarksUtils {
                 int age = new SecureRandom().nextInt(20, 40);
                 int sonAge = new SecureRandom().nextInt(0, 4);
 
-                String key = keyGenerator.apply(i);
+                String key = generateKey(tp, keySize, i);
 
                 // Prepare the Guy object: a parent with two kids
                 DynamicMessage parent =
@@ -373,97 +399,29 @@ public class BenchmarksUtils {
                                                                 .build())
                                                 .build())
                                 .build();
-
-                // Build the ConsumerRecord from the JSON and add it to the collection
-                records.add(new ConsumerRecord<>(tp.topic(), tp.partition(), i, key, parent));
+                messages.add(parent);
             }
-            return records;
+            return messages;
         }
     }
 
-    private static List<KafkaRecord<String, JsonNode>> initializeRecords(int size)
-            throws JsonProcessingException, JsonMappingException {
-        ObjectMapper om = new ObjectMapper();
-
-        List<KafkaRecord<String, JsonNode>> records = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            String name =
-                    new SecureRandom()
-                            .ints(20, 48, 122)
-                            .filter(Character::isLetterOrDigit)
-                            .mapToObj(Character::toString)
-                            .collect(Collectors.joining());
-            String surname =
-                    new SecureRandom()
-                            .ints(20, 48, 122)
-                            .filter(Character::isLetterOrDigit)
-                            .mapToObj(Character::toString)
-                            .collect(Collectors.joining());
-            int age = new SecureRandom().nextInt(10, 40);
-            String obj =
-                    """
-            {
-                "name": "%s",
-                "surname": "%s",
-                "age": %d
-            }
-            """
-                            .formatted(name, surname, age);
-            JsonNode node = om.readTree(obj);
-            records.add(record("MyTopic", "key", node));
-        }
-        return records;
-    }
-
-    private static <K, V> KafkaRecord<K, V> record(String topic, K key, V value) {
-        return KafkaRecord.from(
-                new ConsumerRecord<>(
-                        topic,
-                        150,
-                        120,
-                        ConsumerRecord.NO_TIMESTAMP,
-                        TimestampType.NO_TIMESTAMP_TYPE,
-                        ConsumerRecord.NULL_SIZE,
-                        ConsumerRecord.NULL_SIZE,
-                        key,
-                        value,
-                        new RecordHeaders(),
-                        Optional.empty()));
-    }
-
-    public static class FakeAdminInterface implements AdminInterface {
-
-        private final String topic;
-
-        public FakeAdminInterface(String topic) {
-            this.topic = topic;
-        }
-
-        @Override
-        public void close() throws Exception {}
-
-        @Override
-        public Set<String> listTopics(ListTopicsOptions options) throws Exception {
-            return Collections.singleton(topic);
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    public static <T> ConsumerTriggerConfig<String, T> newConfigurator(
+    public static ConnectorConfigurator newConfigurator(
             String[] topic, String valueType, int templateParams) {
-        File adapterdir;
+        File adapterDir;
         try {
-            adapterdir = Files.createTempDirectory("adapter_dir").toFile();
+            adapterDir = Files.createTempDirectory("adapter_dir").toFile();
             if ("PROTOBUF".equals(valueType)) {
                 // Copy the descriptor file to the temp directory
                 var source = new File("./build/generated/sources/proto/jmh/descriptor_set.desc");
-                var target = new File(adapterdir, "descriptor_set.desc");
+                // var source =
+                //         new File(
+
+                // "./kafka-connector-project/kafka-connector/build/generated/sources/proto/jmh/descriptor_set.desc");
+                var target = new File(adapterDir, "descriptor_set.desc");
                 Files.copy(source.toPath(), target.toPath());
             }
-            return (ConsumerTriggerConfig<String, T>)
-                    new ConnectorConfigurator(
-                                    basicParameters(topic, valueType, templateParams), adapterdir)
-                            .configure();
+            return new ConnectorConfigurator(
+                    basicParameters(topic, valueType, templateParams), adapterDir);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -471,12 +429,8 @@ public class BenchmarksUtils {
 
     static Map<String, String> basicParameters(
             String[] topics, String valueType, int templateParams) {
-        List<String> templates =
-                List.of(
-                        "users-#{key=KEY}",
-                        "users-#{key=KEY,tag=VALUE.tag}",
-                        "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
-        System.out.println("Using template: " + templates.get(templateParams - 1));
+        String template = TEMPLATES.get(templateParams - 1);
+        System.out.println("Using template: " + template);
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -488,7 +442,7 @@ public class BenchmarksUtils {
                     ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
             adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
         }
-        adapterParams.put("item-template.users", templates.get(templateParams - 1));
+        adapterParams.put("item-template.users", template);
         for (String t : topics) {
             adapterParams.put("map." + t + ".to", "item-template.users");
         }
@@ -499,20 +453,32 @@ public class BenchmarksUtils {
         return adapterParams;
     }
 
-    public static <T> RecordMapper<String, T> newRecordMapper(
-            ConsumerTriggerConfig<String, T> config) {
+    public static <T> RecordMapper<String, T> newRecordMapper(Config<String, T> config) {
         return RecordMapper.<String, T>builder()
                 .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())
                 .build();
     }
 
-    public static SubscribedItems subscriptions(int subscriptions) {
+    public static SubscribedItems subscriptions(
+            int subscriptions, EventListener listener, int numOfTemplateParams) {
         SubscribedItems subscribedItems = SubscribedItems.create();
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
-            String input = "users-[key=%s,tag=%s,sonTag=%s]".formatted(key, key, key + "-son");
-            subscribedItems.add(Items.subscribedFrom(input, new Object()));
+
+            Object[] params =
+                    switch (numOfTemplateParams) {
+                        case 1 -> new Object[] {key};
+                        case 2 -> new Object[] {key, key};
+                        case 3 -> new Object[] {key, key, key + "-son"};
+                        default ->
+                                throw new IllegalArgumentException(
+                                        "Invalid subscription number: " + numOfTemplateParams);
+                    };
+            String input = SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params);
+            SubscribedItem item = Items.subscribedFrom(input, new Object());
+            item.enableRealtimeEvents(listener);
+            subscribedItems.addItem(item);
         }
         return subscribedItems;
     }

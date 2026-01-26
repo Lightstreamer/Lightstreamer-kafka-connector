@@ -56,7 +56,8 @@ public class JsonNodeDeserializerTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            deser.deserialize("topic", s.getBytes());
+            JsonNode node = deser.deserialize("topic", s.getBytes());
+            assertThat(node).isNotNull();
         }
     }
 
@@ -89,6 +90,24 @@ public class JsonNodeDeserializerTest {
             assertThat(node.get("departureTime").asText()).isEqualTo("19:25");
             assertThat(node.get("status").asText()).isEqualTo("SCHEDULED_ON_TIME");
             assertThat(node.get("terminal").asInt()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    public void shouldDeserializeNullWithLocalSchema() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
+
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            JsonNode node = deserializer.deserialize("topic", null);
+            assertThat(node).isNull();
         }
     }
 

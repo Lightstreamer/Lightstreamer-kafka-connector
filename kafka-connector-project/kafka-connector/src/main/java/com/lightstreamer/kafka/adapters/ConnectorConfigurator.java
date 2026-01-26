@@ -18,10 +18,10 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerTrigger.ConsumerTriggerConfig;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -43,25 +43,9 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.Function;
 
 public class ConnectorConfigurator {
-
-    private static record ConsumerTriggerConfigImpl<K, V>(
-            String connectionName,
-            Properties consumerProperties,
-            ItemTemplates<K, V> itemTemplates,
-            FieldsExtractor<K, V> fieldsExtractor,
-            KeyValueSelectorSuppliers<K, V> suppliers,
-            RecordErrorHandlingStrategy errorHandlingStrategy,
-            boolean isCommandEnforceEnabled,
-            Concurrency concurrency)
-            implements ConsumerTriggerConfig<K, V> {}
-
-    private static record ConcurrencyConfig(
-            RecordConsumeWithOrderStrategy orderStrategy, int threads)
-            implements ConsumerTriggerConfig.Concurrency {}
 
     private final ConnectorConfig config;
     private final Logger logger;
@@ -80,16 +64,16 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    public ConsumerTriggerConfig<?, ?> configure() throws ConfigException {
+    public Config<?, ?> consumerConfig() throws ConfigException {
         try {
-            return doConfigure(config, mkKeyValueSelectorSuppliers(config));
+            return doConsumerConfig(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
             logger.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
 
-    private static <K, V> ConsumerTriggerConfigImpl<K, V> doConfigure(
+    private static <K, V> Config<K, V> doConsumerConfig(
             ConnectorConfig config, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException, ConfigException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
@@ -107,15 +91,16 @@ public class ConnectorConfigurator {
                         config.isFieldsSkipFailedMappingEnabled(),
                         config.isFieldsMapNonScalarValuesEnabled());
 
-        return new ConsumerTriggerConfigImpl<>(
+        return new Config<>(
                 config.getAdapterName(),
                 config.baseConsumerProps(),
                 itemTemplates,
                 fieldsExtractor,
                 sSuppliers,
                 config.getRecordExtractionErrorHandlingStrategy(),
-                config.isCommandEnforceEnabled(),
-                new ConcurrencyConfig(
+                CommandModeStrategy.from(
+                        config.isAutoCommandModeEnabled(), config.isCommandEnforceEnabled()),
+                new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));
     }

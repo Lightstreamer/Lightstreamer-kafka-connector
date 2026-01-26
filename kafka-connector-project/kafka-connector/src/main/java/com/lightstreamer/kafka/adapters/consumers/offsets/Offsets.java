@@ -17,12 +17,13 @@
 
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +82,7 @@ public class Offsets {
 
     public interface OffsetStore {
 
-        void save(ConsumerRecord<?, ?> record);
+        void save(KafkaRecord<?, ?> record);
 
         default void clear() {}
 
@@ -208,11 +209,11 @@ public class Offsets {
                     Logger logger);
         }
 
-        default void initStore(boolean fromLatest) {
+        default void initStore(boolean fromLatest) throws KafkaException {
             initStore(fromLatest, Offsets.OffsetStoreImpl::new);
         }
 
-        void initStore(boolean flag, OffsetStoreSupplier storeSupplier);
+        void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) throws KafkaException;
 
         default void initStore(
                 Map<TopicPartition, Long> startOffsets,
@@ -225,13 +226,13 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed);
 
-        boolean notHasPendingOffset(ConsumerRecord<?, ?> record);
+        boolean notHasPendingOffset(KafkaRecord<?, ?> record);
 
         boolean canManageHoles();
 
         void maybeCommit();
 
-        void updateOffsets(ConsumerRecord<?, ?> record);
+        void updateOffsets(KafkaRecord<?, ?> record);
 
         void onAsyncFailure(Throwable th);
 
@@ -279,7 +280,8 @@ public class Offsets {
         }
 
         @Override
-        public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier) {
+        public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier)
+                throws KafkaException {
             Set<TopicPartition> partitions = consumer.assignment();
             // Retrieve the offset to start from, which has to be used in case no
             // committed offset is available for a given partition.
@@ -317,7 +319,7 @@ public class Offsets {
         }
 
         @Override
-        public boolean notHasPendingOffset(ConsumerRecord<?, ?> record) {
+        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
             Collection<Long> pendingOffsetsList =
                     pendingOffsetsMap.getOrDefault(
                             new TopicPartition(record.topic(), record.partition()),
@@ -441,7 +443,7 @@ public class Offsets {
         private interface OffsetAndMetadataFactory {
 
             OffsetAndMetadata newOffsetAndMetadata(
-                    ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
+                    KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
         }
 
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
@@ -467,7 +469,7 @@ public class Offsets {
         }
 
         @Override
-        public void save(ConsumerRecord<?, ?> record) {
+        public void save(KafkaRecord<?, ?> record) {
             TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
             offsets.compute(
                     topicPartition,
@@ -499,7 +501,7 @@ public class Offsets {
         }
 
         private static OffsetAndMetadata mkNewOffsetAndMetadata(
-                ConsumerRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
+                KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
             String lastMetadata = lastOffsetAndMetadata.metadata();
             long lastOffset = lastOffsetAndMetadata.offset();
             long newOffset = lastOffset;
