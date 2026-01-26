@@ -26,16 +26,7 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.ConsumerWrapper.AdminInterface;
-import com.lightstreamer.kafka.common.config.FieldConfigs;
-import com.lightstreamer.kafka.common.config.TopicConfigurations;
-import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
@@ -158,12 +149,6 @@ public class Mocks {
 
         @Override
         public void maybeCommit() {}
-
-        @Override
-        public void commitSyncAndIgnoreErrors() {}
-
-        @Override
-        public void commitAsync() {}
 
         @Override
         public void updateOffsets(KafkaRecord<?, ?> record) {
