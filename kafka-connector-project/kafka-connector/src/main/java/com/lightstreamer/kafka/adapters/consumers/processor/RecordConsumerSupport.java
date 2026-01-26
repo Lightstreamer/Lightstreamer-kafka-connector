@@ -17,15 +17,13 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import static java.util.concurrent.Executors.newFixedThreadPool;
-
-import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
@@ -43,12 +41,15 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +63,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class RecordConsumerSupport {
 
@@ -570,7 +574,7 @@ class RecordConsumerSupport {
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
         private final RecordErrorHandlingStrategy errorStrategy;
-        private volatile boolean terminated = false;
+        private volatile boolean closed = false;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
@@ -584,11 +588,12 @@ class RecordConsumerSupport {
         @Override
         public void close() {
             offsetService.onConsumerShutdown();
+            closed = true;
         }
 
         @Override
-        public boolean isTerminated() {
-            return terminated;
+        public final boolean isClosed() {
+            return closed;
         }
 
         void onTermination() {}
@@ -601,182 +606,6 @@ class RecordConsumerSupport {
         @Override
         public final RecordProcessor<K, V> recordProcessor() {
             return recordProcessor;
-        }
-    }
-
-    /**
-     * Centralized performance monitoring with sliding window measurement. Provides accurate
-     * throughput statistics without synchronization overhead.
-     */
-    private static class PerformanceMonitor {
-
-        private static final String LOGGER_SUFFIX = "Performance";
-
-        private final RecordsCounter recordsCounter;
-        private final String monitorName;
-        private final Logger logger;
-        private final AtomicLong lastCheck = new AtomicLong(System.currentTimeMillis());
-        private final AtomicLong lastReportedCount = new AtomicLong(0);
-
-        // Ring buffer utilization monitoring
-        private volatile long lastUtilizationCheck = System.currentTimeMillis();
-        private static final long UTILIZATION_CHECK_INTERVAL_MS = 2000; // Check every 2 seconds
-        private volatile int[] peakUtilizationSinceLastReport; // Track peak utilization per buffer
-
-        PerformanceMonitor(String monitorName, RecordsCounter recordsCounter, Logger logger) {
-            this.recordsCounter = recordsCounter;
-            this.monitorName = monitorName;
-            this.logger = LoggerFactory.getLogger(logger.getName() + LOGGER_SUFFIX);
-        }
-
-        /** Check and potentially log performance stats every 5 seconds using sliding window */
-        void checkStats() {
-            long currentTime = System.currentTimeMillis();
-            long lastCheckTime = lastCheck.get();
-
-            // Report stats every 5 seconds
-            if (currentTime - lastCheckTime > 5000
-                    && lastCheck.compareAndSet(lastCheckTime, currentTime)) {
-                long currentTotal = recordsCounter.getTotalRecords();
-                long lastTotal = lastReportedCount.getAndSet(currentTotal);
-
-                long recordsInWindow = currentTotal - lastTotal;
-                long timeWindowMs = currentTime - lastCheckTime;
-
-                if (recordsInWindow > 0 && timeWindowMs > 0) {
-                    long avgThroughput = (recordsInWindow * 1000L) / timeWindowMs;
-                    logger.atInfo().log(
-                            "{} processing stats: {} records processed in {}ms window, avg {}k records/sec",
-                            monitorName,
-                            recordsInWindow,
-                            timeWindowMs,
-                            avgThroughput / 1000.0);
-                }
-            }
-        }
-
-        /**
-         * Monitor and graphically display ring buffer utilization rates. Provides visual
-         * representation of buffer load across all threads.
-         */
-        void checkRingBufferUtilization(BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {
-            if (ringBuffers == null || ringBuffers.length == 0) {
-                return;
-            }
-
-            // Initialize peak tracking if not already done
-            if (peakUtilizationSinceLastReport == null) {
-                peakUtilizationSinceLastReport = new int[ringBuffers.length];
-            }
-
-            // Update peak utilization continuously
-            for (int i = 0; i < ringBuffers.length; i++) {
-                int currentUtilization = (ringBuffers[i].size() * 100) / ringBufferCapacity;
-                peakUtilizationSinceLastReport[i] =
-                        Math.max(peakUtilizationSinceLastReport[i], currentUtilization);
-            }
-
-            long currentTime = System.currentTimeMillis();
-            if (currentTime - lastUtilizationCheck < UTILIZATION_CHECK_INTERVAL_MS) {
-                return;
-            }
-            lastUtilizationCheck = currentTime;
-
-            int actualThreads = ringBuffers.length;
-            StringBuilder utilizationReport = new StringBuilder();
-            utilizationReport.append("\n┌─ Ring Buffer Utilization Report (2s interval) ─┐\n");
-
-            int totalUsed = 0;
-            int totalCapacity = ringBufferCapacity * actualThreads;
-            int totalPeakUsed = 0;
-
-            for (int i = 0; i < actualThreads; i++) {
-                int currentSize = ringBuffers[i].size();
-                int utilization = (currentSize * 100) / ringBufferCapacity;
-                int peakUtilization = peakUtilizationSinceLastReport[i];
-                totalUsed += currentSize;
-                totalPeakUsed += (peakUtilization * ringBufferCapacity) / 100;
-
-                // Create visual bars (20 chars wide)
-                String currentBar = createUtilizationBar(utilization, 20);
-                String peakBar = createUtilizationBar(peakUtilization, 20);
-
-                utilizationReport.append(
-                        String.format(
-                                "│ Buf[%2d]: Now[%s] %3d%% Peak[%s] %3d%% (%d/%d)\n",
-                                i,
-                                currentBar,
-                                utilization,
-                                peakBar,
-                                peakUtilization,
-                                currentSize,
-                                ringBufferCapacity));
-            }
-
-            // Overall utilization
-            int overallUtilization = (totalUsed * 100) / totalCapacity;
-            int overallPeakUtilization = (totalPeakUsed * 100) / totalCapacity;
-            String overallBar = createUtilizationBar(overallUtilization, 25);
-            String overallPeakBar = createUtilizationBar(overallPeakUtilization, 25);
-
-            utilizationReport.append("├─────────────────────────────────────────────────┤\n");
-            utilizationReport.append(
-                    String.format(
-                            "│ Overall Now: [%s] %3d%% (%d/%d)\n",
-                            overallBar, overallUtilization, totalUsed, totalCapacity));
-            utilizationReport.append(
-                    String.format(
-                            "│ Overall Peak:[%s] %3d%% (%d/%d)\n",
-                            overallPeakBar, overallPeakUtilization, totalPeakUsed, totalCapacity));
-            utilizationReport.append("└─────────────────────────────────────────────────┘");
-
-            // Log based on peak utilization (more meaningful than current)
-            if (overallPeakUtilization > 80) {
-                logger.atInfo().log(
-                        "HIGH peak ring buffer utilization detected:{}", utilizationReport);
-            } else if (overallPeakUtilization > 40 || overallUtilization > 20) {
-                logger.atInfo().log("Ring buffer utilization status:{}", utilizationReport);
-            } else {
-                logger.atInfo().log(
-                        "Ring buffer utilization status (low activity):{}", utilizationReport);
-            }
-
-            // Reset peak tracking for next interval
-            Arrays.fill(peakUtilizationSinceLastReport, 0);
-        }
-
-        /**
-         * Create a visual utilization bar with color indicators.
-         *
-         * @param utilizationPercent The utilization percentage (0-100)
-         * @param width The width of the bar in characters
-         * @return A string representing the visual bar
-         */
-        private String createUtilizationBar(int utilizationPercent, int width) {
-            int filledChars = (utilizationPercent * width) / 100;
-            StringBuilder bar = new StringBuilder();
-
-            // Different characters for different utilization levels
-            char indicator;
-            if (utilizationPercent > 90) {
-                indicator = '█'; // High utilization - solid block
-            } else if (utilizationPercent > 70) {
-                indicator = '▓'; // Medium-high utilization - dark shade
-            } else if (utilizationPercent > 40) {
-                indicator = '▒'; // Medium utilization - medium shade
-            } else {
-                indicator = '░'; // Low utilization - light shade
-            }
-
-            for (int i = 0; i < width; i++) {
-                if (i < filledChars) {
-                    bar.append(indicator); // High utilization - solid block
-                } else {
-                    bar.append('·'); // Empty space
-                }
-            }
-
-            return bar.toString();
         }
     }
 
@@ -972,10 +801,10 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
-            int recordCount = records.count();
+        public RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
+            int recordCount = records.size();
             if (recordCount > 0) {
-                for (ConsumerRecord<K, V> record : records) {
+                for (KafkaRecord<K, V> record : records) {
                     consumeRecord(record);
                 }
                 recordsCounter.count(recordCount);
@@ -1021,7 +850,7 @@ class RecordConsumerSupport {
     static class RecordsBatchImpl<K, V> implements RecordsBatch {
 
         private final CountDownLatch latch;
-        private final ConsumerRecords<K, V> records;
+        private final List<KafkaRecord<K, V>> records;
         private final int recordsCount;
         private final AtomicInteger processedCount = new AtomicInteger(0);
         private final Logger logger;
@@ -1029,11 +858,11 @@ class RecordConsumerSupport {
         private final RecordsCounter recordsCounter;
 
         RecordsBatchImpl(
-                ConsumerRecords<K, V> records,
+                List<KafkaRecord<K, V>> records,
                 Logger logger,
                 long batchId,
                 RecordsCounter recordsCounter) {
-            this.recordsCount = records.count();
+            this.recordsCount = records.size();
             this.records = records;
             this.latch = new CountDownLatch(recordsCount);
             this.logger = logger;
@@ -1042,7 +871,7 @@ class RecordConsumerSupport {
             this.logger.atDebug().log("Created batch {} with {} records", batchId, recordsCount);
         }
 
-        ConsumerRecords<K, V> getRecords() {
+        List<KafkaRecord<K, V>> getRecords() {
             return records;
         }
 
@@ -1098,17 +927,17 @@ class RecordConsumerSupport {
     }
 
     static class RecordWithBatch<K, V> {
-        final ConsumerRecord<K, V> record;
+        final KafkaRecord<K, V> record;
         final RecordsBatchImpl<K, V> batch;
 
-        RecordWithBatch(ConsumerRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
+        RecordWithBatch(KafkaRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
             this.record = record;
             this.batch = batch;
         }
 
         // Factory method to reduce allocation overhead
         static <K, V> RecordWithBatch<K, V> of(
-                ConsumerRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
+                KafkaRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
             return new RecordWithBatch<>(record, batch);
         }
     }
@@ -1244,14 +1073,14 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public RecordsBatch consumeRecords(ConsumerRecords<K, V> records) {
+        public RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
             if (records.isEmpty()) {
                 offsetService.maybeCommit();
                 return RecordsBatch.nop();
             }
 
             long startTime = System.nanoTime();
-            int recordCount = records.count();
+            int recordCount = records.size();
             RecordsBatchImpl<K, V> batch =
                     new RecordsBatchImpl<>(
                             records, logger, batchIdCounter.getAndIncrement(), recordsCounter);
@@ -1285,7 +1114,7 @@ class RecordConsumerSupport {
         // Ring buffer processing for high-throughput scenarios
         private void processWithRingBuffers(RecordsBatchImpl<K, V> batch) {
             // Distribute records to ring buffers
-            for (ConsumerRecord<K, V> record : batch.getRecords()) {
+            for (KafkaRecord<K, V> record : batch.getRecords()) {
                 int bufferIndex = selectRingBuffer(record);
                 try {
                     // Use blocking put to apply backpressure instead of failing
@@ -1300,7 +1129,7 @@ class RecordConsumerSupport {
             }
         }
 
-        private int selectRingBuffer(ConsumerRecord<K, V> record) {
+        private int selectRingBuffer(KafkaRecord<K, V> record) {
             return switch (orderStrategy) {
                 case UNORDERED ->
                         // Round-robin for maximum throughput
@@ -1370,7 +1199,7 @@ class RecordConsumerSupport {
         }
 
         void consume(RecordWithBatch<K, V> record) {
-            ConsumerRecord<K, V> rec = record.record;
+            KafkaRecord<K, V> rec = record.record;
             RecordsBatchImpl<K, V> batch = record.batch;
             try {
                 recordProcessor.process(rec);
