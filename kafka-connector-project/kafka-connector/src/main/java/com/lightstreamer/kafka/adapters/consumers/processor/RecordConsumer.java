@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public interface RecordConsumer<K, V> {
 
@@ -152,24 +151,7 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
-    static <K, V> ConsumerRecords<K, V> filter(
-            ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
-        return new ConsumerRecords<>(
-                StreamSupport.stream(records.spliterator(), false)
-                        .filter(predicate)
-                        .collect(
-                                groupingBy(
-                                        r -> new TopicPartition(r.topic(), r.partition()),
-                                        toList())));
-    }
-
-    default RecordsBatch consumeFilteredRecords(
-            ConsumerRecords<K, V> records, Predicate<ConsumerRecord<K, V>> predicate) {
-        ConsumerRecords<K, V> filtered = filter(records, predicate);
-        return consumeRecords(filtered);
-    }
-
-    RecordsBatch consumeRecords(ConsumerRecords<K, V> records);
+    RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records);
 
     default int numOfThreads() {
         return 1;
@@ -187,8 +169,8 @@ public interface RecordConsumer<K, V> {
 
     RecordProcessor<K, V> recordProcessor();
 
-    void terminate();
+    default void close() {}
 
     // Only for testing purposes
-    boolean isTerminated();
+    boolean isClosed();
 }
