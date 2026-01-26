@@ -33,6 +33,10 @@ public interface TaskExecutor<S> {
         execute(sequence, () -> task.accept(sequence, event));
     }
 
+    static <S> TaskExecutor<S> create(ExecutorService pool) {
+        return new Multiplexer<>(pool, false);
+    }
+
     default <E> void executeBatch(
             List<? extends E> events,
             Function<? super E, ? extends S> sequence,
@@ -58,11 +62,5 @@ public interface TaskExecutor<S> {
                 latch.countDown();
             }
         };
-    }
-
-    default void waitBatch() {}
-
-    static <S> TaskExecutor<S> create(ExecutorService pool) {
-        return new Multiplexer<>(pool, false);
     }
 }

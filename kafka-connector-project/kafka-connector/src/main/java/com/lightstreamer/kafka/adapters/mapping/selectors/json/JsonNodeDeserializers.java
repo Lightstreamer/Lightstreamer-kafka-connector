@@ -34,10 +34,9 @@ import org.apache.kafka.common.utils.Utils;
 import org.everit.json.schema.ValidationException;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 
-class JsonNodeDeserializers {
+public class JsonNodeDeserializers {
 
     static class JsonNodeLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
@@ -61,6 +60,9 @@ class JsonNodeDeserializers {
 
         @Override
         public JsonNode deserialize(String topic, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
             try {
                 JsonNode node = deserializer.deserialize(topic, data);
                 schema.validate(node);
@@ -71,26 +73,12 @@ class JsonNodeDeserializers {
         }
     }
 
-    static Deserializer<JsonNode> ValueDeserializer() {
-        return makeDeserializerNoConfig(false);
-    }
-
-    static Deserializer<JsonNode> ValueDeserializer(ConnectorConfig config) {
+    public static Deserializer<JsonNode> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
 
-    static Deserializer<JsonNode> KeyDeserializer(ConnectorConfig config) {
+    public static Deserializer<JsonNode> KeyDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, true);
-    }
-
-    static Deserializer<JsonNode> KeyDeserializer() {
-        return makeDeserializerNoConfig(true);
-    }
-
-    private static Deserializer<JsonNode> makeDeserializerNoConfig(boolean isKey) {
-        Deserializer<JsonNode> deserializer = new KafkaJsonDeserializer<>();
-        deserializer.configure(Collections.emptyMap(), isKey);
-        return deserializer;
     }
 
     private static Deserializer<JsonNode> configuredDeserializer(

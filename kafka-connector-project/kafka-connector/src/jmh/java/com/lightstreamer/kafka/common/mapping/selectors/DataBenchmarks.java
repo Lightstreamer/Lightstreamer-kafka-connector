@@ -37,6 +37,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Benchmark suite for data element to item name conversion operations.
+ *
+ * <p>Measures the performance of building item names from data elements using different approaches
+ * (single element vs. array of elements). Uses JMH for accurate microbenchmarking with configurable
+ * parameters to test scalability across different data set sizes.
+ */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Benchmark)
@@ -54,6 +61,13 @@ public class DataBenchmarks {
 
     private Data first;
 
+    /**
+     * Sets up benchmark state with random test data.
+     *
+     * <p>Generates an array of data elements with randomized keys and sorts them by name to
+     * simulate real-world data distribution. Uses a fixed random seed for reproducible results
+     * across benchmark runs.
+     */
     @Setup(Level.Iteration)
     public void setup() {
         System.out.println("Setting up benchmark with params = " + params);
@@ -82,19 +96,11 @@ public class DataBenchmarks {
         first = sortedDataArray[0];
     }
 
-    public static void main(String[] args) {
-        DataBenchmarks benchmark = new DataBenchmarks();
-        benchmark.params = 5; // Example parameter
-        benchmark.setup();
-        Blackhole bh =
-                new Blackhole(
-                        "Today's password is swordfish. I understand instantiating Blackholes directly is dangerous.");
-        benchmark.buildItemNameSingle(bh);
-    }
-
     /**
-     * Benchmarks building a single item name from a data element and schema name. Measures the
-     * performance of the simplest item name construction scenario.
+     * Benchmarks building an item name from a single data element and schema name.
+     *
+     * <p>Measures the performance of the simplest item name construction scenario with a single
+     * data element.
      */
     @Benchmark
     public void buildItemNameSingle(Blackhole bh) {
@@ -103,8 +109,10 @@ public class DataBenchmarks {
     }
 
     /**
-     * Benchmarks building an item name from an array of data elements and schema name. Tests the
-     * performance of constructing item names from multiple data elements.
+     * Benchmarks building an item name from multiple data elements and schema name.
+     *
+     * <p>Measures the performance of constructing item names from an array of data elements,
+     * testing scalability with increasing data set sizes.
      */
     @Benchmark
     public void buildItemNameArray(Blackhole bh) {

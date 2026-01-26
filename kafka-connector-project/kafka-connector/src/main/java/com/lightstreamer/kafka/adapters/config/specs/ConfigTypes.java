@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 public interface ConfigTypes {
 
-    public enum SecurityProtocol {
+    enum SecurityProtocol {
         PLAINTEXT,
         SASL_PLAINTEXT,
         SASL_SSL,
@@ -52,7 +52,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum SslProtocol {
+    enum SslProtocol {
         TLSv12 {
             public String toString() {
                 return "TLSv1.2";
@@ -102,7 +102,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum SaslMechanism {
+    enum SaslMechanism {
         PLAIN,
         SCRAM_256 {
             @Override
@@ -165,7 +165,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum RecordConsumeFrom {
+    enum RecordConsumeFrom {
         LATEST,
         EARLIEST;
 
@@ -178,7 +178,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum KeystoreType {
+    enum KeystoreType {
         JKS,
         PKCS12;
 
@@ -229,7 +229,7 @@ public interface ConfigTypes {
         }
     }
 
-    public enum RecordErrorHandlingStrategy {
+    enum RecordErrorHandlingStrategy {
         IGNORE_AND_CONTINUE,
         FORCE_UNSUBSCRIPTION;
 
@@ -238,13 +238,33 @@ public interface ConfigTypes {
         }
     }
 
-    public enum RecordConsumeWithOrderStrategy {
+    enum RecordConsumeWithOrderStrategy {
         ORDER_BY_KEY,
         ORDER_BY_PARTITION,
         UNORDERED;
 
         public static Set<String> names() {
             return enumNames(values());
+        }
+    }
+
+    enum CommandModeStrategy {
+        NONE,
+        ENFORCE,
+        AUTO;
+
+        public static CommandModeStrategy from(boolean auto, boolean enforce) {
+            if (auto) {
+                return AUTO;
+            }
+            if (enforce) {
+                return ENFORCE;
+            }
+            return NONE;
+        }
+
+        public boolean manageSnapshot() {
+            return this == ENFORCE;
         }
     }
 

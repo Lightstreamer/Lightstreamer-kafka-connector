@@ -75,6 +75,26 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
+    public void shouldDeserializeNullWithLocalSchema() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                PROTOBUF.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
+                                "Person"));
+
+        try (Deserializer<DynamicMessage> deserializer =
+                DynamicMessageDeserializers.ValueDeserializer(config)) {
+            DynamicMessage message = deserializer.deserialize("topic", null);
+            assertThat(message).isNull();
+        }
+    }
+
+    @Test
     public void shouldGeKeyDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(

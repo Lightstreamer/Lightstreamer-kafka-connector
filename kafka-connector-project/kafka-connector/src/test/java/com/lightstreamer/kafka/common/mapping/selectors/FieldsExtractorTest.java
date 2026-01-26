@@ -22,8 +22,10 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
-import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Json;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.Assert.assertThrows;
@@ -34,7 +36,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
-import com.lightstreamer.kafka.test_utils.Records;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
@@ -128,8 +130,7 @@ public class FieldsExtractorTest {
                 new RecordHeaders()
                         .add("header-key1", "header-value1".getBytes())
                         .add("header-key2", "header-value2".getBytes());
-        KafkaRecord<String, String> kafkaRecord =
-                Records.recordWithHeaders("aKey", "aValue", headers);
+        KafkaRecord<String, String> kafkaRecord = KafkaRecordWithHeaders("aKey", "aValue", headers);
         Map<String, String> values = extractor.extractMap(kafkaRecord);
         assertThat(values).isEqualTo(expectedValues);
         assertThat(extractor.mappedFields()).isEqualTo(expressions.keySet());
@@ -204,8 +205,7 @@ public class FieldsExtractorTest {
             throws ExtractionException {
 
         FieldsExtractor<JsonNode, JsonNode> extractor =
-                DataExtractors.discoveredFieldsExtractor(
-                        JsonKeyJsonValue(), expressions, skipOnFailure);
+                DataExtractors.discoveredFieldsExtractor(Json(), expressions, skipOnFailure);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(true);
 
@@ -218,7 +218,7 @@ public class FieldsExtractorTest {
 
         JsonNode sampleMessage = SampleJsonNodeProvider().sampleMessage();
         KafkaRecord<JsonNode, JsonNode> kafkaRecord =
-                Records.recordWithHeaders(sampleMessage, sampleMessage, headers);
+                KafkaRecordWithHeaders(sampleMessage, sampleMessage, headers);
         Map<String, String> values = extractor.extractMap(kafkaRecord);
         assertThat(values).containsAtLeastEntriesIn(expectedValues);
         assertThat(extractor.mappedFields()).isEmpty();
@@ -255,8 +255,7 @@ public class FieldsExtractorTest {
         headers.add("accountId", "67890".getBytes(StandardCharsets.UTF_8));
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.recordWithHeaders(
-                        "aKey", SampleJsonNodeProvider().sampleMessage(), headers);
+                KafkaRecordWithHeaders("aKey", SampleJsonNodeProvider().sampleMessage(), headers);
         Map<String, String> values = composedExtractor.extractMap(kafkaRecord);
 
         // Verify the extracted values
@@ -405,7 +404,7 @@ public class FieldsExtractorTest {
                         ValueException.class,
                         () ->
                                 namedExtractor.extractMap(
-                                        Records.record(
+                                        KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_attrib] not found");
 
@@ -422,7 +421,7 @@ public class FieldsExtractorTest {
                         ValueException.class,
                         () ->
                                 discoveredExtractor.extractMap(
-                                        Records.record(
+                                        KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
 
@@ -434,7 +433,7 @@ public class FieldsExtractorTest {
                         ValueException.class,
                         () ->
                                 composExtractor.extractMap(
-                                        Records.record(
+                                        KafkaRecord(
                                                 "aKey", SampleJsonNodeProvider().sampleMessage())));
         ;
         assertThat(ve).hasMessageThat().isEqualTo("Field [undefined_maps] not found");
@@ -462,7 +461,7 @@ public class FieldsExtractorTest {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
-                        () -> extractor.extractMap(Records.record("aValue", message)));
+                        () -> extractor.extractMap(KafkaRecord("aValue", message)));
         assertThat(ve)
                 .hasMessageThat()
                 .contains("The expression [VALUE] must evaluate to a non-complex object");
@@ -472,7 +471,7 @@ public class FieldsExtractorTest {
     public void shouldSkipFailureExtraction() throws ExtractionException {
         // We expect that only the extraction related to the VALUE.undefined_attrib fails
         KafkaRecord<String, JsonNode> record =
-                Records.record("aKey", SampleJsonNodeProvider().sampleMessage());
+                KafkaRecord("aKey", SampleJsonNodeProvider().sampleMessage());
 
         FieldsExtractor<String, JsonNode> namedExtractor =
                 DataExtractors.namedFieldsExtractor(
@@ -521,7 +520,7 @@ public class FieldsExtractorTest {
         JsonNode message = om.readTree("{\"name\": \"joe\"}");
 
         // Extract the value from the Kafka Record
-        KafkaRecord<String, JsonNode> record = Records.record("aValue", message);
+        KafkaRecord<String, JsonNode> record = KafkaRecord("aValue", message);
         Map<String, String> tryExtractData = extractor.extractMap(record);
 
         // Ensure that both the complex object and the simple attribute are extracted correctly

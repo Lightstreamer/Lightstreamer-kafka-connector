@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.selectors;
 
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+
 import java.util.Map;
 import java.util.Set;
 

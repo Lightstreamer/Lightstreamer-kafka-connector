@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Options;
@@ -185,5 +186,20 @@ public class ConfigSpecTest {
         Map<String, String> source = Map.of(key, "value");
         Map<String, String> dest = new HashMap<>();
         assertThrows(ConfigException.class, () -> param.populate(source, dest));
+    }
+
+    @Test
+    public void shouldGetCommandModeStrategy() {
+        assertThat(CommandModeStrategy.from(true, false)).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(CommandModeStrategy.from(true, true)).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(CommandModeStrategy.from(false, true)).isEqualTo(CommandModeStrategy.ENFORCE);
+        assertThat(CommandModeStrategy.from(false, false)).isEqualTo(CommandModeStrategy.NONE);
+    }
+
+    @Test
+    public void shouldCommandModeStrategyMangeSnapshot() {
+        assertThat(CommandModeStrategy.AUTO.manageSnapshot()).isFalse();
+        assertThat(CommandModeStrategy.ENFORCE.manageSnapshot()).isTrue();
+        assertThat(CommandModeStrategy.NONE.manageSnapshot()).isFalse();
     }
 }
