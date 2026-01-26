@@ -24,7 +24,6 @@ import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.EARLIEST;
 import static org.apache.kafka.clients.consumer.OffsetResetStrategy.LATEST;
 import static org.apache.kafka.common.serialization.Serdes.String;
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.CommitStrategy;
@@ -61,17 +60,20 @@ public class OffsetServiceTest {
     private static final String TOPIC = "topic";
 
     private MockConsumer mockConsumer;
-    private OffsetService offsetService;
+    private OffsetServiceImpl offsetService;
     private static final TopicPartition partition0 = new TopicPartition(TOPIC, 0);
     private static final TopicPartition partition1 = new TopicPartition(TOPIC, 1);
     private static final TopicPartition partition2 = new TopicPartition(TOPIC, 2);
+
+    private DeserializerPair<String, String> deserializerPair =
+            new DeserializerPair<>(String().deserializer(), String().deserializer());
 
     private void setUp(boolean earliest) {
         setUp(earliest, CommitStrategy.fixedCommitStrategy(5000, 10000));
     }
 
     private void setUp(boolean earliest, CommitStrategy commitStrategy) {
-        this.mockConsumer = new MockConsumer<>(earliest ? EARLIEST : LATEST);
+        this.mockConsumer = new MockConsumer(earliest ? EARLIEST : LATEST);
 
         // A rebalance must be scheduled to later use the subscribe method
         this.mockConsumer.schedulePollTask(
@@ -375,17 +377,18 @@ public class OffsetServiceTest {
         // Poll two new records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         assertThat(offsetService.offsetStore().get().snapshot())
                 .containsExactly(
                         partition0, new OffsetAndMetadata(16L),
@@ -409,17 +412,18 @@ public class OffsetServiceTest {
         // Poll two new records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
         // Update the offsets BUT NOT commit
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         // Simulate revocation of partition 0
         offsetService.onPartitionsRevoked(Set.of(partition0));
@@ -567,49 +571,6 @@ public class OffsetServiceTest {
         }
     }
 
-    @Test
-    void shouldCommitWhenMaybeCommitThresholdReached() {
-        setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
-
-        prepareCommittedRecords();
-        offsetService.initStore(false);
-
-        // Poll and update offsets for some records
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
-                });
-
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
-                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Simulate processing enough records to exceed the 100 threshold
-        for (int i = 0; i < 98; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-
-        // Call maybeCommit - should trigger commit due to exceeding threshold
-        offsetService.maybeCommit();
-
-        // Check that commit was triggered asynchronously
-        Map<TopicPartition, OffsetAndMetadata> committedAfterMaybeCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Verify that commits actually happened (offsets changed)
-        assertThat(committedAfterMaybeCommit).isNotEmpty();
-        assertThat(committedAfterMaybeCommit).isNotEqualTo(committedBeforeMaybeCommit);
-    }
-
-    @Test
     void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
@@ -619,24 +580,26 @@ public class OffsetServiceTest {
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
 
         // Process only a small number of records, well below the 100 threshold
         for (int i = 0; i < 20; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit with insufficient records (below 100 threshold)
@@ -660,15 +623,16 @@ public class OffsetServiceTest {
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeAccumulation =
                 mockConsumer.committed(Set.of(partition0, partition1));
@@ -678,9 +642,10 @@ public class OffsetServiceTest {
 
         // Batch 1: 28 records (total 30, below threshold)
         for (int i = 0; i < 28; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 1000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 1000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should not commit yet
 
@@ -691,9 +656,10 @@ public class OffsetServiceTest {
 
         // Batch 2: 30 more records (total 60, still below threshold)
         for (int i = 0; i < 30; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 31000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 31000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should not commit yet
 
@@ -704,9 +670,10 @@ public class OffsetServiceTest {
 
         // Batch 3: 50 more records (total 110, exceeds threshold)
         for (int i = 0; i < 50; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 61000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 61000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should trigger commit now
 
@@ -728,24 +695,26 @@ public class OffsetServiceTest {
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
 
         // Process a small number of records (below count threshold)
         for (int i = 0; i < 28; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // First call to maybeCommit with small record count (below threshold)
@@ -761,9 +730,10 @@ public class OffsetServiceTest {
 
         // Process a few more records and call maybeCommit again
         for (int i = 0; i < 10; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 200L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 200L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit again with small record count
@@ -787,21 +757,23 @@ public class OffsetServiceTest {
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         // Trigger first commit by exceeding record threshold
         for (int i = 0; i < 120; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -813,20 +785,25 @@ public class OffsetServiceTest {
         // Add more records after the commit
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-16"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-17"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-17"));
                 });
 
         records = mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         // Process a small number of records (should not trigger commit since counters were reset)
         for (int i = 0; i < 10; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 200000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC,
+                            0,
+                            200000L + i,
+                            ("key" + i).getBytes(),
+                            ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -837,9 +814,14 @@ public class OffsetServiceTest {
 
         // Now trigger another commit with sufficient accumulated count
         for (int i = 0; i < 100; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 300000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC,
+                            0,
+                            300000L + i,
+                            ("key" + i).getBytes(),
+                            ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -860,24 +842,26 @@ public class OffsetServiceTest {
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
                 () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
+                    mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
+        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
+        records.forEach(
+                record ->
+                        offsetService.updateOffsets(
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
 
         // Simulate processing enough records to exceed the 100 threshold
         for (int i = 0; i < 98; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
+            ConsumerRecord<byte[], byte[]> record =
+                    new ConsumerRecord<>(
+                            TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit - should trigger commit due to exceeding threshold
@@ -890,246 +874,5 @@ public class OffsetServiceTest {
         // Verify that commits actually happened (offsets changed)
         assertThat(committedAfterMaybeCommit).isNotEmpty();
         assertThat(committedAfterMaybeCommit).isNotEqualTo(committedBeforeMaybeCommit);
-    }
-
-    @Test
-    void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
-        setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
-
-        prepareCommittedRecords();
-        offsetService.initStore(false);
-
-        // Poll and update offsets for some records
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
-                });
-
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
-                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Process only a small number of records, well below the 100 threshold
-        for (int i = 0; i < 20; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-
-        // Call maybeCommit with insufficient records (below 100 threshold)
-        offsetService.maybeCommit();
-
-        // Check that no commit was triggered
-        Map<TopicPartition, OffsetAndMetadata> committedAfterMaybeCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Offsets should remain unchanged
-        assertThat(committedAfterMaybeCommit).isEqualTo(committedBeforeMaybeCommit);
-    }
-
-    @Test
-    void shouldAccumulateRecordCountsAcrossMultipleMaybeCommitCalls() {
-        setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
-
-        prepareCommittedRecords();
-        offsetService.initStore(false);
-
-        // Poll and update offsets for some records
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
-                });
-
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
-                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeAccumulation =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Process records in multiple batches that individually don't trigger commits
-        // but accumulated should exceed threshold
-
-        // Batch 1: 28 records (total 30, below threshold)
-        for (int i = 0; i < 28; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 1000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit(); // Should not commit yet
-
-        // Verify no commit yet
-        Map<TopicPartition, OffsetAndMetadata> committedAfterBatch1 =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterBatch1).isEqualTo(committedBeforeAccumulation);
-
-        // Batch 2: 30 more records (total 60, still below threshold)
-        for (int i = 0; i < 30; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 31000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit(); // Should not commit yet
-
-        // Verify still no commit
-        Map<TopicPartition, OffsetAndMetadata> committedAfterBatch2 =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterBatch2).isEqualTo(committedBeforeAccumulation);
-
-        // Batch 3: 50 more records (total 110, exceeds threshold)
-        for (int i = 0; i < 50; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 61000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit(); // Should trigger commit now
-
-        // Verify that commit was finally triggered after accumulation
-        Map<TopicPartition, OffsetAndMetadata> committedAfterAccumulation =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        assertThat(committedAfterAccumulation).isNotEmpty();
-        assertThat(committedAfterAccumulation).isNotEqualTo(committedBeforeAccumulation);
-    }
-
-    @Test
-    void shouldCommitWhenMaybeCommitTimeThresholdReached() throws InterruptedException {
-        setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
-
-        prepareCommittedRecords();
-        offsetService.initStore(false);
-
-        // Poll and update offsets for some records
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
-                });
-
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
-                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Process a small number of records (below count threshold)
-        for (int i = 0; i < 28; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-
-        // First call to maybeCommit with small record count (below threshold)
-        offsetService.maybeCommit();
-
-        // Verify no commit happened yet (insufficient count and time)
-        Map<TopicPartition, OffsetAndMetadata> committedAfterFirstCall =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterFirstCall).isEqualTo(committedBeforeMaybeCommit);
-
-        // Wait for time threshold to be exceeded (FixedThresholdCommitStrategy uses 5 seconds)
-        Thread.sleep(5100); // Sleep slightly over 5 seconds
-
-        // Process a few more records and call maybeCommit again
-        for (int i = 0; i < 10; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 200L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-
-        // Call maybeCommit again with small record count
-        offsetService.maybeCommit();
-
-        // Now commit should have been triggered due to time threshold
-        Map<TopicPartition, OffsetAndMetadata> committedAfterTimeThreshold =
-                mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Verify that commits happened (offsets changed)
-        assertThat(committedAfterTimeThreshold).isNotEmpty();
-        assertThat(committedAfterTimeThreshold).isNotEqualTo(committedBeforeMaybeCommit);
-    }
-
-    @Test
-    void shouldResetCountersAfterCommit() {
-        setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
-        prepareCommittedRecords();
-        offsetService.initStore(false);
-
-        // Poll and update offsets for some records
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-15"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-16"));
-                });
-
-        org.apache.kafka.clients.consumer.ConsumerRecords<String, String> records =
-                mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        // Trigger first commit by exceeding record threshold
-        for (int i = 0; i < 120; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 100L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit();
-
-        // Verify commit happened
-        Map<TopicPartition, OffsetAndMetadata> committedAfterFirstCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterFirstCommit).isNotEmpty();
-
-        // Add more records after the commit
-        mockConsumer.schedulePollTask(
-                () -> {
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 0, "A-16"));
-                    mockConsumer.addRecord(
-                            (ConsumerRecord<String, String>) ConsumerRecord(TOPIC, 1, "B-17"));
-                });
-
-        records = mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
-        records.forEach(record -> offsetService.updateOffsets(record));
-
-        // Process a small number of records (should not trigger commit since counters were reset)
-        for (int i = 0; i < 10; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 200000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit();
-
-        // Verify no additional commit happened (counters were reset after previous commit)
-        Map<TopicPartition, OffsetAndMetadata> committedAfterSecondCall =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterSecondCall).isEqualTo(committedAfterFirstCommit);
-
-        // Now trigger another commit with sufficient accumulated count
-        for (int i = 0; i < 100; i++) {
-            ConsumerRecord<String, String> record =
-                    new ConsumerRecord<>(TOPIC, 0, 300000L + i, "key" + i, "value" + i);
-            offsetService.updateOffsets(record);
-        }
-        offsetService.maybeCommit();
-
-        // Verify second commit happened with new offsets
-        Map<TopicPartition, OffsetAndMetadata> committedAfterSecondCommit =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterSecondCommit).isNotEqualTo(committedAfterFirstCommit);
-        assertThat(committedAfterSecondCommit).isNotEmpty();
     }
 }
