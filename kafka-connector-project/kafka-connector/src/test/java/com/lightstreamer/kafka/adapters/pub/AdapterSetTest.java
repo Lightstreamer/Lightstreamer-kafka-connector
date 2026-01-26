@@ -18,10 +18,13 @@
 package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
+import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.interfaces.metadata.ItemsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
@@ -31,10 +34,10 @@ import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
-import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.ConnectionInfo;
+import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
-import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -111,13 +114,15 @@ public class AdapterSetTest {
         assertDoesNotThrow(
                 () -> connectorDataAdapter2.init(dataAdapterParams2, adapterDir.toFile()));
 
-        Optional<ConnectionInfo> connector1 = connectorMetadataAdapter.lookUp("CONNECTOR");
+        Optional<KafkaConnectorDataAdapterOpts> connector1 =
+                connectorMetadataAdapter.lookUp("CONNECTOR");
         assertThat(connector1).isPresent();
-        assertThat(connector1.get().name()).isEqualTo("CONNECTOR");
+        assertThat(connector1.get().dataAdapterName()).isEqualTo("CONNECTOR");
 
-        Optional<ConnectionInfo> connector2 = connectorMetadataAdapter.lookUp("CONNECTOR2");
+        Optional<KafkaConnectorDataAdapterOpts> connector2 =
+                connectorMetadataAdapter.lookUp("CONNECTOR2");
         assertThat(connector2).isPresent();
-        assertThat(connector2.get().name()).isEqualTo("CONNECTOR2");
+        assertThat(connector2.get().dataAdapterName()).isEqualTo("CONNECTOR2");
     }
 
     @Test
@@ -155,7 +160,7 @@ public class AdapterSetTest {
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
-        connectorDataAdapter1.setListener(new Mocks.MockItemEventListener());
+        connectorDataAdapter1.setListener(new MockItemEventListener());
         assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
@@ -169,12 +174,24 @@ public class AdapterSetTest {
                                 "field.command",
                                 "#{VALUE}")),
                 adapterDir.toFile());
-        connectorDataAdapter2.setListener(new Mocks.MockItemEventListener());
+        connectorDataAdapter2.setListener(new MockItemEventListener());
         assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
+
+        KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter3.init(
+                ConnectorConfigProvider.minimalConfigWith(
+                        Map.of(
+                                ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}")),
+                adapterDir.toFile());
+        connectorDataAdapter3.setListener(new MockItemEventListener());
+        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isFalse();
     }
 
     @Test
-    void shouldDenyNotRegisteredConnection() throws Exception {
+    void shouldDenyNotEnabledConnection() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -274,6 +291,92 @@ public class AdapterSetTest {
         String[] items =
                 connectorMetadataAdapter.getItems("user", "sessionId", input, "dataAdapter");
         assertThat(items).asList().isEqualTo(normalizedItems);
+    }
+
+    static Stream<Arguments> modes() {
+        return Stream.of(
+                // Test with with no usage of command mode
+                Arguments.of(Mode.DISTINCT, Collections.emptyMap(), true),
+                Arguments.of(Mode.MERGE, Collections.emptyMap(), true),
+                Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
+                Arguments.of(Mode.RAW, Collections.emptyMap(), true),
+                // Test with usage of command mode through
+                // "fields.evaluate.as.command.enable"
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        false),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(
+                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                "true",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}"),
+                        true),
+                // Test with usage of command mode through "fields.auto.command.mode.enable"
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        false),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        true));
+    }
+
+    @ParameterizedTest
+    @MethodSource("modes")
+    public void shouldHandleModes(Mode mode, Map<String, String> settings, boolean expected)
+            throws MetadataProviderException, DataProviderException {
+        doInit();
+
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
+        Map<String, String> dataAdapterParams = ConnectorConfigProvider.minimalConfigWith(settings);
+        connectorDataAdapter.init(dataAdapterParams, adapterDir.toFile());
+
+        assertThat(
+                        connectorMetadataAdapter.modeMayBeAllowed(
+                                "anItem",
+                                dataAdapterParams.get(ConnectorConfig.DATA_ADAPTER_NAME),
+                                mode))
+                .isEqualTo(expected);
     }
 
     private TableInfo[] mkTable(String adapterName, Mode mode) {

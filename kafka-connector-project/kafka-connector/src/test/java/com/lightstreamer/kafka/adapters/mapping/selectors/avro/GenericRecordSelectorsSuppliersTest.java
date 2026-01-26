@@ -24,8 +24,8 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
-import static com.lightstreamer.kafka.test_utils.Records.fromKey;
-import static com.lightstreamer.kafka.test_utils.Records.fromValue;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromKey;
+import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordFromValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -34,12 +34,12 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelector;
 import com.lightstreamer.kafka.common.mapping.selectors.KeySelectorSupplier;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelector;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueSelectorSupplier;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
@@ -229,11 +229,11 @@ public class GenericRecordSelectorsSuppliersTest {
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
-        Data autoBoundData = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE));
+        Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundValue = valueSelector.extractValue("param", fromValue(SAMPLE_MESSAGE));
+        Data boundValue = valueSelector.extractValue("param", KafkaRecordFromValue(SAMPLE_MESSAGE));
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
@@ -241,7 +241,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @Test
     public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<?, GenericRecord> record = fromValue(SAMPLE_MESSAGE);
+        KafkaRecord<?, GenericRecord> record = KafkaRecordFromValue(SAMPLE_MESSAGE);
 
         valueSelector("VALUE.*").extractValueInto(record, target);
         assertThat(target)
@@ -329,7 +329,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue(SAMPLE_MESSAGE))
+                                        .extractValue("param", KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -338,7 +338,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue(fromValue(SAMPLE_MESSAGE))
+                                        .extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
@@ -372,7 +372,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(
-                                                fromValue(SAMPLE_MESSAGE), new HashMap<>()));
+                                                KafkaRecordFromValue(SAMPLE_MESSAGE),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -400,25 +401,28 @@ public class GenericRecordSelectorsSuppliersTest {
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
-        Data autoBoundValue = valueSelector.extractValue(fromValue(SAMPLE_MESSAGE_V2), false);
+        Data autoBoundValue =
+                valueSelector.extractValue(KafkaRecordFromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
                 valueSelector(expression)
-                        .extractValue("param", fromValue(SAMPLE_MESSAGE_V2), false);
+                        .extractValue("param", KafkaRecordFromValue(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
 
     @Test
     public void shouldHandleNullValue() throws ValueException, ExtractionException {
-        Data autoBoundValue = valueSelector("VALUE").extractValue(fromValue((GenericRecord) null));
+        Data autoBoundValue =
+                valueSelector("VALUE").extractValue(KafkaRecordFromValue((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("VALUE");
         assertThat(autoBoundValue.text()).isNull();
 
         Data boundValue =
-                valueSelector("VALUE").extractValue("param", fromValue((GenericRecord) null));
+                valueSelector("VALUE")
+                        .extractValue("param", KafkaRecordFromValue((GenericRecord) null));
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isNull();
     }
@@ -441,7 +445,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue(fromValue((GenericRecord) null))
+                                        .extractValue(KafkaRecordFromValue((GenericRecord) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -450,7 +454,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 valueSelector(expression)
-                                        .extractValue("param", fromValue((GenericRecord) null))
+                                        .extractValue(
+                                                "param", KafkaRecordFromValue((GenericRecord) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -460,7 +465,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         () ->
                                 valueSelector(expression)
                                         .extractValueInto(
-                                                fromValue((GenericRecord) null), new HashMap<>()));
+                                                KafkaRecordFromValue((GenericRecord) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -494,11 +500,11 @@ public class GenericRecordSelectorsSuppliersTest {
             throws ExtractionException {
         KeySelector<GenericRecord> keySelector = keySelector(expression);
 
-        Data autoBoundData = keySelector.extractKey(fromKey(SAMPLE_MESSAGE));
+        Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE));
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundData = keySelector.extractKey("param", fromKey(SAMPLE_MESSAGE));
+        Data boundData = keySelector.extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE));
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(expectedValue);
     }
@@ -506,7 +512,7 @@ public class GenericRecordSelectorsSuppliersTest {
     @Test
     public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
-        KafkaRecord<GenericRecord, ?> record = fromKey(SAMPLE_MESSAGE);
+        KafkaRecord<GenericRecord, ?> record = KafkaRecordFromKey(SAMPLE_MESSAGE);
 
         keySelector("KEY.*").extractKeyInto(record, target);
         assertThat(target)
@@ -594,14 +600,17 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey("param", fromKey(SAMPLE_MESSAGE))
+                                        .extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
         ve =
                 assertThrows(
                         ValueException.class,
-                        () -> keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE)).text());
+                        () ->
+                                keySelector(expression)
+                                        .extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE))
+                                        .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -631,7 +640,9 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKeyInto(fromKey(SAMPLE_MESSAGE), new HashMap<>()));
+                                        .extractKeyInto(
+                                                KafkaRecordFromKey(SAMPLE_MESSAGE),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 
@@ -657,23 +668,27 @@ public class GenericRecordSelectorsSuppliersTest {
     public void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
-        Data autoBoundValue = keySelector(expression).extractKey(fromKey(SAMPLE_MESSAGE_V2), false);
+        Data autoBoundValue =
+                keySelector(expression).extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(autoBoundValue.name()).isEqualTo(expectedName);
         assertThat(autoBoundValue.text()).isEqualTo(expectedValue);
 
         Data boundValue =
-                keySelector(expression).extractKey("param", fromKey(SAMPLE_MESSAGE_V2), false);
+                keySelector(expression)
+                        .extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE_V2), false);
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isEqualTo(expectedValue);
     }
 
     @Test
     public void shouldHandleNullKey() throws ValueException, ExtractionException {
-        Data autoBoundValue = keySelector("KEY").extractKey(fromKey((GenericRecord) null));
+        Data autoBoundValue =
+                keySelector("KEY").extractKey(KafkaRecordFromKey((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("KEY");
         assertThat(autoBoundValue.text()).isNull();
 
-        Data boundValue = keySelector("KEY").extractKey("param", fromKey((GenericRecord) null));
+        Data boundValue =
+                keySelector("KEY").extractKey("param", KafkaRecordFromKey((GenericRecord) null));
         assertThat(boundValue.name()).isEqualTo("param");
         assertThat(boundValue.text()).isNull();
     }
@@ -696,7 +711,7 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey(fromKey((GenericRecord) null))
+                                        .extractKey(KafkaRecordFromKey((GenericRecord) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -705,7 +720,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         ValueException.class,
                         () ->
                                 keySelector(expression)
-                                        .extractKey("param", fromKey((GenericRecord) null))
+                                        .extractKey(
+                                                "param", KafkaRecordFromKey((GenericRecord) null))
                                         .text());
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
 
@@ -715,7 +731,8 @@ public class GenericRecordSelectorsSuppliersTest {
                         () ->
                                 keySelector(expression)
                                         .extractKeyInto(
-                                                fromKey((GenericRecord) null), new HashMap<>()));
+                                                KafkaRecordFromKey((GenericRecord) null),
+                                                new HashMap<>()));
         assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
     }
 }

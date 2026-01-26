@@ -94,6 +94,24 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
+    public void shouldDeserializeNullWithLocalSchema() throws IOException {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
+
+        try (Deserializer<GenericRecord> deserializer =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            GenericRecord deserializedRecord = deserializer.deserialize("topic", null);
+            assertThat(deserializedRecord).isNull();
+        }
+    }
+
+    @Test
     public void shouldGetKeyDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(

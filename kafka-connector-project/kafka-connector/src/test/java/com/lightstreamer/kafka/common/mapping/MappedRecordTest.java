@@ -24,57 +24,60 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.stream.Stream;
 
 public class MappedRecordTest {
 
-    @Test
-    public void shouldCreateSimpleMappedRecord() {
-        String[] canonicalItemNames = {"schema-[key=aKey]"};
-        Map<String, String> fieldsMap = Map.of("field1", "value1");
+    static Stream<Arguments> provideRecordsForRouting() {
+        return Stream.of(
+                Arguments.of(
+                        new String[] {"schema-[key=aKey]"},
+                        Map.of("field1", "value1"),
+                        true,
+                        "MappedRecord (canonicalItemNames=[schema-[key=aKey]], fieldsMap={field1=value1})"),
+                Arguments.of(
+                        new String[] {
+                            "schema1-[key=aKey]",
+                            "schema2",
+                            "schema3-[partition=aPartition,value=aValue]"
+                        },
+                        new LinkedHashMap<>() {
+                            {
+                                put("field1", "value1");
+                                put("field2", "value2");
+                                put("field3", null);
+                            }
+                        },
+                        false,
+                        "MappedRecord (canonicalItemNames=[schema1-[key=aKey],schema2,schema3-[partition=aPartition,value=aValue]], fieldsMap={field1=value1, field2=value2, field3=null})"));
+    }
 
-        DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames, () -> fieldsMap);
-        assertThat(record.fieldsMap()).containsExactly("field1", "value1");
-        assertThat(record.toString())
-                .isEqualTo(
-                        "MappedRecord (canonicalItemNames=[schema-[key=aKey]], fieldsMap={field1=value1})");
+    @ParameterizedTest
+    @MethodSource("provideRecordsForRouting")
+    public void shouldCreateMappedRecord(
+            String[] canonicalItemNames,
+            Map<String, String> fieldsMap,
+            boolean isPayloadNull,
+            String expectedToString) {
+        DefaultMappedRecord record =
+                new DefaultMappedRecord(canonicalItemNames, () -> fieldsMap, isPayloadNull);
+        assertThat(record.fieldsMap()).containsExactlyEntriesIn(fieldsMap);
+        assertThat(record.canonicalItemNames()).isEqualTo(canonicalItemNames);
+        assertThat(record.isPayloadNull()).isEqualTo(isPayloadNull);
+        assertThat(record.toString()).isEqualTo(expectedToString);
     }
 
     @Test
-    public void shouldCreateMappedRecord() {
-        String[] canonicalItemNames =
-                List.of(
-                                "schema1-[key=aKey]",
-                                "schema2",
-                                "schema3-[partition=aPartition,value=aValue]")
-                        .toArray(new String[0]);
-
-        Map<String, String> fieldsMap = new TreeMap<>();
-        fieldsMap.put("field1", "value1");
-        fieldsMap.put("field2", "value2");
-        fieldsMap.put("field3", null);
-
-        DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames, () -> fieldsMap);
-        assertThat(record.canonicalItemNames())
-                .asList()
-                .containsExactly(
-                        "schema1-[key=aKey]",
-                        "schema2",
-                        "schema3-[partition=aPartition,value=aValue]");
-        assertThat(record.fieldsMap())
-                .containsExactly("field1", "value1", "field2", "value2", "field3", null);
-        assertThat(record.toString())
-                .isEqualTo(
-                        "MappedRecord (canonicalItemNames=[schema1-[key=aKey],schema2,schema3-[partition=aPartition,value=aValue]], fieldsMap={field1=value1, field2=value2, field3=null})");
-    }
-
-    @Test
-    public void shouldNotHaveCanonicalItemNNamesAndFieldsMapIfNOP() {
+    public void shouldNOPRecordBeEmpty() {
         assertThat(DefaultMappedRecord.NOPRecord.canonicalItemNames()).isEmpty();
+        assertThat(DefaultMappedRecord.NOPRecord.isPayloadNull()).isTrue();
         assertThat(DefaultMappedRecord.NOPRecord.fieldsMap()).isEmpty();
         assertThat(DefaultMappedRecord.NOPRecord.toString())
                 .isEqualTo("MappedRecord (canonicalItemNames=[], fieldsMap={})");
@@ -88,6 +91,8 @@ public class MappedRecordTest {
                 List.of(canonicalItemName, canonicalItemName2).toArray(new String[0]);
 
         DefaultMappedRecord record = new DefaultMappedRecord(canonicalItemNames);
+        assertThat(record.fieldsMap()).isEmpty();
+        assertThat(record.isPayloadNull()).isTrue();
 
         // This item should match the expandedTemplate 1: routable
         SubscribedItem matchingItem1 =
@@ -99,20 +104,17 @@ public class MappedRecordTest {
                 subscribedFrom("schema1-[topic=anotherTopic,partition=anotherPartition]");
         SubscribedItem notMatchingSchema = subscribedFrom("schemaX-[key=aKey,value=aValue]");
 
-        assertThat(
-                        record.route(
-                                SubscribedItems.of(
-                                        Set.of(
-                                                matchingItem1,
-                                                matchingItem2,
-                                                notMatchingBindParameters,
-                                                notMatchingSchema))))
-                .containsExactly(matchingItem1, matchingItem2);
-        assertThat(
-                        record.route(
-                                SubscribedItems.of(
-                                        Set.of(notMatchingBindParameters, notMatchingSchema))))
-                .isEmpty();
+        SubscribedItems subscribedItems1 = SubscribedItems.create();
+        subscribedItems1.addItem(matchingItem1);
+        subscribedItems1.addItem(matchingItem2);
+        subscribedItems1.addItem(notMatchingBindParameters);
+        subscribedItems1.addItem(notMatchingSchema);
+        assertThat(record.route(subscribedItems1)).containsExactly(matchingItem1, matchingItem2);
+
+        SubscribedItems subscribedItems2 = SubscribedItems.create();
+        subscribedItems2.addItem(notMatchingBindParameters);
+        subscribedItems2.addItem(notMatchingSchema);
+        assertThat(record.route(subscribedItems2)).isEmpty();
     }
 
     @Test
@@ -123,14 +125,15 @@ public class MappedRecordTest {
                 new DefaultMappedRecord(
                         List.of(canonicalItemName1, canonicalItemName2).toArray(new String[0]));
         assertThat(record.fieldsMap()).isEmpty();
+        assertThat(record.isPayloadNull()).isTrue();
 
         SubscribedItem matchingItem1 = subscribedFrom("simple-item-1");
         SubscribedItem matchingItem2 = subscribedFrom("simple-item-2");
         SubscribedItem notMatchingItem = subscribedFrom("simple-item-3");
-
-        Set<SubscribedItem> routed =
-                record.route(
-                        SubscribedItems.of(Set.of(matchingItem1, matchingItem2, notMatchingItem)));
-        assertThat(routed).containsExactly(matchingItem1, matchingItem2);
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        subscribedItems.addItem(matchingItem1);
+        subscribedItems.addItem(matchingItem2);
+        subscribedItems.addItem(notMatchingItem);
+        assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
     }
 }

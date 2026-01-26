@@ -19,11 +19,12 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static java.util.concurrent.Executors.newFixedThreadPool;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
@@ -31,26 +32,30 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithL
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Key;
+import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 class RecordConsumerSupport {
 
@@ -92,8 +97,8 @@ class RecordConsumerSupport {
 
         protected RecordMapper<K, V> mapper;
         protected SubscribedItems subscribed;
-        protected ItemEventListener listener;
-        protected boolean enforceCommandMode;
+        protected EventListener listener;
+        protected CommandModeStrategy commandModeStrategy;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
             this.mapper = Objects.requireNonNull(mapper, "RecordMapper not set");
@@ -114,8 +119,9 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public WithEnforceCommandMode<K, V> enforceCommandMode(boolean enforceCommandMode) {
-            this.parentBuilder.enforceCommandMode = enforceCommandMode;
+        public WithEnforceCommandMode<K, V> commandMode(CommandModeStrategy strategy) {
+            this.parentBuilder.commandModeStrategy =
+                    Objects.requireNonNull(strategy, "CommandModeStrategy not set");
             return new WithEnforceCommandModeImpl<>(parentBuilder);
         }
     }
@@ -128,21 +134,19 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
-            this.parentBuilder.listener =
-                    Objects.requireNonNull(listener, "ItemEventListener not set");
+        public StartBuildingConsumer<K, V> eventListener(EventListener listener) {
+            parentBuilder.listener = Objects.requireNonNull(listener, "EventListener not set");
 
-            RecordProcessor<K, V> recordProcessor =
-                    this.parentBuilder.enforceCommandMode
-                            ? new CommandRecordProcessor<>(
-                                    this.parentBuilder.mapper,
-                                    this.parentBuilder.subscribed,
-                                    this.parentBuilder.listener)
-                            : new DefaultRecordProcessor<>(
-                                    this.parentBuilder.mapper,
-                                    this.parentBuilder.subscribed,
-                                    this.parentBuilder.listener);
-            return new StartBuildingConsumerImpl<>(recordProcessor);
+            ProcessUpdatesStrategy processUpdatesStrategy =
+                    ProcessUpdatesStrategy.fromCommandModeStrategy(
+                            parentBuilder.commandModeStrategy);
+
+            return new StartBuildingConsumerImpl<>(
+                    new DefaultRecordProcessor<>(
+                            parentBuilder.mapper,
+                            parentBuilder.subscribed,
+                            listener,
+                            processUpdatesStrategy));
         }
     }
 
@@ -208,7 +212,8 @@ class RecordConsumerSupport {
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
             }
-            if (parentBuilder.threads > 1 && parentBuilder.processor.isCommandEnforceEnabled()) {
+            if (parentBuilder.threads != 1
+                    && !parentBuilder.processor.processUpdatesType().allowConcurrentProcessing()) {
                 throw new IllegalArgumentException(
                         "Command mode does not support parallel processing");
             }
@@ -219,79 +224,166 @@ class RecordConsumerSupport {
         }
     }
 
-    static sealed class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V>
-            permits CommandRecordProcessor {
+    static interface ProcessUpdatesStrategy {
 
-        protected final RecordMapper<K, V> recordMapper;
-        protected final SubscribedItems subscribedItems;
-        protected final ItemEventListener listener;
-        protected Logger log = LoggerFactory.getLogger(DefaultRecordProcessor.class);
-
-        DefaultRecordProcessor(
-                RecordMapper<K, V> recordMapper,
-                SubscribedItems subscribedItems,
-                ItemEventListener listener) {
-            this.recordMapper = recordMapper;
-            this.subscribedItems = subscribedItems;
-            this.listener = listener;
+        default void processUpdates(
+                MappedRecord record, Set<SubscribedItem> routable, EventListener listener) {
+            Map<String, String> updates = getEvent(record);
+            getLogger().atDebug().log(() -> "Sending updates: %s".formatted(updates));
+            sendUpdates(updates, routable, listener);
         }
 
-        @Override
-        public final void useLogger(Logger logger) {
-            this.log = Objects.requireNonNullElse(logger, this.log);
+        default void processUpdatesAsSnapshot(
+                MappedRecord record, SubscribedItem subscribedItem, EventListener listener) {
+            Map<String, String> updates = getEvent(record);
+            getLogger().atDebug().log(() -> "Sending snapshot updates: %s".formatted(updates));
+            sendUpdatesAsSnapshot(updates, subscribedItem, listener);
         }
 
-        @Override
-        public final void process(ConsumerRecord<K, V> record) throws ValueException {
-            log.atDebug().log(() -> "Mapping incoming Kafka record");
-            log.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
-
-            MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
-
-            // As logging the mapped record is expensive, log lazily it only at trace level.
-            log.atTrace().log(() -> "Mapped Kafka record to %s".formatted(mappedRecord));
-            log.atDebug().log(() -> "Mapped Kafka record");
-
-            Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
-            if (routable.size() > 0) {
-                log.atDebug().log(() -> "Filtering updates");
-                Map<String, String> updates = mappedRecord.fieldsMap();
-
-                log.atDebug().log("Routing record to {} items", routable.size());
-                processUpdates(updates, routable);
-            } else {
-                log.atDebug().log("No routable items found");
-            }
+        default Map<String, String> getEvent(MappedRecord record) {
+            return record.fieldsMap();
         }
 
-        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
-            for (SubscribedItem sub : routable) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                listener.smartUpdate(sub.itemHandle(), updates, false);
-            }
+        void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener);
+
+        default void sendUpdatesAsSnapshot(
+                Map<String, String> updates,
+                SubscribedItem subscribedItem,
+                EventListener listener) {}
+
+        void useLogger(Logger logger);
+
+        Logger getLogger();
+
+        ProcessUpdatesType type();
+
+        static ProcessUpdatesStrategy fromCommandModeStrategy(
+                CommandModeStrategy commandModeStrategy) {
+            return switch (commandModeStrategy) {
+                case NONE -> defaultStrategy();
+                case ENFORCE -> commandStrategy();
+                case AUTO -> autoCommandModeStrategy();
+            };
+        }
+
+        static ProcessUpdatesStrategy defaultStrategy() {
+            return new DefaultUpdatesStrategy();
+        }
+
+        static ProcessUpdatesStrategy commandStrategy() {
+            return new CommandProcessUpdatesStrategy();
+        }
+
+        static ProcessUpdatesStrategy autoCommandModeStrategy() {
+            return new AutoCommandModeProcessUpdatesStrategy();
         }
     }
 
-    static final class CommandRecordProcessor<K, V> extends DefaultRecordProcessor<K, V> {
+    static class DefaultUpdatesStrategy implements ProcessUpdatesStrategy {
 
-        private enum Command {
+        private Logger logger = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
+
+        @Override
+        public void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
+            for (SubscribedItem sub : routable) {
+                sub.sendRealtimeEvent(updates, listener);
+            }
+        }
+
+        @Override
+        public void sendUpdatesAsSnapshot(
+                Map<String, String> updates,
+                SubscribedItem subscribedItem,
+                EventListener listener) {
+            subscribedItem.sendSnapshotEvent(updates, listener);
+        }
+
+        public final void useLogger(Logger logger) {
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
+        }
+
+        @Override
+        public Logger getLogger() {
+            return logger;
+        }
+
+        @Override
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.DEFAULT;
+        }
+    }
+
+    static class AutoCommandModeProcessUpdatesStrategy extends DefaultUpdatesStrategy {
+
+        @Override
+        public Map<String, String> getEvent(MappedRecord record) {
+            Map<String, String> event = record.fieldsMap();
+            if (record.isPayloadNull()) {
+                String key = Key.KEY.lookUp(event);
+                getLogger()
+                        .atDebug()
+                        .log("Payload is null, sending DELETE command for key: %s", key);
+                return CommandMode.deleteEvent(event);
+            }
+
+            return CommandMode.decorate(event, Command.ADD);
+        }
+
+        @Override
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.AUTO_COMMAND_MODE;
+        }
+    }
+
+    static interface CommandMode {
+
+        static final String SNAPSHOT = "snapshot";
+
+        static Map<String, String> decorate(Map<String, String> event, Command command) {
+            event.put(Key.COMMAND.key(), command.toString());
+            return event;
+        }
+
+        static Map<String, String> deleteEvent(Map<String, String> event) {
+            // Creates a new event with only the key field: all other fields are discarded because
+            // they are not relevant for the deletion operation.
+            Map<String, String> deleteEvent = new HashMap<>();
+            deleteEvent.put(Key.KEY.key(), Key.KEY.lookUp(event));
+
+            // Decorate the event with DELETE command
+            return decorate(deleteEvent, Command.DELETE);
+        }
+
+        enum Command {
             ADD,
             DELETE,
-            UPDATE;
-        }
-
-        private enum Snapshot {
+            UPDATE,
             CS,
             EOS;
+
+            static Map<String, Command> CACHE =
+                    Stream.of(values())
+                            .collect(Collectors.toMap(Command::toString, Function.identity()));
+
+            static Optional<Command> lookUp(Map<String, String> input) {
+                String command = input.get(Key.COMMAND.key());
+                return Optional.ofNullable(CACHE.get(command));
+            }
+
+            boolean isSnapshot() {
+                return this.equals(CS) || this.equals(EOS);
+            }
         }
 
-        private enum CommandKey {
+        enum Key {
             KEY("key"),
             COMMAND("command");
 
             private final String key;
 
-            CommandKey(String key) {
+            Key(String key) {
                 this.key = key;
             }
 
@@ -299,98 +391,169 @@ class RecordConsumerSupport {
                 return input.get(key);
             }
 
-            boolean contains(Map<String, String> input) {
-                return input.containsKey(key);
+            String key() {
+                return key;
             }
         }
+    }
 
-        private static String SNAPSHOT = "snapshot";
+    static final class CommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
 
-        CommandRecordProcessor(
-                RecordMapper<K, V> recordMapper,
-                SubscribedItems subscribedItems,
-                ItemEventListener listener) {
-            super(recordMapper, subscribedItems, listener);
-        }
+        CommandProcessUpdatesStrategy() {}
 
         @Override
-        protected void processUpdates(Map<String, String> updates, Set<SubscribedItem> routable) {
-            if (!checkInput(updates)) {
-                log.atWarn()
+        public void sendUpdates(
+                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
+            Optional<Command> command = checkInput(updates);
+            if (command.isEmpty()) {
+                getLogger()
+                        .atWarn()
                         .log(
                                 "Discarding record due to command mode fields not properly valued: key {} - command {}",
-                                CommandKey.KEY.lookUp(updates),
-                                CommandKey.COMMAND.lookUp(updates));
+                                Key.KEY.lookUp(updates),
+                                Key.COMMAND.lookUp(updates));
                 return;
             }
 
-            String snapshotOrCommand = CommandKey.COMMAND.lookUp(updates);
+            Command cmd = command.get();
             for (SubscribedItem sub : routable) {
-                log.atDebug().log(() -> "Sending updates: %s".formatted(updates));
-                log.atDebug().log("Enforce COMMAND mode semantic of records read");
+                getLogger().atDebug().log("Enforce COMMAND mode semantic of records read");
 
-                if (SNAPSHOT.equals(CommandKey.KEY.lookUp(updates))) {
-                    handleSnapshot(Snapshot.valueOf(snapshotOrCommand), sub);
+                if (cmd.isSnapshot()) {
+                    handleSnapshot(cmd, sub, listener);
                 } else {
-                    handleCommand(Command.valueOf(snapshotOrCommand), updates, sub);
+                    getLogger().atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
+                    // updater.update(sub, updates, sub.isSnapshot());
+                    if (sub.isSnapshot()) {
+                        sub.sendSnapshotEvent(updates, listener);
+                    } else {
+                        sub.sendRealtimeEvent(updates, listener);
+                    }
+                }
+            }
+        }
+
+        Optional<Command> checkInput(Map<String, String> input) {
+            if (input == null) {
+                return Optional.empty();
+            }
+
+            // Retrieve the value of the mandatory "key" field from the input map.
+            String key = CommandMode.Key.KEY.lookUp(input);
+            if (key == null || key.isBlank()) {
+                return Optional.empty();
+            }
+
+            // Retrieve the value of the mandatory "command" field from the input map and
+            Optional<Command> command = Command.lookUp(input);
+            if (command.isEmpty()) {
+                return command;
+            }
+
+            Command cmd = command.get();
+
+            // If the key is "snapshot", we expect the command to be either CS or EOS.
+            if (CommandMode.SNAPSHOT.equals(key)) {
+                if (!cmd.isSnapshot()) {
+                    return Optional.empty();
+                }
+                return command;
+            }
+
+            // If the key is not "snapshot", we expect the command to be one of ADD, DELETE, or
+            // UPDATE.
+            return switch (cmd) {
+                case ADD, DELETE, UPDATE -> command;
+                default -> Optional.empty();
+            };
+        }
+
+        private void handleSnapshot(Command snapshot, SubscribedItem sub, EventListener listener) {
+            switch (snapshot) {
+                case CS -> {
+                    getLogger().atDebug().log("Sending clearSnapshot");
+                    // updater.clearSnapshot(sub);
+                    sub.setSnapshot(true);
+                    sub.clearSnapshot(listener);
+                }
+                case EOS -> {
+                    getLogger().atDebug().log("Sending endOfSnapshot");
+                    // updater.endOfSnapshot(sub);
+                    sub.setSnapshot(false);
+                    sub.endOfSnapshot(listener);
+                }
+                default -> {
+                    getLogger()
+                            .atWarn()
+                            .log(
+                                    "Unexpected command for snapshot key, expected CS or EOS, got {}",
+                                    snapshot);
                 }
             }
         }
 
         @Override
-        public boolean isCommandEnforceEnabled() {
-            return true;
+        public ProcessUpdatesType type() {
+            return ProcessUpdatesType.COMMAND;
+        }
+    }
+
+    static class DefaultRecordProcessor<K, V> implements RecordProcessor<K, V> {
+
+        protected final RecordMapper<K, V> recordMapper;
+        protected final ProcessUpdatesStrategy processUpdatesStrategy;
+        protected final EventListener listener;
+        protected final SubscribedItems subscribedItems;
+        protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
+
+        DefaultRecordProcessor(
+                RecordMapper<K, V> recordMapper,
+                SubscribedItems subscribedItems,
+                EventListener listener,
+                ProcessUpdatesStrategy processUpdatesStrategy) {
+            this.recordMapper = recordMapper;
+            this.listener = listener;
+            this.processUpdatesStrategy = processUpdatesStrategy;
+            this.subscribedItems = subscribedItems;
         }
 
-        boolean checkInput(Map<String, String> input) {
-            if (input == null) {
-                return false;
-            }
-
-            String key = CommandKey.KEY.lookUp(input);
-            if (key == null || key.isBlank()) {
-                return false;
-            }
-
-            if (!CommandKey.COMMAND.contains(input)) {
-                return false;
-            }
-
-            String snapshotOrCommand = CommandKey.COMMAND.lookUp(input);
-            if (snapshotOrCommand == null) {
-                return false;
-            }
-
-            if (SNAPSHOT.equals(key)) {
-                return switch (snapshotOrCommand) {
-                    case "CS", "EOS" -> true;
-                    default -> false;
-                };
-            }
-            return switch (snapshotOrCommand) {
-                case "ADD", "DELETE", "UPDATE" -> true;
-                default -> false;
-            };
+        @Override
+        public final void useLogger(Logger logger) {
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
+            this.processUpdatesStrategy.useLogger(logger);
         }
 
-        private void handleSnapshot(Snapshot snapshotCommand, SubscribedItem sub) {
-            switch (snapshotCommand) {
-                case CS -> {
-                    log.atDebug().log("Sending clearSnapshot");
-                    listener.smartClearSnapshot(sub.itemHandle());
-                    sub.setSnapshot(true);
-                }
-                case EOS -> {
-                    log.atDebug().log("Sending endOfSnapshot");
-                    listener.smartEndOfSnapshot(sub.itemHandle());
-                    sub.setSnapshot(false);
-                }
+        @Override
+        public final void process(KafkaRecord<K, V> record) throws ValueException {
+            logger.atDebug().log("Mapping incoming Kafka record");
+            logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
+
+            MappedRecord mappedRecord = recordMapper.map(record);
+            // As logging the mapped record is expensive, log lazily it only at trace level.
+            logger.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
+            logger.atDebug().log("Kafka record mapped");
+
+            Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
+            int size = routable.size();
+            if (size > 0) {
+                logger.atDebug().log("Routing record to {} items", size);
+                processUpdatesStrategy.processUpdates(mappedRecord, routable, listener);
+            } else {
+                logger.atDebug().log("No routable items found");
             }
         }
 
-        void handleCommand(Command command, Map<String, String> updates, SubscribedItem sub) {
-            log.atDebug().log("Sending {} command", command);
-            listener.smartUpdate(sub.itemHandle(), updates, sub.isSnapshot());
+        @Override
+        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
+                throws ValueException {
+            logger.atDebug().log("Mapping incoming Kafka record for subscribed item");
+            MappedRecord mappedRecord = recordMapper.map(record);
+            processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
+        }
+
+        @Override
+        public ProcessUpdatesType processUpdatesType() {
+            return processUpdatesStrategy.type();
         }
     }
 
@@ -400,6 +563,7 @@ class RecordConsumerSupport {
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
         private final RecordErrorHandlingStrategy errorStrategy;
+        private volatile boolean terminated = false;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
@@ -411,18 +575,27 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void close() {
+        public final void terminate() {
             offsetService.commitSyncAndIgnoreErrors();
+            onTermination();
+            terminated = true;
         }
 
         @Override
-        public boolean isCommandEnforceEnabled() {
-            return recordProcessor.isCommandEnforceEnabled();
+        public boolean isTerminated() {
+            return terminated;
         }
 
+        void onTermination() {}
+
         @Override
-        public RecordErrorHandlingStrategy errorStrategy() {
+        public final RecordErrorHandlingStrategy errorStrategy() {
             return errorStrategy;
+        }
+
+        @Override
+        public final RecordProcessor<K, V> recordProcessor() {
+            return recordProcessor;
         }
     }
 
@@ -433,12 +606,14 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            records.forEach(this::consumeRecord);
+        public void consumeRecords(List<KafkaRecord<K, V>> records) {
+            for (int i = 0, n = records.size(); i < n; i++) {
+                consumeRecord(records.get(i));
+            }
             offsetService.commitAsync();
         }
 
-        void consumeRecord(ConsumerRecord<K, V> record) {
+        private void consumeRecord(KafkaRecord<K, V> record) {
             try {
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
@@ -461,7 +636,7 @@ class RecordConsumerSupport {
                     }
                 }
             } catch (Throwable t) {
-                logger.atError().log("Serious error while processing record!");
+                logger.atError().setCause(t).log("Serious error while processing record!");
                 throw new KafkaException(t);
             }
         }
@@ -483,7 +658,11 @@ class RecordConsumerSupport {
             AtomicInteger threadCount = new AtomicInteger();
             this.taskExecutor =
                     TaskExecutor.create(
-                            newFixedThreadPool(actualThreads, r -> newThread(r, threadCount)));
+                            newFixedThreadPool(
+                                    actualThreads,
+                                    r -> {
+                                        return newThread(r, threadCount);
+                                    }));
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -494,7 +673,8 @@ class RecordConsumerSupport {
         }
 
         private Thread newThread(Runnable r, AtomicInteger threadCount) {
-            return new Thread(r, "ParallelConsumer-" + threadCount.getAndIncrement());
+            int andIncrement = threadCount.getAndIncrement();
+            return new Thread(r, "ParallelConsumer-" + andIncrement);
         }
 
         @Override
@@ -513,9 +693,8 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(ConsumerRecords<K, V> records) {
-            List<ConsumerRecord<K, V>> allRecords = flatRecords(records);
-            taskExecutor.executeBatch(allRecords, orderStrategy::getSequence, this::consume);
+        public void consumeRecords(List<KafkaRecord<K, V>> records) {
+            taskExecutor.executeBatch(records, orderStrategy::getSequence, this::consume);
             // NOTE: this may be inefficient if, for instance, a single task
             // should keep the executor engaged while all other threads are idle,
             // but this is not expected when all tasks are short and cpu-bound
@@ -527,7 +706,7 @@ class RecordConsumerSupport {
             }
         }
 
-        void consume(String sequence, ConsumerRecord<K, V> record) {
+        void consume(String sequence, KafkaRecord<K, V> record) {
             try {
                 logger.atDebug().log(
                         () ->
@@ -545,7 +724,7 @@ class RecordConsumerSupport {
             }
         }
 
-        private void handleError(ConsumerRecord<K, V> record, ValueException ve) {
+        private void handleError(KafkaRecord<K, V> record, ValueException ve) {
             switch (errorStrategy()) {
                 case IGNORE_AND_CONTINUE -> {
                     logger.atWarn().log("Ignoring error");
@@ -576,17 +755,9 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void close() {
-            super.close();
+        void onTermination() {
             taskExecutor.shutdown();
         }
-    }
-
-    public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-        List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
-        records.partitions()
-                .forEach(topicPartition -> allRecords.addAll(records.records(topicPartition)));
-        return allRecords;
     }
 
     private RecordConsumerSupport() {}

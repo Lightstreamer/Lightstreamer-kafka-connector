@@ -43,8 +43,8 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
-import com.lightstreamer.kafka.common.mapping.selectors.KafkaRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
@@ -199,7 +199,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, String> kafkaRecord1 =
-                Records.recordWithHeaders(
+                Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
                         "aKey",
                         "aValue",
@@ -218,7 +218,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, String> kafkaRecord2 =
-                Records.recordWithHeaders(
+                Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_2,
                         "anotherKey",
                         "anotherValue",
@@ -239,7 +239,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, String> kafkaRecord3 =
-                Records.record("undefinedTopic", "anotherKey", "anotherValue");
+                Records.KafkaRecord("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -282,7 +282,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isTrue();
 
         // Record published to topic "topic0": mapping
-        KafkaRecord<String, String> kafkaRecord1 = Records.record("topic0", "aKey", "aValue");
+        KafkaRecord<String, String> kafkaRecord1 = Records.KafkaRecord("topic0", "aKey", "aValue");
         MappedRecord mappedRecord1 = mapper.map(kafkaRecord1);
         String[] canonicalItemNamesFromTestsTopic = mappedRecord1.canonicalItemNames();
         assertThat(canonicalItemNamesFromTestsTopic)
@@ -295,7 +295,8 @@ public class RecordMapperTest {
                 .containsExactly("keyField", "aKey", "valueField", "aValue");
 
         // Record published to topic "topic1": mapping
-        KafkaRecord<String, String> kafkaRecord2 = Records.record("topic1", "aKey2", "aValue2");
+        KafkaRecord<String, String> kafkaRecord2 =
+                Records.KafkaRecord("topic1", "aKey2", "aValue2");
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         String[] canonicalItemNamesFromTopic1 = mappedRecord2.canonicalItemNames();
         assertThat(canonicalItemNamesFromTopic1)
@@ -309,7 +310,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopicA": mapping
         KafkaRecord<String, String> kafkaRecord3 =
-                Records.record("anotherTopicA", "anotherKey", "anotherValue");
+                Records.KafkaRecord("anotherTopicA", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         String[] canonicalItemNamesFromAnotherTopicA = mappedRecord3.canonicalItemNames();
         assertThat(canonicalItemNamesFromAnotherTopicA)
@@ -320,7 +321,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, String> kafkaRecord4 =
-                Records.record("undefinedTopic", "anotherKey", "anotherValue");
+                Records.KafkaRecord("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord4 = mapper.map(kafkaRecord4);
         assertThat(mappedRecord4.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord4.fieldsMap()).isEmpty();
@@ -383,7 +384,7 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
         assertThat(canonicalItemNamesFromTestsTopic)
@@ -402,7 +403,7 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, JsonNode> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord(TEST_TOPIC_2, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
         assertThat(canonicalItemNamesFromAnotherTopic)
@@ -417,7 +418,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, JsonNode> kafkaRecord3 =
-                Records.record("undefinedTopic", "", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord("undefinedTopic", "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -451,7 +452,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         // The childSignature field has been skipped
         assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
@@ -484,7 +485,7 @@ public class RecordMapperTest {
         assertThat(mapper.isRegexEnabled()).isFalse();
 
         KafkaRecord<String, JsonNode> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
+                Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         ValueException ve = assertThrows(ValueException.class, () -> mappedRecord.fieldsMap());
         assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
@@ -523,7 +524,7 @@ public class RecordMapperTest {
                         ValueException.class,
                         () ->
                                 mapper.map(
-                                        Records.record(
+                                        Records.KafkaRecord(
                                                 TEST_TOPIC_1,
                                                 "",
                                                 SampleJsonNodeProvider().sampleMessage())));
@@ -587,7 +588,8 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleGenericRecordProvider().sampleMessage());
+                Records.KafkaRecord(
+                        TEST_TOPIC_1, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
         assertThat(canonicalItemNamesFromTestsTopic)
@@ -606,7 +608,8 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "", SampleGenericRecordProvider().sampleMessage());
+                Records.KafkaRecord(
+                        TEST_TOPIC_2, "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
         assertThat(canonicalItemNamesFromAnotherTopic)
@@ -621,7 +624,8 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
-                Records.record("undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
+                Records.KafkaRecord(
+                        "undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
@@ -684,7 +688,8 @@ public class RecordMapperTest {
 
         // Record published to topic "topic": mapping
         KafkaRecord<String, DynamicMessage> kafkaRecord =
-                Records.record(TEST_TOPIC_1, "", SampleDynamicMessageProvider().sampleMessage());
+                Records.KafkaRecord(
+                        TEST_TOPIC_1, "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
         String[] canonicalItemNamesFromTestsTopic = mappedRecord.canonicalItemNames();
         assertThat(canonicalItemNamesFromTestsTopic)
@@ -702,7 +707,8 @@ public class RecordMapperTest {
 
         // Record published to topic "anotherTopic": mapping
         KafkaRecord<String, DynamicMessage> kafkaRecord2 =
-                Records.record(TEST_TOPIC_2, "", SampleDynamicMessageProvider().sampleMessage());
+                Records.KafkaRecord(
+                        TEST_TOPIC_2, "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
         String[] canonicalItemNamesFromAnotherTopic = mappedRecord2.canonicalItemNames();
         assertThat(canonicalItemNamesFromAnotherTopic)
@@ -717,7 +723,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<String, DynamicMessage> kafkaRecord3 =
-                Records.record(
+                Records.KafkaRecord(
                         "undefinedTopic", "", SampleDynamicMessageProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
@@ -792,7 +798,7 @@ public class RecordMapperTest {
 
         // Record published to topic "undefinedTopic": no mapping
         KafkaRecord<Object, Object> kafkaRecord3 =
-                Records.record("undefinedTopic", message.schema(), message);
+                Records.KafkaRecord("undefinedTopic", message.schema(), message);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
         assertThat(mappedRecord3.canonicalItemNames()).isEmpty();
         assertThat(mappedRecord3.fieldsMap()).isEmpty();
