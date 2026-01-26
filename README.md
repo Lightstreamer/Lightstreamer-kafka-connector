@@ -903,7 +903,7 @@ When this mechanism is specified, you can configure the following authentication
 
 #### Confluent Cloud QuickStart
 
-Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L638) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L639) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 #### Redpanda Serverless QuickStart
 
