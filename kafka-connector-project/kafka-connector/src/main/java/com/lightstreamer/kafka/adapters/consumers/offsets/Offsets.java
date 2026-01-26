@@ -416,7 +416,7 @@ public class Offsets {
         }
 
         @Override
-        public void updateOffsets(ConsumerRecord<?, ?> record) {
+        public void updateOffsets(KafkaRecord<?, ?> record) {
             recordsCounter.incrementAndGet();
             offsetStore.save(record);
         }
