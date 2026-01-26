@@ -238,7 +238,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L589) comes with a straightforward mapping defined through the following settings:
+  The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L625) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -910,7 +910,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L602) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L638) file, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
 ### Record Evaluation
 
@@ -948,10 +948,10 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional_. Specifies where to start consuming events from:
+_Optional_. Specifies where to start consuming events from. Can be one of the following:
 
-- `LATEST`: start consuming events from the end of the topic partition
-- `EARLIEST`: start consuming events from the beginning of the topic partition
+- `LATEST`: Start consuming events from the end of the topic partition.
+- `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
 The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
@@ -1097,7 +1097,7 @@ Then the corresponding message type parameter should be:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1117,7 +1117,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1326,7 +1326,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L618) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStartConfluentCloud` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L653) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1496,7 +1496,7 @@ Example:
 
 ##### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
-_Optional_. Enable support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-mode-fieldsautocommandmodeenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
@@ -1517,7 +1517,7 @@ A Kafka record must be structured to allow the Kafka Connector to map the values
 ```
 
 > [!TIP]
-> The `key` and `command` fields can be mapped from any part of the Kafka record.
+> The `key` and `command` fields can be mapped from any part of the Kafka record structure.
 
 Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
 
@@ -1527,6 +1527,37 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
   - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
+
+The parameter can be one of the following:
+- `true`
+- `false`
+
+Default value : `false`.
+
+##### Auto Command Mode (`fields.auto.command.mode.enable`)
+
+_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
+
+When enabled, the connector:
+
+- Automatically adds a Lightstreamer command field to each update
+- Assigns the appropriate command value based on the record state:
+  - **`ADD`**: For records with a new mapped key (not previously processed)
+  - **`UPDATE`**: For records with a mapped key that has been previously processed
+  - **`DELETE`**: For records with a null message payload (_tombstone records_)
+
+You only need to map the `key` field from your record structure:
+
+```xml
+<param name="fields.auto.command.mode.enable">true</param>
+<param name="field.key">#{KEY}</param>
+...
+```
+
+> [!TIP]
+> The `key` field can be mapped from any part of the Kafka record structure.
+
+This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
 
 The parameter can be one of the following:
 - `true`
