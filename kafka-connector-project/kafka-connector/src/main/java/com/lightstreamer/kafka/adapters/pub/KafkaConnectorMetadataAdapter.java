@@ -121,6 +121,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      * @param useCommandMode indicates whether the Kafka Connector is configured to use the command
      *     mode through one of the available settings ({@code fields.auto.command.mode.enable} and
      *     {@code fields.evaluate.as.command.enable} )
+     * @hidden
      */
     public static record KafkaConnectorDataAdapterOpts(
             String dataAdapterName, boolean enabled, boolean useCommandMode) {
