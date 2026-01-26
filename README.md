@@ -1504,37 +1504,6 @@ The parameter can be one of the following:
 
 Default value : `false`.
 
-##### Auto Command Mode (`fields.auto.command.mode.enable`)
-
-_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
-
-When enabled, the connector:
-
-- Automatically adds a Lightstreamer command field to each update
-- Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed)
-  - **`UPDATE`**: For records with a mapped key that has been previously processed
-  - **`DELETE`**: For records with a null message payload (_tombstone records_)
-
-You only need to map the `key` field from your record structure:
-
-```xml
-<param name="fields.auto.command.mode.enable">true</param>
-<param name="field.key">#{KEY}</param>
-...
-```
-
-> [!TIP]
-> The `key` field can be mapped from any part of the Kafka record structure.
-
-This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
-
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
-
 ### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
