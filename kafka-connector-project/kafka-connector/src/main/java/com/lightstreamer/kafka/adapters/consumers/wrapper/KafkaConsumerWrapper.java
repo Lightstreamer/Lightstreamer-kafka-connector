@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -394,7 +395,7 @@ public class KafkaConsumerWrapper<K, V> {
     private void closeConsumer() {
         logger.atDebug().log("Start closing Kafka Consumer");
         // Ensure that all pending offsets are committed
-        recordConsumer.terminate();
+        recordConsumer.close();
         try {
             consumer.close();
         } catch (Exception e) {
@@ -437,15 +438,17 @@ public class KafkaConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    int initStoreAndConsume(List<KafkaRecord<K, V>> records) {
+    RecordsBatch initStoreAndConsume(List<KafkaRecord<K, V>> records) {
         offsetService.initStore(isFromLatest());
         // Consume all the records that don't have a pending offset, which have therefore
         // already delivered to the clients.
-        return recordConsumer.consumeFilteredRecords(records, offsetService::notHasPendingOffset);
+        List<KafkaRecord<K, V>> filtered =
+                records.stream().filter(offsetService::notHasPendingOffset).toList();
+        return consumeRecords(filtered);
     }
 
-    private void consumeRecords(List<KafkaRecord<K, V>> records) {
-        recordConsumer.consumeRecords(records);
+    RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
+        return recordConsumer.consumeRecords(records);
     }
 
     public FutureStatus shutdown() {
