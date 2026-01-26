@@ -531,6 +531,7 @@
 
              For example:
 
+             <param name="fields.evaluate.as.command.enable">true</param>
              <param name="field.key">#{KEY}</param>
              <param name="field.command">#{VALUE.command}</param>
 
