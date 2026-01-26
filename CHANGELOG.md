@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.2] (2026-01-26)
+
+**Improvements**
+
+- **Deferred Deserialization for Concurrent Processing**: Added support for deferred deserialization that delays deserializing message keys and values until they are actually needed during concurrent processing, enabling more efficient engagement of worker threads. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- **Auto COMMAND Mode**: Added support for the [Auto COMMAND mode](README.md#auto-command-mode-fieldsautocommandmodeenable) feature that generates _command_ operations for Lightstreamer items without requiring explicit command fields in the Kafka records. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- Consolidated the script for running microbenchmarks. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- Upgraded _Gradle_ to version 9.3.0. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+**Bug Fixes**
+
+- **Null Value Deserialization**: Fixed incorrect handling of null values during deserialization when using ProtoBuf, JSON, and Avro formats. The deserializers now properly process null payloads without triggering unexpected errors or data loss. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+
 ## [1.3.1] (2025-12-19)
 
 **Improvements**
