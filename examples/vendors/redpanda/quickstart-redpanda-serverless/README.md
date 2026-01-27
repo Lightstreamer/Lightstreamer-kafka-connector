@@ -27,7 +27,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
     ...
     ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include thw following changes:
+  - Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:
 
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
 
