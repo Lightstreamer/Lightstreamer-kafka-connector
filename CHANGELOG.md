@@ -4,7 +4,7 @@
 
 **Improvements**
 
-- **Deferred Deserialization for Concurrent Processing**: Added support for deferred deserialization that delays deserializing message keys and values until they are actually needed during concurrent processing, enabling more efficient engagement of worker threads. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+- **Deferred Deserialization**: Refactored the deserialization pipeline to defer the conversion of raw bytes to deserialized objects. This architectural change makes the Kafka Connector open for further extension by allowing custom implementations to intercept and access raw bytes from Kafka records before or instead of automatic deserialization. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
 - **Auto COMMAND Mode**: Added support for the [Auto COMMAND mode](README.md#auto-command-mode-fieldsautocommandmodeenable) feature that generates _command_ operations for Lightstreamer items without requiring explicit command fields in the Kafka records. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
