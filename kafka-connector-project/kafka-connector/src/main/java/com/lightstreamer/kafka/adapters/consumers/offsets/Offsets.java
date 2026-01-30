@@ -360,10 +360,10 @@ public class Offsets {
         }
 
         void commitSync() {
-            logger.atDebug().log("Start committing offsets synchronously");
+            logger.atInfo().log("Start committing offsets synchronously");
             try {
                 Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.snapshot();
-                logger.atDebug().log("Offsets to commit: {}", offsets);
+                logger.atInfo().log("Offsets to commit: {}", offsets);
                 consumer.commitSync(offsets);
                 logger.atInfo().log("Offsets committed synchronously");
             } catch (RuntimeException e) {
@@ -381,7 +381,7 @@ public class Offsets {
             messagesSinceLastCommit += recordsCounter.getAndSet(0);
             long now = System.currentTimeMillis();
             if (!commitStrategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit)) {
-                logger.atTrace().log("Skipping commit of {} messages", messagesSinceLastCommit);
+                logger.atDebug().log("Skipping commit of {} messages", messagesSinceLastCommit);
                 return;
             }
 
