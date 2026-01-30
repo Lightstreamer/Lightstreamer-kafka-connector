@@ -522,7 +522,7 @@ Example:
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
-The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
 
 Example:
 
@@ -534,7 +534,7 @@ Example:
 
 _Optional_. The name of the consumer group this connection belongs to.
 
-The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
 Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
@@ -954,7 +954,7 @@ _Optional_. Specifies where to start consuming events from. Can be one of the fo
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
-The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
 Default value: `LATEST`.
 
@@ -962,6 +962,20 @@ Example:
 
 ```xml
 <param name="record.consume.from">EARLIEST</param>
+```
+
+#### `record.consume.max.poll.records`
+
+_Optional_. The maximum number of records fetched in each polling cycle.
+
+The parameter sets the value of the [`max.poll.records`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records) key to configure the internal Kafka Consumer.
+
+Default value: `500`.
+
+Example:
+
+```xml
+<param name="record.consume.max.poll.records">200</param>
 ```
 
 #### `record.consume.with.num.threads`
