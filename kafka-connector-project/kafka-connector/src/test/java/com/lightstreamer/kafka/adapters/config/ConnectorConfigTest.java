@@ -552,8 +552,8 @@ public class ConnectorConfigTest {
         assertThat(maxPollRecords.required()).isFalse();
         assertThat(maxPollRecords.multiple()).isFalse();
         assertThat(maxPollRecords.mutable()).isTrue();
-        assertThat(maxPollRecords.defaultValue()).isNull();
-        assertThat(maxPollRecords.type()).isEqualTo(ConfType.INT);
+        assertThat(maxPollRecords.defaultValue()).isEqualTo("500");
+        assertThat(maxPollRecords.type()).isEqualTo(ConfType.POSITIVE_INT);
 
         ConfParameter heartBeatIntervalMs = configSpec.getParameter(CONSUMER_HEARTBEAT_INTERVAL_MS);
         assertThat(heartBeatIntervalMs.name()).isEqualTo(CONSUMER_HEARTBEAT_INTERVAL_MS);
@@ -1794,6 +1794,29 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldGetOverriddenMaxPollRecords() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "200");
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.baseConsumerProps())
+                .containsEntry(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "200");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc"})
+    public void shouldFailDueToInvalidMaxPollRecords(String invalidMaxPollRecords) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, invalidMaxPollRecords);
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [record.consume.max.poll.records]");
+    }
+
+    @Test
     public void shouldGetDirectory() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getDirectory(ADAPTER_DIR)).isEqualTo(adapterDir.toString());
@@ -1862,7 +1885,6 @@ public class ConnectorConfigTest {
         assertThat(config.getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
         assertThat(config.getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
         assertThat(config.getInt(CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
-        assertThat(config.getInt(CONSUMER_MAX_POLL_RECORDS)).isNull();
         assertThat(config.getInt(CONSUMER_SESSION_TIMEOUT_MS)).isNull();
     }
 
