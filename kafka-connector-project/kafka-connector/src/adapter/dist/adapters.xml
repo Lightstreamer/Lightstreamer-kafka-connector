@@ -57,14 +57,14 @@
              establish the initial connection.
 
              The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers for more details.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers for more details.
          -->
         <param name="bootstrap.servers">broker:29092</param>
 
         <!-- Optional. The name of the consumer group this connection belongs to.
 
-             The parameter sets the value for the "group.id" key used to configure the internal
-             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
+             The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id for more details.
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
@@ -312,8 +312,21 @@
              - LATEST: Start consuming events from the end of the topic partition.
              - EARLIEST: Start consuming events from the beginning of the topic partition.
 
+             The parameter sets the value of the "auto.offset.reset"  key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset for more details.
+
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
+
+        <!-- Optional. The maximum number of records fetched in each polling cycle.
+
+             The parameter sets the value of the "max.poll.records" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records for more details.
+
+             Default value: 500. -->
+        <!--
+        <param name="record.consume.max.poll.records">500</param>
+        -->
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
              incoming deserialized records. If set to -1, the number of threads will be automatically
