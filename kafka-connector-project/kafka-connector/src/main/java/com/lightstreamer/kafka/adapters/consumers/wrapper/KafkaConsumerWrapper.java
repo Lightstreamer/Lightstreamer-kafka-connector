@@ -35,6 +35,7 @@ import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -132,12 +133,12 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    enum DeserializationTiming {
+    public enum DeserializationTiming {
         DEFERRED,
         EAGER
     }
 
-    abstract static class RecordDeserializationMode<K, V> {
+    public abstract static class RecordDeserializationMode<K, V> {
 
         protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
         protected final DeserializationTiming timing;
@@ -148,10 +149,22 @@ public class KafkaConsumerWrapper<K, V> {
             this.timing = timing;
         }
 
-        abstract List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records);
+        public abstract List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records);
 
-        DeserializationTiming getTiming() {
+        public DeserializationTiming getTiming() {
             return timing;
+        }
+
+        public static <K, V> RecordDeserializationMode<K, V> forTiming(
+                DeserializationTiming timing, DeserializerPair<K, V> deserializerPair) {
+            switch (timing) {
+                case DEFERRED:
+                    return new DeferredDeserializationMode<>(deserializerPair);
+                case EAGER:
+                    return new EagerDeserializationMode<>(deserializerPair);
+                default:
+                    throw new IllegalArgumentException("Unknown timing: " + timing);
+            }
         }
     }
 
@@ -179,7 +192,7 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    private static final Duration POLL_DURATION = Duration.ofMillis(Long.MAX_VALUE);
+    static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     private final Config<K, V> config;
     private final MetadataListener metadataListener;
@@ -188,6 +201,7 @@ public class KafkaConsumerWrapper<K, V> {
     private final Consumer<byte[], byte[]> consumer;
     private final OffsetService offsetService;
     private final RecordConsumer<K, V> recordConsumer;
+    private final Duration pollDuration;
     private volatile Thread hook;
     private volatile FutureStatus status;
     private ReentrantLock lock = new ReentrantLock();
@@ -211,6 +225,7 @@ public class KafkaConsumerWrapper<K, V> {
                         .enableRegex(config.itemTemplates().isRegexEnabled())
                         .withFieldExtractor(config.fieldsExtractor())
                         .build();
+        this.pollDuration = MAX_POLL_DURATION;
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
@@ -222,7 +237,7 @@ public class KafkaConsumerWrapper<K, V> {
 
         Concurrency concurrency = this.config.concurrency();
         // Take care of holes in offset sequence only if parallel processing.
-        boolean manageHoles = concurrency.isParallel();
+        boolean manageHoles = false; // concurrency.isParallel();
         this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
@@ -244,10 +259,9 @@ public class KafkaConsumerWrapper<K, V> {
                 new KafkaRecord.DeserializerPair<>(
                         config.suppliers().keySelectorSupplier().deserializer(),
                         config.suppliers().valueSelectorSupplier().deserializer());
-        this.deserializationMode =
-                recordConsumer.isParallel()
-                        ? new DeferredDeserializationMode<>(deserializers)
-                        : new EagerDeserializationMode<>(deserializers);
+        this.deserializationMode = new EagerDeserializationMode<>(deserializers);
+
+        logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
 
     private String getProperty(String key) {
@@ -277,7 +291,7 @@ public class KafkaConsumerWrapper<K, V> {
                 }
             }
 
-            return updateStatus(initStage.thenApplyAsync(this::loop, pool));
+            return updateStatus(initStage.thenApplyAsync(this::runLoop, pool));
         } finally {
             lock.unlock();
         }
@@ -366,22 +380,22 @@ public class KafkaConsumerWrapper<K, V> {
     void pollOnce(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
-                "Starting first poll to initialize the offset store and skipping the records already consumed");
-        poll(recordConsumer, POLL_DURATION);
+                "Starting first poll to initialize the offset store and skipping the records already consumed",
+                pollDuration);
+        doPoll(recordConsumer, pollDuration);
         logger.atInfo().log("First poll completed");
     }
 
-    private int poll(
-            java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer, Duration duration)
+    private void doPoll(
+            java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer,
+            Duration pollTimeout)
             throws KafkaException {
         try {
-            ConsumerRecords<byte[], byte[]> records = consumer.poll(duration);
-            logger.atDebug().log("Received records");
+            ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
             List<KafkaRecord<K, V>> kafkaRecords = deserializationMode.toRecords(records);
-            recordConsumer.accept(kafkaRecords);
             int count = kafkaRecords.size();
-            logger.atDebug().log("Consumed {} records", count);
-            return count;
+            logger.atDebug().log("Consuming {} records", count);
+            recordConsumer.accept(kafkaRecords);
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
@@ -404,9 +418,9 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Kafka Consumer closed");
     }
 
-    private FutureStatus.State loop(State previousState) {
+    private FutureStatus.State runLoop(State previousState) {
         if (previousState.initFailed()) {
-            logger.atError().log("Loop is in a failed state, no records will be consumed");
+            logger.atError().log("Failed state, no records will be consumed");
             return previousState;
         }
 
@@ -414,7 +428,7 @@ public class KafkaConsumerWrapper<K, V> {
         installShutdownHook();
         logger.atDebug().log("Shutdown hook set");
         try {
-            pollForEver(this::consumeRecords);
+            runPollingLoop(this::consumeRecords);
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
@@ -426,11 +440,12 @@ public class KafkaConsumerWrapper<K, V> {
         return FutureStatus.State.LOOP_CLOSED_BY_WAKEUP;
     }
 
-    void pollForEver(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
+    void runPollingLoop(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
             throws KafkaException {
-        logger.atInfo().log("Starting infinite pool");
+        logger.atInfo().log(
+                "Starting polling forever with poll timeout of {} ms", pollDuration.toMillis());
         for (; ; ) {
-            poll(recordConsumer, POLL_DURATION);
+            doPoll(recordConsumer, pollDuration);
         }
     }
 
@@ -498,5 +513,10 @@ public class KafkaConsumerWrapper<K, V> {
     // Only for testing purposes
     RecordConsumer<K, V> getRecordConsumer() {
         return recordConsumer;
+    }
+
+    // Only for testing purposes
+    Duration getPollTimeout() {
+        return pollDuration;
     }
 }
