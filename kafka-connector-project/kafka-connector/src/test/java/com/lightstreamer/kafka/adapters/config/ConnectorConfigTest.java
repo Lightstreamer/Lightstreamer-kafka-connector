@@ -31,7 +31,6 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_F
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MAX_POLL_RECORDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG;
@@ -48,6 +47,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY;
@@ -547,8 +547,8 @@ public class ConnectorConfigTest {
         assertThat(fetchMaxWaitMs.defaultValue()).isNull();
         assertThat(fetchMaxWaitMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter maxPollRecords = configSpec.getParameter(CONSUMER_MAX_POLL_RECORDS);
-        assertThat(maxPollRecords.name()).isEqualTo(CONSUMER_MAX_POLL_RECORDS);
+        ConfParameter maxPollRecords = configSpec.getParameter(RECORD_CONSUME_MAX_POLL_RECORDS);
+        assertThat(maxPollRecords.name()).isEqualTo(RECORD_CONSUME_MAX_POLL_RECORDS);
         assertThat(maxPollRecords.required()).isFalse();
         assertThat(maxPollRecords.multiple()).isFalse();
         assertThat(maxPollRecords.mutable()).isTrue();
@@ -616,7 +616,7 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
         standardParams.put(CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
-        standardParams.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "700");
+        standardParams.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, "700");
         standardParams.put(CONSUMER_SESSION_TIMEOUT_MS, "800");
         standardParams.put(CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
         standardParams.put(CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
@@ -1796,7 +1796,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetOverriddenMaxPollRecords() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, "200");
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, "200");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.baseConsumerProps())
                 .containsEntry(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "200");
@@ -1806,7 +1806,7 @@ public class ConnectorConfigTest {
     @ValueSource(strings = {"0", "-1", "abc"})
     public void shouldFailDueToInvalidMaxPollRecords(String invalidMaxPollRecords) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_MAX_POLL_RECORDS, invalidMaxPollRecords);
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, invalidMaxPollRecords);
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
