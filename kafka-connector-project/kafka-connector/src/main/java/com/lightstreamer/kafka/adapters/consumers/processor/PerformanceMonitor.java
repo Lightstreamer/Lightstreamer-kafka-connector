@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import com.lightstreamer.kafka.common.records.RecordBatch;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Centralized performance monitoring with sliding window measurement. Provides accurate throughput
  * statistics without synchronization overhead.
  */
-class PerformanceMonitor {
+public class PerformanceMonitor implements RecordBatch.RecordBatchListener {
 
     private static final String LOGGER_SUFFIX = "Performance";
 
@@ -53,12 +55,12 @@ class PerformanceMonitor {
                 LoggerFactory.getLogger(logger.getName() + "RingBuffersUtilization");
     }
 
-    void count(int records) {
+    public void count(int records) {
         totalProcessedRecords.addAndGet(records);
     }
 
     /** Check and potentially log performance stats every 5 seconds using sliding window */
-    void checkStats() {
+    public void checkStats() {
         long currentTime = System.nanoTime();
         long lastCheckTime = lastCheck.get();
 
@@ -69,16 +71,16 @@ class PerformanceMonitor {
             long lastTotal = lastReportedCount.getAndSet(currentTotal);
 
             long recordsInWindow = currentTotal - lastTotal;
-            long timeWindowMs = currentTime - lastCheckTime;
+            long timeWindowNs = currentTime - lastCheckTime;
+            double timeWindowSec = timeWindowNs / 1_000_000_000.0;
 
-            if (recordsInWindow > 0 && timeWindowMs > 0) {
-                long avgThroughput = (recordsInWindow * 1000L) / timeWindowMs;
-                statsLogger.atInfo().log(
-                        "{} processing stats: {} records processed in {}ms window, avg {}k records/sec",
-                        monitorName,
-                        recordsInWindow,
-                        timeWindowMs,
-                        avgThroughput / 1000.0);
+            if (recordsInWindow > 0 && timeWindowNs > 0) {
+                double avgThroughput = recordsInWindow / timeWindowSec / 1000.0;
+                String message =
+                        String.format(
+                                "%s processing stats: %d records processed in %.2fs window, avg %.1fk records/sec",
+                                monitorName, recordsInWindow, timeWindowSec, avgThroughput);
+                statsLogger.info(message);
             }
         }
     }
@@ -201,5 +203,13 @@ class PerformanceMonitor {
         }
 
         return bar.toString();
+    }
+
+    @Override
+    public void onBatchComplete(RecordBatch<?, ?> batch) {
+        count(batch.count());
+        // logger.debug(
+        //         "Batch {} processed all {} records - ready for commit", batchId,
+        // recordsCount);
     }
 }
