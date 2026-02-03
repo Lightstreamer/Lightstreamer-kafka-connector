@@ -27,10 +27,10 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.slf4j.Logger;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -58,24 +58,6 @@ public interface RecordConsumer<K, V> {
                 case ORDER_BY_PARTITION -> ORDER_BY_PARTITION;
                 case UNORDERED -> UNORDERED;
             };
-        }
-    }
-
-    interface RecordsBatch {
-
-        default int count() {
-            return 0;
-        }
-
-        void join();
-
-        static final RecordsBatch NO_OP_RECORDS_BATCH =
-                () -> {
-                    // No-op
-                };
-
-        static RecordsBatch nop() {
-            return NO_OP_RECORDS_BATCH;
         }
     }
 
@@ -151,7 +133,7 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
-    RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records);
+    void consumeRecords(RecordBatch<K, V> records);
 
     default int numOfThreads() {
         return 1;
