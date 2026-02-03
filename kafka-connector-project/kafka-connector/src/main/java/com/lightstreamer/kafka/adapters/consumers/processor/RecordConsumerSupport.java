@@ -23,7 +23,6 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.StartBuildingProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithEnforceCommandMode;
@@ -40,6 +39,7 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -56,7 +56,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -604,8 +603,6 @@ class RecordConsumerSupport {
 
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
-        private static final RecordsBatch NO_OP = () -> {};
-
         // Performance monitoring for single-threaded scenarios
         private final PerformanceMonitor performanceMonitor;
 
@@ -615,10 +612,10 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
-            int recordCount = records.size();
+        public void consumeRecords(RecordBatch<K, V> records) {
+            int recordCount = records.count();
             if (recordCount > 0) {
-                for (KafkaRecord<K, V> record : records) {
+                for (KafkaRecord<K, V> record : records.getRecords()) {
                     consumeRecord(record);
                 }
                 performanceMonitor.count(recordCount);
@@ -628,8 +625,6 @@ class RecordConsumerSupport {
 
             // Check processing stats periodically
             performanceMonitor.checkStats();
-
-            return NO_OP;
         }
 
         private void consumeRecord(KafkaRecord<K, V> record) {
@@ -661,88 +656,6 @@ class RecordConsumerSupport {
         }
     }
 
-    static class RecordsBatchImpl<K, V> implements RecordsBatch {
-
-        private final CountDownLatch latch;
-        private final List<KafkaRecord<K, V>> records;
-        private final int recordsCount;
-        private final AtomicInteger processedCount = new AtomicInteger(0);
-        private final Logger logger;
-        private final long batchId;
-        private final PerformanceMonitor monitor;
-
-        RecordsBatchImpl(
-                List<KafkaRecord<K, V>> records,
-                Logger logger,
-                long batchId,
-                PerformanceMonitor monitor) {
-            this.recordsCount = records.size();
-            this.records = records;
-            this.latch = new CountDownLatch(recordsCount);
-            this.logger = logger;
-            this.batchId = batchId;
-            this.monitor = monitor;
-            this.logger.atDebug().log("Created batch {} with {} records", batchId, recordsCount);
-        }
-
-        List<KafkaRecord<K, V>> getRecords() {
-            return records;
-        }
-
-        @Override
-        public int count() {
-            return recordsCount;
-        }
-
-        void recordProcessed() {
-            latch.countDown();
-            int done = processedCount.incrementAndGet();
-            if (done == recordsCount) {
-                monitor.count(recordsCount);
-                logger.debug(
-                        "Batch {} processed all {} records - ready for commit",
-                        batchId,
-                        recordsCount);
-                return;
-            }
-
-            if (done > recordsCount) {
-                logger.warn(
-                        "More records processed ({}) than expected ({}) in batch {}",
-                        done,
-                        recordsCount,
-                        batchId);
-            }
-        }
-
-        @Override
-        public void join() {
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(
-                        "Interrupted while waiting for records batch to complete", e);
-            }
-        }
-    }
-
-    static class RecordWithBatch<K, V> {
-        final KafkaRecord<K, V> record;
-        final RecordsBatchImpl<K, V> batch;
-
-        RecordWithBatch(KafkaRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
-            this.record = record;
-            this.batch = batch;
-        }
-
-        // Factory method to reduce allocation overhead
-        static <K, V> RecordWithBatch<K, V> of(
-                KafkaRecord<K, V> record, RecordsBatchImpl<K, V> batch) {
-            return new RecordWithBatch<>(record, batch);
-        }
-    }
-
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
         protected final OrderStrategy orderStrategy;
@@ -750,7 +663,7 @@ class RecordConsumerSupport {
         protected final int actualThreads;
 
         // Ring buffers settings for high-throughput processing
-        private final BlockingQueue<RecordWithBatch<K, V>>[] ringBuffers;
+        private final BlockingQueue<KafkaRecord<K, V>>[] ringBuffers;
         private final AtomicLong roundRobinCounter = new AtomicLong(0);
         private final ExecutorService ringBufferPool;
         private volatile boolean shutdownRequested = false;
@@ -758,8 +671,6 @@ class RecordConsumerSupport {
 
         // Performance monitoring without synchronization overhead
         private final PerformanceMonitor monitor;
-
-        private final AtomicLong batchIdCounter = new AtomicLong(0);
 
         @SuppressWarnings("unchecked")
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
@@ -798,7 +709,7 @@ class RecordConsumerSupport {
             // Initialize ring buffers and submit processing tasks
             for (int i = 0; i < actualThreads; i++) {
                 // Use calculated optimal capacity for maximum throughput
-                ringBuffers[i] = new ArrayBlockingQueue<>(ringBufferCapacity);
+                this.ringBuffers[i] = new ArrayBlockingQueue<>(ringBufferCapacity);
                 final int threadIndex = i;
 
                 logger.atDebug().log(
@@ -873,30 +784,15 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
-            if (records.isEmpty()) {
+        public void consumeRecords(RecordBatch<K, V> batch) {
+            if (batch.isEmpty()) {
                 offsetService.maybeCommit();
-                return RecordsBatch.nop();
+                return;
             }
-
-            long startTime = System.nanoTime();
-            int recordCount = records.size();
-            RecordsBatchImpl<K, V> batch =
-                    new RecordsBatchImpl<>(
-                            records, logger, batchIdCounter.getAndIncrement(), monitor);
 
             processWithRingBuffers(batch);
             offsetService.maybeCommit();
 
-            long totalTime = (System.nanoTime() - startTime) / 1_000_000;
-            if (totalTime > 10) { // Only log if processing takes >10ms
-                long batchThroughput = (recordCount * 1000L) / Math.max(1, totalTime);
-                logger.atDebug().log(
-                        "Batch: {} records in {}ms ({}k records/sec)",
-                        recordCount,
-                        totalTime,
-                        batchThroughput / 1000.0);
-            }
             // Check processing stats periodically
             monitor.checkStats();
 
@@ -908,17 +804,16 @@ class RecordConsumerSupport {
                 logger.atWarn().log("Forcing unsubscription");
                 throw new KafkaException(failure);
             }
-            return batch;
         }
 
         // Ring buffer processing for high-throughput scenarios
-        private void processWithRingBuffers(RecordsBatchImpl<K, V> batch) {
+        private void processWithRingBuffers(RecordBatch<K, V> batch) {
             // Distribute records to ring buffers
             for (KafkaRecord<K, V> record : batch.getRecords()) {
                 int bufferIndex = selectRingBuffer(record);
                 try {
                     // Use blocking put to apply backpressure instead of failing
-                    ringBuffers[bufferIndex].put(RecordWithBatch.of(record, batch));
+                    ringBuffers[bufferIndex].put(record);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.atWarn()
@@ -950,9 +845,9 @@ class RecordConsumerSupport {
         }
 
         private void processRingBuffer(int threadIndex) {
-            final BlockingQueue<RecordWithBatch<K, V>> ringBuffer = ringBuffers[threadIndex];
+            final BlockingQueue<KafkaRecord<K, V>> ringBuffer = ringBuffers[threadIndex];
             // Pre-allocate with optimal size and reuse to minimize GC pressure
-            final List<RecordWithBatch<K, V>> batchBuffer = new FixedList<>(5000);
+            final List<KafkaRecord<K, V>> batchBuffer = new ArrayList<>(5000);
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting processing thread {}", threadIndex);
@@ -963,7 +858,7 @@ class RecordConsumerSupport {
             while (!shutdownRequested || !ringBuffer.isEmpty()) {
                 try {
                     // Efficient batch drain - reuse ArrayList to minimize GC
-                    RecordWithBatch<K, V> firstRecord = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
+                    KafkaRecord<K, V> firstRecord = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
                     if (firstRecord == null) continue;
 
                     batchBuffer.clear(); // Reset size but keep capacity
@@ -976,9 +871,6 @@ class RecordConsumerSupport {
                     for (int i = 0; i < batchSize; i++) {
                         consume(batchBuffer.get(i)); // Direct index access is faster
                     }
-
-                    // Update records processed counter
-                    monitor.count(batchSize);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.atDebug().log(
@@ -998,21 +890,19 @@ class RecordConsumerSupport {
             }
         }
 
-        void consume(RecordWithBatch<K, V> record) {
-            KafkaRecord<K, V> rec = record.record;
-            RecordsBatchImpl<K, V> batch = record.batch;
+        void consume(KafkaRecord<K, V> record) {
             try {
-                recordProcessor.process(rec);
-                offsetService.updateOffsets(rec);
+                recordProcessor.process(record);
+                offsetService.updateOffsets(record);
             } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
                 logger.atWarn().log("Applying the {} strategy", errorStrategy());
-                handleError(rec, ve);
+                handleError(record, ve);
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
                 offsetService.onAsyncFailure(t);
             } finally {
-                batch.recordProcessed();
+                record.getBatch().recordProcessed(monitor);
             }
         }
 
