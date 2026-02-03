@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.common.records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.serialization.Deserializer;
 
 /**
  * A {@link KafkaRecord} implementation that eagerly deserializes key and value.
@@ -39,16 +38,17 @@ public final class EagerKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K,
      * Constructs an {@link EagerKafkaConsumerRecord}, immediately deserializing the key and value.
      *
      * @param record the raw Kafka consumer record with byte array key and value
-     * @param keyDeserializer the deserializer for the key
-     * @param valueDeserializer the deserializer for the value
+     * @param deserializerPair the pair of deserializers for key and value
+     * @param batch the batch this record belongs to
      */
     EagerKafkaConsumerRecord(
             ConsumerRecord<byte[], byte[]> record,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
-        super(record);
-        this.key = keyDeserializer.deserialize(record.topic(), record.key());
-        this.value = valueDeserializer.deserialize(record.topic(), record.value());
+            DeserializerPair<K, V> deserializerPair,
+            RecordBatch<K, V> batch) {
+        super(record, batch);
+        this.key = deserializerPair.keyDeserializer().deserialize(record.topic(), record.key());
+        this.value =
+                deserializerPair.valueDeserializer().deserialize(record.topic(), record.value());
     }
 
     @Override
@@ -61,6 +61,11 @@ public final class EagerKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K,
         return value;
     }
 
+    /**
+     * Checks if the deserialized value is {@code null}.
+     *
+     * @return {@code true} if the value is null, {@code false} otherwise
+     */
     @Override
     public boolean isPayloadNull() {
         return value == null;
