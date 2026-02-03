@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -36,6 +35,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -142,6 +142,7 @@ public class KafkaConsumerWrapper<K, V> {
 
         protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
         protected final DeserializationTiming timing;
+        static final Boolean JOINABLE = false;
 
         RecordDeserializationMode(
                 DeserializationTiming timing, KafkaRecord.DeserializerPair<K, V> deserializerPair) {
@@ -149,7 +150,7 @@ public class KafkaConsumerWrapper<K, V> {
             this.timing = timing;
         }
 
-        public abstract List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records);
+        public abstract RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records);
 
         public DeserializationTiming getTiming() {
             return timing;
@@ -175,8 +176,8 @@ public class KafkaConsumerWrapper<K, V> {
         }
 
         @Override
-        public List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records) {
-            return KafkaRecord.listFromDeferred(records, deserializerPair);
+        public RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records) {
+            return RecordBatch.batchFromDeferred(records, deserializerPair, JOINABLE);
         }
     }
 
@@ -187,8 +188,8 @@ public class KafkaConsumerWrapper<K, V> {
         }
 
         @Override
-        public List<KafkaRecord<K, V>> toRecords(ConsumerRecords<byte[], byte[]> records) {
-            return KafkaRecord.listFromEager(records, deserializerPair);
+        public RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records) {
+            return RecordBatch.batchFromEager(records, deserializerPair, JOINABLE);
         }
     }
 
@@ -204,8 +205,7 @@ public class KafkaConsumerWrapper<K, V> {
     private final Duration pollDuration;
     private volatile Thread hook;
     private volatile FutureStatus status;
-    private ReentrantLock lock = new ReentrantLock();
-
+    private final ReentrantLock lock = new ReentrantLock();
     private final RecordDeserializationMode<K, V> deserializationMode;
 
     public KafkaConsumerWrapper(
@@ -234,14 +234,11 @@ public class KafkaConsumerWrapper<K, V> {
         this.consumer = consumerSupplier.get();
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
-
-        Concurrency concurrency = this.config.concurrency();
-        // Take care of holes in offset sequence only if parallel processing.
-        boolean manageHoles = false; // concurrency.isParallel();
-        this.offsetService = Offsets.OffsetService(consumer, manageHoles, logger);
+        this.offsetService = Offsets.OffsetService(consumer, logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
+        Concurrency concurrency = this.config.concurrency();
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
@@ -260,6 +257,10 @@ public class KafkaConsumerWrapper<K, V> {
                         config.suppliers().keySelectorSupplier().deserializer(),
                         config.suppliers().valueSelectorSupplier().deserializer());
         this.deserializationMode = new EagerDeserializationMode<>(deserializers);
+        // this.deserializationMode =
+        //         recordConsumer.isParallel()
+        //                 ? new DeferredDeserializationMode<>(deserializers)
+        //                 : new EagerDeserializationMode<>(deserializers);
 
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
@@ -377,25 +378,24 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    void pollOnce(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
+    void pollOnce(java.util.function.Consumer<RecordBatch<K, V>> batchConsumer)
             throws KafkaException {
         logger.atInfo().log(
                 "Starting first poll to initialize the offset store and skipping the records already consumed",
                 pollDuration);
-        doPoll(recordConsumer, pollDuration);
+        doPoll(batchConsumer, pollDuration);
         logger.atInfo().log("First poll completed");
     }
 
     private void doPoll(
-            java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer,
-            Duration pollTimeout)
+            java.util.function.Consumer<RecordBatch<K, V>> batchConsumer, Duration pollTimeout)
             throws KafkaException {
         try {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
-            List<KafkaRecord<K, V>> kafkaRecords = deserializationMode.toRecords(records);
-            int count = kafkaRecords.size();
+            RecordBatch<K, V> batch = deserializationMode.toRecords(records);
+            int count = batch.count();
             logger.atDebug().log("Consuming {} records", count);
-            recordConsumer.accept(kafkaRecords);
+            batchConsumer.accept(batch);
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             throw we;
@@ -440,7 +440,7 @@ public class KafkaConsumerWrapper<K, V> {
         return FutureStatus.State.LOOP_CLOSED_BY_WAKEUP;
     }
 
-    void runPollingLoop(java.util.function.Consumer<List<KafkaRecord<K, V>>> recordConsumer)
+    void runPollingLoop(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
                 "Starting polling forever with poll timeout of {} ms", pollDuration.toMillis());
@@ -453,17 +453,13 @@ public class KafkaConsumerWrapper<K, V> {
         return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
     }
 
-    RecordsBatch initStoreAndConsume(List<KafkaRecord<K, V>> records) {
+    void initStoreAndConsume(RecordBatch<K, V> batch) {
         offsetService.initStore(isFromLatest());
-        // Consume all the records that don't have a pending offset, which have therefore
-        // already delivered to the clients.
-        List<KafkaRecord<K, V>> filtered =
-                records.stream().filter(offsetService::notHasPendingOffset).toList();
-        return consumeRecords(filtered);
+        consumeRecords(batch);
     }
 
-    RecordsBatch consumeRecords(List<KafkaRecord<K, V>> records) {
-        return recordConsumer.consumeRecords(records);
+    void consumeRecords(RecordBatch<K, V> records) {
+        recordConsumer.consumeRecords(records);
     }
 
     public FutureStatus shutdown() {
