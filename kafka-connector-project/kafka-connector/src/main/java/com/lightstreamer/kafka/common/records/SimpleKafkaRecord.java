@@ -53,4 +53,9 @@ record SimpleKafkaRecord<K, V>(
     public boolean isPayloadNull() {
         return value == null;
     }
+
+    @Override
+    public RecordBatch<K, V> getBatch() {
+        return null;
+    }
 }
