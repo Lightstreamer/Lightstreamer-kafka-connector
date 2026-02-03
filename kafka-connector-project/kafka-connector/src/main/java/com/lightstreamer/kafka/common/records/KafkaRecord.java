@@ -18,12 +18,10 @@
 package com.lightstreamer.kafka.common.records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.sink.SinkRecord;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,8 +36,8 @@ import java.util.List;
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
- * @see #fromDeferred(ConsumerRecord, Deserializer, Deserializer)
- * @see #fromEager(ConsumerRecord, Deserializer, Deserializer)
+ * @see #fromDeferred(ConsumerRecord, DeserializerPair, RecordBatch)
+ * @see #fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
  */
 public interface KafkaRecord<K, V> {
 
@@ -151,43 +149,46 @@ public interface KafkaRecord<K, V> {
             Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer) {}
 
     /**
-     * Creates a {@link KafkaRecord} with deferred deserialization of key and value.
+     * Creates a {@link KafkaRecord} with deferred deserialization and batch association.
      *
      * <p>Deserialization is performed lazily when {@link #key()} or {@link #value()} methods are
-     * called, and results are cached for subsequent accesses. This is useful when not all records
-     * require deserialization or when {@link Deserializer} operations are expensive.
+     * called, and results are cached for subsequent accesses. This variant allows associating the
+     * record with its parent batch for tracking processing completion.
      *
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param record the raw Kafka consumer record with byte array key and value
      * @param deserializerPair the pair of deserializers for key and value
+     * @param batch the parent batch this record belongs to, or {@code null} if not associated
      * @return a new {@link KafkaRecord} with deferred deserialization
      * @see DeferredKafkaConsumerRecord
      */
     public static <K, V> KafkaRecord<K, V> fromDeferred(
-            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
-        return new DeferredKafkaConsumerRecord<>(
-                record, deserializerPair.keyDeserializer(), deserializerPair.valueDeserializer());
+            ConsumerRecord<byte[], byte[]> record,
+            DeserializerPair<K, V> deserializerPair,
+            RecordBatch<K, V> batch) {
+        return new DeferredKafkaConsumerRecord<>(record, deserializerPair, batch);
     }
 
     /**
-     * Creates a {@link KafkaRecord} with eager deserialization of key and value.
+     * Creates a {@link KafkaRecord} with eager deserialization and batch association.
      *
-     * <p>Deserialization is performed immediately upon object creation, which allows early error
-     * detection but requires more upfront processing for all records, even those that may not be
-     * fully consumed.
+     * <p>Deserialization is performed immediately upon object creation. This variant allows
+     * associating the record with its parent batch for tracking processing completion.
      *
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param record the raw Kafka consumer record with byte array key and value
      * @param deserializerPair the pair of deserializers for key and value
+     * @param batch the parent batch this record belongs to, or {@code null} if not associated
      * @return a new {@link KafkaRecord} with eager deserialization
      * @see EagerKafkaConsumerRecord
      */
     public static <K, V> KafkaRecord<K, V> fromEager(
-            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
-        return new EagerKafkaConsumerRecord<>(
-                record, deserializerPair.keyDeserializer(), deserializerPair.valueDeserializer());
+            ConsumerRecord<byte[], byte[]> record,
+            DeserializerPair<K, V> deserializerPair,
+            RecordBatch<K, V> batch) {
+        return new EagerKafkaConsumerRecord<>(record, deserializerPair, batch);
     }
 
     /**
@@ -233,62 +234,6 @@ public interface KafkaRecord<K, V> {
      */
     public static KafkaRecord<Object, Object> from(SinkRecord record) {
         return new KafkaSinkRecord(record);
-    }
-
-    /**
-     * Converts a batch of Kafka consumer records to a list of {@link KafkaRecord}s with eager
-     * deserialization.
-     *
-     * @param <K> the type of the deserialized key
-     * @param <V> the type of the deserialized value
-     * @param consumerRecords the consumer records batch to convert
-     * @param deserializerPair the pair of deserializers for keys and values
-     * @return a list of {@link KafkaRecord}s with eagerly deserialized keys and values
-     * @see #fromEager(ConsumerRecord, DeserializerPair)
-     */
-    static <K, V> List<KafkaRecord<K, V>> listFromEager(
-            ConsumerRecords<byte[], byte[]> consumerRecords,
-            DeserializerPair<K, V> deserializerPair) {
-        List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
-        consumerRecords
-                .partitions()
-                .forEach(
-                        partition -> {
-                            List<ConsumerRecord<byte[], byte[]>> records =
-                                    consumerRecords.records(partition);
-                            for (int i = 0, n = records.size(); i < n; i++) {
-                                kafkaRecords.add(fromEager(records.get(i), deserializerPair));
-                            }
-                        });
-        return kafkaRecords;
-    }
-
-    /**
-     * Converts a batch of Kafka consumer records to a list of {@link KafkaRecord}s with deferred
-     * deserialization.
-     *
-     * @param <K> the type of the deserialized key
-     * @param <V> the type of the deserialized value
-     * @param consumerRecords the consumer records batch to convert
-     * @param deserializerPair the pair of deserializers for keys and values
-     * @return a list of {@link KafkaRecord}s with deferred deserialization of keys and values
-     * @see #fromDeferred(ConsumerRecord, DeserializerPair)
-     */
-    static <K, V> List<KafkaRecord<K, V>> listFromDeferred(
-            ConsumerRecords<byte[], byte[]> consumerRecords,
-            KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-        List<KafkaRecord<K, V>> kafkaRecords = new ArrayList<>(consumerRecords.count());
-        consumerRecords
-                .partitions()
-                .forEach(
-                        partition -> {
-                            List<ConsumerRecord<byte[], byte[]>> records =
-                                    consumerRecords.records(partition);
-                            for (int i = 0, n = records.size(); i < n; i++) {
-                                kafkaRecords.add(fromDeferred(records.get(i), deserializerPair));
-                            }
-                        });
-        return kafkaRecords;
     }
 
     /**
@@ -349,4 +294,11 @@ public interface KafkaRecord<K, V> {
      * @return the record headers
      */
     KafkaHeaders headers();
+
+    /**
+     * Returns the parent batch this record belongs to.
+     *
+     * @return the parent {@link RecordBatch}, or {@code null} if not associated with a batch
+     */
+    RecordBatch<K, V> getBatch();
 }
