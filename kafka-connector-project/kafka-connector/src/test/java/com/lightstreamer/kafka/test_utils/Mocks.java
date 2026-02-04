@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.test_utils;
 
+import static org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType.EARLIEST;
+
 import com.lightstreamer.interfaces.data.DiffAlgorithm;
 import com.lightstreamer.interfaces.data.IndexedItemEvent;
 import com.lightstreamer.interfaces.data.ItemEvent;
@@ -33,7 +35,6 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecord
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
@@ -55,8 +56,8 @@ public class Mocks {
         private RuntimeException commitException;
         private KafkaException listTopicException;
 
-        public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
-            super(offsetResetStrategy);
+        public MockConsumer(String strategyType) {
+            super(strategyType);
         }
 
         public void setCommitException(RuntimeException exception) {
@@ -93,13 +94,13 @@ public class Mocks {
                 if (exceptionOnConnection) {
                     throw new KafkaException("Simulated Exception");
                 }
-                return new MockConsumer(OffsetResetStrategy.EARLIEST);
+                return new MockConsumer(EARLIEST.toString());
             };
         }
 
         public static Supplier<Consumer<byte[], byte[]>> supplier(String... topics) {
             return () -> {
-                MockConsumer mockConsumer = new MockConsumer(OffsetResetStrategy.EARLIEST);
+                MockConsumer mockConsumer = new MockConsumer(EARLIEST.toString());
                 for (String topic : topics) {
                     mockConsumer.updatePartitions(
                             topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
@@ -137,6 +138,7 @@ public class Mocks {
 
         private final List<ConsumedRecordInfo> records =
                 Collections.synchronizedList(new ArrayList<>());
+
         private volatile Throwable firstFailure;
 
         public MockOffsetService() {}
@@ -174,11 +176,6 @@ public class Mocks {
         }
 
         @Override
-        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
-            throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
-        }
-
-        @Override
         public Optional<OffsetStore> offsetStore() {
             throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
         }
@@ -196,11 +193,6 @@ public class Mocks {
         }
 
         @Override
-        public boolean canManageHoles() {
-            return false;
-        }
-
-        @Override
         public void onConsumerShutdown() {}
     }
 
@@ -209,8 +201,7 @@ public class Mocks {
         private final List<KafkaRecord<?, ?>> records = new ArrayList<>();
         private final Map<TopicPartition, OffsetAndMetadata> topicMap;
 
-        public MockOffsetStore(
-                Map<TopicPartition, OffsetAndMetadata> topicMap, boolean parallel, Logger log) {
+        public MockOffsetStore(Map<TopicPartition, OffsetAndMetadata> topicMap, Logger log) {
             this.topicMap = Collections.unmodifiableMap(topicMap);
         }
 
