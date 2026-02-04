@@ -119,13 +119,16 @@ public class Records {
                         String().serializer().serialize(topic, key),
                         String().serializer().serialize(topic, value));
         return KafkaRecord.fromDeferred(
-                record, new DeserializerPair<>(String().deserializer(), String().deserializer()));
+                record,
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
         return KafkaRecord.fromDeferred(
                 ConsumerRecord(topic, partition, id),
-                new DeserializerPair<>(String().deserializer(), String().deserializer()));
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
     public static ConsumerRecord<byte[], byte[]> ConsumerRecord(
