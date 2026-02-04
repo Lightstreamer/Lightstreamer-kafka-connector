@@ -40,6 +40,7 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
+import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -88,6 +89,7 @@ class RecordConsumerSupport {
         protected int threads = 1;
         protected OrderStrategy orderStrategy = OrderStrategy.ORDER_BY_PARTITION;
         protected boolean preferSingleThread = false;
+        protected RecordBatchListener batchListener;
 
         StartBuildingConsumerImpl(RecordProcessor<K, V> processor) {
             this.processor = Objects.requireNonNull(processor, "RecordProcessor not set");
@@ -197,6 +199,12 @@ class RecordConsumerSupport {
         }
 
         @Override
+        public WithOptionals<K, V> batchListener(RecordBatchListener batchListener) {
+            this.parentBuilder.batchListener = batchListener;
+            return this;
+        }
+
+        @Override
         public WithOptionals<K, V> threads(int threads) {
             this.parentBuilder.threads = threads;
             return this;
@@ -236,15 +244,13 @@ class RecordConsumerSupport {
 
         default void processUpdates(
                 MappedRecord record, Set<SubscribedItem> routable, EventListener listener) {
-            Map<String, String> updates = getEvent(record);
-            getLogger().atDebug().log(() -> "Sending updates: %s".formatted(updates));
+            final Map<String, String> updates = getEvent(record);
             sendUpdates(updates, routable, listener);
         }
 
         default void processUpdatesAsSnapshot(
                 MappedRecord record, SubscribedItem subscribedItem, EventListener listener) {
-            Map<String, String> updates = getEvent(record);
-            getLogger().atDebug().log(() -> "Sending snapshot updates: %s".formatted(updates));
+            final Map<String, String> updates = getEvent(record);
             sendUpdatesAsSnapshot(updates, subscribedItem, listener);
         }
 
@@ -565,6 +571,7 @@ class RecordConsumerSupport {
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
+        protected final RecordBatchListener batchListener;
         private final RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean closed = false;
 
@@ -572,6 +579,7 @@ class RecordConsumerSupport {
             this.errorStrategy = builder.errorStrategy;
             this.offsetService = builder.offsetService;
             this.logger = builder.logger;
+            this.batchListener = Objects.requireNonNullElse(builder.batchListener, batch -> {});
             this.recordProcessor = builder.processor;
             // Enforce usage of the same logger
             this.recordProcessor.useLogger(logger);
@@ -603,12 +611,11 @@ class RecordConsumerSupport {
 
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
-        // Performance monitoring for single-threaded scenarios
         private final PerformanceMonitor performanceMonitor;
 
         SingleThreadedRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
-            this.performanceMonitor = new PerformanceMonitor("Single-thread", logger);
+            this.performanceMonitor = new PerformanceMonitor(logger);
         }
 
         @Override
@@ -618,7 +625,7 @@ class RecordConsumerSupport {
                 for (KafkaRecord<K, V> record : records.getRecords()) {
                     consumeRecord(record);
                 }
-                performanceMonitor.count(recordCount);
+                performanceMonitor.countProcessed(recordCount);
             }
 
             offsetService.maybeCommit();
@@ -660,6 +667,7 @@ class RecordConsumerSupport {
 
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
+        protected final RecordBatchListener batchListener;
         protected final int actualThreads;
 
         // Ring buffers settings for high-throughput processing
@@ -669,21 +677,16 @@ class RecordConsumerSupport {
         private volatile boolean shutdownRequested = false;
         private final int ringBufferCapacity;
 
-        // Performance monitoring without synchronization overhead
-        private final PerformanceMonitor monitor;
-
         @SuppressWarnings("unchecked")
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
+            this.batchListener = builder.batchListener;
             this.actualThreads = getActualThreadsNumber(builder.threads);
 
             // Calculate optimal ring buffer capacity based on workload
             this.ringBufferCapacity = calculateOptimalRingBufferCapacity();
-
-            // Initialize performance monitor
-            this.monitor = new PerformanceMonitor("Parallel", logger);
 
             // Initialize high-throughput ring buffers for ultra-high performance
             this.ringBuffers = new BlockingQueue[actualThreads];
@@ -793,12 +796,6 @@ class RecordConsumerSupport {
             processWithRingBuffers(batch);
             offsetService.maybeCommit();
 
-            // Check processing stats periodically
-            monitor.checkStats();
-
-            // Check and log ring buffer utilization periodically
-            monitor.checkRingBufferUtilization(ringBuffers, ringBufferCapacity);
-
             Throwable failure = offsetService.getFirstFailure();
             if (failure != null) {
                 logger.atWarn().log("Forcing unsubscription");
@@ -813,7 +810,7 @@ class RecordConsumerSupport {
                 int bufferIndex = selectRingBuffer(record);
                 try {
                     // Use blocking put to apply backpressure instead of failing
-                    ringBuffers[bufferIndex].put(record);
+                    feedBuffer(record, bufferIndex);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.atWarn()
@@ -822,6 +819,11 @@ class RecordConsumerSupport {
                     return; // Exit gracefully, allow partial batch to complete
                 }
             }
+        }
+
+        private void feedBuffer(KafkaRecord<K, V> record, int bufferIndex)
+                throws InterruptedException {
+            ringBuffers[bufferIndex].put(record);
         }
 
         private int selectRingBuffer(KafkaRecord<K, V> record) {
@@ -902,7 +904,7 @@ class RecordConsumerSupport {
                 logger.atError().log("Serious error while processing record!");
                 offsetService.onAsyncFailure(t);
             } finally {
-                record.getBatch().recordProcessed(monitor);
+                record.getBatch().recordProcessed(batchListener);
             }
         }
 
