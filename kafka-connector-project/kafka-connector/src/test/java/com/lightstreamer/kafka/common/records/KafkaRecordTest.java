@@ -24,20 +24,13 @@ import static org.apache.kafka.common.serialization.Serdes.String;
 import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
 import org.apache.kafka.connect.sink.SinkRecord;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -119,8 +112,9 @@ public class KafkaRecordTest {
                         headers,
                         Optional.empty());
 
+        CallbackRecordBatch<String, String> batch = new CallbackRecordBatch<>(1);
         KafkaRecord<String, String> kafkaRecord =
-                KafkaRecord.fromDeferred(consumerRecord, deserializerPair);
+                KafkaRecord.fromDeferred(consumerRecord, deserializerPair, batch);
 
         // Verify metadata
         assertThat(kafkaRecord.topic()).isEqualTo(expectedTopic);
@@ -143,6 +137,9 @@ public class KafkaRecordTest {
 
         // Verify payload null status
         assertThat(kafkaRecord.isPayloadNull()).isEqualTo(expectedValue == null);
+
+        // Verify batch association
+        assertThat(kafkaRecord.getBatch()).isSameInstanceAs(batch);
     }
 
     @ParameterizedTest
@@ -174,8 +171,9 @@ public class KafkaRecordTest {
                         headers,
                         Optional.empty());
 
+        CallbackRecordBatch<String, String> batch = new CallbackRecordBatch<>(1);
         KafkaRecord<String, String> kafkaRecord =
-                KafkaRecord.fromEager(consumerRecord, deserializerPair);
+                KafkaRecord.fromEager(consumerRecord, deserializerPair, batch);
 
         // Verify metadata
         assertThat(kafkaRecord.topic()).isEqualTo(expectedTopic);
@@ -193,6 +191,9 @@ public class KafkaRecordTest {
 
         // Verify payload null status
         assertThat(kafkaRecord.isPayloadNull()).isEqualTo(expectedValue == null);
+
+        // Verify batch association
+        assertThat(kafkaRecord.getBatch()).isSameInstanceAs(batch);
     }
 
     static Stream<Arguments> sinkRecords() {
@@ -243,99 +244,8 @@ public class KafkaRecordTest {
 
         // Verify payload null status
         assertThat(kafkaRecord.isPayloadNull()).isEqualTo(expectedPayloadNull);
-    }
 
-    @Test
-    public void shouldCreateListFromDeferred() {
-        int partitions = 2;
-        int recordsPerPartitions = 10;
-        ConsumerRecords<byte[], byte[]> records =
-                makeRecords("topic", partitions, recordsPerPartitions);
-        List<KafkaRecord<String, String>> deferred =
-                KafkaRecord.listFromDeferred(records, deserializerPair);
-
-        // Verify total size
-        assertThat(deferred).hasSize(partitions * recordsPerPartitions);
-
-        // Verify records per partition
-        for (int p = 0; p < partitions; p++) {
-            final int partition = p;
-            assertThat(deferred.stream().filter(k -> k.partition() == partition).count())
-                    .isEqualTo(recordsPerPartitions);
-        }
-
-        // Verify record content and order are preserved
-        int index = 0;
-        for (int p = 0; p < partitions; p++) {
-            for (int o = 0; o < recordsPerPartitions; o++) {
-                KafkaRecord<String, String> record = deferred.get(index++);
-                assertThat(record.partition()).isEqualTo(p);
-                assertThat(record.offset()).isEqualTo(o);
-                assertThat(record.topic()).isEqualTo("topic");
-                assertThat(record.key()).isEqualTo("aKey-" + o);
-                assertThat(record.value()).isEqualTo("aValue-" + o);
-            }
-        }
-
-        // Verify deferred deserialization (key and value are cached after first access)
-        KafkaRecord<String, String> firstRecord = deferred.get(0);
-        String key = firstRecord.key();
-        assertThat(firstRecord.key()).isSameInstanceAs(key);
-        String value = firstRecord.value();
-        assertThat(firstRecord.value()).isSameInstanceAs(value);
-    }
-
-    @Test
-    public void shouldCreateListFromEager() {
-        int partitions = 2;
-        int recordsPerPartitions = 10;
-        ConsumerRecords<byte[], byte[]> records =
-                makeRecords("topic", partitions, recordsPerPartitions);
-        List<KafkaRecord<String, String>> eager =
-                KafkaRecord.listFromEager(records, deserializerPair);
-
-        // Verify total size
-        assertThat(eager).hasSize(partitions * recordsPerPartitions);
-
-        // Verify records per partition
-        for (int p = 0; p < partitions; p++) {
-            final int partition = p;
-            assertThat(eager.stream().filter(k -> k.partition() == partition).count())
-                    .isEqualTo(recordsPerPartitions);
-        }
-
-        // Verify record content and order are preserved
-        int index = 0;
-        for (int p = 0; p < partitions; p++) {
-            for (int o = 0; o < recordsPerPartitions; o++) {
-                KafkaRecord<String, String> record = eager.get(index++);
-                assertThat(record.partition()).isEqualTo(p);
-                assertThat(record.offset()).isEqualTo(o);
-                assertThat(record.topic()).isEqualTo("topic");
-                assertThat(record.key()).isEqualTo("aKey-" + o);
-                assertThat(record.value()).isEqualTo("aValue-" + o);
-            }
-        }
-    }
-
-    static ConsumerRecords<byte[], byte[]> makeRecords(
-            String topic, int partitions, int recordsPerPartitions) {
-        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
-        for (int p = 0; p < partitions; p++) {
-            for (int o = 0; o < recordsPerPartitions; o++) {
-                TopicPartition tp = new TopicPartition(topic, p);
-                recordsMap
-                        .computeIfAbsent(tp, t -> new ArrayList<>())
-                        .add(
-                                new ConsumerRecord<>(
-                                        "topic",
-                                        p,
-                                        o,
-                                        ("aKey-" + o).getBytes(),
-                                        ("aValue-" + o).getBytes()));
-            }
-        }
-
-        return new ConsumerRecords<>(recordsMap);
+        // Verify batch association
+        assertThat(kafkaRecord.getBatch()).isNull();
     }
 }
