@@ -35,7 +35,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordsBatch;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
@@ -47,8 +46,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
-import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
@@ -709,7 +708,8 @@ public class RecordConsumerTest {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
         // the same topic
         List<String> keys = List.of("a", "b", "c", "d");
-        ConsumerRecords<byte[], byte[]> records = generateRecords("topic", numOfRecords, keys, 2);
+        ConsumerRecords<byte[], byte[]> consumerRecords =
+                generateRecords("topic", numOfRecords, keys, 2);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
@@ -720,9 +720,9 @@ public class RecordConsumerTest {
                         listener, threads, CommandModeStrategy.NONE, OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
-            RecordsBatch batch =
-                    recordConsumer.consumeRecords(
-                            KafkaRecord.listFromDeferred(records, deserializerPair));
+            RecordBatch<String, String> batch =
+                    RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+            recordConsumer.consumeRecords(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -779,10 +779,7 @@ public class RecordConsumerTest {
                                 });
         recordsOnTopic1.forEach(action);
         recordsOnTopic2.forEach(action);
-        ConsumerRecords<byte[], byte[]> allRecords = new ConsumerRecords<>(recordsByPartition);
-
-        // Create a list to store all the delivered events
-        // List<Event> deliveredEvents = Collections.synchronizedList(new ArrayList<>());
+        ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
         // Make the RecordConsumer
         MockItemEventListener testListener = new MockItemEventListener();
@@ -796,9 +793,9 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            RecordsBatch batch =
-                    recordConsumer.consumeRecords(
-                            KafkaRecord.listFromDeferred(allRecords, deserializerPair));
+            RecordBatch<String, String> batch =
+                    RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+            recordConsumer.consumeRecords(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -839,7 +836,8 @@ public class RecordConsumerTest {
     public void shouldDeliverPartitionBasedOrderWithNoKey(
             int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<byte[], byte[]> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<byte[], byte[]> consumerRecords =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
@@ -853,9 +851,9 @@ public class RecordConsumerTest {
                         OrderStrategy.ORDER_BY_PARTITION);
 
         for (int i = 0; i < iterations; i++) {
-            RecordsBatch batch =
-                    recordConsumer.consumeRecords(
-                            KafkaRecord.listFromDeferred(records, deserializerPair));
+            RecordBatch<String, String> batch =
+                    RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+            recordConsumer.consumeRecords(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -880,7 +878,8 @@ public class RecordConsumerTest {
     public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads)
             throws InterruptedException {
         List<String> keys = Collections.emptyList();
-        ConsumerRecords<byte[], byte[]> records = generateRecords("topic", numOfRecords, keys, 3);
+        ConsumerRecords<byte[], byte[]> consumerRecords =
+                generateRecords("topic", numOfRecords, keys, 3);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
@@ -890,9 +889,9 @@ public class RecordConsumerTest {
                 mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
-            RecordsBatch batch =
-                    recordConsumer.consumeRecords(
-                            KafkaRecord.listFromDeferred(records, deserializerPair));
+            RecordBatch<String, String> batch =
+                    RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+            recordConsumer.consumeRecords(batch);
             batch.join();
             List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
             List<Event> deliveredEvents =
@@ -911,7 +910,7 @@ public class RecordConsumerTest {
         Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsByPartition =
                 new HashMap<>();
         recordsByPartition.put(new TopicPartition("topic", 0), List.of(recordWithNullValue));
-        ConsumerRecords<byte[], byte[]> records = new ConsumerRecords<>(recordsByPartition);
+        ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
@@ -920,7 +919,12 @@ public class RecordConsumerTest {
         recordConsumer =
                 mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
-        recordConsumer.consumeRecords(KafkaRecord.listFromDeferred(records, deserializerPair));
+        RecordBatch<String, String> batch =
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+        recordConsumer.consumeRecords(batch);
+        batch.join();
+        List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+        assertThat(realtimeUpdates).hasSize(1);
     }
 
     static Stream<Arguments> handleErrors() {
@@ -935,7 +939,7 @@ public class RecordConsumerTest {
     @MethodSource("handleErrors")
     public void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<byte[], byte[]> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<byte[], byte[]> consumerRecords = generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -956,14 +960,14 @@ public class RecordConsumerTest {
                         .preferSingleThread(true)
                         .build();
 
-        List<KafkaRecord<String, String>> kafkaRecords =
-                KafkaRecord.listFromDeferred(records, deserializerPair);
+        RecordBatch<String, String> batch =
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair);
         if (numOfThreads == 1) {
-            assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(kafkaRecords));
+            assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(batch));
         } else {
             // With multiple threads, exception may or may not be thrown depending on timing
             try {
-                recordConsumer.consumeRecords(kafkaRecords);
+                recordConsumer.consumeRecords(batch);
             } catch (KafkaException expected) {
                 logger.atError()
                         .log(
@@ -979,7 +983,7 @@ public class RecordConsumerTest {
         // With multiple threads, processing continues despite failures, so all records except
         // the offending ones (which throw exceptions) are processed.
         int expectedNumOfProcessedRecords =
-                numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
+                numOfThreads == 1 ? 2 : consumerRecords.count() - offendingOffsets.size();
         assertThat(consumedRecords).hasSize(expectedNumOfProcessedRecords);
         assertThat(consumedRecords).containsNoneIn(offendingOffsets);
     }
@@ -989,7 +993,7 @@ public class RecordConsumerTest {
     public void shouldIgnoreErrorsOnlyIfValueException(
             int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
-        ConsumerRecords<byte[], byte[]> records = generateRecords("topic", 30, keys, 2);
+        ConsumerRecords<byte[], byte[]> consumerRecords = generateRecords("topic", 30, keys, 2);
 
         // Prepare the list of offsets that will trigger a ValueException upon processing
         List<ConsumedRecordInfo> offendingOffsets =
@@ -1011,22 +1015,21 @@ public class RecordConsumerTest {
                         .preferSingleThread(true)
                         .build();
 
-        List<KafkaRecord<String, String>> kafkaRecords =
-                KafkaRecord.listFromDeferred(records, deserializerPair);
+        RecordBatch<String, String> batch =
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair);
         if (numOfThreads == 1) {
             if (exception instanceof ValueException) {
                 // No exception should be thrown
-                recordConsumer.consumeRecords(kafkaRecords);
+                recordConsumer.consumeRecords(batch);
             } else {
                 // Other kind of exceptions should still be propagated
-                assertThrows(
-                        KafkaException.class, () -> recordConsumer.consumeRecords(kafkaRecords));
+                assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(batch));
             }
         } else {
             // With multiple threads, ValueExceptions should be ignored, other exceptions may still
             // be thrown depending on timing
             try {
-                recordConsumer.consumeRecords(kafkaRecords);
+                recordConsumer.consumeRecords(batch);
             } catch (KafkaException expected) {
                 logger.atError()
                         .log(
@@ -1039,10 +1042,10 @@ public class RecordConsumerTest {
 
         if (exception instanceof ValueException) {
             // Ensure that all offsets are committed (even the offending ones)
-            assertThat(consumedRecords).hasSize(records.count());
+            assertThat(consumedRecords).hasSize(consumerRecords.count());
         } else {
             int expectedNumOfProcessedRecords =
-                    numOfThreads == 1 ? 2 : records.count() - offendingOffsets.size();
+                    numOfThreads == 1 ? 2 : consumerRecords.count() - offendingOffsets.size();
             assertThat(consumedRecords).hasSize(expectedNumOfProcessedRecords);
             assertThat(consumedRecords).containsNoneIn(offendingOffsets);
         }
