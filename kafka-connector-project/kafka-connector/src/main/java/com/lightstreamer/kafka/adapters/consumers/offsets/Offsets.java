@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -69,22 +68,17 @@ public class Offsets {
         return prefix + offset;
     }
 
-    public static OffsetService OffsetService(
-            Consumer<?, ?> consumer, boolean manageHoles, Logger log) {
-        return new OffsetServiceImpl(consumer, manageHoles, log);
+    public static OffsetService OffsetService(Consumer<?, ?> consumer, Logger log) {
+        return new OffsetServiceImpl(consumer, log);
     }
 
-    public static OffsetStore OffsetStore(
-            Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles) {
-        return new OffsetStoreImpl(
-                committed, manageHoles, LoggerFactory.getLogger(OffsetStore.class));
+    public static OffsetStore OffsetStore(Map<TopicPartition, OffsetAndMetadata> committed) {
+        return new OffsetStoreImpl(committed, LoggerFactory.getLogger(OffsetStore.class));
     }
 
     public interface OffsetStore {
 
         void save(KafkaRecord<?, ?> record);
-
-        default void clear() {}
 
         default void clear(Collection<TopicPartition> partitions) {}
 
@@ -106,7 +100,7 @@ public class Offsets {
         }
     }
 
-    private static class FixedThresholdCommitStrategy implements CommitStrategy {
+    public static class FixedThresholdCommitStrategy implements CommitStrategy {
 
         private final long commitIntervalMs;
         private final int commitEveryNRecords;
@@ -125,7 +119,8 @@ public class Offsets {
             boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
             boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
 
-            return byTime || byCount;
+            // return byTime || byCount;
+            return byTime;
         }
     }
 
@@ -204,9 +199,7 @@ public class Offsets {
         interface OffsetStoreSupplier {
 
             OffsetStore newOffsetStore(
-                    Map<TopicPartition, OffsetAndMetadata> offsets,
-                    boolean manageHoles,
-                    Logger logger);
+                    Map<TopicPartition, OffsetAndMetadata> offsets, Logger logger);
         }
 
         default void initStore(boolean fromLatest) throws KafkaException {
@@ -226,10 +219,6 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed);
 
-        boolean notHasPendingOffset(KafkaRecord<?, ?> record);
-
-        boolean canManageHoles();
-
         void maybeCommit();
 
         void updateOffsets(KafkaRecord<?, ?> record);
@@ -248,50 +237,36 @@ public class Offsets {
         private volatile Throwable firstFailure;
         private final AtomicBoolean consumerShuttingDown = new AtomicBoolean(false);
         private final Consumer<?, ?> consumer;
-        private final boolean manageHoles;
         private final Logger logger;
-        private AtomicInteger recordsCounter = new AtomicInteger();
+        private final AtomicInteger recordsCounter = new AtomicInteger();
         private final CommitStrategy commitStrategy;
 
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
 
-        private final Map<TopicPartition, Collection<Long>> pendingOffsetsMap =
-                new ConcurrentHashMap<>();
-
-        OffsetServiceImpl(Consumer<?, ?> consumer, boolean manageHoles, Logger logger) {
-            this(consumer, manageHoles, logger, new FixedThresholdCommitStrategy(5000, 100_000));
+        OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
+            this(consumer, logger, new FixedThresholdCommitStrategy(5000, 100_000));
         }
 
-        OffsetServiceImpl(
-                Consumer<?, ?> consumer,
-                boolean manageHoles,
-                Logger logger,
-                CommitStrategy commitStrategy) {
+        OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
             this.consumer = consumer;
-            this.manageHoles = manageHoles;
             this.logger = logger;
             this.commitStrategy = commitStrategy;
         }
 
         @Override
-        public boolean canManageHoles() {
-            return manageHoles;
-        }
-
-        @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier)
                 throws KafkaException {
-            Set<TopicPartition> partitions = consumer.assignment();
+            Set<TopicPartition> partitions = this.consumer.assignment();
             // Retrieve the offset to start from, which has to be used in case no
             // committed offset is available for a given partition.
             // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =
                     fromLatest
-                            ? consumer.endOffsets(partitions)
-                            : consumer.beginningOffsets(partitions);
+                            ? this.consumer.endOffsets(partitions)
+                            : this.consumer.beginningOffsets(partitions);
             // Get the current committed offsets for all the assigned partitions
-            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(partitions);
+            Map<TopicPartition, OffsetAndMetadata> committed = this.consumer.committed(partitions);
             initStore(storeSupplier, startOffsets, committed);
         }
 
@@ -306,25 +281,10 @@ public class Offsets {
             // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
-                OffsetAndMetadata offsetAndMetadata =
-                        offsetRepo.computeIfAbsent(
-                                partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
-                // Store the offsets that have been already delivered to clients,
-                // but not yet committed (most likely due to an exception while processing in
-                // parallel).
-                pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
+                offsetRepo.computeIfAbsent(
+                        partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
             }
-            logger.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
-            this.offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, logger);
-        }
-
-        @Override
-        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
-            Collection<Long> pendingOffsetsList =
-                    pendingOffsetsMap.getOrDefault(
-                            new TopicPartition(record.topic(), record.partition()),
-                            Collections.emptyList());
-            return !pendingOffsetsList.contains(record.offset());
+            this.offsetStore = storeSupplier.newOffsetStore(offsetRepo, logger);
         }
 
         @Override
@@ -440,27 +400,12 @@ public class Offsets {
 
     private static class OffsetStoreImpl implements OffsetStore {
 
-        private interface OffsetAndMetadataFactory {
-
-            OffsetAndMetadata newOffsetAndMetadata(
-                    KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
-        }
-
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
         private final Logger logger;
-        private final OffsetAndMetadataFactory factory;
 
-        OffsetStoreImpl(
-                Map<TopicPartition, OffsetAndMetadata> committed,
-                boolean manageHoles,
-                Logger logger) {
+        OffsetStoreImpl(Map<TopicPartition, OffsetAndMetadata> committed, Logger logger) {
             this.offsets = new ConcurrentHashMap<>(committed);
             this.logger = logger;
-            this.factory =
-                    manageHoles
-                            ? OffsetStoreImpl::mkNewOffsetAndMetadata
-                            : (record, offsetAndMetadata) ->
-                                    new OffsetAndMetadata(record.offset() + 1);
         }
 
         @Override
@@ -476,15 +421,9 @@ public class Offsets {
                     (partition, offsetAndMetadata) -> {
                         if (offsetAndMetadata != null
                                 && offsetAndMetadata.offset() > record.offset()) {
-                            logger.atTrace()
-                                    .log(
-                                            "Received out-of-order record for partition {}. Current offset: {}, record offset: {}. Ignoring record.",
-                                            topicPartition,
-                                            offsetAndMetadata.offset(),
-                                            record.offset());
                             return offsetAndMetadata;
                         }
-                        return factory.newOffsetAndMetadata(record, offsetAndMetadata);
+                        return new OffsetAndMetadata(record.offset() + 1);
                     });
         }
 
@@ -493,41 +432,6 @@ public class Offsets {
             for (TopicPartition partition : partitions) {
                 offsets.remove(partition);
             }
-        }
-
-        @Override
-        public void clear() {
-            offsets.clear();
-        }
-
-        private static OffsetAndMetadata mkNewOffsetAndMetadata(
-                KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
-            String lastMetadata = lastOffsetAndMetadata.metadata();
-            long lastOffset = lastOffsetAndMetadata.offset();
-            long newOffset = lastOffset;
-            String newMetadata = lastMetadata;
-
-            long consumedOffset = record.offset();
-            if (consumedOffset == lastOffset) {
-                Collection<Long> orderedConsumedList = decode(lastMetadata);
-                Iterator<Long> iterator = orderedConsumedList.iterator();
-
-                while (iterator.hasNext()) {
-                    long offset = iterator.next();
-                    if (offset == newOffset + 1) {
-                        newOffset = offset;
-                        iterator.remove();
-                        continue;
-                    }
-                    break;
-                }
-                newMetadata = newOffset == lastOffset ? lastMetadata : encode(orderedConsumedList);
-                newOffset = newOffset + 1;
-            } else {
-                newMetadata = append(lastMetadata, consumedOffset);
-            }
-
-            return new OffsetAndMetadata(newOffset, newMetadata);
         }
     }
 
