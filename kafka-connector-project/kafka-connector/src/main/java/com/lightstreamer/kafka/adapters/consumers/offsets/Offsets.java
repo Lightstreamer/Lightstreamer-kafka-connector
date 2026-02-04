@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -28,7 +27,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,35 +36,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class Offsets {
-
-    static String SEPARATOR = ",";
-    static Supplier<Collection<Long>> SUPPLIER = ArrayList::new;
-    static Predicate<String> NOT_EMPTY_STRING = ((Predicate<String>) String::isEmpty).negate();
-
-    static String encode(Collection<Long> offsets) {
-        return offsets.stream().map(String::valueOf).collect(Collectors.joining(SEPARATOR));
-    }
-
-    static Collection<Long> decode(String str) {
-        if (str.isBlank()) {
-            return Collections.emptyList();
-        }
-        return Split.byComma(str).stream()
-                .filter(NOT_EMPTY_STRING)
-                .map(Long::valueOf)
-                .sorted()
-                .collect(Collectors.toCollection(SUPPLIER));
-    }
-
-    static String append(String str, long offset) {
-        String prefix = str.isEmpty() ? "" : str + SEPARATOR;
-        return prefix + offset;
-    }
 
     public static OffsetService OffsetService(Consumer<?, ?> consumer, Logger log) {
         return new OffsetServiceImpl(consumer, log);
@@ -119,8 +90,7 @@ public class Offsets {
             boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
             boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
 
-            // return byTime || byCount;
-            return byTime;
+            return byTime || byCount;
         }
     }
 
