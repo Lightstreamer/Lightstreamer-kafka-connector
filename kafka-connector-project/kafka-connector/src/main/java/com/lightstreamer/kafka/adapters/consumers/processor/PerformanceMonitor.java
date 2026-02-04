@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -32,15 +33,17 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class PerformanceMonitor implements RecordBatch.RecordBatchListener {
 
+    private static final long CHECK_INTERVALNS = TimeUnit.SECONDS.toNanos(3);
+
     private static final String LOGGER_SUFFIX = "Performance";
 
-    private final String monitorName;
     private final AtomicLong totalProcessedRecords = new AtomicLong(0);
+    private final AtomicLong totalReceivedRecords = new AtomicLong(0);
 
     private final Logger statsLogger;
-    private final Logger ringBuffersUtilizationLogger;
     private final AtomicLong lastCheck = new AtomicLong(System.nanoTime());
-    private final AtomicLong lastReportedCount = new AtomicLong(0);
+    private final AtomicLong lastProcessedCount = new AtomicLong(0);
+    private final AtomicLong lastReceivedCount = new AtomicLong(0);
 
     // Ring buffer utilization monitoring
     private volatile long lastUtilizationCheck = System.nanoTime();
@@ -48,38 +51,42 @@ public class PerformanceMonitor implements RecordBatch.RecordBatchListener {
             2_000_000_000L; // Check every 2 seconds
     private volatile int[] peakUtilizationSinceLastReport; // Track peak utilization per buffer
 
-    PerformanceMonitor(String monitorName, Logger logger) {
-        this.monitorName = monitorName;
+    public PerformanceMonitor(Logger logger) {
         this.statsLogger = LoggerFactory.getLogger(logger.getName() + LOGGER_SUFFIX);
-        this.ringBuffersUtilizationLogger =
-                LoggerFactory.getLogger(logger.getName() + "RingBuffersUtilization");
     }
 
-    public void count(int records) {
+    public void countProcessed(int records) {
         totalProcessedRecords.addAndGet(records);
     }
 
-    /** Check and potentially log performance stats every 5 seconds using sliding window */
+    public void countReceived(int records) {
+        totalReceivedRecords.addAndGet(records);
+    }
+
     public void checkStats() {
         long currentTime = System.nanoTime();
         long lastCheckTime = lastCheck.get();
 
-        // Report stats every 5 seconds
-        if (currentTime - lastCheckTime > 5_000_000_000L
+        if (currentTime - lastCheckTime > CHECK_INTERVALNS
                 && lastCheck.compareAndSet(lastCheckTime, currentTime)) {
-            long currentTotal = totalProcessedRecords.get();
-            long lastTotal = lastReportedCount.getAndSet(currentTotal);
+            long currentTotalReceived = totalReceivedRecords.get();
+            long lastTotalReceived = lastReceivedCount.getAndSet(currentTotalReceived);
 
-            long recordsInWindow = currentTotal - lastTotal;
+            long currentTotalProcessed = totalProcessedRecords.get();
+            long lastTotalProcessed = lastProcessedCount.getAndSet(currentTotalProcessed);
+
+            long processedRecordsInWindow = currentTotalProcessed - lastTotalProcessed;
+            long receivedRecordsInWindow = currentTotalReceived - lastTotalReceived;
             long timeWindowNs = currentTime - lastCheckTime;
             double timeWindowSec = timeWindowNs / 1_000_000_000.0;
 
-            if (recordsInWindow > 0 && timeWindowNs > 0) {
-                double avgThroughput = recordsInWindow / timeWindowSec / 1000.0;
+            if (timeWindowNs > 0) {
+                double recvThroughput = receivedRecordsInWindow / timeWindowSec / 1000.0;
+                double avgThroughput = processedRecordsInWindow / timeWindowSec / 1000.0;
                 String message =
                         String.format(
-                                "%s processing stats: %d records processed in %.2fs window, avg %.1fk records/sec",
-                                monitorName, recordsInWindow, timeWindowSec, avgThroughput);
+                                "Incoming avg=%.1fk msg/sec, Processed avg=%.1fk msg/sec",
+                                recvThroughput, avgThroughput);
                 statsLogger.info(message);
             }
         }
@@ -89,7 +96,7 @@ public class PerformanceMonitor implements RecordBatch.RecordBatchListener {
      * Monitor and graphically display ring buffer utilization rates. Provides visual representation
      * of buffer load across all threads.
      */
-    void checkRingBufferUtilization(BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {
+    public void checkRingBufferUtilization(BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {
         // Initialize peak tracking if not already done
         if (peakUtilizationSinceLastReport == null) {
             peakUtilizationSinceLastReport = new int[ringBuffers.length];
@@ -207,7 +214,7 @@ public class PerformanceMonitor implements RecordBatch.RecordBatchListener {
 
     @Override
     public void onBatchComplete(RecordBatch<?, ?> batch) {
-        count(batch.count());
+        countProcessed(batch.count());
         // logger.debug(
         //         "Batch {} processed all {} records - ready for commit", batchId,
         // recordsCount);
