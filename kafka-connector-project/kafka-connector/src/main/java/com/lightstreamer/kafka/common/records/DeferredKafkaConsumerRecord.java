@@ -45,7 +45,11 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
     private final Deserializer<V> valueDeserializer;
     private final byte[] rawKey;
     private final byte[] rawValue;
+
+    @SuppressWarnings("unchecked")
     private V cachedValue = (V) UNINITIALIZED;
+
+    @SuppressWarnings("unchecked")
     private K cachedKey = (K) UNINITIALIZED;
 
     /**
