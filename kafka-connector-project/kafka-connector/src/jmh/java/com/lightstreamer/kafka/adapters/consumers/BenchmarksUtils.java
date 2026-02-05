@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.benchmarks.PriceInfo;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -53,6 +54,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class BenchmarksUtils {
 
@@ -68,6 +70,7 @@ public class BenchmarksUtils {
     public static class FakeEventListener implements EventListener {
 
         private Blackhole blackHole;
+        private AtomicInteger counter;
 
         public FakeEventListener(Blackhole bh) {
             this.blackHole = bh;
@@ -112,12 +115,6 @@ public class BenchmarksUtils {
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
-        public void commitSync() {}
-
-        @Override
-        public void commitAsync() {}
-
-        @Override
         public void updateOffsets(KafkaRecord<?, ?> record) {}
 
         @Override
@@ -134,11 +131,6 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
-            throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
-        }
-
-        @Override
         public Optional<OffsetStore> offsetStore() {
             throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
         }
@@ -152,9 +144,10 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public boolean canManageHoles() {
-            return false;
-        }
+        public void maybeCommit() {}
+
+        @Override
+        public void onConsumerShutdown() {}
     }
 
     public static class FakeMetadataListener implements MetadataListener {
@@ -315,6 +308,111 @@ public class BenchmarksUtils {
                 messages.add(node);
             }
             return messages;
+        }
+    }
+
+    public static class PriceInfoRecords {
+
+        private final String topic;
+        private final File sourceDescriptor;
+
+        public PriceInfoRecords(String topic, String descriptorPath) {
+            this.topic = topic;
+            this.sourceDescriptor = new File(descriptorPath);
+        }
+
+        PriceInfo makePayload(String key) {
+            return PriceInfo.newBuilder()
+                    .setSymbol(key)
+                    .setLS(0.1f)
+                    .setLSSize(10)
+                    .setBid(0.1f)
+                    .setBidSize(10)
+                    .setAsk(0.1f)
+                    .setAskSize(10)
+                    .setCurrTime("1")
+                    .setHigh(0.1f)
+                    .setLow(0.1f)
+                    .setVol(10)
+                    .build();
+        }
+
+        public SubscribedItems subscriptions(int numOfSubscriptions, EventListener listener) {
+            SubscribedItems subscribedItems = SubscribedItems.create();
+
+            String[] items =
+                    IntStream.range(0, numOfSubscriptions)
+                            .mapToObj(i -> String.format("ltest-[key=META250801P00680%03d]", i))
+                            .toArray(String[]::new);
+            for (int i = 0; i < numOfSubscriptions; i++) {
+                SubscribedItem item = Items.subscribedFrom(items[i], new Object());
+                item.enableRealtimeEvents(listener);
+                subscribedItems.addItem(item);
+            }
+            return subscribedItems;
+        }
+
+        public List<RawRecord> rawRecords(int numOfRecords) {
+            String[] keys =
+                    IntStream.range(0, numOfRecords)
+                            .mapToObj(i -> String.format("META250801P00680%03d", i))
+                            .toArray(String[]::new);
+            List<RawRecord> allRecords = new ArrayList<>(numOfRecords);
+            TopicPartition tp = new TopicPartition(this.topic, 0);
+
+            for (int i = 0; i < numOfRecords; i++) {
+                String key = keys[i];
+                DynamicMessage messages = DynamicMessage.newBuilder(makePayload(key)).build();
+                allRecords.add(
+                        new RawRecord(
+                                tp.topic(),
+                                tp.partition(),
+                                i,
+                                key.getBytes(),
+                                messages.toByteArray()));
+            }
+            return allRecords;
+        }
+
+        public ConnectorConfigurator newConfigurator() {
+            File adapterDir;
+            try {
+                adapterDir = Files.createTempDirectory("adapter_dir").toFile();
+                // Copy the descriptor file to the temp directory
+                var target = new File(adapterDir, "descriptor_set.desc");
+                Files.copy(this.sourceDescriptor.toPath(), target.toPath());
+                return new ConnectorConfigurator(params(), adapterDir);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private Map<String, String> params() {
+            Map<String, String> adapterParams = new HashMap<>();
+            adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
+            adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+            adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+            adapterParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
+            adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
+            adapterParams.put(
+                    ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
+            adapterParams.put(
+                    ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "PriceInfo");
+            adapterParams.put("item-template.ltest", "ltest-#{key=KEY}");
+            adapterParams.put("map." + this.topic + ".to", "item-template.ltest");
+            adapterParams.put("field.sym", "#{VALUE.Symbol}");
+            adapterParams.put("field.last", "#{VALUE.LS}");
+            adapterParams.put("field.bid", "#{VALUE.Bid}");
+            adapterParams.put("field.ask", "#{VALUE.Ask}");
+            adapterParams.put("field.tradetime", "#{VALUE.CurrTime}");
+            adapterParams.put("field.high", "#{VALUE.High}");
+            adapterParams.put("field.low", "#{VALUE.Low}");
+            adapterParams.put("field.volume", "#{VALUE.Vol}");
+            adapterParams.put("field.timestamp", "#{TIMESTAMP}");
+            adapterParams.put("field.partition", "#{PARTITION}");
+            adapterParams.put("field.offset", "#{OFFSET}");
+
+            return adapterParams;
         }
     }
 
