@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.common.serialization.Serdes;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -49,8 +50,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +71,7 @@ public class DataExtractorBenchmarks {
 
         CanonicalItemExtractor<String, DynamicMessage> canonicalItemExtractor;
         FieldsExtractor<String, DynamicMessage> fieldsExtractor;
-        List<KafkaRecord<String, DynamicMessage>> kafkaRecords;
+        KafkaRecord<String, DynamicMessage> kafkaRecord;
 
         @Setup(Level.Iteration)
         public void setUp()
@@ -91,9 +90,12 @@ public class DataExtractorBenchmarks {
                             Serdes.String().deserializer(),
                             DynamicMessageDeserializers.ValueDeserializer(
                                     configurator.getConfig()));
-            this.kafkaRecords =
-                    KafkaRecord.listFromEager(
-                            ProtoRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair);
+
+            this.kafkaRecord =
+                    RecordBatch.batchFromEager(
+                                    ProtoRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair)
+                            .getRecords()
+                            .get(0);
             // this.kafkaRecords =
             //         KafkaRecord.listFromDeferred(
             //                 ProtoRecords.pollRecords(TOPICS, 1, 1, 10),
@@ -110,7 +112,7 @@ public class DataExtractorBenchmarks {
 
         CanonicalItemExtractor<String, JsonNode> canonicalItemExtractor;
         FieldsExtractor<String, JsonNode> fieldsExtractor;
-        private List<KafkaRecord<String, JsonNode>> kafkaRecords;
+        private KafkaRecord<String, JsonNode> kafkaRecord;
 
         @Setup(Level.Iteration)
         public void setUp()
@@ -128,14 +130,12 @@ public class DataExtractorBenchmarks {
                     new DeserializerPair<>(
                             Serdes.String().deserializer(),
                             JsonNodeDeserializers.ValueDeserializer(configurator.getConfig()));
-            // this.kafkaRecords =
-            //         KafkaRecord.listFromDeferred(
-            //                 JsonRecords.pollRecords(TOPICS, 1, 1, 10),
-            //                 keyDeserializer,
-            //                 valueDeserializer);
-            this.kafkaRecords =
-                    KafkaRecord.listFromEager(
-                            JsonRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair);
+
+            this.kafkaRecord =
+                    RecordBatch.batchFromEager(
+                                    JsonRecords.pollRecords(TOPICS, 1, 1, 10), deserializerPair)
+                            .getRecords()
+                            .get(0);
         }
     }
 
@@ -149,11 +149,11 @@ public class DataExtractorBenchmarks {
      * @param proto the Protobuf benchmark state containing records and extractors
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
-    public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
-        String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.kafkaRecords.get(0));
-        bh.consume(data);
-    }
+    //     @Benchmark
+    //     public void extractAsCanonicalItemProtoBuf(Protobuf proto, Blackhole bh) {
+    //         String data = proto.canonicalItemExtractor.extractCanonicalItem(proto.kafkaRecord);
+    //         bh.consume(data);
+    //     }
 
     /**
      * Benchmarks the extraction of canonical item names from JSON-formatted Kafka records.
@@ -165,11 +165,11 @@ public class DataExtractorBenchmarks {
      * @param json the JSON benchmark state containing records and extractors
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
-    public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
-        String data = json.canonicalItemExtractor.extractCanonicalItem(json.kafkaRecords.get(0));
-        bh.consume(data);
-    }
+    //     @Benchmark
+    //     public void extractAsCanonicalItemJson(Json json, Blackhole bh) {
+    //         String data = json.canonicalItemExtractor.extractCanonicalItem(json.kafkaRecord);
+    //         bh.consume(data);
+    //     }
 
     /**
      * Benchmarks extraction of Protobuf records into a new Map structure.
@@ -183,7 +183,7 @@ public class DataExtractorBenchmarks {
      */
     @Benchmark
     public void extractAsMapProtoBuf(Protobuf proto, Blackhole bh) {
-        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.kafkaRecords.get(0));
+        Map<String, String> data = proto.fieldsExtractor.extractMap(proto.kafkaRecord);
         bh.consume(data);
     }
 
@@ -197,11 +197,11 @@ public class DataExtractorBenchmarks {
      * @param json the JSON benchmark state containing records and extractors
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
-    public void extractAsMapJson(Json json, Blackhole bh) {
-        Map<String, String> data = json.fieldsExtractor.extractMap(json.kafkaRecords.get(0));
-        bh.consume(data);
-    }
+    //     @Benchmark
+    //     public void extractAsMapJson(Json json, Blackhole bh) {
+    //         Map<String, String> data = json.fieldsExtractor.extractMap(json.kafkaRecord);
+    //         bh.consume(data);
+    //     }
 
     /**
      * Benchmarks extraction of Protobuf records into a pre-existing Map.
@@ -214,12 +214,12 @@ public class DataExtractorBenchmarks {
      * @param proto the Protobuf benchmark state containing records and extractors
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
-    public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
-        Map<String, String> target = new HashMap<>();
-        proto.fieldsExtractor.extractIntoMap(proto.kafkaRecords.get(0), target);
-        bh.consume(target);
-    }
+    //     @Benchmark
+    //     public void extractIntoMapProtoBuf(Protobuf proto, Blackhole bh) {
+    //         Map<String, String> target = new HashMap<>();
+    //         proto.fieldsExtractor.extractIntoMap(proto.kafkaRecord, target);
+    //         bh.consume(target);
+    //     }
 
     /**
      * Benchmarks extraction of JSON records into a pre-existing Map.
@@ -232,10 +232,10 @@ public class DataExtractorBenchmarks {
      * @param json the JSON benchmark state containing records and extractors
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
-    public void extractIntoMapJson(Json json, Blackhole bh) {
-        Map<String, String> target = new HashMap<>();
-        json.fieldsExtractor.extractIntoMap(json.kafkaRecords.get(0), target);
-        bh.consume(target);
-    }
+    //     @Benchmark
+    //     public void extractIntoMapJson(Json json, Blackhole bh) {
+    //         Map<String, String> target = new HashMap<>();
+    //         json.fieldsExtractor.extractIntoMap(json.kafkaRecord, target);
+    //         bh.consume(target);
+    //     }
 }
