@@ -19,11 +19,13 @@ package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.processor.PerformanceMonitor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
@@ -207,6 +209,7 @@ public class KafkaConsumerWrapper<K, V> {
     private volatile FutureStatus status;
     private final ReentrantLock lock = new ReentrantLock();
     private final RecordDeserializationMode<K, V> deserializationMode;
+    private final PerformanceMonitor monitor;
 
     public KafkaConsumerWrapper(
             Config<K, V> config,
@@ -235,6 +238,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
         this.offsetService = Offsets.OffsetService(consumer, logger);
+        this.monitor = new PerformanceMonitor(logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
@@ -247,6 +251,7 @@ public class KafkaConsumerWrapper<K, V> {
                         .offsetService(offsetService)
                         .errorStrategy(this.config.errorHandlingStrategy())
                         .logger(logger)
+                        .batchListener(monitor)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
@@ -257,11 +262,14 @@ public class KafkaConsumerWrapper<K, V> {
                         config.suppliers().keySelectorSupplier().deserializer(),
                         config.suppliers().valueSelectorSupplier().deserializer());
         this.deserializationMode = new EagerDeserializationMode<>(deserializers);
+        // this.deserializationMode = new DeferredDeserializationMode<>(deserializers);
         // this.deserializationMode =
         //         recordConsumer.isParallel()
         //                 ? new DeferredDeserializationMode<>(deserializers)
         //                 : new EagerDeserializationMode<>(deserializers);
 
+        // ((AbstractRecordConsumer<K, V>) this.recordConsumer)
+        //         .setDeserializationMode(deserializationMode);
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
 
@@ -311,6 +319,7 @@ public class KafkaConsumerWrapper<K, V> {
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
         }
         try {
+            // pollOnce2(this::initStoreAndConsume2);
             pollOnce(this::initStoreAndConsume);
         } catch (KafkaException e) {
             logger.atWarn().log("Initialization failed because of an exception");
@@ -380,9 +389,8 @@ public class KafkaConsumerWrapper<K, V> {
 
     void pollOnce(java.util.function.Consumer<RecordBatch<K, V>> batchConsumer)
             throws KafkaException {
-        logger.atInfo().log(
-                "Starting first poll to initialize the offset store and skipping the records already consumed",
-                pollDuration);
+        logger.atInfo().log("Starting first poll to initialize the offset store", pollDuration);
+
         doPoll(batchConsumer, pollDuration);
         logger.atInfo().log("First poll completed");
     }
@@ -392,28 +400,35 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         try {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
+            monitor.countReceived(records.count());
             RecordBatch<K, V> batch = deserializationMode.toRecords(records);
-            int count = batch.count();
-            logger.atDebug().log("Consuming {} records", count);
             batchConsumer.accept(batch);
+            offsetService.maybeCommit();
+            monitor.checkStats();
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
+            logger.atDebug().log("Kafka Consumer woke up during poll");
             throw we;
         } catch (KafkaException ke) {
             logger.atError().setCause(ke).log("Unrecoverable exception");
             metadataListener.forceUnsubscriptionAll();
             throw ke;
+        } catch (Exception e) {
+            logger.atError().setCause(e).log("Unexpected exception during poll");
+            metadataListener.forceUnsubscriptionAll();
+            throw new KafkaException("Unexpected exception during poll", e);
         }
     }
 
     private void closeConsumer() {
         logger.atDebug().log("Start closing Kafka Consumer");
-        // Ensure that all pending offsets are committed
         recordConsumer.close();
+        // Ensure that all pending offsets are committed
+        offsetService.onConsumerShutdown();
         try {
             consumer.close();
         } catch (Exception e) {
-            logger.atError().setCause(e).log("Error while closing the Kafka Consumer");
+            logger.atError().setCause(e).log("Ignore error while closing the Kafka Consumer");
         }
         logger.atDebug().log("Kafka Consumer closed");
     }
@@ -428,7 +443,7 @@ public class KafkaConsumerWrapper<K, V> {
         installShutdownHook();
         logger.atDebug().log("Shutdown hook set");
         try {
-            runPollingLoop(this::consumeRecords);
+            runPollingLoop(this.recordConsumer::consumeBatch);
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
@@ -443,7 +458,9 @@ public class KafkaConsumerWrapper<K, V> {
     void runPollingLoop(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
-                "Starting polling forever with poll timeout of {} ms", pollDuration.toMillis());
+                "Starting polling forever with poll timeout of {} ms and max.poll.records {}",
+                pollDuration.toMillis(),
+                getProperty(MAX_POLL_RECORDS_CONFIG));
         for (; ; ) {
             doPoll(recordConsumer, pollDuration);
         }
@@ -455,11 +472,7 @@ public class KafkaConsumerWrapper<K, V> {
 
     void initStoreAndConsume(RecordBatch<K, V> batch) {
         offsetService.initStore(isFromLatest());
-        consumeRecords(batch);
-    }
-
-    void consumeRecords(RecordBatch<K, V> records) {
-        recordConsumer.consumeRecords(records);
+        recordConsumer.consumeBatch(batch);
     }
 
     public FutureStatus shutdown() {
