@@ -66,8 +66,8 @@ public class Offsets {
             return new FixedThresholdCommitStrategy(commitIntervalMs, commitEveryNRecords);
         }
 
-        static CommitStrategy adaptiveCommitStrategy() {
-            return new AdaptiveThresholdCommitStrategy();
+        static CommitStrategy adaptiveCommitStrategy(int maxCommitsPerSecond) {
+            return new AdaptiveThresholdCommitStrategy(maxCommitsPerSecond);
         }
     }
 
@@ -95,71 +95,90 @@ public class Offsets {
     }
 
     /**
-     * Adaptive commit strategy that dynamically adjusts commit frequency based on message
-     * processing rate. Designed to balance commit efficiency (avoiding {@code
-     * RetriableCommitException}) with crash safety by scaling batch sizes and intervals according
-     * to throughput while enforcing safety limits.
+     * Adaptive commit strategy that dynamically adjusts commit frequency based on message rate.
      *
-     * <p>Scaling tiers: - Tier 1 (≤25K msg/sec): Gentle scaling up to 3x baseline - Tier 2
-     * (25K-125K msg/sec): Moderate scaling up to 6x baseline - Tier 3 (125K-250K msg/sec):
-     * Controlled scaling up to 10x baseline
+     * <p>Behavior:
      *
-     * <p>Safety guarantees: - Maximum 10-second commit intervals (crash safety) - Maximum 100K
-     * record batches (memory protection) - Never commits more frequently than baseline (efficiency
-     * protection)
+     * <ul>
+     *   <li>Commits when lag reaches the current message rate (max 1 second worth)
+     *   <li>At low throughput: commits more frequently (up to maxCommitsPerSecond)
+     *   <li>At high throughput: gradually throttles down to 1 commit/sec
+     *   <li>Never waits longer than 10 seconds between commits (safety)
+     * </ul>
+     *
+     * <p>Example with maxCommitsPerSecond=5:
+     *
+     * <pre>
+     * | Message Rate | Effective Commits/sec | Max Lag   | Interval |
+     * |--------------|-----------------------|-----------|----------|
+     * | 10K msg/sec  | 5.0                   | 2,000     | 200ms    |
+     * | 50K msg/sec  | 4.7                   | 10,638    | 213ms    |
+     * | 100K msg/sec | 4.3                   | 23,256    | 233ms    |
+     * | 200K msg/sec | 3.4                   | 58,824    | 294ms    |
+     * | 300K msg/sec | 2.6                   | 115,385   | 385ms    |
+     * | 400K msg/sec | 1.8                   | 222,222   | 556ms    |
+     * | 500K msg/sec | 1.0                   | 500,000   | 1,000ms  |
+     * | 1M msg/sec   | 1.0                   | 1,000,000 | 1,000ms  |
+     * </pre>
      */
     private static class AdaptiveThresholdCommitStrategy implements CommitStrategy {
 
-        private final long BASE_COMMIT_INTERVAL_MS = 4000; // Baseline: 4 seconds
-        private final int BASE_COMMIT_RECORDS = 10000; // Baseline: 10K records (2.5K msg/sec rate)
-        private final double MIN_SCALE = 1.0; // Never scale below baseline (efficiency protection)
-        private final double MAX_SCALE =
-                50.0; // Maximum scaling factor for extreme throughput (500K+ msg/sec)
+        private final int maxCommitsPerSecond;
+        private final long minCommitIntervalMs;
+        private final long maxCommitIntervalMs = 10_000L;
+
+        private volatile double avgMessageRate = 0.0;
+        private static final double EMA_ALPHA = 0.3;
+
+        // Rate thresholds for scaling commits/sec
+        private static final double LOW_RATE = 10_000; // Below: use maxCommitsPerSecond
+        private static final double HIGH_RATE = 500_000; // Above: use 1 commit/sec
+
+        AdaptiveThresholdCommitStrategy(int maxCommitsPerSecond) {
+            this.maxCommitsPerSecond = maxCommitsPerSecond;
+            this.minCommitIntervalMs = 1000L / maxCommitsPerSecond;
+        }
 
         @Override
         public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
-            long elapsed = now - lastCommitTimeMs;
-
-            // Calculate current message processing rate (messages per second)
-            double messageRate = elapsed > 0 ? (messagesSinceLastCommit * 1000.0) / elapsed : 0;
-            double baselineRate =
-                    (BASE_COMMIT_RECORDS * 1000.0)
-                            / BASE_COMMIT_INTERVAL_MS; // 2500 msg/sec baseline rate
-
-            // Apply three-tier adaptive scaling based on load factor
-            double scale;
-            if (messageRate <= baselineRate) {
-                // Low/normal load: maintain baseline frequency for responsiveness
-                scale = MIN_SCALE;
-            } else {
-                double loadFactor = messageRate / baselineRate;
-                if (loadFactor <= 10) {
-                    // Tier 1: Up to 25K msg/sec - gentle logarithmic scaling (max 3x)
-                    scale = Math.min(3.0, 1.0 + Math.log(loadFactor) * 0.6);
-                } else if (loadFactor <= 50) {
-                    // Tier 2: 25K-125K msg/sec - moderate scaling (3x to 6x)
-                    scale = Math.min(6.0, 3.0 + Math.log(loadFactor / 10.0) * 1.0);
-                } else if (loadFactor <= 200) {
-                    // Tier 3: 125K-500K msg/sec - controlled scaling for high throughput (6x to
-                    // 20x)
-                    scale = Math.min(20.0, 6.0 + Math.log(loadFactor / 50.0) * 3.5);
-                } else {
-                    // Tier 4: 500K+ msg/sec - extreme throughput scaling (20x to 50x)
-                    scale = Math.min(MAX_SCALE, 20.0 + Math.log(loadFactor / 200.0) * 5.0);
-                }
+            if (messagesSinceLastCommit == 0) {
+                return false;
             }
 
-            // Calculate adaptive thresholds based on scaling factor
-            long adaptiveInterval = (long) (BASE_COMMIT_INTERVAL_MS * scale);
-            int adaptiveRecordsThreshold = (int) (BASE_COMMIT_RECORDS * scale);
+            long elapsed = now - lastCommitTimeMs;
 
-            // Apply safety limits to prevent excessive data loss and memory usage
-            long maxInterval = 5000; // 5-second cap: faster commits for high throughput
-            int maxRecords = 200000; // 200K record cap: increased for high throughput scenarios
+            // Hard limit: never exceed maxCommitsPerSecond
+            if (elapsed < minCommitIntervalMs) {
+                return false;
+            }
 
-            // Commit when either time threshold OR record threshold is reached
-            return elapsed >= Math.min(adaptiveInterval, maxInterval)
-                    || messagesSinceLastCommit >= Math.min(adaptiveRecordsThreshold, maxRecords);
+            // Calculate and update average message rate
+            double currentRate = elapsed > 0 ? (messagesSinceLastCommit * 1000.0) / elapsed : 0;
+            avgMessageRate =
+                    avgMessageRate == 0.0
+                            ? currentRate
+                            : EMA_ALPHA * currentRate + (1 - EMA_ALPHA) * avgMessageRate;
+
+            // Calculate effective commits/sec that scales with message rate:
+            // - At LOW_RATE or below: use maxCommitsPerSecond
+            // - At HIGH_RATE or above: use 1 commit/sec
+            // - In between: linear interpolation
+            double effectiveCommitsPerSec;
+            if (avgMessageRate <= LOW_RATE) {
+                effectiveCommitsPerSec = maxCommitsPerSecond;
+            } else if (avgMessageRate >= HIGH_RATE) {
+                effectiveCommitsPerSec = 1.0;
+            } else {
+                // Linear interpolation between maxCommitsPerSecond and 1
+                double scale = (avgMessageRate - LOW_RATE) / (HIGH_RATE - LOW_RATE);
+                effectiveCommitsPerSec = maxCommitsPerSecond - scale * (maxCommitsPerSecond - 1);
+            }
+
+            // Lag threshold = rate / effectiveCommitsPerSec
+            int maxLag = Math.max(1, (int) (avgMessageRate / effectiveCommitsPerSec));
+
+            // Commit when lag exceeds threshold OR max interval reached (safety)
+            return messagesSinceLastCommit >= maxLag || elapsed >= maxCommitIntervalMs;
         }
     }
 
@@ -215,7 +234,7 @@ public class Offsets {
         private OffsetStore offsetStore = record -> {};
 
         OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
-            this(consumer, logger, new FixedThresholdCommitStrategy(5000, 100_000));
+            this(consumer, logger, CommitStrategy.adaptiveCommitStrategy(5));
         }
 
         OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
