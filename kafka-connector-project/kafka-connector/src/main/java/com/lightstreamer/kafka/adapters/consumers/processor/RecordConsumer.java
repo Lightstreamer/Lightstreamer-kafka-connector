@@ -136,7 +136,20 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
-    void consumeRecords(RecordBatch<K, V> records);
+    /**
+     * Consumes a batch of records.
+     *
+     * <p>This method processes a batch of records of the specified generic types K and V. The
+     * implementation is responsible for handling the records within the batch according to the
+     * business logic requirements.
+     *
+     * @param <K> the type of the keys in the record batch
+     * @param <V> the type of the values in the record batch
+     * @param batch the batch of records to be consumed, must not be null
+     */
+    void consumeBatch(RecordBatch<K, V> batch);
+
+    boolean hasFailedAsynchronously();
 
     default int numOfThreads() {
         return 1;
