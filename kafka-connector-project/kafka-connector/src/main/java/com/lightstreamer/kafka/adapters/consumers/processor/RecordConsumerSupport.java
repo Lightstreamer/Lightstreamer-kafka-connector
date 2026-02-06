@@ -42,15 +42,11 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
 
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -66,7 +62,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class RecordConsumerSupport {
+public class RecordConsumerSupport {
 
     public static <K, V> StartBuildingProcessor<K, V> startBuildingProcessor(
             RecordMapper<K, V> mapper) {
@@ -566,14 +562,15 @@ class RecordConsumerSupport {
         }
     }
 
-    private abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
+    public abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
 
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
         protected final RecordBatchListener batchListener;
-        private final RecordErrorHandlingStrategy errorStrategy;
+        protected final RecordErrorHandlingStrategy errorStrategy;
         private volatile boolean closed = false;
+        protected volatile Throwable firstFailure = null;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
@@ -585,18 +582,51 @@ class RecordConsumerSupport {
             this.recordProcessor.useLogger(logger);
         }
 
+        final void asyncFailure(Throwable t) {
+            if (firstFailure == null) {
+                firstFailure = t;
+            }
+        }
+
         @Override
         public void close() {
-            offsetService.onConsumerShutdown();
-            closed = true;
+            this.closed = true;
+            onPoolsShutdown();
+        }
+
+        @Override
+        public boolean hasFailedAsynchronously() {
+            return firstFailure != null;
+        }
+
+        /** Hook for subclasses to shutdown additional pools before offset commit. */
+        void onPoolsShutdown() {
+            // Default: nothing, subclasses can override
+        }
+
+        final void shutdownPool(ExecutorService pool, String poolName) {
+            logger.atInfo().log("Shutting down {}", poolName);
+            pool.shutdown();
+            try {
+                if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+                    logger.atWarn()
+                            .log("{} did not terminate gracefully, forcing shutdown", poolName);
+                    pool.shutdownNow();
+                    if (!pool.awaitTermination(2, TimeUnit.SECONDS)) {
+                        logger.atWarn().log("{} did not terminate after forced shutdown", poolName);
+                    }
+                }
+            } catch (InterruptedException e) {
+                logger.atWarn().log("Interrupted while waiting for {} to terminate", poolName);
+                pool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
 
         @Override
         public final boolean isClosed() {
-            return closed;
+            return this.closed;
         }
-
-        void onTermination() {}
 
         @Override
         public final RecordErrorHandlingStrategy errorStrategy() {
@@ -611,27 +641,15 @@ class RecordConsumerSupport {
 
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
-        private final PerformanceMonitor performanceMonitor;
-
         SingleThreadedRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
-            this.performanceMonitor = new PerformanceMonitor(logger);
         }
 
         @Override
-        public void consumeRecords(RecordBatch<K, V> records) {
-            int recordCount = records.count();
-            if (recordCount > 0) {
-                for (KafkaRecord<K, V> record : records.getRecords()) {
-                    consumeRecord(record);
-                }
-                performanceMonitor.countProcessed(recordCount);
+        public void consumeBatch(RecordBatch<K, V> records) {
+            for (KafkaRecord<K, V> record : records.getRecords()) {
+                consumeRecord(record);
             }
-
-            offsetService.maybeCommit();
-
-            // Check processing stats periodically
-            performanceMonitor.checkStats();
         }
 
         private void consumeRecord(KafkaRecord<K, V> record) {
@@ -659,34 +677,32 @@ class RecordConsumerSupport {
             } catch (Throwable t) {
                 logger.atError().setCause(t).log("Serious error while processing record!");
                 throw new KafkaException(t);
+            } finally {
+                record.getBatch().recordProcessed(batchListener);
             }
         }
     }
 
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
+        private static final String POOL_NAME = "Ring buffer processor pool";
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
-        protected final RecordBatchListener batchListener;
         protected final int actualThreads;
 
         // Ring buffers settings for high-throughput processing
+        private static final int RING_BUFFER_CAPACITY = 16_384;
         private final BlockingQueue<KafkaRecord<K, V>>[] ringBuffers;
         private final AtomicLong roundRobinCounter = new AtomicLong(0);
         private final ExecutorService ringBufferPool;
-        private volatile boolean shutdownRequested = false;
-        private final int ringBufferCapacity;
+        private volatile boolean stopping = false;
 
         @SuppressWarnings("unchecked")
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
-            this.batchListener = builder.batchListener;
             this.actualThreads = getActualThreadsNumber(builder.threads);
-
-            // Calculate optimal ring buffer capacity based on workload
-            this.ringBufferCapacity = calculateOptimalRingBufferCapacity();
 
             // Initialize high-throughput ring buffers for ultra-high performance
             this.ringBuffers = new BlockingQueue[actualThreads];
@@ -712,56 +728,15 @@ class RecordConsumerSupport {
             // Initialize ring buffers and submit processing tasks
             for (int i = 0; i < actualThreads; i++) {
                 // Use calculated optimal capacity for maximum throughput
-                this.ringBuffers[i] = new ArrayBlockingQueue<>(ringBufferCapacity);
+                this.ringBuffers[i] = new ArrayBlockingQueue<>(RING_BUFFER_CAPACITY);
                 final int threadIndex = i;
 
                 logger.atDebug().log(
-                        "Initialized ring buffer {} with capacity {}", i, ringBufferCapacity);
+                        "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
 
                 // Submit ring buffer processing task to executor
                 ringBufferPool.submit(() -> processRingBuffer(threadIndex));
             }
-        }
-
-        /**
-         * Calculate optimal ring buffer capacity based on throughput requirements and thread
-         * configuration. Uses workload analysis rather than arbitrary values.
-         */
-        private int calculateOptimalRingBufferCapacity() {
-            // Target throughput analysis - aiming for 1M+ records/sec
-            int targetTotalThroughputPerSec = 1_000_000; // Target 1M records/sec
-            int targetThroughputPerThread = targetTotalThroughputPerSec / actualThreads;
-
-            // Processing time estimation (optimistic for high throughput)
-            int estimatedProcessingTimeMs = 1; // Assume 1ms avg processing per record
-            int batchDrainSize = 5000; // From processRingBuffer batch size
-
-            // Calculate buffer needs
-            int recordsPerMs = Math.max(1, targetThroughputPerThread / 1000);
-            int bufferForProcessingPipeline = recordsPerMs * estimatedProcessingTimeMs;
-            int bufferForBatchingEfficiency = batchDrainSize * 3; // Triple buffer for efficiency
-
-            // Safety margin for burst traffic (50% overhead for high throughput)
-            int burstCapacity = Math.max(2000, bufferForProcessingPipeline / 2);
-
-            // Total capacity calculation
-            int calculatedCapacity =
-                    bufferForProcessingPipeline + bufferForBatchingEfficiency + burstCapacity;
-
-            // Apply reasonable bounds - increase for high throughput
-            int minCapacity = 8000; // Higher minimum for high throughput
-            int maxCapacity = 131072; // Increased maximum capacity
-
-            int finalCapacity = Math.max(minCapacity, Math.min(calculatedCapacity, maxCapacity));
-
-            logger.atInfo().log(
-                    "Ring buffer capacity calculation: {} threads, {}k target throughput/thread, {}ms processing time, {} final capacity",
-                    actualThreads,
-                    targetThroughputPerThread / 1000,
-                    estimatedProcessingTimeMs,
-                    finalCapacity);
-
-            return finalCapacity;
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -787,24 +762,10 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(RecordBatch<K, V> batch) {
-            if (batch.isEmpty()) {
-                offsetService.maybeCommit();
-                return;
+        public void consumeBatch(RecordBatch<K, V> batch) {
+            if (firstFailure != null) {
+                throw new KafkaException(firstFailure);
             }
-
-            processWithRingBuffers(batch);
-            offsetService.maybeCommit();
-
-            Throwable failure = offsetService.getFirstFailure();
-            if (failure != null) {
-                logger.atWarn().log("Forcing unsubscription");
-                throw new KafkaException(failure);
-            }
-        }
-
-        // Ring buffer processing for high-throughput scenarios
-        private void processWithRingBuffers(RecordBatch<K, V> batch) {
             // Distribute records to ring buffers
             for (KafkaRecord<K, V> record : batch.getRecords()) {
                 int bufferIndex = selectRingBuffer(record);
@@ -819,6 +780,8 @@ class RecordConsumerSupport {
                     return; // Exit gracefully, allow partial batch to complete
                 }
             }
+
+            this.batchListener.checkRingBufferUtilization(this.ringBuffers, RING_BUFFER_CAPACITY);
         }
 
         private void feedBuffer(KafkaRecord<K, V> record, int bufferIndex)
@@ -848,31 +811,18 @@ class RecordConsumerSupport {
 
         private void processRingBuffer(int threadIndex) {
             final BlockingQueue<KafkaRecord<K, V>> ringBuffer = ringBuffers[threadIndex];
-            // Pre-allocate with optimal size and reuse to minimize GC pressure
-            final List<KafkaRecord<K, V>> batchBuffer = new ArrayList<>(5000);
 
             if (logger.isDebugEnabled()) {
                 logger.debug("Starting processing thread {}", threadIndex);
             }
 
-            // Continue processing until shutdown is requested AND the buffer is fully drained
-            // This ensures all records are processed before exit on shutdown
-            while (!shutdownRequested || !ringBuffer.isEmpty()) {
+            // Continue processing until stopping
+            while (!stopping) {
                 try {
                     // Efficient batch drain - reuse ArrayList to minimize GC
-                    KafkaRecord<K, V> firstRecord = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
-                    if (firstRecord == null) continue;
-
-                    batchBuffer.clear(); // Reset size but keep capacity
-                    batchBuffer.add(firstRecord);
-                    int additionalRecords =
-                            ringBuffer.drainTo(batchBuffer, 4999); // Drain up to 4999 more
-
-                    final int batchSize =
-                            1 + additionalRecords; // Calculate directly: firstRecord + drained
-                    for (int i = 0; i < batchSize; i++) {
-                        consume(batchBuffer.get(i)); // Direct index access is faster
-                    }
+                    KafkaRecord<K, V> record = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
+                    if (record == null) continue;
+                    consume(record);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     logger.atDebug().log(
@@ -883,6 +833,20 @@ class RecordConsumerSupport {
                             .setCause(e)
                             .log(
                                     "Unexpected error in ring buffer processor {}, continuing",
+                                    threadIndex);
+                }
+            }
+
+            // Drain remaining records after shutdown requested
+            KafkaRecord<K, V> record;
+            while ((record = ringBuffer.poll()) != null) {
+                try {
+                    consume(record);
+                } catch (Exception e) {
+                    logger.atError()
+                            .setCause(e)
+                            .log(
+                                    "Ingornig error while draining remaining records in ring buffer processor {} after shutdown",
                                     threadIndex);
                 }
             }
@@ -902,7 +866,7 @@ class RecordConsumerSupport {
                 handleError(record, ve);
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
-                offsetService.onAsyncFailure(t);
+                asyncFailure(t);
             } finally {
                 record.getBatch().recordProcessed(batchListener);
             }
@@ -933,43 +897,15 @@ class RecordConsumerSupport {
                     // On the other hand, partitions without errors are processed and committed
                     // entirely, which is good, although, then, the elaboration stops also for them.
                     logger.atWarn().log("Will force unsubscription");
-                    offsetService.onAsyncFailure(ve);
+                    asyncFailure(ve);
                 }
             }
         }
 
         @Override
-        public void close() {
-            logger.atInfo().log("Shutting down high-throughput ring buffer processors");
-            shutdownRequested = true;
-
-            // Graceful shutdown of ring buffer processor pool
-            ringBufferPool.shutdown();
-            try {
-                if (!ringBufferPool.awaitTermination(5, TimeUnit.SECONDS)) {
-                    logger.atWarn()
-                            .log(
-                                    "Ring buffer processors did not terminate gracefully, forcing shutdown");
-                    ringBufferPool.shutdownNow();
-                    if (!ringBufferPool.awaitTermination(2, TimeUnit.SECONDS)) {
-                        logger.atWarn()
-                                .log(
-                                        "Ring buffer processors did not terminate after forced shutdown");
-                    }
-                }
-            } catch (InterruptedException e) {
-                logger.atWarn()
-                        .log("Interrupted while waiting for ring buffer processors to terminate");
-                ringBufferPool.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-            super.close();
-        }
-
-        public static <K, V> List<ConsumerRecord<K, V>> flatRecords(ConsumerRecords<K, V> records) {
-            List<ConsumerRecord<K, V>> allRecords = new ArrayList<>(records.count());
-            records.forEach(allRecords::add);
-            return allRecords;
+        void onPoolsShutdown() {
+            stopping = true;
+            shutdownPool(ringBufferPool, POOL_NAME);
         }
     }
 
