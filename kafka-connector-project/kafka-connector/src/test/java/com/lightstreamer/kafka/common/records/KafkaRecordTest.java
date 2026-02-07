@@ -112,7 +112,7 @@ public class KafkaRecordTest {
                         headers,
                         Optional.empty());
 
-        CallbackRecordBatch<String, String> batch = new CallbackRecordBatch<>(1);
+        NotifyingRecordBatch<String, String> batch = new NotifyingRecordBatch<>(1);
         KafkaRecord<String, String> kafkaRecord =
                 KafkaRecord.fromDeferred(consumerRecord, deserializerPair, batch);
 
@@ -171,7 +171,7 @@ public class KafkaRecordTest {
                         headers,
                         Optional.empty());
 
-        CallbackRecordBatch<String, String> batch = new CallbackRecordBatch<>(1);
+        NotifyingRecordBatch<String, String> batch = new NotifyingRecordBatch<>(1);
         KafkaRecord<String, String> kafkaRecord =
                 KafkaRecord.fromEager(consumerRecord, deserializerPair, batch);
 
