@@ -57,6 +57,11 @@ abstract class BaseMonitor implements Monitor {
         this.checkIntervalNs = checkInterval.toNanos();
     }
 
+    @Override   
+    public final Duration getCheckInterval() {    
+        return Duration.ofNanos(checkIntervalNs);
+    }
+
     @Override
     public final void check() {
         long currentTime = System.nanoTime();
