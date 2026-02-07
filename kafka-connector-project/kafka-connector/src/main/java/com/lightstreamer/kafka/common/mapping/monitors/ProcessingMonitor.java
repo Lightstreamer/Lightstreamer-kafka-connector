@@ -33,6 +33,4 @@ import com.lightstreamer.kafka.common.records.RecordBatch;
  *
  * @see ThroughputMonitor
  */
-public interface ProcessingMonitor extends RecordBatch.RecordBatchListener, Monitor {
-
-}
+public interface ProcessingMonitor extends RecordBatch.RecordBatchListener, Monitor {}
