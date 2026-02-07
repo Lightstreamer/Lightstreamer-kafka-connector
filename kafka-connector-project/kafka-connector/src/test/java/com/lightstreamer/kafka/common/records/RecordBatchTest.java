@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.apache.kafka.common.serialization.Serdes.String;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -167,7 +168,7 @@ public class RecordBatchTest {
                 RecordBatch.batchFromEager(consumerRecords, deserializerPair, joinable);
 
         AtomicBoolean completed = new AtomicBoolean(false);
-        RecordBatch.RecordBatchListener listener = recordBatch -> completed.set(true);
+        RecordBatchListener listener = recordBatch -> completed.set(true);
         assertThat(completed.get()).isFalse();
 
         // Process records one by one
