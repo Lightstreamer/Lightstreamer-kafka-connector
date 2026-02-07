@@ -22,7 +22,7 @@ import java.util.concurrent.CountDownLatch;
 /**
  * {@link RecordBatch} implementation with synchronous join support.
  *
- * <p>This implementation extends {@link CallbackRecordBatch} and adds a {@link CountDownLatch} to
+ * <p>This implementation extends {@link NotifyingRecordBatch} and adds a {@link CountDownLatch} to
  * enable synchronous waiting via the {@link #join()} method. It is used when processing must be
  * coordinated between threads, such as when batching offset commits.
  *
@@ -37,51 +37,36 @@ import java.util.concurrent.CountDownLatch;
  * <p><b>Thread Safety:</b> Safe for concurrent calls from multiple worker threads. The {@link
  * #join()} method blocks until all records have been processed.
  *
- * <p><b>Performance:</b> Higher synchronization overhead than {@link CallbackRecordBatch} due to
- * the additional {@link CountDownLatch} and coordination. Use {@link CallbackRecordBatch} with
+ * <p><b>Performance:</b> Higher synchronization overhead than {@link NotifyingRecordBatch} due to
+ * the additional {@link CountDownLatch} and coordination. Use {@link NotifyingRecordBatch} with
  * callbacks for maximum throughput scenarios.
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
- * @see CallbackRecordBatch
+ * @see NotifyingRecordBatch
  */
-public class JoinableRecordBatch<K, V> extends CallbackRecordBatch<K, V> {
+public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
 
     private final CountDownLatch latch;
 
     /**
-     * Constructs a new {@code JoinableRecordBatch} with the given records.
+     * Constructs a new {@code JoinableRecordBatch} with the specified capacity.
      *
      * <p>A {@link CountDownLatch} is initialized with the record count to track completion.
      *
-     * @param recordCount the number of records in this batch
+     * @param recordCount the expected number of records in this batch
      */
     public JoinableRecordBatch(int recordCount) {
         super(recordCount);
         this.latch = new CountDownLatch(recordCount);
     }
 
-    /**
-     * Notifies that a record from this batch has been processed.
-     *
-     * <p>This method decrements the latch and invokes the parent's completion tracking logic.
-     *
-     * @param listener the completion listener to invoke when all records are processed
-     */
     @Override
     public void recordProcessed(RecordBatchListener listener) {
         latch.countDown();
         super.recordProcessed(listener);
     }
 
-    /**
-     * Waits for all records in this batch to be processed.
-     *
-     * <p>This method blocks until all records have been processed (i.e., until the internal {@link
-     * CountDownLatch} reaches zero).
-     *
-     * @throws RuntimeException if interrupted while waiting
-     */
     @Override
     public void join() {
         try {
