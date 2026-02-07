@@ -32,5 +32,6 @@ import com.lightstreamer.kafka.common.records.RecordBatch;
  * concurrently from multiple worker threads.
  *
  * @see ThroughputMonitor
+ * @see Monitors#createProcessingMonitor
  */
 public interface ProcessingMonitor extends RecordBatch.RecordBatchListener, Monitor {}

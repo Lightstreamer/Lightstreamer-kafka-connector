@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * ensure only one thread performs the check when the interval elapses.
  *
  * @see Monitor
+ * @see Monitors
  * @see ThroughputMonitor
  * @see RingUtilizationMonitor
  */

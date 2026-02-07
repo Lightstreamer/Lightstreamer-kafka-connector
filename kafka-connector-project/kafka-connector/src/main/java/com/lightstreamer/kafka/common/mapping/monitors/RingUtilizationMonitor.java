@@ -150,11 +150,11 @@ class RingUtilizationMonitor extends BaseMonitor {
     }
 
     /**
-     * Create a visual utilization bar with color indicators.
+     * Creates a visual utilization bar with color indicators.
      *
-     * @param utilizationPercent The utilization percentage (0-100)
-     * @param width The width of the bar in characters
-     * @return A string representing the visual bar
+     * @param utilizationPercent the utilization percentage (0-100)
+     * @param width the width of the bar in characters
+     * @return a string representing the visual bar
      */
     private String createUtilizationBar(int utilizationPercent, int width) {
         int filledChars = (utilizationPercent * width) / 100;
