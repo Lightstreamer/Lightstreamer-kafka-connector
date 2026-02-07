@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.mapping.monitors;
 
+import java.time.Duration;
+
 /**
  * Base interface for periodic monitoring components.
  *
@@ -40,4 +42,11 @@ public interface Monitor {
      * has passed.
      */
     void check();
+
+    /**
+     * Returns the configured interval between checks.
+     *
+     * @return the check interval
+     */
+    Duration getCheckInterval();
 }
