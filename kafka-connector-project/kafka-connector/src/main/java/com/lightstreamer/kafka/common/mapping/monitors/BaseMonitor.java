@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * safety. Subclasses only need to implement {@link #performCheck(double)} to define the actual
  * monitoring behavior.
  *
- * <p><b>Thread Safety:</b> The {@link #check()} method is thread-safe and uses atomic operations
- * to ensure only one thread performs the check when the interval elapses.
+ * <p><b>Thread Safety:</b> The {@link #check()} method is thread-safe and uses atomic operations to
+ * ensure only one thread performs the check when the interval elapses.
  *
  * @see Monitor
  * @see ThroughputMonitor
