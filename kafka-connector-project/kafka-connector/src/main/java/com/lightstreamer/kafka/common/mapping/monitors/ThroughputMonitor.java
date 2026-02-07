@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * @see ProcessingMonitor
  * @see BaseMonitor
+ * @see Monitors#createProcessingMonitor
  */
 public class ThroughputMonitor extends BaseMonitor implements ProcessingMonitor {
 
@@ -98,18 +99,48 @@ public class ThroughputMonitor extends BaseMonitor implements ProcessingMonitor 
 
     // Package-private accessors for testing
 
+    /**
+     * Returns the total number of records received since monitor creation.
+     *
+     * <p>Package-private for testing purposes.
+     *
+     * @return the total received record count
+     */
     long getTotalReceivedRecords() {
         return totalReceivedRecords.get();
     }
 
+    /**
+     * Returns the total number of records processed since monitor creation.
+     *
+     * <p>Package-private for testing purposes.
+     *
+     * @return the total processed record count
+     */
     long getTotalProcessedRecords() {
         return totalProcessedRecords.get();
     }
 
+    /**
+     * Returns the received record count at the last check.
+     *
+     * <p>This value represents a snapshot taken during the previous {@link #check()} call and is
+     * used to calculate incremental throughput. Package-private for testing purposes.
+     *
+     * @return the received count at last check
+     */
     long getLastReceivedCount() {
         return lastReceivedCount.get();
     }
 
+    /**
+     * Returns the processed record count at the last check.
+     *
+     * <p>This value represents a snapshot taken during the previous {@link #check()} call and is
+     * used to calculate incremental throughput. Package-private for testing purposes.
+     *
+     * @return the processed count at last check
+     */
     long getLastProcessedCount() {
         return lastProcessedCount.get();
     }
