@@ -722,7 +722,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
                     RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeRecords(batch);
+            recordConsumer.consumeBatch(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -795,7 +795,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
                     RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeRecords(batch);
+            recordConsumer.consumeBatch(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -853,7 +853,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
                     RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeRecords(batch);
+            recordConsumer.consumeBatch(batch);
             batch.join();
             List<Event> events =
                     testListener.getSmartRealtimeUpdates().stream()
@@ -891,7 +891,7 @@ public class RecordConsumerTest {
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
                     RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeRecords(batch);
+            recordConsumer.consumeBatch(batch);
             batch.join();
             List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
             List<Event> deliveredEvents =
@@ -921,7 +921,7 @@ public class RecordConsumerTest {
 
         RecordBatch<String, String> batch =
                 RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
-        recordConsumer.consumeRecords(batch);
+        recordConsumer.consumeBatch(batch);
         batch.join();
         List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(1);
@@ -953,6 +953,7 @@ public class RecordConsumerTest {
                 RecordConsumer.<String, String>recordProcessor(
                                 new MockRecordProcessor<>(exception, offendingOffsets))
                         .offsetService(offsetService)
+                        // The following forces the exception to be propagated
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
                         .threads(numOfThreads)
@@ -961,18 +962,14 @@ public class RecordConsumerTest {
                         .build();
 
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair);
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
         if (numOfThreads == 1) {
-            assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(batch));
+            assertThrows(KafkaException.class, () -> recordConsumer.consumeBatch(batch));
         } else {
             // With multiple threads, exception may or may not be thrown depending on timing
-            try {
-                recordConsumer.consumeRecords(batch);
-            } catch (KafkaException expected) {
-                logger.atError()
-                        .log(
-                                "KafkaException caught as expected when consuming records with multiple threads");
-            }
+            recordConsumer.consumeBatch(batch);
+            batch.join();
+            assertThat(recordConsumer.hasFailedAsynchronously()).isTrue();
         }
         // Ensure graceful shutdown of internal resources like ring buffers and executor threads.
         recordConsumer.close();
@@ -1016,24 +1013,26 @@ public class RecordConsumerTest {
                         .build();
 
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair);
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
         if (numOfThreads == 1) {
             if (exception instanceof ValueException) {
                 // No exception should be thrown
-                recordConsumer.consumeRecords(batch);
+                recordConsumer.consumeBatch(batch);
             } else {
                 // Other kind of exceptions should still be propagated
-                assertThrows(KafkaException.class, () -> recordConsumer.consumeRecords(batch));
+                assertThrows(KafkaException.class, () -> recordConsumer.consumeBatch(batch));
+                assertThat(recordConsumer.hasFailedAsynchronously()).isFalse();
             }
         } else {
-            // With multiple threads, ValueExceptions should be ignored, other exceptions may still
-            // be thrown depending on timing
-            try {
-                recordConsumer.consumeRecords(batch);
-            } catch (KafkaException expected) {
-                logger.atError()
-                        .log(
-                                "KafkaException caught as expected when consuming records with multiple threads");
+            // With multiple threads, ValueExceptions should be ignored
+            if (exception instanceof ValueException) {
+                recordConsumer.consumeBatch(batch);
+            } else {
+                // On the other hand, other exceptions should still be propagated,
+                // but can only be detected asynchronously
+                recordConsumer.consumeBatch(batch);
+                batch.join();
+                assertThat(recordConsumer.hasFailedAsynchronously()).isTrue();
             }
         }
 
