@@ -34,6 +34,9 @@ import java.util.concurrent.BlockingQueue;
  */
 public class Monitors {
 
+    /** Private constructor to prevent instantiation. */
+    private Monitors() {}
+
     /**
      * Creates a new processing monitor for tracking batch processing throughput.
      *
