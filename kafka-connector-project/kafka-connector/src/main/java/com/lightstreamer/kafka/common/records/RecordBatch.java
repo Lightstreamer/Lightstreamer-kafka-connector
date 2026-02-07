@@ -24,25 +24,39 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Represents a batch of Kafka records with flexible deserialization and processing strategies.
  *
  * <p>This interface provides an abstraction over a collection of {@link KafkaRecord}s and supports
- * both eager and deferred deserialization strategies through factory methods. Eager deserialization
- * performs key/value decoding immediately during batch creation, while deferred deserialization
- * delays decoding until individual records are accessed.
+ * both eager and deferred deserialization strategies through factory methods:
  *
- * <p>Batches track processing progress through the {@link #recordProcessed(RecordBatchListener)}
- * method, allowing asynchronous processing with completion callbacks. Implementations may support
- * synchronous waiting via the {@link #join()} method.
+ * <ul>
+ *   <li><b>Eager deserialization:</b> Key/value decoding is performed immediately during batch
+ *       creation via {@link #batchFromEager}. Allows early error detection but requires more
+ *       upfront processing.
+ *   <li><b>Deferred deserialization:</b> Key/value decoding is delayed until individual records are
+ *       accessed via {@link #batchFromDeferred}. Reduces upfront cost but extends object lifetimes.
+ * </ul>
+ *
+ * <p><b>Lifecycle:</b>
+ *
+ * <ol>
+ *   <li>Create batch via factory method ({@code batchFromEager} or {@code batchFromDeferred})
+ *   <li>Distribute records to worker threads for processing
+ *   <li>Each worker calls {@link #recordProcessed(RecordBatchListener)} after processing a record
+ *   <li>When all records are processed, the listener is notified
+ *   <li>Optionally call {@link #join()} to block until completion
+ * </ol>
  *
  * <p><b>Thread Safety:</b> Batches are created in the consumer thread and distributed to worker
- * threads for processing. Record processing notifications must be thread-safe.
+ * threads for processing. The {@link #recordProcessed(RecordBatchListener)} method must be
+ * thread-safe for concurrent calls from multiple workers.
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
- * @see CallbackRecordBatch
+ * @see NotifyingRecordBatch
  * @see JoinableRecordBatch
  * @see KafkaRecord
  */
@@ -61,6 +75,9 @@ public interface RecordBatch<K, V> {
          * @param batch the completed batch
          */
         void onBatchComplete(RecordBatch<?, ?> batch);
+
+        default void checkRingBufferUtilization(
+                BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {}
     }
 
     /**
@@ -109,6 +126,18 @@ public interface RecordBatch<K, V> {
     default void join() {}
 
     /**
+     * Validates that the batch was constructed correctly.
+     *
+     * <p>This method should be called after all records have been added to the batch and before the
+     * batch is distributed for processing. It verifies that the actual number of records matches
+     * the expected count provided at construction time.
+     *
+     * @throws IllegalStateException if the batch is in an invalid state (e.g., record count
+     *     mismatch)
+     */
+    void validate();
+
+    /**
      * Converts a batch of Kafka consumer records to a {@code RecordBatch} with eager
      * deserialization.
      *
@@ -122,7 +151,7 @@ public interface RecordBatch<K, V> {
      * @param deserializerPair the pair of deserializers for keys and values
      * @return a non-joinable {@code RecordBatch} with eagerly deserialized keys and values
      * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean)
-     * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatchh)
+     * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
      */
     static <K, V> RecordBatch<K, V> batchFromEager(
             ConsumerRecords<byte[], byte[]> consumerRecords,
@@ -153,15 +182,17 @@ public interface RecordBatch<K, V> {
             boolean joinable) {
 
         int recordCount = consumerRecords.count();
-        CallbackRecordBatch<K, V> batch =
+        NotifyingRecordBatch<K, V> batch =
                 (joinable
                         ? new JoinableRecordBatch<>(recordCount)
-                        : new CallbackRecordBatch<>(recordCount));
+                        : new NotifyingRecordBatch<>(recordCount));
         for (TopicPartition partition : consumerRecords.partitions()) {
             for (ConsumerRecord<byte[], byte[]> record : consumerRecords.records(partition)) {
                 batch.addEagerRecord(record, deserializerPair);
             }
         }
+        // Validate batch construction before returning
+        batch.validate();
 
         return batch;
     }
@@ -211,15 +242,17 @@ public interface RecordBatch<K, V> {
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             boolean joinable) {
         int recordCount = consumerRecords.count();
-        CallbackRecordBatch<K, V> batch =
+        NotifyingRecordBatch<K, V> batch =
                 joinable
                         ? new JoinableRecordBatch<>(recordCount)
-                        : new CallbackRecordBatch<>(recordCount);
+                        : new NotifyingRecordBatch<>(recordCount);
         for (TopicPartition partition : consumerRecords.partitions()) {
             for (ConsumerRecord<byte[], byte[]> record : consumerRecords.records(partition)) {
                 batch.addDeferredRecord(record, deserializerPair);
             }
         }
+        // Validate batch construction before returning
+        batch.validate();
 
         return batch;
     }
