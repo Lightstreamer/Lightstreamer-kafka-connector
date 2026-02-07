@@ -28,7 +28,6 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
-import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
 
 import org.slf4j.Logger;
 
@@ -115,8 +114,6 @@ public interface RecordConsumer<K, V> {
     }
 
     interface WithOptionals<K, V> {
-
-        WithOptionals<K, V> batchListener(RecordBatchListener batchListener);
 
         WithOptionals<K, V> threads(int threads);
 
