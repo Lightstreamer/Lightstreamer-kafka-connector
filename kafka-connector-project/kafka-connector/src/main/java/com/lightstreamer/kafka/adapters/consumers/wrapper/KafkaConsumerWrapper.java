@@ -25,7 +25,6 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.processor.PerformanceMonitor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
@@ -209,7 +208,6 @@ public class KafkaConsumerWrapper<K, V> {
     private volatile FutureStatus status;
     private final ReentrantLock lock = new ReentrantLock();
     private final RecordDeserializationMode<K, V> deserializationMode;
-    private final PerformanceMonitor monitor;
 
     public KafkaConsumerWrapper(
             Config<K, V> config,
@@ -238,7 +236,6 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
         this.offsetService = Offsets.OffsetService(consumer, logger);
-        this.monitor = new PerformanceMonitor(logger);
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
@@ -251,7 +248,6 @@ public class KafkaConsumerWrapper<K, V> {
                         .offsetService(offsetService)
                         .errorStrategy(this.config.errorHandlingStrategy())
                         .logger(logger)
-                        .batchListener(monitor)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
@@ -400,11 +396,9 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         try {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
-            monitor.countReceived(records.count());
             RecordBatch<K, V> batch = deserializationMode.toRecords(records);
             batchConsumer.accept(batch);
             offsetService.maybeCommit();
-            monitor.checkStats();
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             logger.atDebug().log("Kafka Consumer woke up during poll");
