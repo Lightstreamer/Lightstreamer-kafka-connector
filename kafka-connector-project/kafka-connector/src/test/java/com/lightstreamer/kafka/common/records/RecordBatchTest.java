@@ -20,12 +20,15 @@ package com.lightstreamer.kafka.common.records;
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.apache.kafka.common.serialization.Serdes.String;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
@@ -33,6 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 public class RecordBatchTest {
 
@@ -57,7 +61,7 @@ public class RecordBatchTest {
         if (joinable) {
             assertThat(eager).isInstanceOf(JoinableRecordBatch.class);
         } else {
-            assertThat(eager).isInstanceOf(CallbackRecordBatch.class);
+            assertThat(eager).isInstanceOf(NotifyingRecordBatch.class);
         }
 
         // Verify total size
@@ -106,7 +110,7 @@ public class RecordBatchTest {
         if (joinable) {
             assertThat(eager).isInstanceOf(JoinableRecordBatch.class);
         } else {
-            assertThat(eager).isInstanceOf(CallbackRecordBatch.class);
+            assertThat(eager).isInstanceOf(NotifyingRecordBatch.class);
         }
 
         // Verify total size
@@ -241,5 +245,27 @@ public class RecordBatchTest {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    static Stream<Arguments> consumerRecords() {
+        return Stream.of(
+
+                // Target size smaller than actual records
+                Arguments.of(0, Records.generateRecords("topic", 1, List.of("a", "b"))),
+                Arguments.of(1, Records.generateRecords("topic", 2, List.of("a", "b"))),
+                // Target size larger than actual records
+                Arguments.of(2, Records.generateRecords("topic", 1, List.of("a", "b"))),
+                Arguments.of(3, Records.generateRecords("topic", 2, List.of("a", "b"))));
+    }
+
+    @ParameterizedTest
+    @MethodSource("consumerRecords")
+    public void shouldNotValidateBatchConstruction(
+            int targetSize, ConsumerRecords<byte[], byte[]> consumerRecords) {
+        NotifyingRecordBatch<String, String> batch = new NotifyingRecordBatch<>(targetSize);
+        for (var record : consumerRecords) {
+            batch.addDeferredRecord(record, deserializerPair);
+        }
+        assertThrows(IllegalStateException.class, batch::validate);
     }
 }
