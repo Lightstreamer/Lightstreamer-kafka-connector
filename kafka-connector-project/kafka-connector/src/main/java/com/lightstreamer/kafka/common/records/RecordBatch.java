@@ -24,7 +24,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 
 import java.util.List;
-import java.util.concurrent.BlockingQueue;
 
 /**
  * Represents a batch of Kafka records with flexible deserialization and processing strategies.
@@ -63,21 +62,27 @@ import java.util.concurrent.BlockingQueue;
 public interface RecordBatch<K, V> {
 
     /**
-     * Callback interface for batch completion notifications.
+     * Listener for batch processing completion events.
      *
-     * <p>Implementations are notified when all records in a batch have been processed.
+     * <p>Implementations receive a callback when all records in a batch have been processed,
+     * enabling tracking of batch completion rates, processing throughput, and other metrics.
+     *
+     * <p><b>Thread Safety:</b> Implementations must be thread-safe as {@link #onBatchComplete} may
+     * be called concurrently from multiple worker threads processing different batches.
+     *
+     * @see RecordBatch#recordProcessed(RecordBatchListener)
      */
     interface RecordBatchListener {
 
         /**
-         * Called when all records in a batch have been processed.
+         * Called when a batch has been fully processed.
+         *
+         * <p>Implementations can use this callback to track batch completion rates and processing
+         * throughput.
          *
          * @param batch the completed batch
          */
         void onBatchComplete(RecordBatch<?, ?> batch);
-
-        default void checkRingBufferUtilization(
-                BlockingQueue<?>[] ringBuffers, int ringBufferCapacity) {}
     }
 
     /**
@@ -94,7 +99,7 @@ public interface RecordBatch<K, V> {
      * Implementations must handle concurrent calls safely. The listener is invoked when all records
      * in the batch have been processed.
      *
-     * @param listener the completion listener to invoke when all records are processed
+     * @param listener the listener to notify when all records are processed
      */
     void recordProcessed(RecordBatchListener listener);
 
