@@ -62,9 +62,9 @@ public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
     }
 
     @Override
-    public void recordProcessed(RecordBatchListener listener) {
+    public void recordProcessed(RecordBatchListener monitor) {
+        super.recordProcessed(monitor);
         latch.countDown();
-        super.recordProcessed(listener);
     }
 
     @Override
