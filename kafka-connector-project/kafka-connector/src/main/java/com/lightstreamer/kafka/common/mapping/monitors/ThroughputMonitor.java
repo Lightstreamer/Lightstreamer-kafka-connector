@@ -95,4 +95,22 @@ public class ThroughputMonitor extends BaseMonitor implements ProcessingMonitor 
     public void onBatchComplete(RecordBatch<?, ?> batch) {
         totalProcessedRecords.addAndGet(batch.count());
     }
+
+    // Package-private accessors for testing
+
+    long getTotalReceivedRecords() {
+        return totalReceivedRecords.get();
+    }
+
+    long getTotalProcessedRecords() {
+        return totalProcessedRecords.get();
+    }
+
+    long getLastReceivedCount() {
+        return lastReceivedCount.get();
+    }
+
+    long getLastProcessedCount() {
+        return lastProcessedCount.get();
+    }
 }
