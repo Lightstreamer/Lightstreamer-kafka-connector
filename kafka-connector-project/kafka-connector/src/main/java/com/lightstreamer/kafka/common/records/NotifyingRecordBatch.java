@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * JoinableRecordBatch}.
  *
  * <p><b>Thread Safety:</b> Safe for concurrent calls to {@link
- * #recordProcessed(RecordBatchListener)} from multiple worker threads.
+ * #recordProcessed(RecordBatch.RecordBatchListener)} from multiple worker threads.
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
@@ -109,9 +109,9 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
     }
 
     @Override
-    public void recordProcessed(RecordBatchListener listener) {
+    public void recordProcessed(RecordBatchListener monitor) {
         if (processedCount.incrementAndGet() == recordCount) {
-            listener.onBatchComplete(this);
+            monitor.onBatchComplete(this);
         }
     }
 }
