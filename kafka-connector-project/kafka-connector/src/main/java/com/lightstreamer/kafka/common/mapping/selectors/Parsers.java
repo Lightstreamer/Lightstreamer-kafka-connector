@@ -213,7 +213,7 @@ public class Parsers {
 
     abstract static class NodeEvaluator<T extends Node<T>> {
 
-        final String propertyName;
+        protected final String propertyName;
         private NodeEvaluator<T> next;
 
         NodeEvaluator(String propertyName) {
@@ -410,15 +410,14 @@ public class Parsers {
         }
 
         private NodeEvaluator<T> parseTokens(ParsingContext ctx) throws ExtractionException {
-            NodeEvaluator<T> previous = null, head = null;
+            String rootToken = ctx.next();
+            NodeEvaluator<T> head = createEvaluator(ctx, rootToken);
+            NodeEvaluator<T> previous = head;
+
             while (ctx.hasNext()) {
                 String token = ctx.next();
                 NodeEvaluator<T> current = createEvaluator(ctx, token);
-                if (previous != null) {
-                    previous.setNext(current);
-                } else {
-                    head = current;
-                }
+                previous.setNext(current);
                 previous = current;
             }
 
