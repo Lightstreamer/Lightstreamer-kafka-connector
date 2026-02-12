@@ -145,7 +145,6 @@ public class KafkaConsumerWrapper<K, V> {
 
         protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
         protected final DeserializationTiming timing;
-        static final Boolean JOINABLE = false;
 
         RecordDeserializationMode(
                 DeserializationTiming timing, KafkaRecord.DeserializerPair<K, V> deserializerPair) {
@@ -153,7 +152,12 @@ public class KafkaConsumerWrapper<K, V> {
             this.timing = timing;
         }
 
-        public abstract RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records);
+        public abstract RecordBatch<K, V> toBatch(
+                ConsumerRecords<byte[], byte[]> records, boolean joinable);
+
+        public RecordBatch<K, V> toBatch(ConsumerRecords<byte[], byte[]> records) {
+            return toBatch(records, false);
+        }
 
         public DeserializationTiming getTiming() {
             return timing;
@@ -179,8 +183,9 @@ public class KafkaConsumerWrapper<K, V> {
         }
 
         @Override
-        public RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records) {
-            return RecordBatch.batchFromDeferred(records, deserializerPair, JOINABLE);
+        public RecordBatch<K, V> toBatch(
+                ConsumerRecords<byte[], byte[]> records, boolean joinable) {
+            return RecordBatch.batchFromDeferred(records, deserializerPair, joinable);
         }
     }
 
@@ -191,8 +196,9 @@ public class KafkaConsumerWrapper<K, V> {
         }
 
         @Override
-        public RecordBatch<K, V> toRecords(ConsumerRecords<byte[], byte[]> records) {
-            return RecordBatch.batchFromEager(records, deserializerPair, JOINABLE);
+        public RecordBatch<K, V> toBatch(
+                ConsumerRecords<byte[], byte[]> records, boolean joinable) {
+            return RecordBatch.batchFromEager(records, deserializerPair, joinable);
         }
     }
 
@@ -418,7 +424,7 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         try {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
-            RecordBatch<K, V> batch = deserializationMode.toRecords(records);
+            RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
             batchConsumer.accept(batch);
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
