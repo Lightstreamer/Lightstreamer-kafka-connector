@@ -119,37 +119,37 @@ public final class KafkaConnectorMonitor implements Monitor {
         @Override
         public DefaultObserver enableLatest() {
             enabledFunctions.put(FunctionPriority.LAST, new Functions.Latest());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
         public DefaultObserver enableRate() {
             enabledFunctions.put(FunctionPriority.RATE, new Functions.Rate());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
         public DefaultObserver enableIrate() {
             enabledFunctions.put(FunctionPriority.IRATE, new Functions.InstantRate());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
         public DefaultObserver enableMin() {
             enabledFunctions.put(FunctionPriority.MIN, new Functions.Min());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
         public DefaultObserver enableMax() {
             enabledFunctions.put(FunctionPriority.MAX, new Functions.Max());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
         public DefaultObserver enableAverage() {
             enabledFunctions.put(FunctionPriority.AVG, new Functions.Average());
-            return new DefaultObserver(this);
+            return addAndGet(new DefaultObserver(this));
         }
 
         @Override
@@ -164,7 +164,14 @@ public final class KafkaConnectorMonitor implements Monitor {
                                 "Range interval cannot be greater than %d ms (dataPoints * scrapeInterval)",
                                 maxRangeIntervalMs));
             }
-            return new DefaultObserver(monitor, observerID, timeSeries, interval, enabledFunctions);
+            return addAndGet(
+                    new DefaultObserver(
+                            monitor, observerID, timeSeries, interval, enabledFunctions));
+        }
+
+        DefaultObserver addAndGet(DefaultObserver observer) {
+            monitor.addObserver(observer);
+            return observer;
         }
 
         void observe() {
@@ -345,7 +352,7 @@ public final class KafkaConnectorMonitor implements Monitor {
                         new TimeSeries(dataPoints, meter),
                         DefaultObserver.DEFAULT_RANGE_INTERVAL,
                         new EnumMap<>(DefaultObserver.FunctionPriority.class));
-        observers.put(observer.observerID, observer);
+        addObserver(observer);
         return observer;
     }
 
@@ -435,6 +442,10 @@ public final class KafkaConnectorMonitor implements Monitor {
     }
 
     // Private methods
+
+    private void addObserver(DefaultObserver observer) {
+        observers.put(observer.observerID, observer);
+    }
 
     private void scrapeMeters() {
         try {
