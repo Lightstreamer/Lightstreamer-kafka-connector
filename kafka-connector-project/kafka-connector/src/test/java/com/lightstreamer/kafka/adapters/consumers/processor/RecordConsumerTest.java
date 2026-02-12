@@ -46,9 +46,11 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
@@ -106,6 +108,7 @@ public class RecordConsumerTest {
     }
 
     private static final Logger logger = LogFactory.getLogger("TestConnection");
+    private static Monitor monitor = new Mocks.MockMonitor();
 
     private RecordConsumer<String, String> recordConsumer;
     private Config<String, String> config;
@@ -257,6 +260,7 @@ public class RecordConsumerTest {
         assertThat(parallelRecordConsumer.actualThreads)
                 .isEqualTo(parallelRecordConsumer.configuredThreads);
         assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(recordConsumer.monitor()).isNull();
 
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
@@ -297,6 +301,7 @@ public class RecordConsumerTest {
         assertThat(parallelRecordConsumer.actualThreads)
                 .isEqualTo(parallelRecordConsumer.configuredThreads);
         assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(recordConsumer.monitor()).isNull();
     }
 
     static Stream<Arguments> parallelConsumerArgs() {
@@ -305,32 +310,38 @@ public class RecordConsumerTest {
                         -1,
                         OrderStrategy.ORDER_BY_KEY,
                         CommandModeStrategy.AUTO,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE),
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        monitor),
                 arguments(
                         -1,
                         OrderStrategy.ORDER_BY_KEY,
                         CommandModeStrategy.NONE,
-                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        monitor),
                 arguments(
                         2,
                         OrderStrategy.ORDER_BY_PARTITION,
                         CommandModeStrategy.AUTO,
-                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        monitor),
                 arguments(
                         2,
                         OrderStrategy.ORDER_BY_PARTITION,
                         CommandModeStrategy.NONE,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE),
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        monitor),
                 arguments(
                         4,
                         OrderStrategy.UNORDERED,
                         CommandModeStrategy.AUTO,
-                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION),
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        monitor),
                 arguments(
                         4,
                         OrderStrategy.UNORDERED,
                         CommandModeStrategy.NONE,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE));
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        monitor));
     }
 
     @ParameterizedTest
@@ -339,7 +350,8 @@ public class RecordConsumerTest {
             int threads,
             OrderStrategy order,
             CommandModeStrategy command,
-            RecordErrorHandlingStrategy error) {
+            RecordErrorHandlingStrategy error,
+            Monitor monitor) {
         MockOffsetService offsetService = new MockOffsetService();
         EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
 
@@ -353,6 +365,7 @@ public class RecordConsumerTest {
                         .logger(logger)
                         .threads(threads)
                         .ordering(order)
+                        .monitor(monitor)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
@@ -375,7 +388,9 @@ public class RecordConsumerTest {
             assertThat(parallelRecordConsumer.actualThreads)
                     .isEqualTo(parallelRecordConsumer.configuredThreads);
         }
-        assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(parallelRecordConsumer.numOfThreads())
+                .isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(parallelRecordConsumer.monitor()).isSameInstanceAs(monitor);
 
         DefaultRecordProcessor<String, String> recordProcessor =
                 (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
@@ -392,7 +407,8 @@ public class RecordConsumerTest {
             int threads,
             OrderStrategy order,
             CommandModeStrategy commandMode,
-            RecordErrorHandlingStrategy error) {
+            RecordErrorHandlingStrategy error,
+            Monitor monitor) {
         MockOffsetService offsetService = new MockOffsetService();
 
         recordConsumer =
@@ -403,6 +419,7 @@ public class RecordConsumerTest {
                         .logger(logger)
                         .threads(threads)
                         .ordering(order)
+                        .monitor(monitor)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
@@ -424,7 +441,9 @@ public class RecordConsumerTest {
             assertThat(parallelRecordConsumer.actualThreads)
                     .isEqualTo(parallelRecordConsumer.configuredThreads);
         }
-        assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(parallelRecordConsumer.numOfThreads())
+                .isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(parallelRecordConsumer.monitor()).isSameInstanceAs(monitor);
     }
 
     @ParameterizedTest
@@ -604,6 +623,24 @@ public class RecordConsumerTest {
                                     .ordering(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OrderStrategy not set");
+
+        ne =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            RecordConsumer.<String, String>recordMapper(recordMapper)
+                                    .subscribedItems(subscriptions)
+                                    .commandMode(CommandModeStrategy.NONE)
+                                    .eventListener(
+                                            EventListener.smartEventListener(
+                                                    new MockItemEventListener()))
+                                    .offsetService(new MockOffsetService())
+                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                                    .logger(logger)
+                                    .ordering(OrderStrategy.ORDER_BY_PARTITION)
+                                    .monitor(null);
+                        });
+        assertThat(ne).hasMessageThat().isEqualTo("Monitor not set");
 
         ne =
                 assertThrows(
