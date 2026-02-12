@@ -273,7 +273,7 @@ public class KafkaConsumerWrapperTest {
         // Check the DeserializationTiming
         DeserializationTiming recordDeserializationTiming =
                 wrapper.getRecordDeserializationTiming();
-        // assertThat(recordDeserializationTiming).isEqualTo(DeserializationTiming.EAGER);
+        assertThat(recordDeserializationTiming).isEqualTo(DeserializationTiming.EAGER);
 
         // Check the OffsetService
         OffsetService offsetService = wrapper.getOffsetService();
@@ -665,6 +665,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(awaitClose.isStateAvailable()).isFalse();
         TimeUnit.SECONDS.sleep(1);
         assertThat(awaitClose.isStateAvailable()).isFalse();
+        assertThat(wrapper.getMonitor().isRunning()).isTrue();
 
         // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
         FutureStatus finalStatus = wrapper.shutdown();
@@ -675,6 +676,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
         OffsetStore offsetStore = wrapper.getOffsetService().offsetStore().get();
         Map<TopicPartition, OffsetAndMetadata> map = offsetStore.snapshot();
         assertThat(map.keySet()).containsExactly(partition0, partition1);
@@ -724,7 +726,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(awaitClose2.join()).isEqualTo(State.LOOP_CLOSED_BY_WAKEUP);
         assertThat(finalStatus.isShutdown()).isTrue();
 
-        // Try to start the loop again and verify that the status is stull SHUTDOWN
+        // Try to start the loop again and verify that the status is still SHUTDOWN
         FutureStatus currentStatus = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
         assertThat(currentStatus).isSameInstanceAs(finalStatus);
 
@@ -757,6 +759,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isFalse();
         // The RecordConsumer is not terminated because the loop was never started
         assertThat(wrapper.getRecordConsumer().isClosed()).isFalse();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
     @ParameterizedTest
@@ -777,6 +780,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
     @ParameterizedTest
@@ -798,6 +802,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
     @ParameterizedTest
@@ -820,6 +825,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
     @ParameterizedTest
@@ -842,6 +848,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
     @Test
@@ -877,6 +884,7 @@ public class KafkaConsumerWrapperTest {
         FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
         TimeUnit.SECONDS.sleep(1);
         assertThat(awaitClose.isStateAvailable()).isFalse();
+        assertThat(wrapper.getMonitor().isRunning()).isTrue();
 
         // Set the KafkaException to be thrown at next poll invocation inside pollForEver
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
@@ -886,7 +894,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
-
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
         FutureStatus shutdown = wrapper.shutdown();
         assertThat(shutdown.isStateAvailable()).isTrue();
         assertThat(shutdown.join()).isEqualTo(State.SHUTDOWN);
