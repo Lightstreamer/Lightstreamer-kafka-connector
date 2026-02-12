@@ -36,7 +36,6 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.monitors.KafkaConnectorMonitor;
 import com.lightstreamer.kafka.common.monitors.Monitor;
-import com.lightstreamer.kafka.common.monitors.Reporters;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
@@ -199,6 +198,10 @@ public class KafkaConsumerWrapper<K, V> {
 
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
+    private static final Duration MONITOR_SCRAPE_INTERVAL = Duration.ofSeconds(2);
+    private static final int MONITOR_DATA_POINTS = 120;
+    private static final Duration MONITOR_LOG_REPORTING_INTERVAL = Duration.ofSeconds(30);
+
     private final Config<K, V> config;
     private final MetadataListener metadataListener;
     private final Logger logger;
@@ -281,9 +284,9 @@ public class KafkaConsumerWrapper<K, V> {
 
     private Monitor newMonitor() {
         return new KafkaConnectorMonitor(this.config.connectionName())
-                .withScrapeInterval(Duration.ofSeconds(2))
-                .withDataPoints(120)
-                .withReporter(Reporters::logReporter);
+                .withScrapeInterval(MONITOR_SCRAPE_INTERVAL)
+                .withDataPoints(MONITOR_DATA_POINTS)
+                .withLogReporter();
     }
 
     private String getProperty(String key) {
@@ -332,7 +335,7 @@ public class KafkaConsumerWrapper<K, V> {
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
         }
 
-        this.monitor.start(Duration.ofSeconds(2));
+        this.monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
 
         try {
             pollOnce(this::initStoreAndConsume);
@@ -540,5 +543,10 @@ public class KafkaConsumerWrapper<K, V> {
     // Only for testing purposes
     Duration getPollTimeout() {
         return pollDuration;
+    }
+
+    // Only for testing purposes
+    Monitor getMonitor() {
+        return monitor;
     }
 }
