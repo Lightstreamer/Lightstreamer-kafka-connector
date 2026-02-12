@@ -17,21 +17,28 @@
 
 package com.lightstreamer.kafka.common.monitors.reporting;
 
-import com.lightstreamer.kafka.common.monitors.Monitor;
-
 import org.slf4j.Logger;
 
 /** Factory class providing standard {@link Reporter} implementations. */
 public class Reporters {
 
     /**
-     * Creates a reporter that logs messages using the monitor's logger.
+     * Creates a reporter that logs messages using the specified logger.
      *
-     * @param monitor the monitor providing the logger
+     * @param logger the logger to use for reporting
      * @return a log-based reporter
      */
-    public static Reporter logReporter(Monitor monitor) {
-        return new LogReporter(monitor.logger());
+    public static Reporter logReporter(Logger logger) {
+        return new LogReporter(logger);
+    }
+
+    /**
+     * Creates a reporter that prints messages to standard output.
+     *
+     * @return a console-based reporter
+     */
+    public static Reporter consoleReporter() {
+        return new ConsoleReporter();
     }
 
     /** A reporter that sends messages to an SLF4J logger at INFO level. */
@@ -39,6 +46,11 @@ public class Reporters {
 
         private final Logger logger;
 
+        /**
+         * Creates a log reporter with the specified logger.
+         *
+         * @param logger the logger for output
+         */
         public LogReporter(Logger logger) {
             this.logger = logger;
         }
