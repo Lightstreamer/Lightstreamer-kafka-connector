@@ -19,7 +19,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
 
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+  Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:
 
   - Update of the parameter `bootstrap.servers` to the new SSL endpoint (`broker:29094`):
   
