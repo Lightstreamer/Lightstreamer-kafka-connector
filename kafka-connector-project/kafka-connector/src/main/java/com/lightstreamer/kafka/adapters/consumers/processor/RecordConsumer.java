@@ -26,6 +26,7 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 
@@ -121,6 +122,8 @@ public interface RecordConsumer<K, V> {
 
         WithOptionals<K, V> preferSingleThread(boolean singleThread);
 
+        WithOptionals<K, V> monitor(Monitor monitor);
+
         RecordConsumer<K, V> build();
     }
 
@@ -163,6 +166,8 @@ public interface RecordConsumer<K, V> {
     RecordErrorHandlingStrategy errorStrategy();
 
     RecordProcessor<K, V> recordProcessor();
+
+    Monitor monitor();
 
     default void close() {}
 
