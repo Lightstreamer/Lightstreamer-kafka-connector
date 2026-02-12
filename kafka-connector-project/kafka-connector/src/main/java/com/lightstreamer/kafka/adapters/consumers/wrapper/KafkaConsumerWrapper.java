@@ -34,6 +34,9 @@ import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.monitors.KafkaConnectorMonitor;
+import com.lightstreamer.kafka.common.monitors.Monitor;
+import com.lightstreamer.kafka.common.monitors.Reporters;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
@@ -204,10 +207,12 @@ public class KafkaConsumerWrapper<K, V> {
     private final OffsetService offsetService;
     private final RecordConsumer<K, V> recordConsumer;
     private final Duration pollDuration;
+    private final ReentrantLock statusLock = new ReentrantLock();
+    private final RecordDeserializationMode<K, V> deserializationMode;
+    private final Monitor monitor;
+
     private volatile Thread hook;
     private volatile FutureStatus status;
-    private final ReentrantLock lock = new ReentrantLock();
-    private final RecordDeserializationMode<K, V> deserializationMode;
 
     public KafkaConsumerWrapper(
             Config<K, V> config,
@@ -217,7 +222,6 @@ public class KafkaConsumerWrapper<K, V> {
             Supplier<Consumer<byte[], byte[]>> consumerSupplier)
             throws KafkaException {
         this.config = config;
-
         this.metadataListener = metadataListener;
         this.logger = LogFactory.getLogger(this.config.connectionName());
         this.recordMapper =
@@ -237,6 +241,9 @@ public class KafkaConsumerWrapper<K, V> {
         this.status = FutureStatus.connected();
         this.offsetService = Offsets.OffsetService(consumer, logger);
 
+        // Initialize the monitor for this consumer wrapper instance.
+        this.monitor = newMonitor();
+
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
         Concurrency concurrency = this.config.concurrency();
@@ -251,6 +258,9 @@ public class KafkaConsumerWrapper<K, V> {
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
+                        // Pass the monitor to the RecordConsumer to allow it to record relevant
+                        // metrics.
+                        .monitor(monitor)
                         .build();
 
         KafkaRecord.DeserializerPair<K, V> deserializers =
@@ -269,12 +279,19 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
 
+    private Monitor newMonitor() {
+        return new KafkaConnectorMonitor(this.config.connectionName())
+                .withScrapeInterval(Duration.ofSeconds(2))
+                .withDataPoints(120)
+                .withReporter(Reporters::logReporter);
+    }
+
     private String getProperty(String key) {
         return this.config.consumerProperties().getProperty(key);
     }
 
     public FutureStatus startLoop(ExecutorService pool, boolean waitForInit) {
-        lock.lock();
+        statusLock.lock();
         try {
             if (!status.isConnected()) {
                 logger.atError()
@@ -298,7 +315,7 @@ public class KafkaConsumerWrapper<K, V> {
 
             return updateStatus(initStage.thenApplyAsync(this::runLoop, pool));
         } finally {
-            lock.unlock();
+            statusLock.unlock();
         }
     }
 
@@ -314,8 +331,10 @@ public class KafkaConsumerWrapper<K, V> {
             metadataListener.forceUnsubscriptionAll();
             return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
         }
+
+        this.monitor.start(Duration.ofSeconds(2));
+
         try {
-            // pollOnce2(this::initStoreAndConsume2);
             pollOnce(this::initStoreAndConsume);
         } catch (KafkaException e) {
             logger.atWarn().log("Initialization failed because of an exception");
@@ -398,7 +417,6 @@ public class KafkaConsumerWrapper<K, V> {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
             RecordBatch<K, V> batch = deserializationMode.toRecords(records);
             batchConsumer.accept(batch);
-            offsetService.maybeCommit();
         } catch (WakeupException we) {
             // Catch and rethrow the exception here because of the next KafkaException
             logger.atDebug().log("Kafka Consumer woke up during poll");
@@ -424,6 +442,7 @@ public class KafkaConsumerWrapper<K, V> {
         } catch (Exception e) {
             logger.atError().setCause(e).log("Ignore error while closing the Kafka Consumer");
         }
+        this.monitor.stop();
         logger.atDebug().log("Kafka Consumer closed");
     }
 
@@ -470,7 +489,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     public FutureStatus shutdown() {
-        lock.lock();
+        statusLock.lock();
         try {
             if (status.isShutdown()) {
                 return status;
@@ -485,7 +504,7 @@ public class KafkaConsumerWrapper<K, V> {
             }
             return updateStatus(CompletableFuture.completedFuture(FutureStatus.State.SHUTDOWN));
         } finally {
-            lock.unlock();
+            statusLock.unlock();
         }
     }
 
