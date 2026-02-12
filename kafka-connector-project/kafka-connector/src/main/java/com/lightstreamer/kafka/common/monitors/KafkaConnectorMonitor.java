@@ -17,8 +17,14 @@
 
 package com.lightstreamer.kafka.common.monitors;
 
-import com.lightstreamer.kafka.common.monitors.Functions.Function;
 import com.lightstreamer.kafka.common.monitors.KafkaConnectorMonitor.DefaultObserver.ObserverID;
+import com.lightstreamer.kafka.common.monitors.metrics.Functions;
+import com.lightstreamer.kafka.common.monitors.metrics.Functions.Function;
+import com.lightstreamer.kafka.common.monitors.metrics.Meter;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporters;
+import com.lightstreamer.kafka.common.monitors.timeseries.RangeVector;
+import com.lightstreamer.kafka.common.monitors.timeseries.TimeSeries;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +38,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Default {@link Monitor} implementation with configurable scrape intervals and circular buffer
+ * storage.
+ *
+ * <p>Operates with two periodic tasks: scraping (samples meter values) and evaluation (computes and
+ * reports aggregate functions). Configuration via fluent {@code with*} methods:
+ *
+ * <pre>{@code
+ * new KafkaConnectorMonitor("my-connector")
+ *     .withScrapeInterval(Duration.ofSeconds(5))
+ *     .withDataPoints(240)
+ *     .withLogReporter();
+ * }</pre>
+ */
 public final class KafkaConnectorMonitor implements Monitor {
 
     private static final Duration DEFAULT_SCRAPE_INTERVAL = Duration.ofSeconds(15);
@@ -47,12 +67,18 @@ public final class KafkaConnectorMonitor implements Monitor {
     private volatile ScheduledExecutorService executor;
     private volatile boolean started = false;
 
+    /**
+     * Default implementation that stores enabled functions and delegates scraping to {@link
+     * TimeSeries}.
+     */
     static class DefaultObserver implements Observer {
 
         static final Duration DEFAULT_RANGE_INTERVAL = Duration.ofMinutes(1);
 
+        /** Unique identifier for an observer instance. */
         static record ObserverID(int id) {}
 
+        /** Defines evaluation order for aggregate functions. */
         enum FunctionPriority {
             LAST,
             RATE,
@@ -65,7 +91,7 @@ public final class KafkaConnectorMonitor implements Monitor {
         private final KafkaConnectorMonitor monitor;
         private final ObserverID observerID;
         private final TimeSeries timeSeries;
-        private final RangeSelector rangeSelector;
+        private final Duration rangeInterval;
         private final EnumMap<FunctionPriority, Function> enabledFunctions;
 
         private DefaultObserver(
@@ -77,7 +103,7 @@ public final class KafkaConnectorMonitor implements Monitor {
             this.monitor = monitor;
             this.observerID = observerID;
             this.timeSeries = timeSeries;
-            this.rangeSelector = new RangeSelector(rangeInterval);
+            this.rangeInterval = rangeInterval;
             this.enabledFunctions = new EnumMap<>(functions);
         }
 
@@ -86,13 +112,13 @@ public final class KafkaConnectorMonitor implements Monitor {
                     source.monitor,
                     source.observerID,
                     source.timeSeries,
-                    source.rangeSelector.interval(),
+                    source.rangeInterval,
                     source.enabledFunctions);
         }
 
         @Override
-        public DefaultObserver enableLast() {
-            enabledFunctions.put(FunctionPriority.LAST, new Functions.Last());
+        public DefaultObserver enableLatest() {
+            enabledFunctions.put(FunctionPriority.LAST, new Functions.Latest());
             return new DefaultObserver(this);
         }
 
@@ -141,18 +167,15 @@ public final class KafkaConnectorMonitor implements Monitor {
             return new DefaultObserver(monitor, observerID, timeSeries, interval, enabledFunctions);
         }
 
-        @Override
-        public void observe() {
+        void observe() {
             timeSeries.scrape();
         }
 
         void emit(Reporter reporter, long timestamp) {
-            RangeVector vector = rangeSelector.eval(timeSeries, timestamp);
+            RangeVector vector = timeSeries.selectRange(rangeInterval, timestamp);
 
             StringBuilder sb = new StringBuilder();
-            String format =
-                    String.format(
-                            "%s [%dm]", timeSeries.name(), rangeSelector.interval().toMinutes());
+            String format = String.format("%s [%dm]", timeSeries.name(), rangeInterval.toMinutes());
             sb.append(format).append(" [");
             boolean appendCommand = false;
             for (Function function : enabledFunctions.values()) {
@@ -233,6 +256,12 @@ public final class KafkaConnectorMonitor implements Monitor {
         this.observers = observers;
     }
 
+    /**
+     * Creates a monitor with default configuration: 15s scrape interval, 120 data points, console
+     * reporter.
+     *
+     * @param connectionName the Kafka connection name for the logger
+     */
     public KafkaConnectorMonitor(String connectionName) {
         this(
                 connectionName,
@@ -240,39 +269,63 @@ public final class KafkaConnectorMonitor implements Monitor {
                 DEFAULT_SCRAPE_INTERVAL,
                 DEFAULT_DATA_POINTS,
                 new LinkedHashMap<>(),
-                new Reporters.StdOutReporter());
+                new Reporters.ConsoleReporter());
     }
 
     // Public methods
 
+    /**
+     * Returns a new monitor with the specified scrape interval.
+     *
+     * @param scrapeInterval how frequently to sample meter values
+     * @return a new monitor with updated configuration
+     */
     public KafkaConnectorMonitor withScrapeInterval(Duration scrapeInterval) {
         return new KafkaConnectorMonitor(
                 this.logger, scrapeInterval, this.dataPoints, this.observers, this.reporter);
     }
 
+    /**
+     * Returns a new monitor with the specified circular buffer capacity.
+     *
+     * @param dataPoints maximum data points per observer
+     * @return a new monitor with updated configuration
+     */
     public KafkaConnectorMonitor withDataPoints(int dataPoints) {
         return new KafkaConnectorMonitor(
                 this.logger, this.scrapeInterval, dataPoints, this.observers, this.reporter);
     }
 
+    /**
+     * Returns a new monitor with the specified reporter.
+     *
+     * @param reporter the reporter for monitoring output
+     * @return a new monitor with updated configuration
+     */
     public KafkaConnectorMonitor withReporter(Reporter reporter) {
         return new KafkaConnectorMonitor(
                 this.logger, this.scrapeInterval, this.dataPoints, this.observers, reporter);
     }
 
-    public KafkaConnectorMonitor withReporter(Reporters.ReporterProvider reporter) {
-        if (reporter == null) {
-            throw new IllegalArgumentException("reporter cannot be null");
-        }
-        return new KafkaConnectorMonitor(
-                this.logger,
-                this.scrapeInterval,
-                this.dataPoints,
-                this.observers,
-                reporter.get(this));
+    /**
+     * Returns a new monitor with log-based reporter using this monitor's logger.
+     *
+     * @return a new monitor configured for SLF4J logging
+     */
+    public KafkaConnectorMonitor withLogReporter() {
+        return withReporter(Reporters.logReporter(this.logger));
     }
 
-    @Override
+    /**
+     * Returns a new monitor with console-based reporter.
+     *
+     * @return a new monitor configured for stdout output
+     */
+    public KafkaConnectorMonitor withConsoleReporter() {
+        return withReporter(Reporters.consoleReporter());
+    }
+
+    /** Returns the logger for this monitor. */
     public Logger logger() {
         return this.logger;
     }
@@ -348,6 +401,11 @@ public final class KafkaConnectorMonitor implements Monitor {
                 stepInterval.toMillis(),
                 stepInterval.toMillis(),
                 TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public synchronized boolean isRunning() {
+        return started;
     }
 
     @Override
