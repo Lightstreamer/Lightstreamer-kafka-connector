@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.common.monitors.timeseries;
 
 import com.lightstreamer.kafka.common.monitors.metrics.Meter;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -67,6 +68,17 @@ public final class TimeSeries {
          */
         DataPoint withElapsedTimeFrom(long base) {
             return new DataPoint(value, timeValue - base);
+        }
+    }
+
+    private static record RangeInterval(long startInclusive, long endExclusive) {
+
+        static RangeInterval endingAt(long timestamp, Duration duration) {
+            return new RangeInterval(timestamp - duration.toMillis(), timestamp);
+        }
+
+        boolean contains(long timeValue) {
+            return startInclusive <= timeValue && timeValue < endExclusive;
         }
     }
 
@@ -227,5 +239,57 @@ public final class TimeSeries {
             }
             return List.copyOf(result);
         }
+    }
+
+    /**
+     * Selects data points within a time range and normalizes their timestamps.
+     *
+     * <p>Returns data points that fall within the interval [endTimestamp - interval, endTimestamp).
+     * Timestamps are normalized to elapsed time from the first matching point.
+     *
+     * @param interval the duration of the time range (must be positive)
+     * @param endTimestamp the end of the time range in milliseconds since epoch
+     * @return a range vector with matching data points, or empty if no matches
+     * @throws IllegalArgumentException if interval is null, not positive, or endTimestamp is
+     *     negative
+     */
+    public RangeVector selectRange(Duration interval, long endTimestamp) {
+        if (interval == null) {
+            throw new IllegalArgumentException("Interval cannot be null");
+        }
+        if (interval.isNegative() || interval.isZero()) {
+            throw new IllegalArgumentException("Interval must be positive");
+        }
+
+        if (endTimestamp < 0) {
+            throw new IllegalArgumentException("End timestamp cannot be negative");
+        }
+
+        RangeInterval range = RangeInterval.endingAt(endTimestamp, interval);
+        List<DataPoint> snapshot = snapshot();
+
+        if (snapshot.isEmpty()) {
+            return RangeVector.empty();
+        }
+
+        List<DataPoint> result = new ArrayList<>();
+        long baseTime = 0;
+        boolean foundFirst = false;
+
+        for (DataPoint dp : snapshot) {
+            if (range.contains(dp.timeValue())) {
+                if (!foundFirst) {
+                    baseTime = dp.timeValue();
+                    foundFirst = true;
+                }
+                result.add(dp.withElapsedTimeFrom(baseTime));
+            }
+        }
+
+        if (result.isEmpty()) {
+            return RangeVector.empty();
+        }
+
+        return RangeVector.of(result);
     }
 }
