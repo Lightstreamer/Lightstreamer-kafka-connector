@@ -30,6 +30,9 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
+import com.lightstreamer.kafka.common.monitors.Observer;
+import com.lightstreamer.kafka.common.monitors.metrics.Meter;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -40,6 +43,7 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -558,6 +562,63 @@ public class Mocks {
 
         public int getRealtimeUpdateCount() {
             return realtimeUpdates.size();
+        }
+    }
+
+    public static class MockObserver implements Observer {
+
+        @Override
+        public Observer enableLatest() {
+            return this;
+        }
+
+        @Override
+        public Observer enableRate() {
+            return this;
+        }
+
+        @Override
+        public Observer enableIrate() {
+            return this;
+        }
+
+        @Override
+        public Observer enableAverage() {
+            return this;
+        }
+
+        @Override
+        public Observer enableMax() {
+            return this;
+        }
+
+        @Override
+        public Observer enableMin() {
+            return this;
+        }
+
+        @Override
+        public Observer withRangeInterval(Duration rangeInterval) {
+            return this;
+        }
+    }
+
+    public static class MockMonitor implements Monitor {
+
+        @Override
+        public Observer observe(Meter meter) {
+            return new MockObserver();
+        }
+
+        @Override
+        public void start(Duration evaluationInterval) {}
+
+        @Override
+        public void stop() {}
+
+        @Override
+        public boolean isRunning() {
+            return false;
         }
     }
 }
