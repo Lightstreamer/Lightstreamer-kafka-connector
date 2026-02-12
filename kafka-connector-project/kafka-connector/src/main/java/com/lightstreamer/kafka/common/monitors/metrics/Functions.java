@@ -25,8 +25,8 @@ import java.util.function.Supplier;
 /**
  * Provides aggregate functions for evaluating time series data from {@link RangeVector}.
  *
- * <p>Functions compute statistical operations such as averages, rates, and extrema over time
- * series data points.
+ * <p>Functions compute statistical operations such as averages, rates, and extrema over time series
+ * data points.
  */
 public class Functions {
 
@@ -249,8 +249,8 @@ public class Functions {
     /**
      * Computes the instantaneous rate of change per second between the last two data points.
      *
-     * <p>More responsive to recent changes than {@link Rate}. Returns {@code NaN} if fewer
-     * than 2 data points exist.
+     * <p>More responsive to recent changes than {@link Rate}. Returns {@code NaN} if fewer than 2
+     * data points exist.
      */
     public static class InstantRate extends AggregateFunction {
 
