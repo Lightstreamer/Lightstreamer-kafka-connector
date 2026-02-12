@@ -38,6 +38,8 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
+import com.lightstreamer.kafka.common.monitors.metrics.Meters;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
@@ -80,12 +82,12 @@ public class RecordConsumerSupport {
         protected OffsetService offsetService;
         protected RecordErrorHandlingStrategy errorStrategy;
         protected Logger logger;
+        protected Monitor monitor;
 
         // Optional and defaulted fields
         protected int threads = 1;
         protected OrderStrategy orderStrategy = OrderStrategy.ORDER_BY_PARTITION;
         protected boolean preferSingleThread = false;
-        protected RecordBatchListener batchListener;
 
         StartBuildingConsumerImpl(RecordProcessor<K, V> processor) {
             this.processor = Objects.requireNonNull(processor, "RecordProcessor not set");
@@ -195,12 +197,6 @@ public class RecordConsumerSupport {
         }
 
         @Override
-        public WithOptionals<K, V> batchListener(RecordBatchListener batchListener) {
-            this.parentBuilder.batchListener = batchListener;
-            return this;
-        }
-
-        @Override
         public WithOptionals<K, V> threads(int threads) {
             this.parentBuilder.threads = threads;
             return this;
@@ -216,6 +212,12 @@ public class RecordConsumerSupport {
         @Override
         public WithOptionals<K, V> preferSingleThread(boolean singleThread) {
             this.parentBuilder.preferSingleThread = singleThread;
+            return this;
+        }
+
+        @Override
+        public WithOptionals<K, V> monitor(Monitor monitor) {
+            this.parentBuilder.monitor = Objects.requireNonNull(monitor, "Monitor not set");
             return this;
         }
 
@@ -562,30 +564,54 @@ public class RecordConsumerSupport {
         }
     }
 
-    public abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
+    abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
 
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
-        protected final RecordBatchListener batchListener;
         protected final RecordErrorHandlingStrategy errorStrategy;
-        private volatile boolean closed = false;
         protected volatile Throwable firstFailure = null;
+
+        private volatile boolean closed = false;
+
+        protected final Monitor monitor;
+        protected final Meters.Counter receivedRecordCounter;
+        protected final Meters.Counter processedRecordCounter;
+        protected final RecordBatchListener recordBatchListener;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
             this.offsetService = builder.offsetService;
             this.logger = builder.logger;
-            this.batchListener = Objects.requireNonNullElse(builder.batchListener, batch -> {});
             this.recordProcessor = builder.processor;
+            this.monitor = builder.monitor;
+
             // Enforce usage of the same logger
             this.recordProcessor.useLogger(logger);
+
+            this.receivedRecordCounter =
+                    new Meters.Counter(
+                            "Received record", "Counts the number of received records", "msg");
+            this.processedRecordCounter =
+                    new Meters.Counter(
+                            "Processed record", "Counts the number of processed records", "msg");
+            this.recordBatchListener =
+                    recordBatch -> processedRecordCounter.increment(recordBatch.count());
+            configureMonitor();
         }
 
-        final void asyncFailure(Throwable t) {
-            if (firstFailure == null) {
-                firstFailure = t;
+        void configureMonitor() {
+            if (monitor != null) {
+                monitor.observe(receivedRecordCounter).enableIrate().enableRate();
+                monitor.observe(processedRecordCounter).enableIrate().enableRate();
             }
+        }
+
+        @Override
+        public final void consumeBatch(RecordBatch<K, V> batch) {
+            receivedRecordCounter.increment(batch.count());
+            consumeRecordBatch(batch);
+            offsetService.maybeCommit();
         }
 
         @Override
@@ -599,9 +625,37 @@ public class RecordConsumerSupport {
             return firstFailure != null;
         }
 
+        @Override
+        public final boolean isClosed() {
+            return this.closed;
+        }
+
+        @Override
+        public final RecordErrorHandlingStrategy errorStrategy() {
+            return errorStrategy;
+        }
+
+        @Override
+        public final RecordProcessor<K, V> recordProcessor() {
+            return recordProcessor;
+        }
+
+        @Override
+        public final Monitor monitor() {
+            return monitor;
+        }
+
+        abstract void consumeRecordBatch(RecordBatch<K, V> batch);
+
         /** Hook for subclasses to shutdown additional pools before offset commit. */
         void onPoolsShutdown() {
             // Default: nothing, subclasses can override
+        }
+
+        final void asyncFailure(Throwable t) {
+            if (firstFailure == null) {
+                firstFailure = t;
+            }
         }
 
         final void shutdownPool(ExecutorService pool, String poolName) {
@@ -622,21 +676,6 @@ public class RecordConsumerSupport {
                 Thread.currentThread().interrupt();
             }
         }
-
-        @Override
-        public final boolean isClosed() {
-            return this.closed;
-        }
-
-        @Override
-        public final RecordErrorHandlingStrategy errorStrategy() {
-            return errorStrategy;
-        }
-
-        @Override
-        public final RecordProcessor<K, V> recordProcessor() {
-            return recordProcessor;
-        }
     }
 
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
@@ -646,8 +685,8 @@ public class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeBatch(RecordBatch<K, V> records) {
-            for (KafkaRecord<K, V> record : records.getRecords()) {
+        void consumeRecordBatch(RecordBatch<K, V> batch) {
+            for (KafkaRecord<K, V> record : batch.getRecords()) {
                 consumeRecord(record);
             }
         }
@@ -678,7 +717,7 @@ public class RecordConsumerSupport {
                 logger.atError().setCause(t).log("Serious error while processing record!");
                 throw new KafkaException(t);
             } finally {
-                record.getBatch().recordProcessed(batchListener);
+                record.getBatch().recordProcessed(recordBatchListener);
             }
         }
     }
@@ -686,12 +725,12 @@ public class RecordConsumerSupport {
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
         private static final String POOL_NAME = "Ring buffer processor pool";
+        private static final int RING_BUFFER_CAPACITY = 16_384;
+
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
         protected final int actualThreads;
 
-        // Ring buffers settings for high-throughput processing
-        private static final int RING_BUFFER_CAPACITY = 16_384;
         private final BlockingQueue<KafkaRecord<K, V>>[] ringBuffers;
         private final AtomicLong roundRobinCounter = new AtomicLong(0);
         private final ExecutorService ringBufferPool;
@@ -730,6 +769,7 @@ public class RecordConsumerSupport {
                 // Use calculated optimal capacity for maximum throughput
                 this.ringBuffers[i] = new ArrayBlockingQueue<>(RING_BUFFER_CAPACITY);
                 final int threadIndex = i;
+                configureMonitor(threadIndex);
 
                 logger.atDebug().log(
                         "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
@@ -737,6 +777,26 @@ public class RecordConsumerSupport {
                 // Submit ring buffer processing task to executor
                 ringBufferPool.submit(() -> processRingBuffer(threadIndex));
             }
+        }
+
+        private void configureMonitor(final int threadIndex) {
+            if (this.monitor == null) {
+                return;
+            }
+            this.monitor
+                    .observe(
+                            new Meters.Gauge(
+                                    "Ring buffer " + threadIndex + " usage",
+                                    "Percentage of ring buffer capacity currently in use",
+                                    () -> {
+                                        int currentSize = ringBuffers[threadIndex].size();
+                                        return Math.min(
+                                                100.0,
+                                                (currentSize * 100.0) / RING_BUFFER_CAPACITY);
+                                    },
+                                    "%"))
+                    .enableMax()
+                    .enableAverage();
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -762,10 +822,11 @@ public class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeBatch(RecordBatch<K, V> batch) {
+        void consumeRecordBatch(RecordBatch<K, V> batch) {
             if (firstFailure != null) {
                 throw new KafkaException(firstFailure);
             }
+
             // Distribute records to ring buffers
             for (KafkaRecord<K, V> record : batch.getRecords()) {
                 int bufferIndex = selectRingBuffer(record);
@@ -780,15 +841,15 @@ public class RecordConsumerSupport {
                     return; // Exit gracefully, allow partial batch to complete
                 }
             }
-
-            this.batchListener.checkRingBufferUtilization(this.ringBuffers, RING_BUFFER_CAPACITY);
         }
 
-        private void feedBuffer(KafkaRecord<K, V> record, int bufferIndex)
-                throws InterruptedException {
-            ringBuffers[bufferIndex].put(record);
+        @Override
+        void onPoolsShutdown() {
+            stopping = true;
+            shutdownPool(ringBufferPool, POOL_NAME);
         }
 
+        // Private methods
         private int selectRingBuffer(KafkaRecord<K, V> record) {
             return switch (orderStrategy) {
                 case UNORDERED ->
@@ -807,6 +868,27 @@ public class RecordConsumerSupport {
                                 ? Math.abs(record.key().hashCode()) % actualThreads
                                 : 0;
             };
+        }
+
+        private void feedBuffer(KafkaRecord<K, V> record, int bufferIndex)
+                throws InterruptedException {
+            ringBuffers[bufferIndex].put(record);
+        }
+
+        private void consume(KafkaRecord<K, V> record) {
+            try {
+                recordProcessor.process(record);
+                offsetService.updateOffsets(record);
+            } catch (ValueException ve) {
+                logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
+                logger.atWarn().log("Applying the {} strategy", errorStrategy());
+                handleError(record, ve);
+            } catch (Throwable t) {
+                logger.atError().log("Serious error while processing record!");
+                asyncFailure(t);
+            } finally {
+                record.getBatch().recordProcessed(recordBatchListener);
+            }
         }
 
         private void processRingBuffer(int threadIndex) {
@@ -856,22 +938,6 @@ public class RecordConsumerSupport {
             }
         }
 
-        void consume(KafkaRecord<K, V> record) {
-            try {
-                recordProcessor.process(record);
-                offsetService.updateOffsets(record);
-            } catch (ValueException ve) {
-                logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
-                logger.atWarn().log("Applying the {} strategy", errorStrategy());
-                handleError(record, ve);
-            } catch (Throwable t) {
-                logger.atError().log("Serious error while processing record!");
-                asyncFailure(t);
-            } finally {
-                record.getBatch().recordProcessed(batchListener);
-            }
-        }
-
         private void handleError(KafkaRecord<K, V> record, ValueException ve) {
             switch (errorStrategy()) {
                 case IGNORE_AND_CONTINUE -> {
@@ -880,32 +946,10 @@ public class RecordConsumerSupport {
                 }
 
                 case FORCE_UNSUBSCRIPTION -> {
-                    // Trying to emulate the behavior of the above synchronous case, whereas the
-                    // first record which gets an error ends the commits; hence we will keep track
-                    // of the first error found on each partition; then, when committing each
-                    // partition after the termination of the current poll, we will end before
-                    // the first failed record found; this, obviously, is not possible in the
-                    // fire-and-forget policy, but requires the batching one.
-                    //
-                    // There is a difference, though: in the synchronous case, the first error also
-                    // stops the elaboration on the whole topic and all partitions are committed to
-                    // the current point; in this case, instead, the elaboration continues until
-                    // the end of the poll, hence, partitions with errors are committed up to
-                    // the first error, but subsequent records, though not committed, may have
-                    // been processed all the same (even records with the same key of a previously
-                    // failed  record) and only then is the elaboration stopped.
-                    // On the other hand, partitions without errors are processed and committed
-                    // entirely, which is good, although, then, the elaboration stops also for them.
                     logger.atWarn().log("Will force unsubscription");
                     asyncFailure(ve);
                 }
             }
-        }
-
-        @Override
-        void onPoolsShutdown() {
-            stopping = true;
-            shutdownPool(ringBufferPool, POOL_NAME);
         }
     }
 
