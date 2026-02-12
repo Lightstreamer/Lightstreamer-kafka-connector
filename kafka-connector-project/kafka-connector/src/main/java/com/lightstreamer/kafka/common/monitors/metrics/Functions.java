@@ -264,15 +264,18 @@ public class Functions {
 
         @Override
         protected double doEvaluation(RangeVector vector) {
-            return vector.forLastTwo(this::calc);
-        }
+            if (vector.size() < 2) {
+                return Double.NaN;
+            }
 
-        private double calc(DataPoint last, DataPoint secondLast) {
+            DataPoint last = vector.last();
+            DataPoint secondLast = vector.secondLast();
+
             long timeDelta = last.timeValue() - secondLast.timeValue();
-
             if (timeDelta <= 0) {
                 return Double.NaN; // Avoid division by zero or negative time
             }
+
             double valueDelta = last.value() - secondLast.value();
             return valueDelta * 1000.0 / timeDelta; // Rate per second
         }
