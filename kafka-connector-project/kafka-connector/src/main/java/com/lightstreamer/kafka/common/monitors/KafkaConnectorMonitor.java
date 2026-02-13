@@ -18,11 +18,13 @@
 package com.lightstreamer.kafka.common.monitors;
 
 import com.lightstreamer.kafka.common.monitors.KafkaConnectorMonitor.DefaultObserver.ObserverID;
-import com.lightstreamer.kafka.common.monitors.metrics.Functions;
-import com.lightstreamer.kafka.common.monitors.metrics.Functions.Function;
 import com.lightstreamer.kafka.common.monitors.metrics.Meter;
 import com.lightstreamer.kafka.common.monitors.reporting.Reporter;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
 import com.lightstreamer.kafka.common.monitors.reporting.Reporters;
+import com.lightstreamer.kafka.common.monitors.timeseries.Functions;
+import com.lightstreamer.kafka.common.monitors.timeseries.Functions.Function;
+import com.lightstreamer.kafka.common.monitors.timeseries.Functions.FunctionResult;
 import com.lightstreamer.kafka.common.monitors.timeseries.RangeVector;
 import com.lightstreamer.kafka.common.monitors.timeseries.TimeSeries;
 
@@ -32,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -67,6 +70,15 @@ public final class KafkaConnectorMonitor implements Monitor {
     private volatile ScheduledExecutorService executor;
     private volatile boolean started = false;
 
+    static record FunctionConfig(Function function, int precision, MetricValueFormatter formatter) {
+
+        public FunctionConfig {
+            if (precision < 0 || precision > 9) {
+                throw new IllegalArgumentException("precision must be between 0 and 9");
+            }
+        }
+    }
+
     /**
      * Default implementation that stores enabled functions and delegates scraping to {@link
      * TimeSeries}.
@@ -85,70 +97,101 @@ public final class KafkaConnectorMonitor implements Monitor {
             IRATE,
             MIN,
             MAX,
-            AVG;
+            AVG
         }
 
         private final KafkaConnectorMonitor monitor;
         private final ObserverID observerID;
-        private final TimeSeries timeSeries;
+        private final Meter meter;
         private final Duration rangeInterval;
-        private final EnumMap<FunctionPriority, Function> enabledFunctions;
+        private final EnumMap<FunctionPriority, FunctionConfig> enabledFunctions;
+        private final TimeSeries timeSeries;
+        private final String reportDescription;
 
         private DefaultObserver(
                 KafkaConnectorMonitor monitor,
                 ObserverID observerID,
-                TimeSeries timeSeries,
+                Meter meter,
                 Duration rangeInterval,
-                Map<FunctionPriority, Function> functions) {
+                Map<FunctionPriority, FunctionConfig> functions) {
             this.monitor = monitor;
             this.observerID = observerID;
-            this.timeSeries = timeSeries;
+            this.meter = meter;
             this.rangeInterval = rangeInterval;
             this.enabledFunctions = new EnumMap<>(functions);
+            this.timeSeries = new TimeSeries(monitor.dataPoints, meter);
+            this.reportDescription = formatDescription(meter, rangeInterval);
         }
 
         private DefaultObserver(DefaultObserver source) {
             this(
                     source.monitor,
                     source.observerID,
-                    source.timeSeries,
+                    source.meter,
                     source.rangeInterval,
                     source.enabledFunctions);
         }
 
+        private static String formatDescription(Meter meter, Duration rangeInterval) {
+            long rangeIntervalSeconds = rangeInterval.toSeconds();
+            String intervalSpecifier;
+            long rangeIntervalValue;
+            if (rangeIntervalSeconds >= 60) {
+                intervalSpecifier = "%dm";
+                rangeIntervalValue = rangeInterval.toMinutes();
+            } else {
+                intervalSpecifier = "%ds";
+                rangeIntervalValue = rangeIntervalSeconds;
+            }
+            return String.format(
+                    "%s [" + intervalSpecifier + "]", meter.name(), rangeIntervalValue);
+        }
+
         @Override
-        public DefaultObserver enableLatest() {
-            enabledFunctions.put(FunctionPriority.LAST, new Functions.Latest());
+        public DefaultObserver enableLatest(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.LAST,
+                    new FunctionConfig(new Functions.Latest(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
         @Override
-        public DefaultObserver enableRate() {
-            enabledFunctions.put(FunctionPriority.RATE, new Functions.Rate());
+        public DefaultObserver enableRate(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.RATE,
+                    new FunctionConfig(new Functions.Rate(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
         @Override
-        public DefaultObserver enableIrate() {
-            enabledFunctions.put(FunctionPriority.IRATE, new Functions.InstantRate());
+        public DefaultObserver enableIrate(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.IRATE,
+                    new FunctionConfig(new Functions.InstantRate(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
         @Override
-        public DefaultObserver enableMin() {
-            enabledFunctions.put(FunctionPriority.MIN, new Functions.Min());
+        public DefaultObserver enableMin(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.MIN,
+                    new FunctionConfig(new Functions.Min(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
         @Override
-        public DefaultObserver enableMax() {
-            enabledFunctions.put(FunctionPriority.MAX, new Functions.Max());
+        public DefaultObserver enableMax(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.MAX,
+                    new FunctionConfig(new Functions.Max(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
         @Override
-        public DefaultObserver enableAverage() {
-            enabledFunctions.put(FunctionPriority.AVG, new Functions.Average());
+        public DefaultObserver enableAverage(int precision, MetricValueFormatter formatter) {
+            enabledFunctions.put(
+                    FunctionPriority.AVG,
+                    new FunctionConfig(new Functions.Average(), precision, formatter));
             return addAndGet(new DefaultObserver(this));
         }
 
@@ -165,8 +208,7 @@ public final class KafkaConnectorMonitor implements Monitor {
                                 maxRangeIntervalMs));
             }
             return addAndGet(
-                    new DefaultObserver(
-                            monitor, observerID, timeSeries, interval, enabledFunctions));
+                    new DefaultObserver(monitor, observerID, meter, interval, enabledFunctions));
         }
 
         DefaultObserver addAndGet(DefaultObserver observer) {
@@ -175,43 +217,33 @@ public final class KafkaConnectorMonitor implements Monitor {
         }
 
         void observe() {
-            timeSeries.scrape();
+            timeSeries.sample();
         }
 
         void emit(Reporter reporter, long timestamp) {
-            RangeVector vector = timeSeries.selectRange(rangeInterval, timestamp);
+            final RangeVector vector = timeSeries.selectRange(rangeInterval, timestamp);
 
-            StringBuilder sb = new StringBuilder();
-            String format = String.format("%s [%dm]", timeSeries.name(), rangeInterval.toMinutes());
-            sb.append(format).append(" [");
-            boolean appendCommand = false;
-            for (Function function : enabledFunctions.values()) {
-                Functions.Output output = function.evaluate(vector);
-                if (appendCommand) {
-                    sb.append(", ");
-                }
-                sb.append(format(output, timeSeries.unit()));
-                appendCommand = true;
-            }
-
-            sb.append("]");
-            reporter.report(sb.toString());
+            List<Reporter.MetricValue> entries =
+                    enabledFunctions.values().stream().map(fp -> getResult(vector, fp)).toList();
+            reporter.report(reportDescription, entries);
         }
 
-        static String format(Functions.Output output, String unit) {
-            String name = output.name();
-            double value = output.value().doubleValue();
-            String decoratedUnit = output.decorateUnit(unit);
-            double scaledValue = value;
-            String fmt = "%.2f";
-            if (value >= 1_000_000.0) {
-                scaledValue = value / 1_000_000.0;
-                fmt = "%.1fM";
-            } else if (value >= 1000.0) {
-                scaledValue = value / 1000.0;
-                fmt = "%.1fk";
-            }
-            return String.format("%s=" + fmt + " %s", name, scaledValue, decoratedUnit);
+        /**
+         * Converts a function evaluation result into a metric value for reporting.
+         *
+         * @param vector the time series data range to evaluate
+         * @param config the function configuration (function, precision, formatter)
+         * @return a metric value containing the result and formatting metadata
+         */
+        private Reporter.MetricValue getResult(RangeVector vector, FunctionConfig config) {
+            Function function = config.function();
+            FunctionResult result = function.evaluate(vector);
+            return new Reporter.MetricValue(
+                    result.name(),
+                    result.value(),
+                    config.precision(),
+                    result.decorateUnit(meter.unit()),
+                    config.formatter());
         }
     }
 
@@ -349,7 +381,7 @@ public final class KafkaConnectorMonitor implements Monitor {
                 new DefaultObserver(
                         this,
                         new ObserverID(observerIndex.incrementAndGet()),
-                        new TimeSeries(dataPoints, meter),
+                        meter,
                         DefaultObserver.DEFAULT_RANGE_INTERVAL,
                         new EnumMap<>(DefaultObserver.FunctionPriority.class));
         addObserver(observer);
