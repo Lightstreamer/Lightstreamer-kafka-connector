@@ -121,7 +121,7 @@ public class Meters {
         }
 
         @Override
-        public double scrape() {
+        public double collect() {
             return counter.sum();
         }
     }
@@ -137,7 +137,7 @@ public class Meters {
      *   <li>Active connections
      * </ul>
      *
-     * <p>The value is obtained on-demand via a {@link Supplier} when {@link #scrape()} is called.
+     * <p>The value is obtained on-demand via a {@link Supplier} when {@link #collect()} is called.
      */
     public static final class Gauge extends AbstractMeter {
 
@@ -159,7 +159,7 @@ public class Meters {
         }
 
         @Override
-        public double scrape() {
+        public double collect() {
             Double value = valueSupplier.get();
             return value != null ? value : Double.NaN;
         }
