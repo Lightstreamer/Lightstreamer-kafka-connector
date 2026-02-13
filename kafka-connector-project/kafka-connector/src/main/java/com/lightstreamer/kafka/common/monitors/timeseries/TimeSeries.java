@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.common.monitors.timeseries;
 
-import com.lightstreamer.kafka.common.monitors.metrics.Meter;
+import com.lightstreamer.kafka.common.monitors.metrics.Collectable;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -84,7 +84,7 @@ public final class TimeSeries {
 
     private final List<DataPoint> dataPoints;
     private final int capacity;
-    private final Meter meter;
+    private final Collectable collectable;
     private int writeIndex = 0;
     private boolean bufferFull = false;
 
@@ -92,37 +92,28 @@ public final class TimeSeries {
      * Creates a new time series with the specified capacity.
      *
      * @param capacity the maximum number of data points to store (must be positive)
-     * @param meter the meter to sample values from
-     * @throws IllegalArgumentException if capacity is not positive or meter is null
+     * @param collectable the collectable to sample values from
+     * @throws IllegalArgumentException if capacity is not positive or collectable is null
      */
-    public TimeSeries(int capacity, Meter meter) {
+    public TimeSeries(int capacity, Collectable collectable) {
         if (capacity <= 0) {
             throw new IllegalArgumentException("Capacity must be positive");
         }
-        if (meter == null) {
-            throw new IllegalArgumentException("Meter cannot be null");
+        if (collectable == null) {
+            throw new IllegalArgumentException("Collectable cannot be null");
         }
         this.capacity = capacity;
-        this.meter = meter;
+        this.collectable = collectable;
         this.dataPoints = new ArrayList<>(capacity);
     }
 
     /**
-     * Returns the name of the underlying meter.
-     *
-     * @return the meter name
-     */
-    public String name() {
-        return meter.name();
-    }
-
-    /**
-     * Returns the unit of measurement for the underlying meter.
+     * Returns the unit of measurement for the underlying collectable.
      *
      * @return the measurement unit
      */
     public String unit() {
-        return meter.unit();
+        return collectable.unit();
     }
 
     /**
@@ -168,13 +159,13 @@ public final class TimeSeries {
     }
 
     /**
-     * Samples the meter and adds the current value to the time series.
+     * Samples the collectable and adds the current value to the time series.
      *
      * <p>The buffer grows lazily until reaching capacity, then operates as a circular buffer by
      * overwriting the oldest data point. This method is thread-safe.
      */
-    public void scrape() {
-        double newValue = meter.scrape();
+    public void sample() {
+        double newValue = collectable.collect();
         synchronized (dataPoints) {
             if (!bufferFull) {
                 // Still filling the buffer
