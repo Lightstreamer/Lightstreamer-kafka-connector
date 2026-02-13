@@ -40,6 +40,8 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.monitors.metrics.Meters;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValue;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
@@ -48,6 +50,7 @@ import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -602,8 +605,14 @@ public class RecordConsumerSupport {
 
         void configureMonitor() {
             if (monitor != null) {
-                monitor.observe(receivedRecordCounter).enableIrate().enableRate();
-                monitor.observe(processedRecordCounter).enableIrate().enableRate();
+                monitor.observe(receivedRecordCounter)
+                        .enableIrate()
+                        .enableRate()
+                        .withRangeInterval(Duration.ofSeconds(4));
+                monitor.observe(processedRecordCounter)
+                        .enableIrate()
+                        .enableRate()
+                        .withRangeInterval(Duration.ofSeconds(4));
             }
         }
 
@@ -725,7 +734,8 @@ public class RecordConsumerSupport {
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
         private static final String POOL_NAME = "Ring buffer processor pool";
-        private static final int RING_BUFFER_CAPACITY = 16_384;
+        // private static final int RING_BUFFER_CAPACITY = 16_384;
+        private static final int RING_BUFFER_CAPACITY = 5192;
 
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
@@ -796,7 +806,43 @@ public class RecordConsumerSupport {
                                     },
                                     "%"))
                     .enableMax()
-                    .enableAverage();
+                    .enableAverage()
+                    .enableLatest(
+                            2,
+                            new MetricValueFormatter() {
+                                @Override
+                                public String formatMetric(MetricValue value) {
+                                    return createUtilizationBar(value.value(), 20);
+                                }
+                            })
+                    .withRangeInterval(Duration.ofSeconds(4));
+        }
+
+        private String createUtilizationBar(double utilizationPercent, int width) {
+            int filledChars = (int) ((utilizationPercent * width) / 100);
+            StringBuilder bar = new StringBuilder();
+
+            // Different characters for different utilization levels
+            char indicator;
+            if (utilizationPercent > 90) {
+                indicator = '█'; // High utilization - solid block
+            } else if (utilizationPercent > 70) {
+                indicator = '▓'; // Medium-high utilization - dark shade
+            } else if (utilizationPercent > 40) {
+                indicator = '▒'; // Medium utilization - medium shade
+            } else {
+                indicator = '░'; // Low utilization - light shade
+            }
+
+            for (int i = 0; i < width; i++) {
+                if (i < filledChars) {
+                    bar.append(indicator); // High utilization - solid block
+                } else {
+                    bar.append('·'); // Empty space
+                }
+            }
+
+            return bar.toString();
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
