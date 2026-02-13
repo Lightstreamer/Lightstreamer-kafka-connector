@@ -204,9 +204,10 @@ public class KafkaConsumerWrapper<K, V> {
 
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
-    private static final Duration MONITOR_SCRAPE_INTERVAL = Duration.ofSeconds(2);
+    // Monitoring configuration
     private static final int MONITOR_DATA_POINTS = 120;
-    private static final Duration MONITOR_LOG_REPORTING_INTERVAL = Duration.ofSeconds(30);
+    private static final Duration MONITOR_SCRAPE_INTERVAL = Duration.ofSeconds(1);
+    private static final Duration MONITOR_LOG_REPORTING_INTERVAL = Duration.ofSeconds(3);
 
     private final Config<K, V> config;
     private final MetadataListener metadataListener;
