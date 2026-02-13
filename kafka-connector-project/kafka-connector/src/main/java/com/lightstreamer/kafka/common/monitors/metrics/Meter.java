@@ -19,9 +19,9 @@ package com.lightstreamer.kafka.common.monitors.metrics;
 
 /**
  * Represents a metric that can be periodically sampled to collect time series data. Implementations
- * must be thread-safe as {@link #scrape()} may be called concurrently.
+ * must be thread-safe as {@link #collect()} may be called concurrently.
  */
-public interface Meter {
+public interface Meter extends Collectable {
 
     /**
      * Returns the unique name of this meter.
@@ -36,27 +36,4 @@ public interface Meter {
      * @return the meter description
      */
     String description();
-
-    /**
-     * Returns the unit of measurement (e.g., "bytes", "requests", "%").
-     *
-     * @return the unit of measurement
-     */
-    String unit();
-
-    /**
-     * Scrapes the current value of the meter. This method may be called periodically by a monitor
-     * to collect data points for time series analysis.
-     *
-     * <p>Implementations must be thread-safe. This method may return:
-     *
-     * <ul>
-     *   <li>Any finite double value (positive, negative, or zero)
-     *   <li>{@link Double#NaN} to indicate unavailable or undefined data
-     *   <li>Should not return {@link Double#POSITIVE_INFINITY} or {@link Double#NEGATIVE_INFINITY}
-     * </ul>
-     *
-     * @return the current value of the meter
-     */
-    double scrape();
 }
