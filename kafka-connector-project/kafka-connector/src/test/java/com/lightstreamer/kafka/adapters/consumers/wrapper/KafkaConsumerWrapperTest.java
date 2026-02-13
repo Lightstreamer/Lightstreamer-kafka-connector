@@ -925,7 +925,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(mode.getTiming()).isEqualTo(expectedTiming);
 
         ConsumerRecords<byte[], byte[]> consumerRecords = createConsumerRecords(2);
-        RecordBatch<String, String> batch = mode.toRecords(consumerRecords);
+        RecordBatch<String, String> batch = mode.toBatch(consumerRecords);
         assertThat(batch.count()).isEqualTo(2);
 
         // Verify that records are of the expected implementation class
@@ -941,7 +941,7 @@ public class KafkaConsumerWrapperTest {
         ConsumerRecords<byte[], byte[]> emptyRecords =
                 new ConsumerRecords<>(Collections.emptyMap());
 
-        batch = mode.toRecords(emptyRecords);
+        batch = mode.toBatch(emptyRecords);
         assertThat(batch.isEmpty()).isTrue();
     }
 
