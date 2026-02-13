@@ -15,9 +15,8 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.common.monitors.metrics;
+package com.lightstreamer.kafka.common.monitors.timeseries;
 
-import com.lightstreamer.kafka.common.monitors.timeseries.RangeVector;
 import com.lightstreamer.kafka.common.monitors.timeseries.TimeSeries.DataPoint;
 
 import java.util.function.Supplier;
@@ -37,13 +36,7 @@ public class Functions {
      * @param value the computed value
      * @param unitDecorator suffix to append to the unit (e.g., "/sec" for rates)
      */
-    public static record Output(String name, Number value, String unitDecorator) {
-
-        public String format(String unit) {
-            String formattedValue =
-                    Double.isNaN(value.doubleValue()) ? "n/a" : String.valueOf(value);
-            return name + "=" + formattedValue + " " + unit + unitDecorator;
-        }
+    public static record FunctionResult(String name, double value, String unitDecorator) {
 
         public String decorateUnit(String unit) {
             return unit + unitDecorator;
@@ -60,7 +53,7 @@ public class Functions {
          * @param vector the time series data to evaluate
          * @return the evaluation result
          */
-        Output evaluate(RangeVector vector);
+        FunctionResult evaluate(RangeVector vector);
 
         default String unitDecorator() {
             return "";
@@ -91,11 +84,11 @@ public class Functions {
         }
 
         @Override
-        public Output evaluate(RangeVector vector) {
+        public FunctionResult evaluate(RangeVector vector) {
             if (!vector.isEmpty()) {
-                return new Output(name(), doEvaluation(vector), unitDecorator());
+                return new FunctionResult(name(), doEvaluation(vector), unitDecorator());
             }
-            return new Output(name(), Double.NaN, unitDecorator());
+            return new FunctionResult(name(), Double.NaN, unitDecorator());
         }
 
         /**
@@ -280,4 +273,39 @@ public class Functions {
             return valueDelta * 1000.0 / timeDelta; // Rate per second
         }
     }
+
+    // public static class Subquery extends AggregateFunction implements Collectable {
+
+    //     private final Function function;
+    //     private final AtomicDouble lastValue = new AtomicDouble(Double.NaN);
+    //     private final TimeSeries timeSeries;
+
+    //     public Subquery(String name, int dataPoints, Function function) {
+    //         super(name);
+    //         this.function = function;
+    //         this.timeSeries = new TimeSeries(dataPoints, this);
+    //     }
+
+    //     public void run(long timestamp, Duration rangeInterval) {
+    //         RangeVector vector = timeSeries.selectRange(rangeInterval, timestamp);
+    //         doEvaluation(vector);
+    //     }
+
+    //     @Override
+    //     protected double doEvaluation(RangeVector vector) {
+    //         double value = function.evaluate(vector).value();
+    //         lastValue.set(value);
+    //         return value;
+    //     }
+
+    //     @Override
+    //     public String unit() {
+    //         return function.unitDecorator();
+    //     }
+
+    //     @Override
+    //     public double collect() {
+    //         return lastValue.get();
+    //     }
+    // }
 }
