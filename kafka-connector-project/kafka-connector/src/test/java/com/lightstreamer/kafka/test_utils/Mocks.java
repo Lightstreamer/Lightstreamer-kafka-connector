@@ -33,6 +33,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.monitors.Observer;
 import com.lightstreamer.kafka.common.monitors.metrics.Meter;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
@@ -599,6 +600,36 @@ public class Mocks {
 
         @Override
         public Observer withRangeInterval(Duration rangeInterval) {
+            return this;
+        }
+
+        @Override
+        public Observer enableLatest(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableRate(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableIrate(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableAverage(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableMax(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableMin(int precision, MetricValueFormatter formatter) {
             return this;
         }
     }
