@@ -447,11 +447,9 @@ public class KafkaConsumerWrapper<K, V> {
         recordConsumer.close();
         // Ensure that all pending offsets are committed
         offsetService.onConsumerShutdown();
-        try {
-            consumer.close();
-        } catch (Exception e) {
-            logger.atError().setCause(e).log("Ignore error while closing the Kafka Consumer");
-        }
+        // Now it's safe to close the consumer
+        consumer.close();
+        // Stop the monitor
         this.monitor.stop();
         logger.atDebug().log("Kafka Consumer closed");
     }
