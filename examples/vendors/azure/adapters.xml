@@ -40,6 +40,24 @@
 		<param name="consumer.max.poll.interval.ms">50000</param>
 		<param name="consumer.session.timeout.ms">30000</param>
 
+        <!-- ##### Azure Schema Registry ##### -->
+        <!-- AVRO Schema Example 
+		<param name="record.value.evaluator.schema.registry.enable">true</param>
+		<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+		<param name="schema.registry.provider">AZURE</param>
+		<param name="schema.registry.azure.schema.id.header">de4ad7aa6d70468ba862660f9aa51ba1</param>
+		<param name="schema.registry.azure.client.id">b32caa30-0000-4444-6041-f29e75572449</param>
+		<param name="schema.registry.azure.tenant.id">fb769c2b-0b0b-8888-aaaa-bb756bf7e924</param>
+		<param name="schema.registry.azure.client.secret">Yij8Q~Z~myapplicationsecretfggmuzp-bQ~</param>
+        -->
+        <!-- JSON Schema Example
+        <param name="record.value.evaluator.schema.registry.enable">true</param>
+		<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+		<param name="schema.registry.provider">AZURE</param>
+        #### Tenant id, schema id, and application secret should be  ####
+        #### configured in environment variables.                    ####
+        -->
+
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
         <param name="item-template.stock">stock-#{index=KEY}</param>
         <param name="map.stocks.to">item-template.stock</param>

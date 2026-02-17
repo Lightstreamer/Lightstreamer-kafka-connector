@@ -1,6 +1,6 @@
 # Quick Start with Azure Event Hubs
 
-This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Azure Event Hubs_](https://azure.microsoft.com/en-us/products/event-hubs) as the target cluster. You may follow the [instructions](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create) to perform the following operations:
+This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Azure Event Hubs_](https://azure.microsoft.com/en-us/products/event-hubs) as the target cluster. Using your Azure account, you may follow the [instructions](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create) to perform the following operations in the Azure portal:
 
  - Create an Event Hubs _namespace_.
  - Create an Event Hub (one Event Hub per Kafka topic) with name `stocks`.
@@ -73,6 +73,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$$ConnectionString" password="${connection_string}";
      ```  
 
+> **ℹ️ Schema Registry Support**: This quickstart works out-of-the-box without Schema Registry. If you need AVRO/JSON schema validation with Azure Schema Registry, see the [Advanced: Schema Registry Integration](#advanced-schema-registry-integration) section at the end of this document.
+
 ## Run
 
 From this directory, run the following command:
@@ -95,3 +97,48 @@ To shutdown Docker Compose and clean up all temporary resources:
 ```sh
 $ ./stop.sh
 ```
+
+---
+
+## Advanced: Schema Registry Integration
+
+This section is **optional** and only needed if your Azure Event Hubs setup includes Azure Schema Registry for schema validation. The quickstart works perfectly without it.
+
+If you need schema validation, you can enable schema registry support by uncommenting and configuring the appropriate parameters in [`adapters.xml`](./adapters.xml).
+
+### AVRO Schema
+
+For AVRO serialization, enable the following parameters:
+
+```xml
+<param name="record.value.evaluator.schema.registry.enable">true</param>
+<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+<param name="schema.registry.provider">AZURE</param>
+<param name="schema.registry.azure.schema.id.header">de4ad7aa6d70468ba862660f9aa51ba1</param>
+<param name="schema.registry.azure.client.id">b32caa30-0000-4444-6041-f29e75572449</param>
+<param name="schema.registry.azure.tenant.id">fb769c2b-0b0b-8888-aaaa-bb756bf7e924</param>
+<param name="schema.registry.azure.client.secret">Yij8Q~Z~myapplicationsecretfggmuzp-bQ~</param>
+```
+
+Where:
+- `record.value.evaluator.schema.registry.enable` - Enables schema registry integration
+- `schema.registry.url` - The Azure Event Hubs namespace URL (e.g., `https://<namespace>.servicebus.windows.net`)
+- `schema.registry.provider` - Must be set to `AZURE` for Azure Schema Registry
+- `schema.registry.azure.schema.id.header` - The schema ID from Azure Schema Registry
+- `schema.registry.azure.client.id` - The application (client) ID for Azure AD authentication
+- `schema.registry.azure.tenant.id` - The Azure AD tenant ID
+- `schema.registry.azure.client.secret` - The client secret for Azure AD authentication
+
+### JSON Schema
+
+For JSON serialization with schema validation:
+
+```xml
+<param name="record.value.evaluator.schema.registry.enable">true</param>
+<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+<param name="schema.registry.provider">AZURE</param>
+```
+
+The minimal configuration requires only the three parameters above. Additional authentication parameters (tenant ID, schema ID, and client secret) should be configured via environment variables for security reasons, similar to the connection string configuration shown in the main setup.
+
+> **Note**: To use schema registry features, you need to create an Azure Schema Registry group in your Event Hubs namespace and register your schemas through the Azure portal or SDK.

@@ -1637,7 +1637,7 @@ Example:
 
 ### Confluent Schema Registry Parameters
 
-When using Confluent Schema Registry (`schema.registry.provider` set to `AZUCOCONFLUENTNFLUENTRE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
+When using Confluent Schema Registry (`schema.registry.provider` set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
 #### Basic HTTP Authentication Parameters
 
