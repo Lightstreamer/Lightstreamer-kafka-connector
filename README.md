@@ -410,8 +410,8 @@ _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Conne
 Furthermore, the name is also used to group all logging messages belonging to the same connection.
 
 > [!TIP]
-> For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> For every Data Adapter connection, add new loggers and their relative file appenders to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
+> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides both a regular logger `QuickStart` and a monitor logger `QuickStartMonitor` for the `QuickStart` connection:
 > ```java
 > ...
 > # QuickStart logger
@@ -420,6 +420,13 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
 > log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
 > log4j.appender.QuickStartFile.File=../../logs/quickstart.log
+>
+> # QuickStart Monitor logger
+> log4j.logger.QuickStartMonitor=INFO, QuickStartMonitorFile
+> log4j.appender.QuickStartMonitorFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartMonitorFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartMonitorFile.layout.ConversionPattern=[%d] %m%n
+> log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
 Example:
@@ -921,9 +928,6 @@ Example:
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
 
 Default value: `1`.
-
-> [!CAUTION]
-> Concurrent processing is not compatible with _log compaction_. When log compaction is enabled in Kafka (which retains only the latest value per key), using multiple processing threads can lead to metadata bloat. This occurs because the offset tracking mechanism accumulates metadata for all processed messages, including those that may later be compacted away. For reliable operation with compacted topics, use a single processing thread (`record.consume.with.num.threads` set to `1`).
 
 Example:
 
