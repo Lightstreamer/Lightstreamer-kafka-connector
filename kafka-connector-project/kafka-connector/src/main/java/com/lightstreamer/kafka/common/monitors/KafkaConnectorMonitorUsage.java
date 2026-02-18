@@ -54,7 +54,7 @@ class KafkaConnectorMonitorUsage {
                         })
                 .enableIrate()
                 .enableMax()
-                .withRangeInterval(Duration.ofSeconds(2));
+                .withRangeInterval(Duration.ofSeconds(120));
         globalMonitor
                 .observe(processedRecordCounter2)
                 .enableLatest()
