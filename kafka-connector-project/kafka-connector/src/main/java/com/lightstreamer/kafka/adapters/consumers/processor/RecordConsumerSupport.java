@@ -569,6 +569,8 @@ public class RecordConsumerSupport {
 
     abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
 
+        protected static final Duration DEFAULT_MONITOR_RANGE_INTERVAL = Duration.ofSeconds(30);
+
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
@@ -608,11 +610,11 @@ public class RecordConsumerSupport {
                 monitor.observe(receivedRecordCounter)
                         .enableIrate()
                         .enableRate()
-                        .withRangeInterval(Duration.ofSeconds(4));
+                        .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
                 monitor.observe(processedRecordCounter)
                         .enableIrate()
                         .enableRate()
-                        .withRangeInterval(Duration.ofSeconds(4));
+                        .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
             }
         }
 
@@ -815,7 +817,7 @@ public class RecordConsumerSupport {
                                     return createUtilizationBar(value.value(), 20);
                                 }
                             })
-                    .withRangeInterval(Duration.ofSeconds(4));
+                    .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
         }
 
         private String createUtilizationBar(double utilizationPercent, int width) {
