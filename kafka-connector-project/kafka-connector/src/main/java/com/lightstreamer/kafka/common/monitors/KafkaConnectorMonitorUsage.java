@@ -17,13 +17,15 @@
 
 package com.lightstreamer.kafka.common.monitors;
 
-import com.lightstreamer.kafka.common.monitors.metrics.Meters;
-import com.lightstreamer.kafka.common.records.RecordBatch;
-
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-class GlobalMonitorUsage {
+import com.lightstreamer.kafka.common.monitors.metrics.Meters;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValue;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
+
+class KafkaConnectorMonitorUsage {
+
     public static void main(String[] args) {
         KafkaConnectorMonitor globalMonitor =
                 new KafkaConnectorMonitor("Testconnection")
@@ -42,12 +44,17 @@ class GlobalMonitorUsage {
         globalMonitor
                 .observe(processedRecordCounter1)
                 .enableLatest()
-                .enableRate()
+                .enableRate(
+                        4,
+                        new MetricValueFormatter() {
+                            @Override
+                            public String formatMetric(MetricValue value) {
+                                return String.format("Getting %.2f msg/s", value.value());
+                            }
+                        })
                 .enableIrate()
-                .enableMin()
                 .enableMax()
-                .enableAverage()
-                .withRangeInterval(Duration.ofMinutes(2));
+                .withRangeInterval(Duration.ofSeconds(2));
         globalMonitor
                 .observe(processedRecordCounter2)
                 .enableLatest()
@@ -57,9 +64,6 @@ class GlobalMonitorUsage {
                 .enableMax()
                 .enableAverage()
                 .withRangeInterval(Duration.ofMinutes(2));
-
-        RecordBatch.RecordBatchListener listener =
-                batch -> processedRecordCounter1.increment(batch.count());
 
         globalMonitor.start(Duration.ofSeconds(1));
 
