@@ -17,12 +17,12 @@
 
 package com.lightstreamer.kafka.common.monitors;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 import com.lightstreamer.kafka.common.monitors.metrics.Meters;
 import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValue;
 import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 class KafkaConnectorMonitorUsage {
 
