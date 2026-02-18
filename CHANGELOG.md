@@ -20,9 +20,9 @@
   - Removed unused web client assets and `QuickStartConfluentCloud` configuration from factory files. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
   - Updated internal links to reflect new folder locations. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
 
-- Updated [README.md](README.md): Removed vendor-specific connection instructions (Confluent Cloud, Redpanda Cloud) and moved them to dedicated quickstarts. Expanded broker list with links to all vendor quickstarts. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+- Updated [`README.md`](README.md): Removed vendor-specific connection instructions (Confluent Cloud, Redpanda Cloud) and moved them to dedicated quickstarts. Expanded broker list with links to all vendor quickstarts. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
 
-- Updated [examples/vendors/confluent/README.md](examples/vendors/confluent/README.md): Improved section organization and clarity. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+- Updated [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md): Improved section organization and clarity. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
 
 - Clarified `adapters.xml` descriptions in various QuickStart READMEs. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
 
