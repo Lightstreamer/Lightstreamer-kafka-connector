@@ -253,7 +253,7 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` and `quickstart-monitor.log` files).
 
 > [!TIP]
 > A ready-made configuration file is available in the [Confluent Cloud QuickStart](./quickstart-confluent-cloud/adapters.xml). You can use it as a starting point and simply update the `bootstrap.servers` parameter with your Confluent Cloud cluster endpoint, along with the `authentication.username` and `authentication.password` parameters with your credentials.
@@ -918,7 +918,7 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
-### Support for Key Value Pairs (KVP)
+**Support for Key Value Pairs (KVP)**
 
 In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
 
