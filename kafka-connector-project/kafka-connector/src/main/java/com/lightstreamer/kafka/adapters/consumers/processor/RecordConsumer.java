@@ -26,15 +26,15 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.slf4j.Logger;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 public interface RecordConsumer<K, V> {
 
@@ -122,6 +122,8 @@ public interface RecordConsumer<K, V> {
 
         WithOptionals<K, V> preferSingleThread(boolean singleThread);
 
+        WithOptionals<K, V> monitor(Monitor monitor);
+
         RecordConsumer<K, V> build();
     }
 
@@ -134,14 +136,20 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
     }
 
-    default int consumeFilteredRecords(
-            List<KafkaRecord<K, V>> records, Predicate<KafkaRecord<K, V>> predicate) {
-        List<KafkaRecord<K, V>> filtered = records.stream().filter(predicate).toList();
-        consumeRecords(filtered);
-        return filtered.size();
-    }
+    /**
+     * Consumes a batch of records.
+     *
+     * <p>This method processes a batch of records of the specified generic types K and V. The
+     * implementation is responsible for handling the records within the batch according to the
+     * business logic requirements.
+     *
+     * @param <K> the type of the keys in the record batch
+     * @param <V> the type of the values in the record batch
+     * @param batch the batch of records to be consumed, must not be null
+     */
+    void consumeBatch(RecordBatch<K, V> batch);
 
-    void consumeRecords(List<KafkaRecord<K, V>> records);
+    boolean hasFailedAsynchronously();
 
     default int numOfThreads() {
         return 1;
@@ -159,8 +167,10 @@ public interface RecordConsumer<K, V> {
 
     RecordProcessor<K, V> recordProcessor();
 
-    void terminate();
+    Monitor monitor();
+
+    default void close() {}
 
     // Only for testing purposes
-    boolean isTerminated();
+    boolean isClosed();
 }

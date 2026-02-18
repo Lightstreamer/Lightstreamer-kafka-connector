@@ -41,7 +41,7 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
@@ -74,7 +74,7 @@ public class DefaultSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        MockConsumer consumer = new MockConsumer(OffsetResetStrategy.EARLIEST);
+        MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
         for (String topic : topics) {
             consumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));

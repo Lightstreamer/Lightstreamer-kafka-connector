@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.test_utils;
 
+import static org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType.EARLIEST;
+
 import com.lightstreamer.interfaces.data.DiffAlgorithm;
 import com.lightstreamer.interfaces.data.IndexedItemEvent;
 import com.lightstreamer.interfaces.data.ItemEvent;
@@ -28,17 +30,21 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
+import com.lightstreamer.kafka.common.monitors.Observer;
+import com.lightstreamer.kafka.common.monitors.metrics.Meter;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -55,8 +61,8 @@ public class Mocks {
         private RuntimeException commitException;
         private KafkaException listTopicException;
 
-        public MockConsumer(OffsetResetStrategy offsetResetStrategy) {
-            super(offsetResetStrategy);
+        public MockConsumer(String strategyType) {
+            super(strategyType);
         }
 
         public void setCommitException(RuntimeException exception) {
@@ -93,13 +99,13 @@ public class Mocks {
                 if (exceptionOnConnection) {
                     throw new KafkaException("Simulated Exception");
                 }
-                return new MockConsumer(OffsetResetStrategy.EARLIEST);
+                return new MockConsumer(EARLIEST.toString());
             };
         }
 
         public static Supplier<Consumer<byte[], byte[]>> supplier(String... topics) {
             return () -> {
-                MockConsumer mockConsumer = new MockConsumer(OffsetResetStrategy.EARLIEST);
+                MockConsumer mockConsumer = new MockConsumer(EARLIEST.toString());
                 for (String topic : topics) {
                     mockConsumer.updatePartitions(
                             topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
@@ -137,6 +143,7 @@ public class Mocks {
 
         private final List<ConsumedRecordInfo> records =
                 Collections.synchronizedList(new ArrayList<>());
+
         private volatile Throwable firstFailure;
 
         public MockOffsetService() {}
@@ -148,13 +155,7 @@ public class Mocks {
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
-        public void commitSync() {}
-
-        @Override
-        public void commitSyncAndIgnoreErrors() {}
-
-        @Override
-        public void commitAsync() {}
+        public void maybeCommit() {}
 
         @Override
         public void updateOffsets(KafkaRecord<?, ?> record) {
@@ -180,11 +181,6 @@ public class Mocks {
         }
 
         @Override
-        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
-            throw new UnsupportedOperationException("Unimplemented method 'isAlreadyConsumed'");
-        }
-
-        @Override
         public Optional<OffsetStore> offsetStore() {
             throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
         }
@@ -202,9 +198,7 @@ public class Mocks {
         }
 
         @Override
-        public boolean canManageHoles() {
-            return false;
-        }
+        public void onConsumerShutdown() {}
     }
 
     public static class MockOffsetStore implements OffsetStore {
@@ -212,8 +206,7 @@ public class Mocks {
         private final List<KafkaRecord<?, ?>> records = new ArrayList<>();
         private final Map<TopicPartition, OffsetAndMetadata> topicMap;
 
-        public MockOffsetStore(
-                Map<TopicPartition, OffsetAndMetadata> topicMap, boolean parallel, Logger log) {
+        public MockOffsetStore(Map<TopicPartition, OffsetAndMetadata> topicMap, Logger log) {
             this.topicMap = Collections.unmodifiableMap(topicMap);
         }
 
@@ -223,7 +216,7 @@ public class Mocks {
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> current() {
+        public Map<TopicPartition, OffsetAndMetadata> snapshot() {
             return topicMap;
         }
 
@@ -570,6 +563,93 @@ public class Mocks {
 
         public int getRealtimeUpdateCount() {
             return realtimeUpdates.size();
+        }
+    }
+
+    public static class MockObserver implements Observer {
+
+        @Override
+        public Observer enableLatest() {
+            return this;
+        }
+
+        @Override
+        public Observer enableRate() {
+            return this;
+        }
+
+        @Override
+        public Observer enableIrate() {
+            return this;
+        }
+
+        @Override
+        public Observer enableAverage() {
+            return this;
+        }
+
+        @Override
+        public Observer enableMax() {
+            return this;
+        }
+
+        @Override
+        public Observer enableMin() {
+            return this;
+        }
+
+        @Override
+        public Observer withRangeInterval(Duration rangeInterval) {
+            return this;
+        }
+
+        @Override
+        public Observer enableLatest(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableRate(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableIrate(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableAverage(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableMax(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+
+        @Override
+        public Observer enableMin(int precision, MetricValueFormatter formatter) {
+            return this;
+        }
+    }
+
+    public static class MockMonitor implements Monitor {
+
+        @Override
+        public Observer observe(Meter meter) {
+            return new MockObserver();
+        }
+
+        @Override
+        public void start(Duration evaluationInterval) {}
+
+        @Override
+        public void stop() {}
+
+        @Override
+        public boolean isRunning() {
+            return false;
         }
     }
 }

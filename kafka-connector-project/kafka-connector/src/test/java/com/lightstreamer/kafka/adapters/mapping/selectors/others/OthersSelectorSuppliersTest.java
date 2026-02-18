@@ -67,7 +67,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class OthersSelectorSuppliersTestTest {
+public class OthersSelectorSuppliersTest {
 
     static Stream<Arguments> evaluatorTypes() {
         return Stream.of(

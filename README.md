@@ -90,7 +90,7 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 ![Architecture](/pictures/architecture-full.png)
 
-The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customize-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
+The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customizing-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
 
 Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
 
@@ -261,7 +261,7 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` and `quickstart-monitor.log` files).
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
@@ -410,8 +410,8 @@ _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Conne
 Furthermore, the name is also used to group all logging messages belonging to the same connection.
 
 > [!TIP]
-> For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> For every Data Adapter connection, add new loggers and their relative file appenders to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
+> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides both a regular logger `QuickStart` and a monitor logger `QuickStartMonitor` for the `QuickStart` connection:
 > ```java
 > ...
 > # QuickStart logger
@@ -420,6 +420,13 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
 > log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
 > log4j.appender.QuickStartFile.File=../../logs/quickstart.log
+>
+> # QuickStart Monitor logger
+> log4j.logger.QuickStartMonitor=INFO, QuickStartMonitorFile
+> log4j.appender.QuickStartMonitorFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartMonitorFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartMonitorFile.layout.ConversionPattern=[%d] %m%n
+> log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
 Example:
@@ -456,7 +463,7 @@ Example:
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
-The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
 
 Example:
 
@@ -468,7 +475,7 @@ Example:
 
 _Optional_. The name of the consumer group this connection belongs to.
 
-The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
 Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
@@ -874,7 +881,7 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
-### Support for Key Value Pairs (KVP)
+**Support for Key Value Pairs (KVP)**
 
 In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
 
@@ -892,7 +899,7 @@ _Optional_. Specifies where to start consuming events from. Can be one of the fo
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
-The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
 Default value: `LATEST`.
 
@@ -902,14 +909,25 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
+#### `record.consume.max.poll.records`
+
+_Optional_. The maximum number of records fetched in each polling cycle.
+
+The parameter sets the value of the [`max.poll.records`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records) key to configure the internal Kafka Consumer.
+
+Default value: `500`.
+
+Example:
+
+```xml
+<param name="record.consume.max.poll.records">200</param>
+```
+
 #### `record.consume.with.num.threads`
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
 
 Default value: `1`.
-
-> [!CAUTION]
-> Concurrent processing is not compatible with _log compaction_. When log compaction is enabled in Kafka (which retains only the latest value per key), using multiple processing threads can lead to metadata bloat. This occurs because the offset tracking mechanism accumulates metadata for all processed messages, including those that may later be compacted away. For reliable operation with compacted topics, use a single processing thread (`record.consume.with.num.threads` set to `1`).
 
 Example:
 
@@ -998,7 +1016,7 @@ Examples:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided,_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1265,7 +1283,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L482) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L495) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1485,7 +1503,7 @@ When enabled, the connector:
   - **`UPDATE`**: For records with a mapped key that has been previously processed
   - **`DELETE`**: For records with a null message payload (_tombstone records_)
 
-You only need to map the `key` field from your record structure:
+You only need to map the `key` field from your record structure. For example:
 
 ```xml
 <param name="fields.auto.command.mode.enable">true</param>

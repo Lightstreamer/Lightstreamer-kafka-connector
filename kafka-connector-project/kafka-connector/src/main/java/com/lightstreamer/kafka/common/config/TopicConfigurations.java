@@ -38,7 +38,8 @@ public class TopicConfigurations {
         private final String topic;
         private final Set<String> mappings;
 
-        private TopicMappingConfig(String topic, LinkedHashSet<String> mappings) {
+        private TopicMappingConfig(String topic, LinkedHashSet<String> mappings)
+                throws ConfigException {
             this.topic = checkAndTrimTopic(topic);
             this.mappings = checkAndTrimMappings(mappings);
         }
@@ -58,7 +59,8 @@ public class TopicConfigurations {
             return mappings;
         }
 
-        private Set<String> checkAndTrimMappings(LinkedHashSet<String> mappings) {
+        private Set<String> checkAndTrimMappings(LinkedHashSet<String> mappings)
+                throws ConfigException {
             LinkedHashSet<String> trimmed = new LinkedHashSet<>();
             for (String mapping : mappings) {
                 if (mapping.isBlank()) {
@@ -75,7 +77,8 @@ public class TopicConfigurations {
                     topic, new LinkedHashSet<>(Split.byComma(delimitedMappings)));
         }
 
-        public static List<TopicMappingConfig> from(Map<String, String> configs) {
+        public static List<TopicMappingConfig> from(Map<String, String> configs)
+                throws ConfigException {
             return configs.entrySet().stream()
                     .map(e -> fromDelimitedMappings(e.getKey(), e.getValue()))
                     .toList();
@@ -86,7 +89,7 @@ public class TopicConfigurations {
 
         private static final ItemTemplateConfigs EMPTY = new ItemTemplateConfigs();
 
-        public static ItemTemplateConfigs from(Map<String, String> configs) {
+        public static ItemTemplateConfigs from(Map<String, String> configs) throws ConfigException {
             return new ItemTemplateConfigs(configs);
         }
 
@@ -96,11 +99,11 @@ public class TopicConfigurations {
 
         private final Map<String, TemplateExpression> templates = new HashMap<>();
 
-        private ItemTemplateConfigs() {
+        private ItemTemplateConfigs() throws ConfigException {
             this(Collections.emptyMap());
         }
 
-        private ItemTemplateConfigs(Map<String, String> configs) {
+        private ItemTemplateConfigs(Map<String, String> configs) throws ConfigException {
             for (Map.Entry<String, String> entry : configs.entrySet()) {
                 String templateName = entry.getKey();
                 String templateExpression = entry.getValue();
@@ -132,14 +135,16 @@ public class TopicConfigurations {
             String topic, List<TemplateExpression> itemReferences) {}
 
     public static TopicConfigurations of(
-            ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs) {
+            ItemTemplateConfigs itemTemplateConfigs, List<TopicMappingConfig> topicMappingConfigs)
+            throws ConfigException {
         return of(itemTemplateConfigs, topicMappingConfigs, false);
     }
 
     public static TopicConfigurations of(
             ItemTemplateConfigs itemTemplateConfigs,
             List<TopicMappingConfig> topicMappingConfigs,
-            boolean regexEnabled) {
+            boolean regexEnabled)
+            throws ConfigException {
         return new TopicConfigurations(itemTemplateConfigs, topicMappingConfigs, regexEnabled);
     }
 
@@ -149,7 +154,8 @@ public class TopicConfigurations {
     private TopicConfigurations(
             ItemTemplateConfigs itemTemplateConfigs,
             List<TopicMappingConfig> topicMappingConfigs,
-            boolean regexEnabled) {
+            boolean regexEnabled)
+            throws ConfigException {
         Set<TopicConfiguration> configs = new LinkedHashSet<>();
         for (TopicMappingConfig topicMapping : topicMappingConfigs) {
             List<TemplateExpression> refs =

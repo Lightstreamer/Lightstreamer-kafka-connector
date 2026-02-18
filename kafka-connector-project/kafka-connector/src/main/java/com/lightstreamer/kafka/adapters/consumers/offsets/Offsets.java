@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
@@ -28,62 +27,158 @@ import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class Offsets {
 
-    static String SEPARATOR = ",";
-    static Supplier<Collection<Long>> SUPPLIER = ArrayList::new;
-    static Predicate<String> NOT_EMPTY_STRING = ((Predicate<String>) String::isEmpty).negate();
-
-    static String encode(Collection<Long> offsets) {
-        return offsets.stream().map(String::valueOf).collect(Collectors.joining(SEPARATOR));
+    public static OffsetService OffsetService(Consumer<?, ?> consumer, Logger log) {
+        return new OffsetServiceImpl(consumer, log);
     }
 
-    static Collection<Long> decode(String str) {
-        if (str.isBlank()) {
-            return Collections.emptyList();
-        }
-        return Split.byComma(str).stream()
-                .filter(NOT_EMPTY_STRING)
-                .map(Long::valueOf)
-                .sorted()
-                .collect(Collectors.toCollection(SUPPLIER));
-    }
-
-    static String append(String str, long offset) {
-        String prefix = str.isEmpty() ? "" : str + SEPARATOR;
-        return prefix + offset;
-    }
-
-    public static OffsetService OffsetService(
-            Consumer<?, ?> consumer, boolean manageHoles, Logger log) {
-        return new OffsetServiceImpl(consumer, manageHoles, log);
-    }
-
-    public static OffsetStore OffsetStore(
-            Map<TopicPartition, OffsetAndMetadata> committed, boolean manageHoles) {
-        return new OffsetStoreImpl(
-                committed, manageHoles, LoggerFactory.getLogger(OffsetStore.class));
+    public static OffsetStore OffsetStore(Map<TopicPartition, OffsetAndMetadata> committed) {
+        return new OffsetStoreImpl(committed, LoggerFactory.getLogger(OffsetStore.class));
     }
 
     public interface OffsetStore {
 
         void save(KafkaRecord<?, ?> record);
 
-        default Map<TopicPartition, OffsetAndMetadata> current() {
+        default void clear(Collection<TopicPartition> partitions) {}
+
+        default Map<TopicPartition, OffsetAndMetadata> snapshot() {
             return Collections.emptyMap();
+        }
+    }
+
+    public interface CommitStrategy {
+
+        boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit);
+
+        static CommitStrategy fixedCommitStrategy(long commitIntervalMs, int commitEveryNRecords) {
+            return new FixedThresholdCommitStrategy(commitIntervalMs, commitEveryNRecords);
+        }
+
+        static CommitStrategy adaptiveCommitStrategy(int maxCommitsPerSecond) {
+            return new AdaptiveThresholdCommitStrategy(maxCommitsPerSecond);
+        }
+    }
+
+    public static class FixedThresholdCommitStrategy implements CommitStrategy {
+
+        private final long commitIntervalMs;
+        private final int commitEveryNRecords;
+
+        FixedThresholdCommitStrategy(long commitIntervalMs, int commitEveryNRecords) {
+            // Allow custom thresholds if needed
+            this.commitIntervalMs = commitIntervalMs;
+            this.commitEveryNRecords = commitEveryNRecords;
+        }
+
+        @Override
+        public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
+            if (messagesSinceLastCommit == 0) {
+                return false;
+            }
+            boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
+            boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
+
+            return byTime || byCount;
+        }
+    }
+
+    /**
+     * Adaptive commit strategy that dynamically adjusts commit frequency based on message rate.
+     *
+     * <p>Behavior:
+     *
+     * <ul>
+     *   <li>Commits when lag reaches the current message rate (max 1 second worth)
+     *   <li>At low throughput: commits more frequently (up to maxCommitsPerSecond)
+     *   <li>At high throughput: gradually throttles down to 1 commit/sec
+     *   <li>Never waits longer than 10 seconds between commits (safety)
+     * </ul>
+     *
+     * <p>Example with maxCommitsPerSecond=5:
+     *
+     * <pre>
+     * | Message Rate | Effective Commits/sec | Max Lag   | Interval |
+     * |--------------|-----------------------|-----------|----------|
+     * | 10K msg/sec  | 5.0                   | 2,000     | 200ms    |
+     * | 50K msg/sec  | 4.7                   | 10,638    | 213ms    |
+     * | 100K msg/sec | 4.3                   | 23,256    | 233ms    |
+     * | 200K msg/sec | 3.4                   | 58,824    | 294ms    |
+     * | 300K msg/sec | 2.6                   | 115,385   | 385ms    |
+     * | 400K msg/sec | 1.8                   | 222,222   | 556ms    |
+     * | 500K msg/sec | 1.0                   | 500,000   | 1,000ms  |
+     * | 1M msg/sec   | 1.0                   | 1,000,000 | 1,000ms  |
+     * </pre>
+     */
+    private static class AdaptiveThresholdCommitStrategy implements CommitStrategy {
+
+        private final int maxCommitsPerSecond;
+        private final long minCommitIntervalMs;
+        private final long maxCommitIntervalMs = 10_000L;
+
+        private volatile double avgMessageRate = 0.0;
+        private static final double EMA_ALPHA = 0.3;
+
+        // Rate thresholds for scaling commits/sec
+        private static final double LOW_RATE = 10_000; // Below: use maxCommitsPerSecond
+        private static final double HIGH_RATE = 500_000; // Above: use 1 commit/sec
+
+        AdaptiveThresholdCommitStrategy(int maxCommitsPerSecond) {
+            this.maxCommitsPerSecond = maxCommitsPerSecond;
+            this.minCommitIntervalMs = 1000L / maxCommitsPerSecond;
+        }
+
+        @Override
+        public boolean canCommit(long now, long lastCommitTimeMs, int messagesSinceLastCommit) {
+            if (messagesSinceLastCommit == 0) {
+                return false;
+            }
+
+            long elapsed = now - lastCommitTimeMs;
+
+            // Hard limit: never exceed maxCommitsPerSecond
+            if (elapsed < minCommitIntervalMs) {
+                return false;
+            }
+
+            // Calculate and update average message rate
+            double currentRate = elapsed > 0 ? (messagesSinceLastCommit * 1000.0) / elapsed : 0;
+            avgMessageRate =
+                    avgMessageRate == 0.0
+                            ? currentRate
+                            : EMA_ALPHA * currentRate + (1 - EMA_ALPHA) * avgMessageRate;
+
+            // Calculate effective commits/sec that scales with message rate:
+            // - At LOW_RATE or below: use maxCommitsPerSecond
+            // - At HIGH_RATE or above: use 1 commit/sec
+            // - In between: linear interpolation
+            double effectiveCommitsPerSec;
+            if (avgMessageRate <= LOW_RATE) {
+                effectiveCommitsPerSec = maxCommitsPerSecond;
+            } else if (avgMessageRate >= HIGH_RATE) {
+                effectiveCommitsPerSec = 1.0;
+            } else {
+                // Linear interpolation between maxCommitsPerSecond and 1
+                double scale = (avgMessageRate - LOW_RATE) / (HIGH_RATE - LOW_RATE);
+                effectiveCommitsPerSec = maxCommitsPerSecond - scale * (maxCommitsPerSecond - 1);
+            }
+
+            // Lag threshold = rate / effectiveCommitsPerSec
+            int maxLag = Math.max(1, (int) (avgMessageRate / effectiveCommitsPerSec));
+
+            // Commit when lag exceeds threshold OR max interval reached (safety)
+            return messagesSinceLastCommit >= maxLag || elapsed >= maxCommitIntervalMs;
         }
     }
 
@@ -93,9 +188,7 @@ public class Offsets {
         interface OffsetStoreSupplier {
 
             OffsetStore newOffsetStore(
-                    Map<TopicPartition, OffsetAndMetadata> offsets,
-                    boolean manageHoles,
-                    Logger logger);
+                    Map<TopicPartition, OffsetAndMetadata> offsets, Logger logger);
         }
 
         default void initStore(boolean fromLatest) throws KafkaException {
@@ -115,61 +208,54 @@ public class Offsets {
                 Map<TopicPartition, Long> startOffsets,
                 Map<TopicPartition, OffsetAndMetadata> committed);
 
-        boolean notHasPendingOffset(KafkaRecord<?, ?> record);
-
-        boolean canManageHoles();
-
-        void commitSync();
-
-        void commitSyncAndIgnoreErrors();
-
-        void commitAsync();
+        void maybeCommit();
 
         void updateOffsets(KafkaRecord<?, ?> record);
 
         void onAsyncFailure(Throwable th);
+
+        void onConsumerShutdown();
 
         Throwable getFirstFailure();
 
         Optional<OffsetStore> offsetStore();
     }
 
-    private static class OffsetServiceImpl implements OffsetService {
+    static class OffsetServiceImpl implements OffsetService {
 
         private volatile Throwable firstFailure;
+        private final AtomicBoolean consumerShuttingDown = new AtomicBoolean(false);
         private final Consumer<?, ?> consumer;
-        private final boolean manageHoles;
         private final Logger logger;
+        private final AtomicInteger recordsCounter = new AtomicInteger();
+        private final CommitStrategy commitStrategy;
 
         // Initialize the OffsetStore with a NOP implementation
         private OffsetStore offsetStore = record -> {};
 
-        private Map<TopicPartition, Collection<Long>> pendingOffsetsMap = new ConcurrentHashMap<>();
-
-        OffsetServiceImpl(Consumer<?, ?> consumer, boolean manageHoles, Logger logger) {
-            this.consumer = consumer;
-            this.manageHoles = manageHoles;
-            this.logger = logger;
+        OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
+            this(consumer, logger, CommitStrategy.adaptiveCommitStrategy(5));
         }
 
-        @Override
-        public boolean canManageHoles() {
-            return manageHoles;
+        OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
+            this.consumer = consumer;
+            this.logger = logger;
+            this.commitStrategy = commitStrategy;
         }
 
         @Override
         public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier)
                 throws KafkaException {
-            Set<TopicPartition> partitions = consumer.assignment();
+            Set<TopicPartition> partitions = this.consumer.assignment();
             // Retrieve the offset to start from, which has to be used in case no
             // committed offset is available for a given partition.
             // The start offset depends on the auto.offset.reset property.
             Map<TopicPartition, Long> startOffsets =
                     fromLatest
-                            ? consumer.endOffsets(partitions)
-                            : consumer.beginningOffsets(partitions);
+                            ? this.consumer.endOffsets(partitions)
+                            : this.consumer.beginningOffsets(partitions);
             // Get the current committed offsets for all the assigned partitions
-            Map<TopicPartition, OffsetAndMetadata> committed = consumer.committed(partitions);
+            Map<TopicPartition, OffsetAndMetadata> committed = this.consumer.committed(partitions);
             initStore(storeSupplier, startOffsets, committed);
         }
 
@@ -184,72 +270,103 @@ public class Offsets {
             // If a partition misses a committed offset for a partition, just put the
             // the current offset.
             for (TopicPartition partition : startOffsets.keySet()) {
-                OffsetAndMetadata offsetAndMetadata =
-                        offsetRepo.computeIfAbsent(
-                                partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
-                // Store the offsets that have been already delivered to clients,
-                // but not yet committed (most likely due to an exception while processing in
-                // parallel).
-                pendingOffsetsMap.put(partition, decode(offsetAndMetadata.metadata()));
+                offsetRepo.computeIfAbsent(
+                        partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
             }
-            logger.atTrace().log("Pending offsets map: {}", pendingOffsetsMap);
-            offsetStore = storeSupplier.newOffsetStore(offsetRepo, manageHoles, logger);
-        }
-
-        @Override
-        public boolean notHasPendingOffset(KafkaRecord<?, ?> record) {
-            Collection<Long> pendingOffsetsList =
-                    pendingOffsetsMap.getOrDefault(
-                            new TopicPartition(record.topic(), record.partition()),
-                            Collections.emptyList());
-            return !pendingOffsetsList.contains(record.offset());
+            this.offsetStore = storeSupplier.newOffsetStore(offsetRepo, logger);
         }
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            logger.atDebug().log("Assigned partitions {}", partitions);
+            logger.atInfo().log("Assigned partitions {}", partitions);
         }
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-            logger.atWarn().log("Partitions revoked");
-            commitSyncAndIgnoreErrors();
+            logger.atInfo().log("Revoked partitions {}", partitions);
+            if (consumerShuttingDown.get()) {
+                logger.atInfo().log(
+                        "Consumer is shutting down, skipping commit on revoked partitions");
+            } else {
+                commitSync();
+            }
+
+            offsetStore.clear(partitions);
+            logger.atInfo().log("Cleared offsets for revoked partitions");
         }
 
         @Override
-        public void commitSync() {
-            commitSync(false);
+        public void onPartitionsLost(Collection<TopicPartition> partitions) {
+            logger.atInfo().log("Lost partitions {}", partitions);
+            offsetStore.clear(partitions);
+            logger.atDebug().log("Cleared offsets");
         }
 
         @Override
-        public void commitSyncAndIgnoreErrors() {
-            commitSync(true);
+        public void onConsumerShutdown() {
+            consumerShuttingDown.set(true);
+            commitSync();
         }
 
-        private void commitSync(boolean ignoreErrors) {
+        void commitSync() {
+            logger.atInfo().log("Start committing offsets synchronously");
             try {
-                logger.atDebug().log("Start committing offset synchronously");
-                Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.current();
-                logger.atTrace().log("Offsets to commit: {}", offsets);
+                Map<TopicPartition, OffsetAndMetadata> offsets = offsetStore.snapshot();
+                logger.atInfo().log("Offsets to commit: {}", offsets);
                 consumer.commitSync(offsets);
-                logger.atInfo().log("Offsets committed");
+                logger.atInfo().log("Offsets committed synchronously");
             } catch (RuntimeException e) {
-                logger.atError().setCause(e).log("Unable to commit offsets");
-                if (!ignoreErrors) {
-                    logger.atDebug().log("Rethrowing the error");
-                    throw e;
-                }
-                logger.atDebug().log("Ignoring the error");
+                logger.atWarn()
+                        .log("Unable to commit offsets but safe to ignore: {}", e.getMessage());
             }
         }
 
+        private volatile long lastCommitTimeMs = System.currentTimeMillis();
+        private volatile int messagesSinceLastCommit = 0;
+        private final AtomicInteger consecutiveCommitFailures = new AtomicInteger(0);
+
         @Override
-        public void commitAsync() {
-            consumer.commitAsync(offsetStore.current(), null);
+        public void maybeCommit() {
+            messagesSinceLastCommit += recordsCounter.getAndSet(0);
+            long now = System.currentTimeMillis();
+            if (!commitStrategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit)) {
+                logger.atDebug().log("Skipping commit of {} messages", messagesSinceLastCommit);
+                return;
+            }
+
+            commitAsync(now);
+        }
+
+        void commitAsync(long now) {
+            Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetStore.snapshot();
+            logger.atDebug().log(
+                    "Start committing of {} messages asynchronously: {}",
+                    messagesSinceLastCommit,
+                    offsetsToCommit);
+
+            lastCommitTimeMs = now;
+            messagesSinceLastCommit = 0;
+
+            consumer.commitAsync(
+                    offsetsToCommit,
+                    (offsets, exception) -> {
+                        if (exception == null) {
+                            consecutiveCommitFailures.set(0);
+                            logger.atDebug().log("Offsets committed asynchronously {}", offsets);
+                            return;
+                        }
+                        int fails = consecutiveCommitFailures.incrementAndGet();
+                        logger.atWarn()
+                                .setCause(exception)
+                                .log(
+                                        "Failed to commit offset asynchronously (failurecount={}): {}",
+                                        fails);
+                    });
         }
 
         @Override
         public void updateOffsets(KafkaRecord<?, ?> record) {
+            recordsCounter.incrementAndGet();
             offsetStore.save(record);
         }
 
@@ -260,6 +377,7 @@ public class Offsets {
             }
         }
 
+        @Override
         public Throwable getFirstFailure() {
             return firstFailure;
         }
@@ -272,32 +390,17 @@ public class Offsets {
 
     private static class OffsetStoreImpl implements OffsetStore {
 
-        private interface OffsetAndMetadataFactory {
-
-            OffsetAndMetadata newOffsetAndMetadata(
-                    KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata);
-        }
-
         private final Map<TopicPartition, OffsetAndMetadata> offsets;
         private final Logger logger;
-        private final OffsetAndMetadataFactory factory;
 
-        OffsetStoreImpl(
-                Map<TopicPartition, OffsetAndMetadata> committed,
-                boolean manageHoles,
-                Logger logger) {
+        OffsetStoreImpl(Map<TopicPartition, OffsetAndMetadata> committed, Logger logger) {
             this.offsets = new ConcurrentHashMap<>(committed);
             this.logger = logger;
-            this.factory =
-                    manageHoles
-                            ? OffsetStoreImpl::mkNewOffsetAndMetadata
-                            : (record, offsetAndMetadata) ->
-                                    new OffsetAndMetadata(record.offset() + 1);
         }
 
         @Override
-        public Map<TopicPartition, OffsetAndMetadata> current() {
-            return Collections.unmodifiableMap(offsets);
+        public Map<TopicPartition, OffsetAndMetadata> snapshot() {
+            return new HashMap<>(offsets);
         }
 
         @Override
@@ -305,38 +408,20 @@ public class Offsets {
             TopicPartition topicPartition = new TopicPartition(record.topic(), record.partition());
             offsets.compute(
                     topicPartition,
-                    (partition, offsetAndMetadata) ->
-                            factory.newOffsetAndMetadata(record, offsetAndMetadata));
+                    (partition, offsetAndMetadata) -> {
+                        if (offsetAndMetadata != null
+                                && offsetAndMetadata.offset() > record.offset()) {
+                            return offsetAndMetadata;
+                        }
+                        return new OffsetAndMetadata(record.offset() + 1);
+                    });
         }
 
-        private static OffsetAndMetadata mkNewOffsetAndMetadata(
-                KafkaRecord<?, ?> record, OffsetAndMetadata lastOffsetAndMetadata) {
-            String lastMetadata = lastOffsetAndMetadata.metadata();
-            long lastOffset = lastOffsetAndMetadata.offset();
-            long newOffset = lastOffset;
-            String newMetadata = lastMetadata;
-
-            long consumedOffset = record.offset();
-            if (consumedOffset == lastOffset) {
-                Collection<Long> orderedConsumedList = decode(lastMetadata);
-                Iterator<Long> iterator = orderedConsumedList.iterator();
-
-                while (iterator.hasNext()) {
-                    long offset = iterator.next();
-                    if (offset == newOffset + 1) {
-                        newOffset = offset;
-                        iterator.remove();
-                        continue;
-                    }
-                    break;
-                }
-                newMetadata = newOffset == lastOffset ? lastMetadata : encode(orderedConsumedList);
-                newOffset = newOffset + 1;
-            } else {
-                newMetadata = append(lastMetadata, consumedOffset);
+        @Override
+        public void clear(Collection<TopicPartition> partitions) {
+            for (TopicPartition partition : partitions) {
+                offsets.remove(partition);
             }
-
-            return new OffsetAndMetadata(newOffset, newMetadata);
         }
     }
 

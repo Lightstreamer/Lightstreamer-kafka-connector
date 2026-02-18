@@ -39,31 +39,35 @@ import org.apache.kafka.common.serialization.Deserializer;
  */
 public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K, V> {
 
+    private static final Object UNINITIALIZED = new Object();
+
     private final Deserializer<K> keyDeserializer;
     private final Deserializer<V> valueDeserializer;
     private final byte[] rawKey;
     private final byte[] rawValue;
-    private volatile boolean isValueCached = false;
-    private volatile boolean isKeyCached = false;
-    private volatile V cachedValue = null;
-    private volatile K cachedKey = null;
+
+    @SuppressWarnings("unchecked")
+    private V cachedValue = (V) UNINITIALIZED;
+
+    @SuppressWarnings("unchecked")
+    private K cachedKey = (K) UNINITIALIZED;
 
     /**
      * Constructs a {@link DeferredKafkaConsumerRecord}.
      *
      * @param record the raw Kafka consumer record with byte array key and value
-     * @param keyDeserializer the deserializer for the key
-     * @param valueDeserializer the deserializer for the value
+     * @param deserializerPair the pair of deserializers for key and value
+     * @param batch the parent batch this record belongs to, or {@code null} if not associated
      */
     DeferredKafkaConsumerRecord(
             ConsumerRecord<byte[], byte[]> record,
-            Deserializer<K> keyDeserializer,
-            Deserializer<V> valueDeserializer) {
-        super(record);
+            DeserializerPair<K, V> deserializerPair,
+            RecordBatch<K, V> batch) {
+        super(record, batch);
         this.rawKey = record.key();
         this.rawValue = record.value();
-        this.keyDeserializer = keyDeserializer;
-        this.valueDeserializer = valueDeserializer;
+        this.keyDeserializer = deserializerPair.keyDeserializer();
+        this.valueDeserializer = deserializerPair.valueDeserializer();
     }
 
     /**
@@ -76,11 +80,12 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
      */
     @Override
     public K key() {
-        if (!isKeyCached) {
-            cachedKey = keyDeserializer.deserialize(record.topic(), rawKey);
-            isKeyCached = true;
+        K key = cachedKey;
+        if (key == UNINITIALIZED) {
+            key = keyDeserializer.deserialize(record.topic(), rawKey);
+            cachedKey = key;
         }
-        return cachedKey;
+        return key;
     }
 
     /**
@@ -93,13 +98,19 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
      */
     @Override
     public V value() {
-        if (!isValueCached) {
-            cachedValue = valueDeserializer.deserialize(record.topic(), rawValue);
-            isValueCached = true;
+        V value = cachedValue;
+        if (value == UNINITIALIZED) {
+            value = valueDeserializer.deserialize(record.topic(), rawValue);
+            cachedValue = value;
         }
-        return cachedValue;
+        return value;
     }
 
+    /**
+     * Checks whether the record payload (value) is null.
+     *
+     * @return {@code true} if the raw value is null, {@code false} otherwise
+     */
     @Override
     public boolean isPayloadNull() {
         return rawValue == null;

@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.connect.server.ProviderServer.ProviderServerConne
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.PluginMetrics;
 import org.apache.kafka.connect.sink.ErrantRecordReporter;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
@@ -370,6 +371,11 @@ public class Fakes {
         @Override
         public ErrantRecordReporter errantRecordReporter() {
             return errantRecordReporter;
+        }
+
+        @Override
+        public PluginMetrics pluginMetrics() {
+            throw new UnsupportedOperationException("Unimplemented method 'pluginMetrics'");
         }
     }
 

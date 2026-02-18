@@ -113,4 +113,9 @@ public final class KafkaSinkRecord implements KafkaRecord<Object, Object> {
     public KafkaHeaders headers() {
         return new KafkaHeadersImpl(record.headers());
     }
+
+    @Override
+    public RecordBatch<Object, Object> getBatch() {
+        return null;
+    }
 }

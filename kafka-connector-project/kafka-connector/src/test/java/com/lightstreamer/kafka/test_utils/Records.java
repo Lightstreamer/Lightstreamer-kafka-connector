@@ -119,13 +119,16 @@ public class Records {
                         String().serializer().serialize(topic, key),
                         String().serializer().serialize(topic, value));
         return KafkaRecord.fromDeferred(
-                record, new DeserializerPair<>(String().deserializer(), String().deserializer()));
+                record,
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
         return KafkaRecord.fromDeferred(
                 ConsumerRecord(topic, partition, id),
-                new DeserializerPair<>(String().deserializer(), String().deserializer()));
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
     public static ConsumerRecord<byte[], byte[]> ConsumerRecord(
@@ -198,12 +201,12 @@ public class Records {
     }
 
     public static ConsumerRecords<byte[], byte[]> generateRecords(
-            String topic, int size, List<String> keys) {
-        return generateRecords(topic, size, keys, 1);
+            String topic, int numOfRecords, List<String> keys) {
+        return generateRecords(topic, numOfRecords, keys, 1);
     }
 
     public static ConsumerRecords<byte[], byte[]> generateRecords(
-            String topic, int size, List<String> keys, int partitions) {
+            String topic, int numOfRecords, List<String> keys, int partitions) {
 
         List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
         Map<String, Integer> eventCounter = new HashMap<>();
@@ -214,7 +217,7 @@ public class Records {
         Serializer<String> valueSerializer = String().serializer();
 
         // Generate the records list
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < numOfRecords; i++) {
             String recordKey = null;
             String recordValue;
             String eventCounterKey = "noKey";

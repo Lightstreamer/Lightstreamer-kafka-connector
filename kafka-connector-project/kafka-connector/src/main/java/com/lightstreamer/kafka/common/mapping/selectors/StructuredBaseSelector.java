@@ -34,7 +34,7 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
             new Parsers.SelectorExpressionParser<>();
 
     private final BiFunction<String, P, T> rootNodeFactory;
-    private final NodeEvaluator<T> evaluator;
+    protected final NodeEvaluator<T> evaluator;
 
     protected StructuredBaseSelector(
             ExtractionExpression expression,
