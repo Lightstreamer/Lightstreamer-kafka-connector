@@ -1536,7 +1536,7 @@ When enabled, the connector:
   - **`UPDATE`**: For records with a mapped key that has been previously processed
   - **`DELETE`**: For records with a null message payload (_tombstone records_)
 
-You only need to map the `key` field from your record structure:
+You only need to map the `key` field from your record structure. For example:
 
 ```xml
 <param name="fields.auto.command.mode.enable">true</param>
