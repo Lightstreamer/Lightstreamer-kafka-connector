@@ -199,36 +199,6 @@ public class BenchmarksUtils {
         }
     }
 
-    public static ConsumerRecords<byte[], byte[]> pollRecordsFromRaw(
-            String[] topics, int partitions, List<RawRecord> rawRecords) {
-        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
-        for (int i = 0; i < partitions; i++) {
-            for (int t = 0; t < topics.length; t++) {
-                TopicPartition tp = new TopicPartition(topics[t], i);
-                recordsMap.put(tp, new java.util.ArrayList<>());
-            }
-        }
-
-        for (int i = 0; i < rawRecords.size(); i++) {
-            RawRecord rawRecord = rawRecords.get(i);
-            ConsumerRecord<byte[], byte[]> consumerRecord =
-                    new ConsumerRecord<>(
-                            rawRecord.topic(),
-                            rawRecord.partition(),
-                            rawRecord.offset(),
-                            rawRecord.rawKey(),
-                            rawRecord.rawValue());
-            TopicPartition tp = new TopicPartition(rawRecord.topic(), rawRecord.partition());
-            recordsMap.get(tp).add(consumerRecord);
-        }
-
-        return new ConsumerRecords<>(recordsMap);
-    }
-
-    private static String generateKey(TopicPartition tp, int keySize, int index) {
-        return String.valueOf(tp.partition() * keySize + index % keySize);
-    }
-
     public static class JsonRecords {
 
         static record Guy(String name, String surname, String tag, int age, List<Guy> children) {
@@ -263,13 +233,6 @@ public class BenchmarksUtils {
                 }
             }
             return allRecords;
-        }
-
-        public static ConsumerRecords<byte[], byte[]> pollRecords(
-                String[] topics, int partitions, int numRecords, int keySize) {
-
-            List<RawRecord> rawRecords = rawRecords(topics, partitions, numRecords, keySize);
-            return pollRecordsFromRaw(topics, partitions, rawRecords);
         }
 
         private static List<JsonNode> generateMessages(
@@ -444,13 +407,6 @@ public class BenchmarksUtils {
             return allRecords;
         }
 
-        public static ConsumerRecords<byte[], byte[]> pollRecords(
-                String[] topics, int partitions, int numRecords, int keySize) {
-
-            List<RawRecord> rawRecords = rawRecords(topics, partitions, numRecords, keySize);
-            return pollRecordsFromRaw(topics, partitions, rawRecords);
-        }
-
         private static List<DynamicMessage> generateMessages(
                 TopicPartition tp, int recordsPerPartition, int keySize) {
 
@@ -506,6 +462,7 @@ public class BenchmarksUtils {
         }
     }
 
+    // Public static methods
     public static ConnectorConfigurator newConfigurator(
             String[] topic, String valueType, int templateParams) {
         File adapterDir;
@@ -526,32 +483,6 @@ public class BenchmarksUtils {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static Map<String, String> basicParameters(
-            String[] topics, String valueType, int templateParams) {
-        String template = TEMPLATES.get(templateParams - 1);
-        System.out.println("Using template: " + template);
-        Map<String, String> adapterParams = new HashMap<>();
-        adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
-        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
-        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
-        adapterParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
-        adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, valueType);
-        if (valueType.equals("PROTOBUF")) {
-            adapterParams.put(
-                    ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
-            adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
-        }
-        adapterParams.put("item-template.users", template);
-        for (String t : topics) {
-            adapterParams.put("map." + t + ".to", "item-template.users");
-        }
-        adapterParams.put("field.name", "#{VALUE.name}");
-        adapterParams.put("field.surname", "#{VALUE.surname}");
-        adapterParams.put("field.age", "#{VALUE.age}");
-        adapterParams.put("field.tag", "#{VALUE.tag}");
-        return adapterParams;
     }
 
     public static <T> RecordMapper<String, T> newRecordMapper(Config<String, T> config) {
@@ -584,6 +515,46 @@ public class BenchmarksUtils {
         return subscribedItems;
     }
 
+    public static ConsumerRecords<byte[], byte[]> pollRecords(
+            String type, String[] topics, int partitions, int numOfRecords, int keySize) {
+        List<RawRecord> rawRecords =
+                switch (type) {
+                    case "JSON" ->
+                            JsonRecords.rawRecords(topics, partitions, numOfRecords, keySize);
+                    case "PROTOBUF" ->
+                            ProtoRecords.rawRecords(topics, partitions, numOfRecords, keySize);
+                    default -> throw new IllegalArgumentException("Unsupported type: " + type);
+                };
+
+        return pollRecordsFromRaw(topics, partitions, rawRecords);
+    }
+
+    public static ConsumerRecords<byte[], byte[]> pollRecordsFromRaw(
+            String[] topics, int partitions, List<RawRecord> rawRecords) {
+        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsMap = new HashMap<>();
+        for (int i = 0; i < partitions; i++) {
+            for (int t = 0; t < topics.length; t++) {
+                TopicPartition tp = new TopicPartition(topics[t], i);
+                recordsMap.put(tp, new java.util.ArrayList<>());
+            }
+        }
+
+        for (int i = 0; i < rawRecords.size(); i++) {
+            RawRecord rawRecord = rawRecords.get(i);
+            ConsumerRecord<byte[], byte[]> consumerRecord =
+                    new ConsumerRecord<>(
+                            rawRecord.topic(),
+                            rawRecord.partition(),
+                            rawRecord.offset(),
+                            rawRecord.rawKey(),
+                            rawRecord.rawValue());
+            TopicPartition tp = new TopicPartition(rawRecord.topic(), rawRecord.partition());
+            recordsMap.get(tp).add(consumerRecord);
+        }
+
+        return new ConsumerRecords<>(recordsMap);
+    }
+
     @SuppressWarnings("unchecked")
     public static <V> Deserializer<V> valueDeserializer(String type, ConnectorConfig config) {
         if (type.equals("JSON")) {
@@ -593,5 +564,35 @@ public class BenchmarksUtils {
         } else {
             throw new IllegalArgumentException("Unsupported type: " + type);
         }
+    }
+
+    private static String generateKey(TopicPartition tp, int keySize, int index) {
+        return String.valueOf(tp.partition() * keySize + index % keySize);
+    }
+
+    private static Map<String, String> basicParameters(
+            String[] topics, String valueType, int templateParams) {
+        String template = TEMPLATES.get(templateParams - 1);
+        System.out.println("Using template: " + template);
+        Map<String, String> adapterParams = new HashMap<>();
+        adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
+        adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
+        adapterParams.put(ConnectorConfig.DATA_ADAPTER_NAME, "CONNECTOR");
+        adapterParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
+        adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, valueType);
+        if (valueType.equals("PROTOBUF")) {
+            adapterParams.put(
+                    ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
+            adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
+        }
+        adapterParams.put("item-template.users", template);
+        for (String t : topics) {
+            adapterParams.put("map." + t + ".to", "item-template.users");
+        }
+        adapterParams.put("field.name", "#{VALUE.name}");
+        adapterParams.put("field.surname", "#{VALUE.surname}");
+        adapterParams.put("field.age", "#{VALUE.age}");
+        adapterParams.put("field.tag", "#{VALUE.tag}");
+        return adapterParams;
     }
 }

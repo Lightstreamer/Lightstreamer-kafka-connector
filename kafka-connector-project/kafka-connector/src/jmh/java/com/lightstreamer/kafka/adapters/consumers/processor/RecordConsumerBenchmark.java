@@ -28,8 +28,7 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.PriceInfoRecords;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
-import com.lightstreamer.kafka.adapters.consumers.offsets.BenchmarkOffsets;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
@@ -41,6 +40,8 @@ import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.MockConsumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -150,9 +151,8 @@ public class RecordConsumerBenchmark {
                             .build();
 
             // Generate the test records.
-            var rawRecords = ProtoRecords.rawRecords(TOPICS, partitions, numOfRecords, numOfKeys);
             this.consumerRecords =
-                    BenchmarksUtils.pollRecordsFromRaw(TOPICS, partitions, rawRecords);
+                    BenchmarksUtils.pollRecords(type, TOPICS, partitions, numOfRecords, numOfKeys);
             DeserializerPair<String, V> deserializerPair =
                     new DeserializerPair<>(
                             String().deserializer(),
@@ -209,7 +209,10 @@ public class RecordConsumerBenchmark {
         void setupTrial(Blackhole bh, String descriptorPath) {
             this.priceInfoRecords = new PriceInfoRecords(TOPIC, descriptorPath);
             this.listener = new FakeEventListener(bh);
-            this.offsetService = new BenchmarkOffsets.BenchmarkOffsetServiceImpl(logger);
+            this.offsetService =
+                    Offsets.OffsetService(
+                            new MockConsumer<>(StrategyType.LATEST.toString()), logger);
+            this.offsetService.initStore(false);
         }
 
         @Setup(Level.Iteration)

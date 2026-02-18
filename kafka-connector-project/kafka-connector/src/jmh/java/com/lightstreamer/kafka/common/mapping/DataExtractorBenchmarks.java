@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
@@ -88,9 +87,8 @@ public class DataExtractorBenchmarks {
             this.fieldsExtractor = config.fieldsExtractor();
 
             // Generate the test records.
-            var rawRecords = ProtoRecords.rawRecords(TOPICS, 1, 1, 1);
             ConsumerRecords<byte[], byte[]> consumerRecords =
-                    BenchmarksUtils.pollRecordsFromRaw(TOPICS, 1, rawRecords);
+                    BenchmarksUtils.pollRecords(type, TOPICS, 1, 1, 1);
             DeserializerPair<String, V> deserializerPair =
                     new DeserializerPair<>(
                             Serdes.String().deserializer(),
