@@ -377,6 +377,7 @@ public class Offsets {
             }
         }
 
+        @Override
         public Throwable getFirstFailure() {
             return firstFailure;
         }
