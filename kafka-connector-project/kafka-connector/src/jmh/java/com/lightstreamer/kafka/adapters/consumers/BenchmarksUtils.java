@@ -26,6 +26,8 @@ import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers;
 import com.lightstreamer.kafka.benchmarks.PriceInfo;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -39,6 +41,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.io.File;
@@ -579,5 +582,16 @@ public class BenchmarksUtils {
             subscribedItems.addItem(item);
         }
         return subscribedItems;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <V> Deserializer<V> valueDeserializer(String type, ConnectorConfig config) {
+        if (type.equals("JSON")) {
+            return (Deserializer<V>) JsonNodeDeserializers.ValueDeserializer(config);
+        } else if (type.equals("PROTOBUF")) {
+            return (Deserializer<V>) DynamicMessageDeserializers.ValueDeserializer(config);
+        } else {
+            throw new IllegalArgumentException("Unsupported type: " + type);
+        }
     }
 }
