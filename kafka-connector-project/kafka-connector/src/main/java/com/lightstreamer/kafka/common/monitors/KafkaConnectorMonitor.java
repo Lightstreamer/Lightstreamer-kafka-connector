@@ -200,7 +200,7 @@ public final class KafkaConnectorMonitor implements Monitor {
             if (interval == null || interval.isZero() || interval.isNegative()) {
                 throw new IllegalArgumentException("interval must be positive and non-null");
             }
-            long maxRangeIntervalMs = (long) monitor.dataPoints * monitor.scrapeInterval.toMillis();
+            long maxRangeIntervalMs = monitor.dataPoints * monitor.scrapeInterval.toMillis();
             if (interval.toMillis() > maxRangeIntervalMs) {
                 throw new IllegalArgumentException(
                         String.format(
