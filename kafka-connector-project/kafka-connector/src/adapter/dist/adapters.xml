@@ -285,7 +285,7 @@
         -->
 
         <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
-             authentication with with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+             authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role</param>
