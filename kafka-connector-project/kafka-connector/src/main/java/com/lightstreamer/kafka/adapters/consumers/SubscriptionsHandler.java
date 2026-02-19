@@ -17,25 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.DeferredDeserializer;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
-import com.lightstreamer.kafka.common.listeners.EventListener;
-import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
-
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.KafkaException;
-import org.slf4j.Logger;
+import static org.apache.kafka.common.serialization.Serdes.ByteArray;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -44,6 +26,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
+
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+
+import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.commons.LogFactory;
+import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.common.listeners.EventListener;
+import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 
 public interface SubscriptionsHandler<K, V> {
 
@@ -72,7 +73,11 @@ public interface SubscriptionsHandler<K, V> {
         private SnapshotStore snapshotStore;
         private boolean consumeAtStartup = true;
         private boolean allowImplicitItems = false;
-        private Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
+
+        private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER =
+                ByteArray().deserializer();
+
+        private Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
         private Builder() {}
 
@@ -86,13 +91,14 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
+
         public Builder<K, V> withSnapshotStore(SnapshotStore snapshotStore) {
             this.snapshotStore = snapshotStore;
             return this;
         }
 
         public Builder<K, V> withConsumerSupplier(
-                Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier) {
+                Supplier<Consumer<byte[], byte[]>> consumerSupplier) {
             this.consumerSupplier = consumerSupplier;
             return this;
         }
@@ -113,15 +119,14 @@ public interface SubscriptionsHandler<K, V> {
             return new DefaultSubscriptionsHandler<>(this);
         }
 
-        private static <K, V> Supplier<Consumer<Deferred<K>, Deferred<V>>> defaultConsumerSupplier(
+
+        private static <K, V> Supplier<Consumer<byte[], byte[]>> defaultConsumerSupplier(
                 Config<K, V> config) {
             return () ->
                     new KafkaConsumer<>(
                             config.consumerProperties(),
-                            new DeferredDeserializer<>(
-                                    config.suppliers().keySelectorSupplier().deserializer()),
-                            new DeferredDeserializer<>(
-                                    config.suppliers().valueSelectorSupplier().deserializer()));
+                            BYTE_ARRAY_DESERIALIZER,
+                            BYTE_ARRAY_DESERIALIZER);
         }
     }
 
@@ -129,8 +134,7 @@ public interface SubscriptionsHandler<K, V> {
 
         private final Config<K, V> config;
         protected final MetadataListener metadataListener;
-        private final boolean allowImplicitItems;
-        private final Supplier<Consumer<Deferred<K>, Deferred<V>>> consumerSupplier;
+        private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
         protected final Logger logger;
         private final ExecutorService pool;
@@ -145,18 +149,11 @@ public interface SubscriptionsHandler<K, V> {
         AbstractSubscriptionsHandler(Builder<K, V> builder) {
             this.config = builder.consumerConfig;
             this.metadataListener = builder.metadataListener;
-            this.allowImplicitItems = builder.allowImplicitItems;
             this.consumerSupplier = builder.consumerSupplier;
             this.logger = LogFactory.getLogger(config.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
-            this.subscribedItems =
-                    builder.allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
-        }
-
-        @Override
-        public final boolean allowImplicitItems() {
-            return allowImplicitItems;
+            this.subscribedItems = SubscribedItems.create();
         }
 
         @Override
@@ -164,10 +161,7 @@ public interface SubscriptionsHandler<K, V> {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
-            this.eventListener =
-                    this.subscribedItems.acceptSubscriptions()
-                            ? EventListener.smartEventListener(listener)
-                            : EventListener.legacyEventListener(listener);
+            this.eventListener = EventListener.smartEventListener(listener);
             onItemEventListenerSet();
         }
 

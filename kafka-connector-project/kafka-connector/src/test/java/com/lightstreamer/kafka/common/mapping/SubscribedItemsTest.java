@@ -44,11 +44,6 @@ public class SubscribedItemsTest {
     }
 
     @Test
-    public void shouldAcceptSubscriptions() {
-        assertThat(subscribedItems.acceptSubscriptions()).isTrue();
-    }
-
-    @Test
     public void shouldAddAndRetrieveSimpleItems() {
         SubscribedItem testItem1 = Items.subscribedFrom("item1");
         SubscribedItem testItem2 = Items.subscribedFrom("item2");
@@ -59,8 +54,8 @@ public class SubscribedItemsTest {
         subscribedItems.addItem(testItem2);
         assertThat(subscribedItems.size()).isEqualTo(2);
 
-        assertThat(subscribedItems.getItem("item1")).hasValue(testItem1);
-        assertThat(subscribedItems.getItem("item2")).hasValue(testItem2);
+        assertThat(subscribedItems.getItem("item1")).isSameInstanceAs(testItem1);
+        assertThat(subscribedItems.getItem("item2")).isSameInstanceAs(testItem2);
     }
 
     @Test
@@ -69,7 +64,7 @@ public class SubscribedItemsTest {
         subscribedItems.addItem(testItem1);
 
         // Retrieve the item from its canonical representation
-        assertThat(subscribedItems.getItem("item-[a=1,b=2]")).hasValue(testItem1);
+        assertThat(subscribedItems.getItem("item-[a=1,b=2]")).isSameInstanceAs(testItem1);
     }
 
     @Test
@@ -82,12 +77,12 @@ public class SubscribedItemsTest {
         subscribedItems.addItem(testItem1Duplicate);
         assertThat(subscribedItems.size()).isEqualTo(1);
 
-        assertThat(subscribedItems.getItem("item1")).hasValue(testItem1Duplicate);
+        assertThat(subscribedItems.getItem("item1")).isSameInstanceAs(testItem1Duplicate);
     }
 
     @Test
     public void shouldReturnNullForNonExistentItem() {
-        assertThat(subscribedItems.getItem("nonexistent")).isEmpty();
+        assertThat(subscribedItems.getItem("nonexistent")).isNull();
     }
 
     @Test
@@ -100,7 +95,7 @@ public class SubscribedItemsTest {
         assertThat(subscribedItems.isEmpty()).isTrue();
 
         assertThat(removed).hasValue(testItem1);
-        assertThat(subscribedItems.getItem("item1")).isEmpty();
+        assertThat(subscribedItems.getItem("item1")).isNull();
     }
 
     @Test
@@ -112,11 +107,10 @@ public class SubscribedItemsTest {
     @Test
     public void shouldNotManageSubscriptionsFromNop() {
         SubscribedItems subscribedItems = SubscribedItems.nop();
-        assertThat(subscribedItems.acceptSubscriptions()).isFalse();
 
         SubscribedItem item = subscribedFrom("anItem");
         subscribedItems.addItem(item);
-        assertThat(subscribedItems.getItem("anItem")).isEmpty();
+        assertThat(subscribedItems.getItem("anItem")).isNull();
         assertThat(subscribedItems.isEmpty()).isTrue();
         assertThat(subscribedItems.size()).isEqualTo(0);
 

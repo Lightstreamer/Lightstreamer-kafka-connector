@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
-import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Json;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,7 +56,7 @@ public class FieldConfigsTest {
                         false),
                 Arguments.of(
                         Map.of("field1", "#{VALUE.attrib}", "field2", "#{KEY.attrib}"),
-                        JsonKeyJsonValue(),
+                        Json(),
                         true,
                         true));
     }
@@ -97,8 +97,8 @@ public class FieldConfigsTest {
 
     static Stream<Arguments> dynamicFieldsMapping() {
         return Stream.of(
-                Arguments.of(Map.of("*", "#{VALUE.list.*}"), JsonKeyJsonValue(), false),
-                Arguments.of(Map.of("*", "#{VALUE.map.*}"), JsonKeyJsonValue(), true));
+                Arguments.of(Map.of("*", "#{VALUE.list.*}"), Json(), false),
+                Arguments.of(Map.of("*", "#{VALUE.map.*}"), Json(), true));
     }
 
     @ParameterizedTest
@@ -135,14 +135,14 @@ public class FieldConfigsTest {
                         Set.of("field1", "field2")),
                 Arguments.of(
                         Map.of("*", "#{VALUE.list.*}"),
-                        JsonKeyJsonValue(),
+                        Json(),
                         true, // mapNonScalars
                         true, // skipOnFailure
                         false, // expectedComposed
                         Collections.emptySet()),
                 Arguments.of(
                         Map.of("*", "#{VALUE.list.*}", "field1", "#{KEY}"),
-                        JsonKeyJsonValue(),
+                        Json(),
                         true, // mapNonScalars
                         false, // skipOnFailure
                         true, // expectedComposed
@@ -176,7 +176,7 @@ public class FieldConfigsTest {
         assertThat(configs.discoveredFieldsExpressions()).hasSize(dynamicFieldMappings.size());
 
         FieldsExtractor<?, ?> extractor =
-                configs.fieldsExtractor(JsonKeyJsonValue(), skipOnFailure, mapNonScalars);
+                configs.fieldsExtractor(Json(), skipOnFailure, mapNonScalars);
         assertThat(extractor.mappedFields()).isEqualTo(expectedMappedFields);
         if (!expectedComposed) {
             assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);

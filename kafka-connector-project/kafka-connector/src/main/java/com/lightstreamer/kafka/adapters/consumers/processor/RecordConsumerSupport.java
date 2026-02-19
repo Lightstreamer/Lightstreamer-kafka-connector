@@ -17,9 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import static java.util.concurrent.Executors.newFixedThreadPool;
-
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
@@ -36,31 +33,41 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithS
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Key;
 import com.lightstreamer.kafka.common.listeners.EventListener;
-import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
+import com.lightstreamer.kafka.common.monitors.Monitor;
+import com.lightstreamer.kafka.common.monitors.metrics.Meters;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValue;
+import com.lightstreamer.kafka.common.monitors.reporting.Reporter.MetricValueFormatter;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
+import com.lightstreamer.kafka.common.records.RecordBatch;
+import com.lightstreamer.kafka.common.records.RecordBatch.RecordBatchListener;
 
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-class RecordConsumerSupport {
+public class RecordConsumerSupport {
 
     public static <K, V> StartBuildingProcessor<K, V> startBuildingProcessor(
             RecordMapper<K, V> mapper) {
@@ -78,6 +85,7 @@ class RecordConsumerSupport {
         protected OffsetService offsetService;
         protected RecordErrorHandlingStrategy errorStrategy;
         protected Logger logger;
+        protected Monitor monitor;
 
         // Optional and defaulted fields
         protected int threads = 1;
@@ -144,15 +152,12 @@ class RecordConsumerSupport {
                     ProcessUpdatesStrategy.fromCommandModeStrategy(
                             parentBuilder.commandModeStrategy);
 
-            RecordRoutingStrategy recordRoutingStrategy =
-                    RecordRoutingStrategy.fromSubscribedItems(parentBuilder.subscribed);
-
             return new StartBuildingConsumerImpl<>(
                     new DefaultRecordProcessor<>(
                             parentBuilder.mapper,
-                            listener,
-                            processUpdatesStrategy,
-                            recordRoutingStrategy));
+                            parentBuilder.subscribed,
+                            parentBuilder.listener,
+                            processUpdatesStrategy));
         }
     }
 
@@ -214,6 +219,12 @@ class RecordConsumerSupport {
         }
 
         @Override
+        public WithOptionals<K, V> monitor(Monitor monitor) {
+            this.parentBuilder.monitor = Objects.requireNonNull(monitor, "Monitor not set");
+            return this;
+        }
+
+        @Override
         public RecordConsumer<K, V> build() {
             if (parentBuilder.threads < 1 && parentBuilder.threads != -1) {
                 throw new IllegalArgumentException("Threads number must be greater than zero");
@@ -230,168 +241,17 @@ class RecordConsumerSupport {
         }
     }
 
-    public static interface EventUpdater {
-
-        void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot);
-
-        void clearSnapshot(SubscribedItem sub);
-
-        void endOfSnapshot(SubscribedItem sub);
-
-        ItemEventListener listener();
-
-        static EventUpdater create(ItemEventListener listener, boolean isLegacy) {
-            if (isLegacy) {
-                return new LegacyEventUpdater(listener);
-            } else {
-                return new SmartEventUpdater(listener);
-            }
-        }
-    }
-
-    abstract static sealed class AbstractEventUpdater implements EventUpdater
-            permits LegacyEventUpdater, SmartEventUpdater {
-
-        private final ItemEventListener listener;
-
-        AbstractEventUpdater(ItemEventListener listener) {
-            this.listener = listener;
-        }
-
-        @Override
-        public final ItemEventListener listener() {
-            return listener;
-        }
-    }
-
-    static final class LegacyEventUpdater extends AbstractEventUpdater {
-
-        LegacyEventUpdater(ItemEventListener listener) {
-            super(listener);
-        }
-
-        public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().update(sub.asCanonicalItemName(), updates, isSnapshot);
-        }
-
-        public void clearSnapshot(SubscribedItem sub) {
-            listener().clearSnapshot(sub.asCanonicalItemName());
-        }
-
-        public void endOfSnapshot(SubscribedItem sub) {
-            listener().endOfSnapshot(sub.asCanonicalItemName());
-        }
-    }
-
-    static final class SmartEventUpdater extends AbstractEventUpdater {
-
-        SmartEventUpdater(ItemEventListener listener) {
-            super(listener);
-        }
-
-        public void update(SubscribedItem sub, Map<String, String> updates, boolean isSnapshot) {
-            listener().smartUpdate(sub.itemHandle(), updates, isSnapshot);
-        }
-
-        public void clearSnapshot(SubscribedItem sub) {
-            listener().smartClearSnapshot(sub.itemHandle());
-        }
-
-        public void endOfSnapshot(SubscribedItem sub) {
-            listener().smartEndOfSnapshot(sub.itemHandle());
-        }
-    }
-
-    static interface RecordRoutingStrategy {
-
-        Set<SubscribedItem> route(MappedRecord mappedRecord);
-
-        default boolean canRouteImplicitItems() {
-            return false;
-        }
-
-        static RecordRoutingStrategy fromSubscribedItems(SubscribedItems subscribedItems) {
-            return subscribedItems.acceptSubscriptions()
-                    ? new DefaultRoutingStrategy(subscribedItems)
-                    : new RouteAllStrategy();
-        }
-    }
-
-    static class DefaultRoutingStrategy implements RecordRoutingStrategy {
-
-        protected final SubscribedItems subscribedItems;
-
-        DefaultRoutingStrategy(SubscribedItems subscribedItems) {
-            this.subscribedItems = subscribedItems;
-        }
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            return mappedRecord.route(subscribedItems);
-        }
-    }
-
-    static class RouteAllStrategy implements RecordRoutingStrategy {
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            String[] canonicalItemNames = mappedRecord.canonicalItemNames();
-            Set<SubscribedItem> result = new HashSet<>(canonicalItemNames.length);
-
-            for (String itemName : canonicalItemNames) {
-                result.add(Items.implicitFrom(itemName));
-            }
-            return result;
-        }
-
-        @Override
-        public boolean canRouteImplicitItems() {
-            return true;
-        }
-    }
-
-    static class ComposedRoutingStrategy implements RecordRoutingStrategy {
-
-        private final RecordRoutingStrategy[] strategies;
-
-        ComposedRoutingStrategy(RecordRoutingStrategy... strategies) {
-            this.strategies = strategies;
-        }
-
-        @Override
-        public Set<SubscribedItem> route(MappedRecord mappedRecord) {
-            Set<SubscribedItem> routedItems = new HashSet<>();
-            for (RecordRoutingStrategy strategy : strategies) {
-                routedItems.addAll(strategy.route(mappedRecord));
-            }
-
-            return routedItems;
-        }
-
-        @Override
-        public boolean canRouteImplicitItems() {
-            for (RecordRoutingStrategy strategy : strategies) {
-                if (strategy.canRouteImplicitItems()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     static interface ProcessUpdatesStrategy {
 
         default void processUpdates(
                 MappedRecord record, Set<SubscribedItem> routable, EventListener listener) {
-            Map<String, String> updates = getEvent(record);
-            getLogger().atDebug().log(() -> "Sending updates: %s".formatted(updates));
+            final Map<String, String> updates = getEvent(record);
             sendUpdates(updates, routable, listener);
         }
 
         default void processUpdatesAsSnapshot(
                 MappedRecord record, SubscribedItem subscribedItem, EventListener listener) {
-            Map<String, String> updates = getEvent(record);
-            getLogger().atDebug().log(() -> "Sending snapshot updates: %s".formatted(updates));
+            final Map<String, String> updates = getEvent(record);
             sendUpdatesAsSnapshot(updates, subscribedItem, listener);
         }
 
@@ -443,7 +303,6 @@ class RecordConsumerSupport {
         public void sendUpdates(
                 Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
             for (SubscribedItem sub : routable) {
-                // updater.update(sub, updates, false);
                 sub.sendRealtimeEvent(updates, listener);
             }
         }
@@ -457,6 +316,7 @@ class RecordConsumerSupport {
         }
 
         public final void useLogger(Logger logger) {
+            this.logger = Objects.requireNonNullElse(logger, this.logger);
             this.logger = Objects.requireNonNullElse(logger, this.logger);
         }
 
@@ -658,19 +518,19 @@ class RecordConsumerSupport {
 
         protected final RecordMapper<K, V> recordMapper;
         protected final ProcessUpdatesStrategy processUpdatesStrategy;
-        protected final RecordRoutingStrategy recordRoutingStrategy;
         protected final EventListener listener;
+        protected final SubscribedItems subscribedItems;
         protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
+                SubscribedItems subscribedItems,
                 EventListener listener,
-                ProcessUpdatesStrategy processUpdatesStrategy,
-                RecordRoutingStrategy recordRoutingStrategy) {
+                ProcessUpdatesStrategy processUpdatesStrategy) {
             this.recordMapper = recordMapper;
             this.listener = listener;
             this.processUpdatesStrategy = processUpdatesStrategy;
-            this.recordRoutingStrategy = recordRoutingStrategy;
+            this.subscribedItems = subscribedItems;
         }
 
         @Override
@@ -681,29 +541,12 @@ class RecordConsumerSupport {
 
         @Override
         public final void process(KafkaRecord<K, V> record) throws ValueException {
-            logger.atDebug().log(() -> "Mapping incoming Kafka record");
-            logger.atTrace().log(() -> "Kafka record: %s".formatted(record.toString()));
-
             MappedRecord mappedRecord = recordMapper.map(record);
-            // As logging the mapped record is expensive, log lazily it only at trace level.
-            logger.atTrace().log(() -> "Kafka record mapped to %s".formatted(mappedRecord));
-            logger.atDebug().log(() -> "Kafka record mapped");
 
-            route(mappedRecord);
-        }
-
-        @Override
-        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
-                throws ValueException {
-            logger.atDebug().log(() -> "Mapping incoming Kafka record for subscribed item");
-            MappedRecord mappedRecord = recordMapper.map(record);
-            processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
-        }
-
-        private void route(MappedRecord mappedRecord) {
-            Set<SubscribedItem> routable = recordRoutingStrategy.route(mappedRecord);
-            if (routable.size() > 0) {
-                logger.atDebug().log(() -> "Routing record to %d items".formatted(routable.size()));
+            Set<SubscribedItem> routable = mappedRecord.route(subscribedItems);
+            int size = routable.size();
+            if (size > 0) {
+                logger.atDebug().log("Routing record to {} items", size);
                 processUpdatesStrategy.processUpdates(mappedRecord, routable, listener);
             } else {
                 logger.atDebug().log("No routable items found");
@@ -711,43 +554,91 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public ProcessUpdatesType processUpdatesType() {
-            return processUpdatesStrategy.type();
+        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
+                throws ValueException {
+            logger.atDebug().log("Mapping incoming Kafka record for subscribed item");
+            MappedRecord mappedRecord = recordMapper.map(record);
+            processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
         }
 
         @Override
-        public boolean canRouteImplicitItems() {
-            return recordRoutingStrategy.canRouteImplicitItems();
+        public ProcessUpdatesType processUpdatesType() {
+            return processUpdatesStrategy.type();
         }
     }
 
-    private abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
+    abstract static class AbstractRecordConsumer<K, V> implements RecordConsumer<K, V> {
+
+        protected static final Duration DEFAULT_MONITOR_RANGE_INTERVAL = Duration.ofSeconds(30);
 
         protected final OffsetService offsetService;
         protected final RecordProcessor<K, V> recordProcessor;
         protected final Logger logger;
-        private final RecordErrorHandlingStrategy errorStrategy;
-        private volatile boolean terminated = false;
+        protected final RecordErrorHandlingStrategy errorStrategy;
+        protected volatile Throwable firstFailure = null;
+
+        private volatile boolean closed = false;
+
+        protected final Monitor monitor;
+        protected final Meters.Counter receivedRecordCounter;
+        protected final Meters.Counter processedRecordCounter;
+        protected final RecordBatchListener recordBatchListener;
 
         AbstractRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             this.errorStrategy = builder.errorStrategy;
             this.offsetService = builder.offsetService;
             this.logger = builder.logger;
             this.recordProcessor = builder.processor;
+            this.monitor = builder.monitor;
+
             // Enforce usage of the same logger
             this.recordProcessor.useLogger(logger);
+
+            this.receivedRecordCounter =
+                    new Meters.Counter(
+                            "Received record", "Counts the number of received records", "msg");
+            this.processedRecordCounter =
+                    new Meters.Counter(
+                            "Processed record", "Counts the number of processed records", "msg");
+            this.recordBatchListener =
+                    recordBatch -> processedRecordCounter.increment(recordBatch.count());
+            configureMonitor();
+        }
+
+        void configureMonitor() {
+            if (monitor != null) {
+                monitor.observe(receivedRecordCounter)
+                        .enableIrate()
+                        .enableRate()
+                        .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
+                monitor.observe(processedRecordCounter)
+                        .enableIrate()
+                        .enableRate()
+                        .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
+            }
         }
 
         @Override
-        public final void terminate() {
-            offsetService.commitSyncAndIgnoreErrors();
-            onTermination();
-            terminated = true;
+        public final void consumeBatch(RecordBatch<K, V> batch) {
+            receivedRecordCounter.increment(batch.count());
+            consumeRecordBatch(batch);
+            offsetService.maybeCommit();
         }
 
         @Override
-        public boolean isTerminated() {
-            return terminated;
+        public void close() {
+            this.closed = true;
+            onPoolsShutdown();
+        }
+
+        @Override
+        public boolean hasFailedAsynchronously() {
+            return firstFailure != null;
+        }
+
+        @Override
+        public final boolean isClosed() {
+            return this.closed;
         }
 
         void onTermination() {}
@@ -761,6 +652,43 @@ class RecordConsumerSupport {
         public final RecordProcessor<K, V> recordProcessor() {
             return recordProcessor;
         }
+
+        @Override
+        public final Monitor monitor() {
+            return monitor;
+        }
+
+        abstract void consumeRecordBatch(RecordBatch<K, V> batch);
+
+        /** Hook for subclasses to shutdown additional pools before offset commit. */
+        void onPoolsShutdown() {
+            // Default: nothing, subclasses can override
+        }
+
+        final void asyncFailure(Throwable t) {
+            if (firstFailure == null) {
+                firstFailure = t;
+            }
+        }
+
+        final void shutdownPool(ExecutorService pool, String poolName) {
+            logger.atInfo().log("Shutting down {}", poolName);
+            pool.shutdown();
+            try {
+                if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+                    logger.atWarn()
+                            .log("{} did not terminate gracefully, forcing shutdown", poolName);
+                    pool.shutdownNow();
+                    if (!pool.awaitTermination(2, TimeUnit.SECONDS)) {
+                        logger.atWarn().log("{} did not terminate after forced shutdown", poolName);
+                    }
+                }
+            } catch (InterruptedException e) {
+                logger.atWarn().log("Interrupted while waiting for {} to terminate", poolName);
+                pool.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
     static class SingleThreadedRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
@@ -770,15 +698,10 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(KafkaRecords<K, V> records) {
-            records.forEach(this::consumeRecord);
-            offsetService.commitAsync();
-        }
-
-        @Override
-        public void consumeRecordsAsSnapshot(
-                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
-            records.forEach(this::consumeRecord);
+        void consumeRecordBatch(RecordBatch<K, V> batch) {
+            for (KafkaRecord<K, V> record : batch.getRecords()) {
+                consumeRecord(record);
+            }
         }
 
         private void consumeRecord(KafkaRecord<K, V> record) {
@@ -804,29 +727,126 @@ class RecordConsumerSupport {
                     }
                 }
             } catch (Throwable t) {
-                logger.atError().log("Serious error while processing record!");
+                logger.atError().setCause(t).log("Serious error while processing record!");
                 throw new KafkaException(t);
+            } finally {
+                record.getBatch().recordProcessed(recordBatchListener);
             }
         }
     }
 
     static class ParallelRecordConsumer<K, V> extends AbstractRecordConsumer<K, V> {
 
+        private static final String POOL_NAME = "Ring buffer processor pool";
+        // private static final int RING_BUFFER_CAPACITY = 16_384;
+        private static final int RING_BUFFER_CAPACITY = 5192;
+
         protected final OrderStrategy orderStrategy;
         protected final int configuredThreads;
-        protected final TaskExecutor<String> taskExecutor;
         protected final int actualThreads;
 
+        private final BlockingQueue<KafkaRecord<K, V>>[] ringBuffers;
+        private final AtomicLong roundRobinCounter = new AtomicLong(0);
+        private final ExecutorService ringBufferPool;
+        private volatile boolean stopping = false;
+
+        @SuppressWarnings("unchecked")
         ParallelRecordConsumer(StartBuildingConsumerImpl<K, V> builder) {
             super(builder);
             this.orderStrategy = builder.orderStrategy;
             this.configuredThreads = builder.threads;
-            this.actualThreads = getActualThreadsNumber(configuredThreads);
+            this.actualThreads = getActualThreadsNumber(builder.threads);
 
-            this.taskExecutor =
-                    TaskExecutor.create(
-                            newFixedThreadPool(
-                                    actualThreads, r -> newThread(r, new AtomicInteger())));
+            // Initialize high-throughput ring buffers for ultra-high performance
+            this.ringBuffers = new BlockingQueue[actualThreads];
+
+            logger.atInfo().log(
+                    "Initializing high-throughput mode with {} ring buffers", actualThreads);
+
+            // Create dedicated ExecutorService for ring buffer processing
+            AtomicInteger ringThreadCount = new AtomicInteger();
+            this.ringBufferPool =
+                    Executors.newFixedThreadPool(
+                            actualThreads,
+                            r -> {
+                                Thread t =
+                                        new Thread(
+                                                r,
+                                                "RingBufferProcessor-"
+                                                        + ringThreadCount.getAndIncrement());
+                                t.setDaemon(true);
+                                return t;
+                            });
+
+            // Initialize ring buffers and submit processing tasks
+            for (int i = 0; i < actualThreads; i++) {
+                // Use calculated optimal capacity for maximum throughput
+                this.ringBuffers[i] = new ArrayBlockingQueue<>(RING_BUFFER_CAPACITY);
+                final int threadIndex = i;
+                configureMonitor(threadIndex);
+
+                logger.atDebug().log(
+                        "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
+
+                // Submit ring buffer processing task to executor
+                ringBufferPool.submit(() -> processRingBuffer(threadIndex));
+            }
+        }
+
+        private void configureMonitor(final int threadIndex) {
+            if (this.monitor == null) {
+                return;
+            }
+            this.monitor
+                    .observe(
+                            new Meters.Gauge(
+                                    "Ring buffer " + threadIndex + " usage",
+                                    "Percentage of ring buffer capacity currently in use",
+                                    () -> {
+                                        int currentSize = ringBuffers[threadIndex].size();
+                                        return Math.min(
+                                                100.0,
+                                                (currentSize * 100.0) / RING_BUFFER_CAPACITY);
+                                    },
+                                    "%"))
+                    .enableMax()
+                    .enableAverage()
+                    .enableLatest(
+                            2,
+                            new MetricValueFormatter() {
+                                @Override
+                                public String formatMetric(MetricValue value) {
+                                    return createUtilizationBar(value.value(), 20);
+                                }
+                            })
+                    .withRangeInterval(DEFAULT_MONITOR_RANGE_INTERVAL);
+        }
+
+        private String createUtilizationBar(double utilizationPercent, int width) {
+            int filledChars = (int) ((utilizationPercent * width) / 100);
+            StringBuilder bar = new StringBuilder();
+
+            // Different characters for different utilization levels
+            char indicator;
+            if (utilizationPercent > 90) {
+                indicator = '█'; // High utilization - solid block
+            } else if (utilizationPercent > 70) {
+                indicator = '▓'; // Medium-high utilization - dark shade
+            } else if (utilizationPercent > 40) {
+                indicator = '▒'; // Medium utilization - medium shade
+            } else {
+                indicator = '░'; // Low utilization - light shade
+            }
+
+            for (int i = 0; i < width; i++) {
+                if (i < filledChars) {
+                    bar.append(indicator); // High utilization - solid block
+                } else {
+                    bar.append('·'); // Empty space
+                }
+            }
+
+            return bar.toString();
         }
 
         private static int getActualThreadsNumber(int configuredThreads) {
@@ -834,10 +854,6 @@ class RecordConsumerSupport {
                 return Runtime.getRuntime().availableProcessors();
             }
             return configuredThreads;
-        }
-
-        private Thread newThread(Runnable r, AtomicInteger threadCount) {
-            return new Thread(r, "ParallelConsumer-" + threadCount.getAndIncrement());
         }
 
         @Override
@@ -856,25 +872,61 @@ class RecordConsumerSupport {
         }
 
         @Override
-        public void consumeRecords(KafkaRecords<K, V> records) {
-            taskExecutor.executeKafkaBatch(records, orderStrategy::getSequence, this::consume);
-            // NOTE: this may be inefficient if, for instance, a single task
-            // should keep the executor engaged while all other threads are idle,
-            // but this is not expected when all tasks are short and cpu-bound
-            offsetService.commitAsync();
-            Throwable failure = offsetService.getFirstFailure();
-            if (failure != null) {
-                logger.atWarn().log("Forcing unsubscription");
-                throw new KafkaException(failure);
+        void consumeRecordBatch(RecordBatch<K, V> batch) {
+            if (firstFailure != null) {
+                throw new KafkaException(firstFailure);
+            }
+
+            // Distribute records to ring buffers
+            for (KafkaRecord<K, V> record : batch.getRecords()) {
+                int bufferIndex = selectRingBuffer(record);
+                try {
+                    // Use blocking put to apply backpressure instead of failing
+                    feedBuffer(record, bufferIndex);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.atWarn()
+                            .log(
+                                    "Interrupted while distributing records to ring buffers, stopping batch distribution early");
+                    return; // Exit gracefully, allow partial batch to complete
+                }
             }
         }
 
-        void consume(String sequence, KafkaRecord<K, V> record) {
+        @Override
+        void onPoolsShutdown() {
+            stopping = true;
+            shutdownPool(ringBufferPool, POOL_NAME);
+        }
+
+        // Private methods
+        private int selectRingBuffer(KafkaRecord<K, V> record) {
+            return switch (orderStrategy) {
+                case UNORDERED ->
+                        // Round-robin for maximum throughput
+                        (int) (roundRobinCounter.getAndIncrement() % actualThreads);
+
+                case ORDER_BY_PARTITION -> {
+                    int hash = record.topic().hashCode();
+                    hash = 31 * hash + record.partition();
+                    yield Math.abs(hash) % actualThreads;
+                }
+
+                case ORDER_BY_KEY ->
+                        // Hash key to maintain key ordering
+                        record.key() != null
+                                ? Math.abs(record.key().hashCode()) % actualThreads
+                                : 0;
+            };
+        }
+
+        private void feedBuffer(KafkaRecord<K, V> record, int bufferIndex)
+                throws InterruptedException {
+            ringBuffers[bufferIndex].put(record);
+        }
+
+        private void consume(KafkaRecord<K, V> record) {
             try {
-                logger.atDebug().log(
-                        () ->
-                                "Processing record with sequence %s [%s]"
-                                        .formatted(sequence, orderStrategy));
                 recordProcessor.process(record);
                 offsetService.updateOffsets(record);
             } catch (ValueException ve) {
@@ -883,7 +935,56 @@ class RecordConsumerSupport {
                 handleError(record, ve);
             } catch (Throwable t) {
                 logger.atError().log("Serious error while processing record!");
-                offsetService.onAsyncFailure(t);
+                asyncFailure(t);
+            } finally {
+                record.getBatch().recordProcessed(recordBatchListener);
+            }
+        }
+
+        private void processRingBuffer(int threadIndex) {
+            final BlockingQueue<KafkaRecord<K, V>> ringBuffer = ringBuffers[threadIndex];
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Starting processing thread {}", threadIndex);
+            }
+
+            // Continue processing until stopping
+            while (!stopping) {
+                try {
+                    // Efficient batch drain - reuse ArrayList to minimize GC
+                    KafkaRecord<K, V> record = ringBuffer.poll(10, TimeUnit.MILLISECONDS);
+                    if (record == null) continue;
+                    consume(record);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.atDebug().log(
+                            "Processing thread {} interrupted, shutting down", threadIndex);
+                    break;
+                } catch (Exception e) {
+                    logger.atError()
+                            .setCause(e)
+                            .log(
+                                    "Unexpected error in ring buffer processor {}, continuing",
+                                    threadIndex);
+                }
+            }
+
+            // Drain remaining records after shutdown requested
+            KafkaRecord<K, V> record;
+            while ((record = ringBuffer.poll()) != null) {
+                try {
+                    consume(record);
+                } catch (Exception e) {
+                    logger.atError()
+                            .setCause(e)
+                            .log(
+                                    "Ingornig error while draining remaining records in ring buffer processor {} after shutdown",
+                                    threadIndex);
+                }
+            }
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Stopped processing thread {}", threadIndex);
             }
         }
 
@@ -895,38 +996,10 @@ class RecordConsumerSupport {
                 }
 
                 case FORCE_UNSUBSCRIPTION -> {
-                    // Trying to emulate the behavior of the above synchronous case, whereas the
-                    // first record which gets an error ends the commits; hence we will keep track
-                    // of the first error found on each partition; then, when committing each
-                    // partition after the termination of the current poll, we will end before
-                    // the first failed record found; this, obviously, is not possible in the
-                    // fire-and-forget policy, but requires the batching one.
-                    //
-                    // There is a difference, though: in the synchronous case, the first error also
-                    // stops the elaboration on the whole topic and all partitions are committed to
-                    // the current point; in this case, instead, the elaboration continues until
-                    // the end of the poll, hence, partitions with errors are committed up to
-                    // the first error, but subsequent records, though not committed, may have
-                    // been processed all the same (even records with the same key of a previously
-                    // failed  record) and only then is the elaboration stopped.
-                    // On the other hand, partitions without errors are processed and committed
-                    // entirely, which is good, although, then, the elaboration stops also for them.
                     logger.atWarn().log("Will force unsubscription");
-                    offsetService.onAsyncFailure(ve);
+                    asyncFailure(ve);
                 }
             }
-        }
-
-        @Override
-        void onTermination() {
-            taskExecutor.shutdown();
-        }
-
-        @Override
-        public void consumeRecordsAsSnapshot(
-                KafkaRecords<K, V> records, SubscribedItem subscribedItem) {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'consumeRecordFor'");
         }
     }
 

@@ -82,12 +82,30 @@ public class ExpressionsBenchmark {
         testString = sb.toString();
     }
 
+    /**
+     * Benchmarks the performance of converting a subscription expression to its canonical item name
+     * representation.
+     *
+     * <p>This benchmark measures the execution time of the {@link Expressions#Subscription(String)}
+     * method combined with the {@link #asCanonicalItemName()} operation on the resulting expression
+     * object.
+     *
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
+     */
     @Benchmark
     public void subscriptionAsCanonicalItemName(Blackhole bh) {
         String result = Expressions.Subscription(testString).asCanonicalItemName();
         bh.consume(result);
     }
 
+    /**
+     * Benchmarks the performance of the {@link Expressions#CanonicalItemName(String)} method.
+     *
+     * <p>This benchmark measures the execution time of converting a test string to its canonical
+     * item name representation.
+     *
+     * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
+     */
     @Benchmark
     public void canonicalItemName(Blackhole bh) {
         String result = Expressions.CanonicalItemName(testString);

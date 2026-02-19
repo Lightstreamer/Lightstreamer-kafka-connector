@@ -1,5 +1,59 @@
 # Changelog
 
+## [1.4.0] (2026-02-18)
+
+**Improvements**
+
+- **Polling Lifecycle Optimization**: Significantly enhanced the polling lifecycle to improve throughput and minimize record lag. Introduced an adaptive commit strategy that dynamically adjusts commit frequency based on message rate. This optimization also removes previous constraints that prevented concurrent processing when using compacted topics. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+- **Monitor Logger**: Added a dedicated logger to track essential performance metrics including records received, records processed, and internal ring buffer utilization rates. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+- **Configurable Max Poll Records**: Exposed the [`record.consume.max.poll.records`](README.md#recordconsumemaxpollrecords) parameter to configure the maximum number of records fetched in each polling cycle of the internal Kafka consumer. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+- **Microbenchmarks Consolidation**: Refactored and consolidated the internal microbenchmarking suite to improve performance testing capabilities. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+**Examples and Documentation**
+
+- Significantly reorganized the structure of examples as follows:
+  - Split Confluent QuickStart into separate `quickstart-confluent-cloud/` and `quickstart-confluent-platform/` directories. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+  - Renamed `quickstart-redpanda-self-hosted` to `quickstart-redpanda-self-managed`. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+  - Removed unused web client assets and `QuickStartConfluentCloud` configuration from factory files. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+  - Updated internal links to reflect new folder locations. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+
+- Updated [`README.md`](README.md): Removed vendor-specific connection instructions (Confluent Cloud, Redpanda Cloud) and moved them to dedicated quickstarts. Expanded broker list with links to all vendor quickstarts. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+
+- Updated [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md): Improved section organization and clarity. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+
+- Clarified `adapters.xml` descriptions in various QuickStart READMEs. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+
+**Third-Party Library Updates**
+
+- Upgraded the _confluent-kafka_ dependency to version 8.1.1-ccs. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+**Bug Fixes**
+
+- Fixed outdated links to official Kafka documentation in the [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+
+- Fixed heading hierarchy, TOC indentation, typos, and trailing spaces in the [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) files. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+ 
+
+## [1.3.2] (2026-01-26)
+
+**Improvements**
+
+- **Deferred Deserialization**: Refactored the deserialization pipeline to defer the conversion of raw bytes to deserialized objects. This architectural change makes the Kafka Connector open for further extension by allowing custom implementations to intercept and access raw bytes from Kafka records before or instead of automatic deserialization. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- **Auto COMMAND Mode**: Added support for the [Auto COMMAND mode](README.md#auto-command-mode-fieldsautocommandmodeenable) feature that generates _command_ operations for Lightstreamer items without requiring explicit command fields in the Kafka records. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- Consolidated the script for running microbenchmarks. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+- Upgraded _Gradle_ to version 9.3.0. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+**Bug Fixes**
+
+- **Null Value Deserialization**: Fixed incorrect handling of null values during deserialization when using ProtoBuf, JSON, and Avro formats. The deserializers now properly process null payloads without triggering unexpected errors or data loss. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+
+
 ## [1.3.1] (2025-12-19)
 
 **Improvements**

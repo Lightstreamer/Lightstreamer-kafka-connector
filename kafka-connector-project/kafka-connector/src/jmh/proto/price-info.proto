@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.lightstreamer.kafka.benchmarks";
+option java_outer_classname = "PriceInfoProto";
+
+message PriceInfo {
+  string Command = 1;
+  string Symbol = 2;
+  string CurrTime = 17;
+  float LS = 3; 
+  uint64 LSSize = 4;   
+  string LSTime = 5;
+  string LSTick = 6;
+  string LSMMID = 7;
+  float Bid = 8;
+  uint64 BidSize = 9;  
+  string BidTick  = 10;
+  string BidMMID = 11;
+  string BidTime  = 12;
+  float Ask = 13;
+  uint64 AskSize = 14;
+  string AskMMID = 15;
+  string AskTime = 16;
+  float High = 18;
+  float Low = 19;
+  uint64 Vol = 20;
+}

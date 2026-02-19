@@ -27,7 +27,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordRoutingStrategy;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -201,27 +200,20 @@ public class RecordProcessorTest {
             EventListener listener,
             SubscribedItems subscribedItems,
             ProcessUpdatesStrategy updatesStrategy) {
-        return new DefaultRecordProcessor<>(
-                mapper,
-                listener,
-                updatesStrategy,
-                RecordRoutingStrategy.fromSubscribedItems(subscribedItems));
+        return new DefaultRecordProcessor<>(mapper, subscribedItems, listener, updatesStrategy);
     }
 
     static Stream<Arguments> records() {
         return Stream.of(
                 Arguments.of(
-                        false,
                         defaultMapper(),
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
                         Map.of("aKey", "a", "aValue", "1a")),
                 Arguments.of(
-                        false,
                         defaultMapper(),
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-2"),
                         Map.of("aKey", "a", "aValue", "2a")),
                 Arguments.of(
-                        false,
                         mapperWithNoFieldsExtractor(),
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-2"),
                         Collections.emptyMap()));
@@ -230,16 +222,11 @@ public class RecordProcessorTest {
     @ParameterizedTest
     @MethodSource("records")
     public void shouldProcess(
-            boolean allowImplicitItems,
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
-        SubscribedItems subscribedItems =
-                allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
-        EventListener listener =
-                allowImplicitItems
-                        ? EventListener.legacyEventListener(this.eventListener)
-                        : EventListener.smartEventListener(this.eventListener);
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        EventListener listener = EventListener.smartEventListener(this.eventListener);
         RecordProcessor<String, String> processor =
                 processor(
                         mapper,
@@ -307,7 +294,7 @@ public class RecordProcessorTest {
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
                         Map.of("key", "a", "valueField", "1a", "command", "ADD")),
                 Arguments.of(
-                        Records.KafkaRecord(TEST_TOPIC, "a", null),
+                        Records.StringKafkaRecord(TEST_TOPIC, "a", null),
                         Map.of("key", "a", "command", "DELETE")));
     }
 
@@ -361,23 +348,14 @@ public class RecordProcessorTest {
 
     static Stream<Arguments> commands() {
         return Stream.of(
-                Arguments.of("ADD", false, 1),
-                Arguments.of("UPDATE", false, 1),
-                Arguments.of("DELETE", false, 1),
-                Arguments.of("ADD", true, 2),
-                Arguments.of("UPDATE", true, 2));
+                Arguments.of("ADD", 1), Arguments.of("UPDATE", 1), Arguments.of("DELETE", 1));
     }
 
     @ParameterizedTest
     @MethodSource("commands")
-    public void shouldProcessRecordWithAdmittedCommands(
-            String command, boolean allowImplicitItems, int expectedUpdates) {
-        SubscribedItems subscribedItems =
-                allowImplicitItems ? SubscribedItems.nop() : SubscribedItems.create();
-        EventListener listener =
-                allowImplicitItems
-                        ? EventListener.legacyEventListener(this.eventListener)
-                        : EventListener.smartEventListener(this.eventListener);
+    public void shouldProcessRecordWithAdmittedCommands(String command, int expectedUpdates) {
+        SubscribedItems subscribedItems = SubscribedItems.create();
+        EventListener listener = EventListener.smartEventListener(this.eventListener);
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
@@ -386,47 +364,27 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
 
+        // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        SubscribedItem item = null;
-        if (!allowImplicitItems) {
-            // Subscribe to "item1" and process the record
-            item = Items.subscribedFrom("item1", itemHandle);
-            subscribedItems.addItem(item);
-            item.enableRealtimeEvents(listener);
-        }
+        SubscribedItem item = Items.subscribedFrom("item1", itemHandle);
+        subscribedItems.addItem(item);
+        item.enableRealtimeEvents(listener);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
         // Verify that the nor clearSnapshot neither endOfSnapshot were called
-        if (allowImplicitItems) {
-            assertThat(this.eventListener.getClearSnapshotCalls()).isEmpty();
-            assertThat(this.eventListener.getEndOfSnapshotCalls()).isEmpty();
-        } else {
-            assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
-            assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
-        }
+        assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
+        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
 
         // Verify that the real-time update has been routed
         assertThat(this.eventListener.getAllUpdatesChronological()).hasSize(expectedUpdates);
-        if (allowImplicitItems) {
-            assertThat(this.eventListener.getSnapshotUpdates())
-                    .containsExactly(
-                            new UpdateCall(
-                                    "item1", Map.of("command", command, "key", "aKey"), true),
-                            new UpdateCall(
-                                    "item2", Map.of("command", command, "key", "aKey"), true));
-        } else {
-            assertThat(this.eventListener.getSmartSnapshotUpdates())
-                    .containsExactly(
-                            new UpdateCall(
-                                    itemHandle, Map.of("command", command, "key", "aKey"), true));
-            // Verify that the update has been routed as a snapshot
-            assertThat(item.isSnapshot()).isTrue();
-        }
-        // assertThat(this.eventListener.getSmartRealtimeUpdateCount())
-        // assertThat(consumer.getLastUpdates()).containsExactly("key", "aKey", "command", command);
-
+        assertThat(this.eventListener.getSmartSnapshotUpdates())
+                .containsExactly(
+                        new UpdateCall(
+                                itemHandle, Map.of("command", command, "key", "aKey"), true));
+        // Verify that the update has been routed as a snapshot
+        assertThat(item.isSnapshot()).isTrue();
     }
 
     @ParameterizedTest

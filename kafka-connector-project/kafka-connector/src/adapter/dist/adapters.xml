@@ -57,14 +57,14 @@
              establish the initial connection.
 
              The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers for more details.
-         -->
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers for more details.
+        -->
         <param name="bootstrap.servers">broker:29092</param>
 
         <!-- Optional. The name of the consumer group this connection belongs to.
 
-             The parameter sets the value for the "group.id" key used to configure the internal
-             Kafka Consumer. See https://kafka.apache.org/documentation/#consumerconfigs_group.id for more details.
+             The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id for more details.
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
@@ -74,7 +74,7 @@
         <!-- ##### ENCRYPTION SETTINGS ##### -->
 
         <!-- A TCP secure connection to Kafka is configured through parameters with
-             the `encryption` prefix. -->
+             the "encryption" prefix. -->
 
         <!-- Optional. Enable encryption of this connection. Can be one of the following:
              - true
@@ -96,7 +96,7 @@
 
         <!-- Optional. The list of enabled secure communication protocols.
 
-             Default value: TLSv1.2,TLSv1.3 when running on Java 11 or newer, `TLSv1.2` otherwise. -->
+             Default value: TLSv1.2,TLSv1.3 when running on Java 11 or newer, TLSv1.2 otherwise. -->
         <!--
         <param name="encryption.enabled.protocols">TLSv1.3</param>
         -->
@@ -190,7 +190,7 @@
         <!-- ##### AUTHENTICATION SETTINGS ##### -->
 
         <!-- Broker authentication is configured through parameters with the
-             `authentication` prefix. -->
+             "authentication" prefix. -->
 
         <!-- Optional. Enable the authentication of this connection against the Kafka Cluster.
              Can be one of the following:
@@ -285,7 +285,7 @@
         -->
 
         <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
-             authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+             authentication with with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role</param>
@@ -312,6 +312,9 @@
              - LATEST: Start consuming events from the end of the topic partition.
              - EARLIEST: Start consuming events from the beginning of the topic partition.
 
+             The parameter sets the value of the "auto.offset.reset"  key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset for more details.
+
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
@@ -336,6 +339,16 @@
              Default value: false. -->
         <!--
         <param name="record.consume.at.connector.startup.with.implicit.items.enable">false</param>
+        -->
+
+        <!-- Optional. The maximum number of records fetched in each polling cycle.
+
+             The parameter sets the value of the "max.poll.records" key to configure the internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records for more details.
+
+             Default value: 500. -->
+        <!--
+        <param name="record.consume.max.poll.records">500</param>
         -->
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
@@ -550,10 +563,11 @@
         <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode.
              A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
              - "key": Identifies the unique key for each element in the list generated from the item.
-             - "command": Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
+             - "command": Specifies the operation ("ADD", "UPDATE", "DELETE") to be performed on the item.
 
              For example:
 
+             <param name="fields.evaluate.as.command.enable">true</param>
              <param name="field.key">#{KEY}</param>
              <param name="field.command">#{VALUE.command}</param>
 
@@ -581,14 +595,15 @@
                - "UPDATE": For records with a mapped key that has been previously processed
                - "DELETE": For records with a null message payload (tombstone records)
 
-             You only need to map the `key` field from your record structure:
+             You only need to map the "key" field from your record structure.
+             For example:
 
              <param name="fields.auto.command.mode.enable">true</param>
              <param name="field.key">#{KEY}</param>
 
              The parameter can be one of the following:
-             - `true`
-             - `false`
+             - true
+             - false
 
              Default value: false. -->
         <!---
@@ -643,56 +658,6 @@
         <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
         <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
         -->
-    </data_provider>
-
-    <data_provider name="QuickStartConfluentCloud">
-        <!-- ##### GENERAL PARAMETERS ##### -->
-
-        <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
-
-        <param name="bootstrap.servers">broker:29092</param>
-        <param name="group.id">quick-start-group-confluent</param>
-
-        <!-- ##### ENCRYPTION SETTINGS ##### -->
-        <param name="encryption.enable">true</param>
-        <param name="encryption.protocol">TLSv1.2</param>
-        <param name="encryption.hostname.verification.enable">true</param>
-
-        <!-- ##### AUTHENTICATION SETTINGS ##### -->
-        <param name="authentication.enable">true</param>
-        <param name="authentication.mechanism">PLAIN</param>
-        <param name="authentication.username">API.key</param>
-        <param name="authentication.password">API.secret</param>
-
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
-        <param name="record.consume.from">EARLIEST</param>
-        <param name="record.key.evaluator.type">INTEGER</param>
-        <param name="record.value.evaluator.type">JSON</param>
-
-        <!-- ##### RECORD ROUTING SETTINGS ##### -->
-        <param name="item-template.stock">stock-#{index=KEY}</param>
-        <param name="map.stocks.to">item-template.stock</param>
-
-        <!-- ##### RECORD MAPPING SETTINGS ##### -->
-        <param name="field.timestamp">#{VALUE.timestamp}</param>
-        <param name="field.time">#{VALUE.time}</param>
-        <param name="field.name">#{VALUE.name}</param>
-        <param name="field.last_price">#{VALUE.last_price}</param>
-        <param name="field.ask">#{VALUE.ask}</param>
-        <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
-        <param name="field.bid">#{VALUE.bid}</param>
-        <param name="field.bid_quantity">#{VALUE.bid_quantity}</param>
-        <param name="field.pct_change">#{VALUE.pct_change}</param>
-        <param name="field.min">#{VALUE.min}</param>
-        <param name="field.max">#{VALUE.max}</param>
-        <param name="field.ref_price">#{VALUE.ref_price}</param>
-        <param name="field.open_price">#{VALUE.open_price}</param>
-        <param name="field.item_status">#{VALUE.item_status}</param>
-        <param name="field.ts">#{TIMESTAMP}</param>
-        <param name="field.topic">#{TOPIC}</param>
-        <param name="field.offset">#{OFFSET}</param>
-        <param name="field.partition">#{PARTITION}</param>
-
     </data_provider>
 
 </adapters_conf>

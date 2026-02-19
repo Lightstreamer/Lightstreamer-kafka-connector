@@ -124,8 +124,7 @@ public class DynamicMessageSelectorSuppliers
         }
 
         static String textValue(FieldDescriptor fieldDescriptor, Object value) {
-            Type type = fieldDescriptor.getType();
-            return switch (type) {
+            return switch (fieldDescriptor.getType()) {
                 case UINT32, FIXED32 -> Long.toString(((Integer) value).longValue() & 0xFFFFFFFFL);
                 case UINT64, FIXED64 -> Long.toUnsignedString((Long) value);
                 case BYTES -> {
@@ -152,11 +151,10 @@ public class DynamicMessageSelectorSuppliers
          */
         static ProtobufNode newNode(
                 String nodeName, Object value, FieldDescriptor fieldDescriptor) {
-            Type type = fieldDescriptor.getType();
-            return switch (type) {
-                case MESSAGE -> new MessageWrapperNode(nodeName, (Message) value);
-                default -> new ScalarFieldNode(nodeName, value, fieldDescriptor);
-            };
+            if (fieldDescriptor.getType() == Type.MESSAGE) {
+                return new MessageWrapperNode(nodeName, (Message) value);
+            }
+            return new ScalarFieldNode(nodeName, value, fieldDescriptor);
         }
 
         static ProtobufNode rootNode(String name, Object value) {

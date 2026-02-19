@@ -41,25 +41,25 @@ configurations {
 }
 
 dependencies {
-    api group: 'com.lightstreamer', name: 'ls-adapter-inprocess', version: '8.0.0'
+    api("com.lightstreamer:ls-adapter-inprocess:8.0.0")
 
-    implementation group: 'org.slf4j', name: 'slf4j-reload4j', 'version': '2.0.10'
-    implementation group: 'org.apache.kafka', name:'kafka-clients', version:'7.7.0-ccs'
-    implementation group: 'io.confluent', name: 'kafka-avro-serializer', version:'7.7.0'
-    implementation group: 'io.confluent', name: 'kafka-json-serializer', version:'7.7.0'
-    implementation group: 'io.confluent', name: 'kafka-json-schema-serializer', version:'7.7.0'
-    implementation group: 'io.confluent', name: 'kafka-protobuf-serializer', version:'7.7.0'
+    implementation("org.slf4j:slf4j-reload4j:2.0.10")
+    implementation("org.apache.kafka:kafka-clients:8.1.1-ccs")
+    implementation("io.confluent:kafka-avro-serializer:8.1.1")
+    implementation("io.confluent:kafka-json-serializer:8.1.1")
+    implementation("io.confluent:kafka-json-schema-serializer:8.1.1")
+    implementation("io.confluent:kafka-protobuf-serializer:8.1.1")
 
-    implementation group: 'com.lightstreamer', name: 'ls-adapter-remote', version: '1.7.0'
-    implementation group: 'org.apache.kafka', name:'connect-api', version:'7.7.0-ccs'
+    implementation("com.lightstreamer:ls-adapter-remote:1.7.0")
+    implementation("org.apache.kafka:connect-api:8.1.1-ccs")
 
-    jmhImplementation group: 'org.openjdk.jmh', name:'jmh-core', version:'1.37'
-    jmhAnnotationProcessor  group: 'org.openjdk.jmh', name:'jmh-generator-annprocess', version:'1.37'
-    implementation group: 'org.apache.kafka', name:'connect-json', version:'7.7.0-ccs'
+    jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
+    jmhAnnotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:1.37")
+    implementation("org.apache.kafka:connect-json:8.1.1-ccs")
 
-    implementation group: 'software.amazon.msk', name:'aws-msk-iam-auth', version:'2.3.2'
+    implementation("software.amazon.msk:aws-msk-iam-auth:2.3.2")
 
-    testImplementation 'com.google.protobuf:protobuf-java:3.24.0'
+    testImplementation("com.google.protobuf:protobuf-java:3.24.0")
 }
 
 ext {

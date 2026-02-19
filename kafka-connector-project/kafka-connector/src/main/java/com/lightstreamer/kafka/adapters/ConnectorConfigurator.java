@@ -75,7 +75,7 @@ public class ConnectorConfigurator {
 
     private static <K, V> Config<K, V> doConsumerConfig(
             ConnectorConfig config, KeyValueSelectorSuppliers<K, V> sSuppliers)
-            throws ExtractionException {
+            throws ExtractionException, ConfigException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
 
         TopicConfigurations topicsConfig =

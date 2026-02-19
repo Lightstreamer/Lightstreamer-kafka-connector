@@ -141,14 +141,14 @@ public class StreamingDataAdapterTest {
         assertThat(adapter.getUpdater()).isSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.subscribe("item1");
-        Optional<SubscribedItem> subscribedItem = adapter.getSubscribedItem("item1");
-        assertThat(subscribedItem.get().schema().name()).isEqualTo("item1");
+        SubscribedItem subscribedItem = adapter.getSubscribedItem("item1");
+        assertThat(subscribedItem.schema().name()).isEqualTo("item1");
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(1);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.subscribe("item2");
-        Optional<SubscribedItem> subscribedItem2 = adapter.getSubscribedItem("item2");
-        assertThat(subscribedItem2.get().schema().name()).isEqualTo("item2");
+        SubscribedItem subscribedItem2 = adapter.getSubscribedItem("item2");
+        assertThat(subscribedItem2.schema().name()).isEqualTo("item2");
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(2);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 

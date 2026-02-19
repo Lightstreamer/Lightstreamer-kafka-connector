@@ -552,9 +552,9 @@ final class DefaultMappedRecord implements MappedRecord {
         Set<SubscribedItem> result = new HashSet<>();
 
         for (String itemName : itemNames) {
-            Optional<SubscribedItem> item = items.getItem(itemName);
-            if (item.isPresent()) {
-                result.add(item.get());
+            SubscribedItem item = items.getItem(itemName);
+            if (item != null) {
+                result.add(item);
             }
         }
         return result;

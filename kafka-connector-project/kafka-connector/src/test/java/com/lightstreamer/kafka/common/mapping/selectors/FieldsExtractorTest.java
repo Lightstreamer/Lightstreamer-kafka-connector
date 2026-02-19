@@ -25,7 +25,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
-import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonKeyJsonValue;
+import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Json;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
 import static org.junit.Assert.assertThrows;
@@ -205,8 +205,7 @@ public class FieldsExtractorTest {
             throws ExtractionException {
 
         FieldsExtractor<JsonNode, JsonNode> extractor =
-                DataExtractors.discoveredFieldsExtractor(
-                        JsonKeyJsonValue(), expressions, skipOnFailure);
+                DataExtractors.discoveredFieldsExtractor(Json(), expressions, skipOnFailure);
         assertThat(extractor.skipOnFailure()).isEqualTo(skipOnFailure);
         assertThat(extractor.mapNonScalars()).isEqualTo(true);
 

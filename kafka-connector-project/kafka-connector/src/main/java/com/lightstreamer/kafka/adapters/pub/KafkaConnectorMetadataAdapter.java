@@ -22,6 +22,7 @@ import com.lightstreamer.interfaces.metadata.ItemsException;
 import com.lightstreamer.interfaces.metadata.MetadataProviderAdapter;
 import com.lightstreamer.interfaces.metadata.MetadataProviderException;
 import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.interfaces.metadata.SchemaException;
 import com.lightstreamer.interfaces.metadata.TableInfo;

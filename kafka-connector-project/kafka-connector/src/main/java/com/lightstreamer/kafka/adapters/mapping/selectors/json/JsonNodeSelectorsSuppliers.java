@@ -44,7 +44,6 @@ import org.apache.kafka.common.serialization.Deserializer;
 
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 
 public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<JsonNode> {
 
@@ -288,10 +287,6 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
             this.deserializer = JsonNodeDeserializers.KeyDeserializer(config);
         }
 
-        JsonNodeKeySelectorSupplier() {
-            this.deserializer = JsonNodeDeserializers.KeyDeserializer();
-        }
-
         @Override
         public KeySelector<JsonNode> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
@@ -343,10 +338,6 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
             this.deserializer = JsonNodeDeserializers.ValueDeserializer(config);
         }
 
-        JsonNodeValueSelectorSupplier() {
-            this.deserializer = JsonNodeDeserializers.ValueDeserializer();
-        }
-
         @Override
         public ValueSelector<JsonNode> newSelector(ExtractionExpression expression)
                 throws ExtractionException {
@@ -391,25 +382,19 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         }
     }
 
-    private final Optional<ConnectorConfig> config;
+    private final ConnectorConfig config;
 
     public JsonNodeSelectorsSuppliers(ConnectorConfig config) {
-        this.config = Optional.of(config);
-    }
-
-    public JsonNodeSelectorsSuppliers() {
-        this.config = Optional.empty();
+        this.config = config;
     }
 
     @Override
     public KeySelectorSupplier<JsonNode> makeKeySelectorSupplier() {
-        return config.map(JsonNodeKeySelectorSupplier::new)
-                .orElseGet(() -> new JsonNodeKeySelectorSupplier());
+        return new JsonNodeKeySelectorSupplier(config);
     }
 
     @Override
     public ValueSelectorSupplier<JsonNode> makeValueSelectorSupplier() {
-        return config.map(JsonNodeValueSelectorSupplier::new)
-                .orElseGet(() -> new JsonNodeValueSelectorSupplier());
+        return new JsonNodeValueSelectorSupplier(config);
     }
 }

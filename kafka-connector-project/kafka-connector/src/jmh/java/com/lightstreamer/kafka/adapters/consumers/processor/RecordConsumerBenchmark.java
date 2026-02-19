@@ -17,22 +17,31 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import static com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers.ValueDeserializer;
+
+import static org.apache.kafka.common.serialization.Serdes.String;
+
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeItemEventListener;
+import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.JsonRecords;
-import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.ProtoRecords;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
+import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.PriceInfoRecords;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
+import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
+import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
-import com.lightstreamer.kafka.common.records.KafkaRecords;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
+import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.MockConsumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -47,10 +56,6 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
-import org.openjdk.jmh.runner.Runner;
-import org.openjdk.jmh.runner.options.Options;
-import org.openjdk.jmh.runner.options.OptionsBuilder;
-import org.openjdk.jmh.runner.options.TimeValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,11 +70,15 @@ import java.util.concurrent.TimeUnit;
 public class RecordConsumerBenchmark {
 
     static String[] TOPICS = {"users", "users2"};
+    //     static String[] TOPICS = {"users"};
 
-    private static final Logger log = LoggerFactory.getLogger(RecordConsumerBenchmark.class);
+    private static final Logger logger = LoggerFactory.getLogger("Benchmark");
 
     @State(Scope.Thread)
-    public static class Json {
+    public static class Plan<V> {
+
+        @Param({"JSON", "PROTOBUF"})
+        String type;
 
         @Param({"1"})
         int partitions;
@@ -77,80 +86,8 @@ public class RecordConsumerBenchmark {
         @Param({"1"})
         int threads;
 
-        // @Param({"true", "false"})
-        boolean preferSingleThread = false;
-
-        // @Param({"100", "200", "500"})
-        @Param({"1000"})
-        int numOfRecords;
-
-        @Param({"100"}) // "50000", "100000"})
-        int numOfSubscriptions = 5000;
-
-        // @Param({ "50000" })
-        int numOfKeys = numOfSubscriptions;
-
-        @Param({"ORDER_BY_PARTITION"})
-        String ordering;
-
-        ConsumerRecords<Deferred<String>, Deferred<JsonNode>> consumerRecords;
-        FakeItemEventListener listener;
-        FakeOffsetService offsetService;
-        RecordConsumer<String, JsonNode> recordConsumer;
-
-        private SubscribedItems subscribedItems;
-
-        @Setup(Level.Trial)
-        public void setUpTrial(Blackhole bh) {
-            this.listener = new FakeItemEventListener(bh);
-            this.offsetService = new FakeOffsetService();
-        }
-
-        @Setup(Level.Iteration)
-        public void setUp() {
-            // Reuse the listener and offsetService created in setUpTrial
-            @SuppressWarnings("unchecked")
-            Config<String, JsonNode> config =
-                    (Config<String, JsonNode>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "JSON", 3).consumerConfig();
-
-            // Configure the RecordMapper.
-            RecordMapper<String, JsonNode> recordMapper = BenchmarksUtils.newRecordMapper(config);
-
-            // Make the RecordConsumer.
-            subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
-            this.recordConsumer =
-                    RecordConsumer.<String, JsonNode>recordMapper(recordMapper)
-                            .subscribedItems(subscribedItems)
-                            .commandMode(CommandModeStrategy.NONE)
-                            .eventListener(listener)
-                            .offsetService(offsetService)
-                            .errorStrategy(config.errorHandlingStrategy())
-                            .logger(log)
-                            .threads(threads)
-                            .ordering(OrderStrategy.valueOf(ordering))
-                            .preferSingleThread(preferSingleThread)
-                            .build();
-
-            // Generate the test records.
-            this.consumerRecords =
-                    JsonRecords.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
-        }
-
-        @TearDown(Level.Iteration)
-        public void tearDown() {
-            recordConsumer.terminate();
-        }
-    }
-
-    @State(Scope.Thread)
-    public static class Protobuf {
-
-        @Param({"1"})
-        int partitions;
-
-        @Param({"1"})
-        int threads;
+        @Param({"3"})
+        int numOfTemplateParams;
 
         // @Param({"true", "false"})
         boolean preferSingleThread = true;
@@ -162,47 +99,52 @@ public class RecordConsumerBenchmark {
         @Param({"100"}) // "50000", "100000"})
         int numOfSubscriptions = 5000;
 
-        // @Param({ "50000" })
         int numOfKeys = numOfSubscriptions;
 
         @Param({"ORDER_BY_PARTITION"})
-        String ordering;
+        String ordering = "ORDER_BY_PARTITION";
 
-        ConsumerRecords<Deferred<String>, Deferred<DynamicMessage>> consumerRecords;
-        FakeItemEventListener listener;
-        FakeOffsetService offsetService;
-        RecordConsumer<String, DynamicMessage> recordConsumer;
+        @Param({"DEFERRED", "EAGER"})
+        String deserializationTiming;
 
+        private FakeEventListener listener;
+        private FakeOffsetService offsetService;
         private SubscribedItems subscribedItems;
+        private RecordConsumer<String, V> recordConsumer;
+
+        private ConsumerRecords<byte[], byte[]> consumerRecords;
+        private RecordDeserializationMode<String, V> deserializationMode;
+        private RecordBatch<String, V> batch;
 
         @Setup(Level.Trial)
         public void setUpTrial(Blackhole bh) {
-            this.listener = new FakeItemEventListener(bh);
+            this.listener = new FakeEventListener(bh);
             this.offsetService = new FakeOffsetService();
         }
 
         @Setup(Level.Iteration)
         public void setUp() {
             // Reuse the listener and offsetService created in setUpTrial
+            ConnectorConfigurator configurator =
+                    BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
             @SuppressWarnings("unchecked")
-            Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>)
-                            BenchmarksUtils.newConfigurator(TOPICS, "PROTOBUF", 3).consumerConfig();
+            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
 
             // Configure the RecordMapper.
-            RecordMapper<String, DynamicMessage> recordMapper =
-                    BenchmarksUtils.newRecordMapper(config);
+            RecordMapper<String, V> recordMapper = BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
-            subscribedItems = BenchmarksUtils.subscriptions(numOfSubscriptions);
+            this.subscribedItems =
+                    BenchmarksUtils.subscriptions(
+                            numOfSubscriptions, listener, numOfTemplateParams);
             this.recordConsumer =
-                    RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
+                    RecordConsumer.recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
                             .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
                             .errorStrategy(config.errorHandlingStrategy())
-                            .logger(log)
+                            .logger(logger)
                             .threads(threads)
                             .ordering(OrderStrategy.valueOf(ordering))
                             .preferSingleThread(preferSingleThread)
@@ -210,7 +152,105 @@ public class RecordConsumerBenchmark {
 
             // Generate the test records.
             this.consumerRecords =
-                    ProtoRecords.consumerRecords(TOPICS, partitions, numOfRecords, numOfKeys);
+                    BenchmarksUtils.pollRecords(type, TOPICS, partitions, numOfRecords, numOfKeys);
+            DeserializerPair<String, V> deserializerPair =
+                    new DeserializerPair<>(
+                            String().deserializer(),
+                            BenchmarksUtils.valueDeserializer(type, configurator.getConfig()));
+            this.deserializationMode =
+                    RecordDeserializationMode.forTiming(
+                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
+            this.batch = this.deserializationMode.toBatch(consumerRecords, true);
+        }
+
+        @TearDown(Level.Iteration)
+        public void tearDown() {
+            recordConsumer.terminate();
+        }
+    }
+
+    @State(Scope.Thread)
+    public static class PriceInfoState {
+
+        static String TOPIC = "ltest";
+
+        static String[] TOPICS = {TOPIC};
+
+        @Param({"1"})
+        int threads;
+
+        @Param({"1000"})
+        int numOfRecords;
+
+        @Param({"100"})
+        int numOfSubscriptions = 5000;
+
+        @Param({"DEFERRED", "EAGER"})
+        String deserializationTiming;
+
+        private PriceInfoRecords priceInfoRecords;
+        private FakeEventListener listener;
+        private OffsetService offsetService;
+        private SubscribedItems subscribedItems;
+
+        private RecordConsumer<String, DynamicMessage> recordConsumer;
+        private ConsumerRecords<byte[], byte[]> consumerRecords;
+        private RecordDeserializationMode<String, DynamicMessage> deserializationMode;
+
+        private static final String RELATIVE_DESCRIPTOR_PATH =
+                "build/generated/sources/proto/jmh/descriptor_set.desc";
+
+        @Setup(Level.Trial)
+        public void setUpTrial(Blackhole bh) {
+            setupTrial(bh, "./" + RELATIVE_DESCRIPTOR_PATH);
+        }
+
+        void setupTrial(Blackhole bh, String descriptorPath) {
+            this.priceInfoRecords = new PriceInfoRecords(TOPIC, descriptorPath);
+            this.listener = new FakeEventListener(bh);
+            this.offsetService =
+                    Offsets.OffsetService(
+                            new MockConsumer<>(StrategyType.LATEST.toString()), logger);
+            this.offsetService.initStore(false);
+        }
+
+        @Setup(Level.Iteration)
+        public void setUp() {
+            ConnectorConfigurator configurator = priceInfoRecords.newConfigurator();
+            @SuppressWarnings("unchecked")
+            Config<String, DynamicMessage> config =
+                    (Config<String, DynamicMessage>) configurator.consumerConfig();
+
+            // Configure the RecordMapper.
+            RecordMapper<String, DynamicMessage> recordMapper =
+                    BenchmarksUtils.newRecordMapper(config);
+
+            // Make the RecordConsumer.
+            this.subscribedItems = priceInfoRecords.subscriptions(numOfSubscriptions, listener);
+
+            this.recordConsumer =
+                    RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
+                            .subscribedItems(subscribedItems)
+                            .commandMode(CommandModeStrategy.NONE)
+                            .eventListener(listener)
+                            .offsetService(offsetService)
+                            .errorStrategy(config.errorHandlingStrategy())
+                            .logger(logger)
+                            .threads(threads)
+                            .ordering(OrderStrategy.ORDER_BY_KEY)
+                            .preferSingleThread(false)
+                            .build();
+
+            var deserializerPair =
+                    new DeserializerPair<>(
+                            String().deserializer(), ValueDeserializer(configurator.getConfig()));
+
+            // Generate the test records.
+            var rawRecords = priceInfoRecords.rawRecords(numOfRecords);
+            this.consumerRecords = BenchmarksUtils.pollRecordsFromRaw(TOPICS, 1, rawRecords);
+            this.deserializationMode =
+                    RecordDeserializationMode.forTiming(
+                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
         }
 
         @TearDown(Level.Iteration)
@@ -220,33 +260,52 @@ public class RecordConsumerBenchmark {
     }
 
     /**
-     * Benchmarks end-to-end consumption and processing of JSON-formatted Kafka records. Measures
-     * the complete workflow from record consumption to subscriber notification.
+     * Benchmarks the consumption of a pre-deserialized batch of records.
+     *
+     * <p>This benchmark measures the time taken to consume and process a batch of records that has
+     * already been deserialized, focusing on the record processing overhead.
+     *
+     * @param <V> the type of values in the records being consumed
+     * @param plan the benchmark plan containing the record consumer and pre-deserialized batch
      */
     @Benchmark
-    public void consumeWithJson(Json json) {
-        json.recordConsumer.consumeRecords(KafkaRecords.from(json.consumerRecords));
+    public <V> void consume(Plan<V> plan) {
+        plan.recordConsumer.consumeBatch(plan.batch);
+        plan.batch.join();
     }
 
     /**
-     * Benchmarks end-to-end consumption and processing of Protobuf-formatted Kafka records.
-     * Measures the complete workflow from record consumption to subscriber notification.
+     * Benchmarks the complete poll-to-consume cycle including deserialization.
+     *
+     * <p>This benchmark measures the time taken to deserialize raw consumer records into a batch
+     * and then consume and process that batch, simulating a full polling cycle.
+     *
+     * @param <V> the type of values in the records being consumed
+     * @param plan the benchmark plan containing the deserialization mode, raw records, and record
+     *     consumer
      */
     @Benchmark
-    public void consumeWithProtobuf(Protobuf proto) {
-        proto.recordConsumer.consumeRecords(KafkaRecords.from(proto.consumerRecords));
+    public <V> void poll(Plan<V> plan) {
+        RecordBatch<String, V> batch = plan.deserializationMode.toBatch(plan.consumerRecords, true);
+        plan.recordConsumer.consumeBatch(batch);
+        batch.join();
     }
 
-    public static void main1(String[] args) throws Exception {
-        Options opt =
-                new OptionsBuilder()
-                        .warmupIterations(5)
-                        .warmupTime(TimeValue.seconds(5))
-                        .measurementTime(TimeValue.seconds(10))
-                        .measurementIterations(10)
-                        .include(RecordConsumerBenchmark.class.getSimpleName())
-                        .build();
-
-        new Runner(opt).run();
+    /**
+     * Benchmarks the complete poll-to-consume cycle for PriceInfo protobuf records.
+     *
+     * <p>This benchmark measures the time taken to deserialize raw PriceInfo consumer records into
+     * a batch and then consume and process that batch, focusing on protobuf-specific
+     * deserialization and processing performance.
+     *
+     * @param priceInfoState the benchmark state containing the deserialization mode, raw records,
+     *     and record consumer
+     */
+    @Benchmark
+    public void pollPriceInfo(PriceInfoState priceInfoState) {
+        RecordBatch<String, DynamicMessage> batch =
+                priceInfoState.deserializationMode.toBatch(priceInfoState.consumerRecords, true);
+        priceInfoState.recordConsumer.consumeBatch(batch);
+        batch.join();
     }
 }

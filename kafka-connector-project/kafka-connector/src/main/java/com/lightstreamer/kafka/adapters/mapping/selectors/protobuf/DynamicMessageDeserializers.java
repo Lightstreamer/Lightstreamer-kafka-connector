@@ -77,6 +77,9 @@ public class DynamicMessageDeserializers {
 
         @Override
         public DynamicMessage deserialize(String topic, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
             try {
                 return DynamicMessage.parseFrom(messageDescriptor, data);
             } catch (InvalidProtocolBufferException e) {

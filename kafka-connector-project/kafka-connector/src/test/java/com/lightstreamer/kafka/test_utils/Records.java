@@ -17,14 +17,16 @@
 
 package com.lightstreamer.kafka.test_utils;
 
+import static org.apache.kafka.common.serialization.Serdes.String;
+
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 
 import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -33,6 +35,7 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.record.TimestampType;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 
@@ -41,7 +44,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 public class Records {
@@ -94,59 +96,53 @@ public class Records {
         return KafkaRecordWithHeaders(key, value, new RecordHeaders());
     }
 
+    public static <K, V> KafkaRecord<K, V> KafkaRecord(String topic, K key, V value) {
+        return KafkaRecordWithHeaders(topic, key, value, new RecordHeaders());
+    }
+
     public static <K, V> KafkaRecord<K, V> KafkaRecordWithHeaders(K key, V value, Headers headers) {
         return KafkaRecordWithHeaders("record-topic", key, value, headers);
     }
 
     public static <K, V> KafkaRecord<K, V> KafkaRecordWithHeaders(
             String topic, K key, V value, Headers headers) {
-        return KafkaRecord.from(
+        return KafkaRecord.from(topic, 150, 120, -1, key, value, headers);
+    }
+
+    public static KafkaRecord<String, String> StringKafkaRecord(
+            String topic, String key, String value) {
+        ConsumerRecord<byte[], byte[]> record =
                 new ConsumerRecord<>(
                         topic,
                         150,
                         120,
-                        ConsumerRecord.NO_TIMESTAMP,
-                        TimestampType.NO_TIMESTAMP_TYPE,
-                        ConsumerRecord.NULL_SIZE,
-                        ConsumerRecord.NULL_SIZE,
-                        Deferred.resolved(key),
-                        Deferred.resolved(value),
-                        headers,
-                        Optional.empty()));
-    }
-
-    public static <K, V> KafkaRecord<K, V> KafkaRecord(String topic, K key, V value) {
-        return KafkaRecord.from(
-                ConsumerRecord(topic, Deferred.resolved(key), Deferred.resolved(value)));
-    }
-
-    public static <K, V> ConsumerRecord<K, V> ConsumerRecord(String topic, K key, V value) {
-        return new ConsumerRecord<>(
-                topic,
-                150,
-                120,
-                ConsumerRecord.NO_TIMESTAMP,
-                TimestampType.NO_TIMESTAMP_TYPE,
-                ConsumerRecord.NULL_SIZE,
-                ConsumerRecord.NULL_SIZE,
-                key,
-                value,
-                new RecordHeaders(),
-                Optional.empty());
+                        String().serializer().serialize(topic, key),
+                        String().serializer().serialize(topic, value));
+        return KafkaRecord.fromDeferred(
+                record,
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
     public static KafkaRecord<String, String> KafkaRecord(String topic, int partition, String id) {
-        return KafkaRecord.from(ConsumerRecord(topic, partition, id));
+        return KafkaRecord.fromDeferred(
+                ConsumerRecord(topic, partition, id),
+                new DeserializerPair<>(String().deserializer(), String().deserializer()),
+                null);
     }
 
-    public static ConsumerRecord<Deferred<String>, Deferred<String>> ConsumerRecord(
+    public static ConsumerRecord<byte[], byte[]> ConsumerRecord(
             String topic, int partition, String id) {
         String[] tokens = id.split("-");
         String key = tokens[0];
         long offset = Long.parseLong(tokens[1]);
         String value = offset + key;
         return new ConsumerRecord<>(
-                topic, partition, offset, Deferred.resolved(key), Deferred.resolved(value));
+                topic,
+                partition,
+                offset,
+                String().serializer().serialize(topic, key),
+                String().serializer().serialize(topic, value));
     }
 
     public static KafkaRecord<Object, Object> sinkFromValue(
@@ -204,21 +200,24 @@ public class Records {
                         TimestampType.NO_TIMESTAMP_TYPE));
     }
 
-    public static ConsumerRecords<Deferred<String>, Deferred<String>> generateRecords(
-            String topic, int size, List<String> keys) {
-        return generateRecords(topic, size, keys, 1);
+    public static ConsumerRecords<byte[], byte[]> generateRecords(
+            String topic, int numOfRecords, List<String> keys) {
+        return generateRecords(topic, numOfRecords, keys, 1);
     }
 
-    public static ConsumerRecords<Deferred<String>, Deferred<String>> generateRecords(
-            String topic, int size, List<String> keys, int partitions) {
+    public static ConsumerRecords<byte[], byte[]> generateRecords(
+            String topic, int numOfRecords, List<String> keys, int partitions) {
 
-        List<ConsumerRecord<Deferred<String>, Deferred<String>>> records = new ArrayList<>();
+        List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
         Map<String, Integer> eventCounter = new HashMap<>();
         Map<Integer, Integer> offsetCounter = new HashMap<>();
         SecureRandom secureRandom = new SecureRandom();
 
+        Serializer<String> keySerializer = String().serializer();
+        Serializer<String> valueSerializer = String().serializer();
+
         // Generate the records list
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < numOfRecords; i++) {
             String recordKey = null;
             String recordValue;
             String eventCounterKey = "noKey";
@@ -251,20 +250,17 @@ public class Records {
                             topic,
                             partition,
                             offset,
-                            Deferred.resolved(recordKey),
-                            Deferred.resolved(recordValue)));
+                            keySerializer.serialize(topic, recordKey),
+                            valueSerializer.serialize(topic, recordValue)));
         }
 
         // Group records by partition to be passed to the ConsumerRecords instance
-        Map<TopicPartition, List<ConsumerRecord<Deferred<String>, Deferred<String>>>>
-                partitionsToRecords =
-                        records.stream()
-                                .collect(
-                                        groupingBy(
-                                                record ->
-                                                        new TopicPartition(
-                                                                topic, record.partition()),
-                                                mapping(Function.identity(), toList())));
+        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> partitionsToRecords =
+                records.stream()
+                        .collect(
+                                groupingBy(
+                                        record -> new TopicPartition(topic, record.partition()),
+                                        mapping(Function.identity(), toList())));
         return new ConsumerRecords<>(partitionsToRecords);
     }
 }

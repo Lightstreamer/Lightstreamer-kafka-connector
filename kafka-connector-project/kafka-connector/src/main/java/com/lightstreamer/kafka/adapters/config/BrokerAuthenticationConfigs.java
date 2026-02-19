@@ -26,8 +26,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 
 import org.apache.kafka.common.config.SaslConfigs;
 
-import scala.collection.mutable.StringBuilder;
-
 import java.util.Objects;
 import java.util.Properties;
 

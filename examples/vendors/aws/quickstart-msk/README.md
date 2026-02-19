@@ -156,7 +156,7 @@ With respect to the [_QuickStart SSL_](../../../quickstart-ssl/README.md#quick-s
         target: /lightstreamer/aws_credentials
     ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+  - Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:
 
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
 
