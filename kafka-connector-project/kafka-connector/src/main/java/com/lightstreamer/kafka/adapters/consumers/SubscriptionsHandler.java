@@ -19,20 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import static org.apache.kafka.common.serialization.Serdes.ByteArray;
 
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
-
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.slf4j.Logger;
-
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
@@ -45,6 +31,20 @@ import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.slf4j.Logger;
+
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 public interface SubscriptionsHandler<K, V> {
 
@@ -60,8 +60,6 @@ public interface SubscriptionsHandler<K, V> {
         return false;
     }
 
-    boolean allowImplicitItems();
-
     static <K, V> Builder<K, V> builder() {
         return new Builder<>();
     }
@@ -72,7 +70,6 @@ public interface SubscriptionsHandler<K, V> {
         private MetadataListener metadataListener;
         private SnapshotStore snapshotStore;
         private boolean consumeAtStartup = true;
-        private boolean allowImplicitItems = false;
 
         private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER =
                 ByteArray().deserializer();
@@ -91,7 +88,6 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-
         public Builder<K, V> withSnapshotStore(SnapshotStore snapshotStore) {
             this.snapshotStore = snapshotStore;
             return this;
@@ -103,9 +99,8 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-        public Builder<K, V> atStartup(boolean consumeAtStartup, boolean allowImplicitItems) {
+        public Builder<K, V> atStartup(boolean consumeAtStartup) {
             this.consumeAtStartup = consumeAtStartup;
-            this.allowImplicitItems = this.consumeAtStartup ? allowImplicitItems : false;
             return this;
         }
 
@@ -118,7 +113,6 @@ public interface SubscriptionsHandler<K, V> {
             }
             return new DefaultSubscriptionsHandler<>(this);
         }
-
 
         private static <K, V> Supplier<Consumer<byte[], byte[]>> defaultConsumerSupplier(
                 Config<K, V> config) {

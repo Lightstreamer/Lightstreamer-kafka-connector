@@ -36,7 +36,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRoutingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
@@ -108,12 +107,6 @@ public class RecordConsumerTest {
         return processUpdateStrategy.type();
     }
 
-    private static ProcessUpdatesType getProcessUpdatesType(CommandModeStrategy commandMode) {
-        ProcessUpdatesStrategy processUpdateStrategy =
-                ProcessUpdatesStrategy.fromCommandModeStrategy(commandMode);
-        return processUpdateStrategy.type();
-    }
-
     private static final Logger logger = LogFactory.getLogger("TestConnection");
     private static Monitor monitor = new Mocks.MockMonitor();
 
@@ -176,7 +169,7 @@ public class RecordConsumerTest {
     @AfterEach
     public void tearDown() {
         if (this.recordConsumer != null) {
-            this.recordConsumer.terminate();
+            this.recordConsumer.close();
         }
     }
 

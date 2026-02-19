@@ -28,7 +28,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -37,11 +36,12 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
@@ -55,6 +55,9 @@ import java.util.function.Supplier;
 
 public class DefaultSubscriptionsHandlerTest {
 
+    private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
+    private SubscribedItems subscribedItems;
+    private MockItemEventListener listener = new MockItemEventListener();
     private MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
     private DefaultSubscriptionsHandler<String, String> mkSubscriptionsHandler(
@@ -74,14 +77,13 @@ public class DefaultSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        Mocks.MockConsumer<Deferred<String>, Deferred<String>> consumer =
-                new Mocks.MockConsumer<>(OffsetResetStrategy.EARLIEST);
+        MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
         for (String topic : topics) {
             consumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
 
-        Supplier<Consumer<Deferred<String>, Deferred<String>>> supplier =
+        Supplier<Consumer<byte[], byte[]>> supplier =
                 () -> {
                     if (exceptionOnConnection) {
                         throw new KafkaException("Simulated Exception");
@@ -96,10 +98,6 @@ public class DefaultSubscriptionsHandlerTest {
                         .withMetadataListener(metadataListener);
         return new DefaultSubscriptionsHandler<>(builder);
     }
-
-    private DefaultSubscriptionsHandler<String, String> subscriptionHandler;
-    private SubscribedItems subscribedItems;
-    private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
         init(false, topics);
@@ -116,7 +114,6 @@ public class DefaultSubscriptionsHandlerTest {
         init();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscriptionHandler.consumeAtStartup()).isFalse();
-        assertThat(subscriptionHandler.allowImplicitItems()).isFalse();
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isFalse();
@@ -139,17 +136,17 @@ public class DefaultSubscriptionsHandlerTest {
         assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         // Verify that the items have been registered
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
-        assertThat(item1).isPresent();
-        assertThat(item1.get()).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(item1).isNotNull();
+        assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
-        assertThat(item2).isPresent();
-        assertThat(item2.get()).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(item2).isNotNull();
+        assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
     }
 
     @Test
-    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
+    public void shouldFailSubscriptionDueToInvalidExpression() {
         init();
         Object itemHandle = new Object();
         SubscriptionException se =
@@ -199,7 +196,7 @@ public class DefaultSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueInvalidExpression() {
+    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
         init();
         Object itemHandle = new Object();
         SubscriptionException se =
@@ -220,10 +217,10 @@ public class DefaultSubscriptionsHandlerTest {
         Object itemHandle2 = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
 
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
 
         Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
@@ -232,8 +229,8 @@ public class DefaultSubscriptionsHandlerTest {
         Optional<SubscribedItem> removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
 
-        assertThat(removed1.get()).isSameInstanceAs(item1.get());
-        assertThat(removed2.get()).isSameInstanceAs(item2.get());
+        assertThat(removed1.get()).isSameInstanceAs(item1);
+        assertThat(removed2.get()).isSameInstanceAs(item2);
 
         // After unsubscription, the handler should not be consuming anymore
         assertThat(subscriptionHandler.isConsuming()).isFalse();

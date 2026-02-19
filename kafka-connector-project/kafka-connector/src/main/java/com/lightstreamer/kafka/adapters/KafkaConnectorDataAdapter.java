@@ -62,7 +62,6 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
                                 connectorConfig.getAdapterName(),
                                 connectorConfig.isEnabled(),
                                 connectorConfig.consumeAtStartup(),
-                                connectorConfig.implicitItemsEnabled(),
                                 connectorConfig.isAutoCommandModeEnabled()
                                         || connectorConfig.isCommandEnforceEnabled()));
 
@@ -76,8 +75,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
         return SubscriptionsHandler.<K, V>builder()
                 .withConsumerConfig(consumerConfig)
                 .withMetadataListener(metadataListener)
-                .atStartup(
-                        connectorConfig.consumeAtStartup(), connectorConfig.implicitItemsEnabled())
+                .atStartup(connectorConfig.consumeAtStartup())
                 .build();
     }
 

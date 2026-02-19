@@ -380,7 +380,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
@@ -415,7 +415,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
@@ -458,7 +458,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
@@ -541,7 +541,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         records.forEach(
                 record ->
@@ -584,7 +584,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         records.forEach(
                 record ->
@@ -656,7 +656,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         records.forEach(
                 record ->
@@ -718,7 +718,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         records.forEach(
                 record ->
@@ -803,7 +803,7 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
 
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         records.forEach(
                 record ->

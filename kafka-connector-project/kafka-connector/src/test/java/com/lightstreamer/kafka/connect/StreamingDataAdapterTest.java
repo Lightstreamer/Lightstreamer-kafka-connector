@@ -50,7 +50,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -153,12 +152,12 @@ public class StreamingDataAdapterTest {
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.unsubscribe("item1");
-        assertThat(adapter.getSubscribedItem("item1")).isEmpty();
+        assertThat(adapter.getSubscribedItem("item1")).isNull();
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(1);
         assertThat(adapter.getUpdater()).isNotSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
 
         adapter.unsubscribe("item2");
-        assertThat(adapter.getSubscribedItem("item2")).isEmpty();
+        assertThat(adapter.getSubscribedItem("item2")).isNull();
         assertThat(adapter.getCurrentItemsCount()).isEqualTo(0);
         assertThat(adapter.getUpdater()).isSameInstanceAs(StreamingDataAdapter.NOP_UPDATER);
     }

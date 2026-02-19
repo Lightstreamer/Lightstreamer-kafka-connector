@@ -31,8 +31,7 @@ import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
@@ -56,39 +55,27 @@ public class SubscriptionsHandlerTest {
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldCreateDefaultSubscriptionsHandler(boolean allowImplicitItems) {
+    @Test
+    public void shouldCreateDefaultSubscriptionsHandler() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
                         .withMetadataListener(metadataListener)
-                        .atStartup(false, allowImplicitItems)
+                        .atStartup(false)
                         .build();
         assertThat(subscriptionsHandler).isInstanceOf(DefaultSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        // Verify that the allowImplicitItems flag is irrelevant for DefaultSubscriptionsHandler
-        assertThat(
-                        ((DefaultSubscriptionsHandler<?, ?>) subscriptionsHandler)
-                                .getSubscribedItems()
-                                .acceptSubscriptions())
-                .isEqualTo(true);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldCreateAtSubscriptionsHandler(boolean allowImplicitItems) {
+    @Test
+    public void shouldCreateAtSubscriptionsHandler() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
                         .withMetadataListener(metadataListener)
-                        .atStartup(true, allowImplicitItems)
+                        .atStartup(true)
                         .build();
         assertThat(subscriptionsHandler).isInstanceOf(AtStartupSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        AtStartupSubscriptionsHandler<?, ?> atStartupHandler =
-                (AtStartupSubscriptionsHandler<?, ?>) subscriptionsHandler;
-        assertThat(atStartupHandler.getSubscribedItems().acceptSubscriptions())
-                .isEqualTo(!allowImplicitItems);
     }
 }

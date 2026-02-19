@@ -87,4 +87,10 @@ final class KafkaCachedRecord<K, V> implements KafkaRecord<K, V> {
     public KafkaHeaders headers() {
         return new KafkaHeadersImpl(headers);
     }
+
+    @Override
+    public RecordBatch<K, V> getBatch() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getBatch'");
+    }
 }

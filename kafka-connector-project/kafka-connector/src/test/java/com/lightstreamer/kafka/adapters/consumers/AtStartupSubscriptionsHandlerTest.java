@@ -28,7 +28,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AtStartupSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
-import com.lightstreamer.kafka.adapters.consumers.deserialization.Deferred;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -37,14 +36,13 @@ import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
-import org.apache.kafka.clients.consumer.OffsetResetStrategy;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.List;
 import java.util.Optional;
@@ -52,8 +50,13 @@ import java.util.Properties;
 
 public class AtStartupSubscriptionsHandlerTest {
 
-    private static AtStartupSubscriptionsHandler<String, String> mkSubscriptionsHandler(
-            boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
+    private AtStartupSubscriptionsHandler<String, String> subscriptionHandler;
+    private SubscribedItems subscribedItems;
+    private MockItemEventListener listener;
+    private Mocks.MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
+
+    private AtStartupSubscriptionsHandler<String, String> mkSubscriptionsHandler(
+            boolean exceptionOnConnection, String... topics) {
 
         Properties properties = new Properties();
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -69,8 +72,7 @@ public class AtStartupSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        Mocks.MockConsumer<Deferred<String>, Deferred<String>> consumer =
-                new Mocks.MockConsumer<>(OffsetResetStrategy.EARLIEST);
+        MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
         for (String topic : topics) {
             consumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
@@ -79,7 +81,7 @@ public class AtStartupSubscriptionsHandlerTest {
         Builder<String, String> builder =
                 SubscriptionsHandler.<String, String>builder()
                         .withConsumerConfig(config)
-                        .withMetadataListener(new Mocks.MockMetadataListener())
+                        .withMetadataListener(metadataListener)
                         .withConsumerSupplier(
                                 () -> {
                                     if (exceptionOnConnection) {
@@ -87,86 +89,66 @@ public class AtStartupSubscriptionsHandlerTest {
                                     }
                                     return consumer;
                                 })
-                        .atStartup(true, allowImplicitItems);
+                        .atStartup(true);
 
         return new AtStartupSubscriptionsHandler<>(builder);
     }
 
-    private AtStartupSubscriptionsHandler<String, String> subscriptionHandler;
-    private SubscribedItems subscribedItems;
-    private MockItemEventListener listener;
-
-    void init(boolean allowImplicitItems, String... topics) {
-        init(false, allowImplicitItems, topics);
+    void init(String... topics) {
+        init(false, topics);
     }
 
-    void init(boolean exceptionOnConnection, boolean allowImplicitItems, String... topics) {
-        this.subscriptionHandler =
-                mkSubscriptionsHandler(exceptionOnConnection, allowImplicitItems, topics);
+    void init(boolean exceptionOnConnection, String... topics) {
+        this.subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
         this.listener = new MockItemEventListener();
         this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldInit(boolean allowImplicitItems) throws InterruptedException {
-        init(allowImplicitItems, "aTopic");
-
+    @Test
+    public void shouldInit() {
+        init("aTopic");
         assertThat(listener.getFailures()).isEmpty();
         assertThat(subscriptionHandler.consumeAtStartup()).isTrue();
         assertThat(subscriptionHandler.isConsuming()).isTrue();
-        assertThat(subscriptionHandler.allowImplicitItems()).isEqualTo(allowImplicitItems);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldFailOnInitDueToNonExistingTopic(boolean allowImplicitItems) {
-        init(allowImplicitItems, "notExistingTopic");
-
-        assertThat(listener.getFailures()).hasSize(1);
-        Throwable failure = listener.getFailures().get(0);
-        assertThat(failure).isNotNull();
-        assertThat(failure).hasMessageThat().isEqualTo("Failed to start consuming from Kafka");
-        assertThat(subscriptionHandler.isConsuming()).isFalse();
-    }
-
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldFailOnInitDueToExceptionWhileConnecting(boolean allowImplicitItems) {
-        init(true, false, "aTopic");
+    @Test
+    public void shouldFailOnInitDueToExceptionWhileConnecting() {
+        init(true, "aTopic");
 
         assertThat(listener.getFailures()).hasSize(1);
         Throwable failure = listener.getFailures().get(0);
         assertThat(failure).isNotNull();
         assertThat(failure).isInstanceOf(KafkaException.class);
         assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
-    public void shouldSubscribeWhenNotAllowImplicitItems() throws SubscriptionException {
-        init(false, "aTopic");
+    public void shouldSubscribe() throws SubscriptionException {
+        init("aTopic");
 
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         // Verify that the items have been registered
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
-        assertThat(item1).isPresent();
-        assertThat(item1.get()).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(item1).isNotNull();
+        assertThat(item1).isEqualTo(Items.subscribedFrom("anItemTemplate", itemHandle1));
 
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
-        assertThat(item2).isPresent();
-        assertThat(item2.get()).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(item2).isNotNull();
+        assertThat(item2).isEqualTo(Items.subscribedFrom("anotherItemTemplate", itemHandle2));
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldFailSubscriptionDueToNotRegisteredTemplate(boolean allowImplicitItems) {
-        init(allowImplicitItems, "aTopic");
+    @Test
+    public void shouldFailSubscriptionDueToInvalidExpression() {
+        init("aTopic");
 
         Object itemHandle = new Object();
         SubscriptionException se =
@@ -174,27 +156,25 @@ public class AtStartupSubscriptionsHandlerTest {
                         SubscriptionException.class,
                         () -> subscriptionHandler.subscribe("@invalidItem@", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
-    public void shouldNotSubscribeWhenAllowImplicitItems() throws SubscriptionException {
-        init(true, "aTopic");
+    public void shouldForceUnsubscriptionWhenSubscribeToNonExistingTopics() {
+        init(false, "notExistingTopic");
 
-        Object itemHandle1 = new Object();
-        Object itemHandle2 = new Object();
-
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-
-        // Verify that the item has not been registered
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
-        assertThat(item1).isEmpty();
+        assertThat(listener.getFailures()).hasSize(1);
+        Throwable failure = listener.getFailures().get(0);
+        assertThat(failure).isNotNull();
+        assertThat(failure).hasMessageThat().isEqualTo("Failed to start consuming from Kafka");
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldFailSubscriptionDueInvalidExpression(boolean allowImplicitItems) {
-        init(allowImplicitItems, "aTopic");
+    @Test
+    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
+        init("aTopic");
 
         Object itemHandle = new Object();
         SubscriptionException se =
@@ -202,35 +182,35 @@ public class AtStartupSubscriptionsHandlerTest {
                         SubscriptionException.class,
                         () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
         assertThat(se).hasMessageThat().isEqualTo("Item does not match any defined item templates");
+        assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
-    public void shouldUnsubscribeWhenNotAllowImplicitItems() throws SubscriptionException {
+    public void shouldUnsubscribe() throws SubscriptionException {
         init(false, "aTopic");
 
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        Optional<SubscribedItem> item1 = subscribedItems.getItem("anItemTemplate");
+        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
 
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-        Optional<SubscribedItem> item2 = subscribedItems.getItem("anotherItemTemplate");
+        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
 
         Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         Optional<SubscribedItem> removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
 
-        assertThat(removed1.get()).isSameInstanceAs(item1.get());
-        assertThat(removed2.get()).isSameInstanceAs(item2.get());
+        assertThat(removed1.get()).isSameInstanceAs(item1);
+        assertThat(removed2.get()).isSameInstanceAs(item2);
 
         // Even after unsubscription, the handler should still be consuming
         assertThat(subscriptionHandler.isConsuming()).isTrue();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldNotUnsubscribe(boolean allowImplicitItems) {
-        init(allowImplicitItems, "aTopic");
+    @Test
+    public void shouldNotUnsubscribeNonExistingItem() {
+        init("aTopic");
 
         Optional<SubscribedItem> unsubscribed = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(unsubscribed).isEmpty();
