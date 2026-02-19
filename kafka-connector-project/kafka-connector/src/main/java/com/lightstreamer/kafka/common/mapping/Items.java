@@ -261,52 +261,6 @@ public class Items {
         Optional<Pattern> subscriptionPattern();
     }
 
-    private static class ImplicitItem implements SubscribedItem {
-
-        private final String name;
-
-        private boolean snapshotFlag = true;
-
-        private ImplicitItem(String name) {
-            this.name = Objects.requireNonNull(name);
-        }
-
-        @Override
-        public String name() {
-            return name;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return name;
-        }
-
-        @Override
-        public Schema schema() {
-            return Schema.nop();
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return snapshotFlag;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            this.snapshotFlag = flag;
-        }
-
-        @Override
-        public String asCanonicalItemName() {
-            return name;
-        }
-
-        @Override
-        public void enableRealtimeEvents(EventListener listener) {
-            // No operation
-        }
-    }
-
     private static class DefaultSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
@@ -534,10 +488,6 @@ public class Items {
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
         }
-    }
-
-    public static SubscribedItem implicitFrom(String name) {
-        return new ImplicitItem(name);
     }
 
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
