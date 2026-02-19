@@ -67,7 +67,7 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
         this.logger.info("Configuring Kafka Connector");
         this.subscriptionsHandler = subscriptionHandler(configurator.consumerConfig());
-        this.logger.info("Configuration complete");
+        this.logger.info("Kafka Connector Configuration complete");
     }
 
     private <K, V> SubscriptionsHandler<K, V> subscriptionHandler(Config<K, V> consumerConfig)
