@@ -54,8 +54,8 @@
         <param name="record.value.evaluator.schema.registry.enable">true</param>
 		<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
 		<param name="schema.registry.provider">AZURE</param>
-        #### Tenant id, schema id, and application secret should be  ####
-        #### configured in environment variables.                    ####
+        #### tenant id, schema id, and application client secret   ####
+        #### should be configured in environment variables.        ####
         -->
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
