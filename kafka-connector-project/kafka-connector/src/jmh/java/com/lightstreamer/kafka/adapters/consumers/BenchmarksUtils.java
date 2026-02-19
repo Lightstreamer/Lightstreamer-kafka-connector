@@ -73,6 +73,7 @@ public class BenchmarksUtils {
     public static class FakeEventListener implements EventListener {
 
         private Blackhole blackHole;
+        private AtomicInteger counter;
 
         public FakeEventListener(Blackhole bh) {
             this.blackHole = bh;
@@ -196,15 +197,6 @@ public class BenchmarksUtils {
         public byte[] rawValue() {
             return rawBytes;
         }
-    }
-
-    public static class FakeMetadataListener implements MetadataListener {
-
-        @Override
-        public void forceUnsubscription(String item) {}
-
-        @Override
-        public void forceUnsubscriptionAll() {}
     }
 
     public static class JsonRecords {
@@ -387,43 +379,6 @@ public class BenchmarksUtils {
             adapterParams.put("field.offset", "#{OFFSET}");
 
             return adapterParams;
-        }
-    }
-
-    public static class RawRecord {
-
-        private final String topic;
-        private final String key;
-        private final byte[] rawBytes;
-        private final int partition;
-        private final int offset;
-
-        public RawRecord(String topic, int partition, int offset, String key, byte[] rawBytes) {
-            this.topic = topic;
-            this.partition = partition;
-            this.offset = offset;
-            this.key = key;
-            this.rawBytes = rawBytes;
-        }
-
-        public String getTopic() {
-            return topic;
-        }
-
-        public int getPartition() {
-            return partition;
-        }
-
-        public int getOffset() {
-            return offset;
-        }
-
-        public String getKey() {
-            return key;
-        }
-
-        public byte[] getRawBytes() {
-            return rawBytes;
         }
     }
 

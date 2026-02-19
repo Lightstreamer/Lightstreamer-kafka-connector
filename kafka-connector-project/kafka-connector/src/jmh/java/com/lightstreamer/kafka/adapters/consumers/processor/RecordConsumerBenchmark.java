@@ -165,7 +165,8 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            recordConsumer.terminate();
+            recordConsumer.close();
+            listener.show();
         }
     }
 
@@ -255,7 +256,8 @@ public class RecordConsumerBenchmark {
 
         @TearDown(Level.Iteration)
         public void tearDown() {
-            recordConsumer.terminate();
+            recordConsumer.close();
+            listener.show();
         }
     }
 
