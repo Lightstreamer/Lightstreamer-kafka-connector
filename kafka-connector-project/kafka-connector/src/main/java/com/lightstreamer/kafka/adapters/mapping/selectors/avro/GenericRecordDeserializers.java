@@ -213,16 +213,7 @@ public class GenericRecordDeserializers {
         checkEvaluator(config, isKey);
         Deserializer<GenericRecord> deserializer = newDeserializer(config, isKey);
         
-        if ((isKey && config.isSchemaRegistryEnabledForKey())
-                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
-                deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-            } else {
-                deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-            }
-        } else {
-            deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-        }
+        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
         
         return deserializer;
     }
