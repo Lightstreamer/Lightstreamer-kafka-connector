@@ -641,8 +641,6 @@ public class RecordConsumerSupport {
             return this.closed;
         }
 
-        void onTermination() {}
-
         @Override
         public final RecordErrorHandlingStrategy errorStrategy() {
             return errorStrategy;
