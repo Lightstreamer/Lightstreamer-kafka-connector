@@ -332,15 +332,6 @@
         <param name="record.consume.at.connector.startup.enable">false</param>
         -->
 
-        <!-- Optional. Enables the subscription of implicit items.
-             For every record whose values match any the configured item templates, an implicit item 
-             will be internally created and subscribed to the Kafka Connector.
-
-             Default value: false. -->
-        <!--
-        <param name="record.consume.at.connector.startup.with.implicit.items.enable">false</param>
-        -->
-
         <!-- Optional. The maximum number of records fetched in each polling cycle.
 
              The parameter sets the value of the "max.poll.records" key to configure the internal Kafka Consumer.
