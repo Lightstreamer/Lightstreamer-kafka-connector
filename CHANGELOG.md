@@ -32,9 +32,9 @@
 
 **Bug Fixes**
 
-- Fixed outdated links to official Kafka documentation in the [README.md](README.md), [examples/vendors/confluent/README.md](examples/vendors/confluent/README.md), and factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+- Fixed outdated links to official Kafka documentation in the [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) files. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
 
-- Fixed heading hierarchy, TOC indentation, typos, and trailing spaces in the [README.md](README.md) and [examples/vendors/confluent/README.md](examples/vendors/confluent/README.md) files. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
+- Fixed heading hierarchy, TOC indentation, typos, and trailing spaces in the [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) files. ([#74](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/74))
  
 
 ## [1.3.2] (2026-01-26)
