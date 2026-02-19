@@ -147,12 +147,6 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE =
             "record.consume.at.connector.startup.enable";
 
-    public static final String RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE =
-            // This is used to enable the consumption of implicit items at connector startup.
-            // It is set to false by default, so that only explicit items are consumed.
-            // If set to true, it will consume implicit items as well.
-            "record.consume.at.connector.startup.with.implicit.items.enable";
-
     public static final String RECORD_CONSUME_WITH_ORDER_STRATEGY =
             "record.consume.with.order.strategy";
 
@@ -326,15 +320,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 BOOL,
                                 defaultValue("false"))
-                        .withEnabledChildConfigs(
-                                new ConfigsSpec("connector.startup")
-                                        .add(
-                                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE,
-                                                false,
-                                                false,
-                                                BOOL,
-                                                defaultValue("false")),
-                                RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE)
                         .add(
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 false,
@@ -627,10 +612,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean consumeAtStartup() {
         return getBoolean(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
-    }
-
-    public boolean implicitItemsEnabled() {
-        return getBoolean(RECORD_CONSUME_AT_CONNECTOR_STARTUP_WITH_IMPLICIT_ITEMS_ENABLE);
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {
