@@ -4,9 +4,9 @@ This folder contains the resources required to build a Docker image of the Light
 
 The image derives from the official [Lightstreamer Docker image](https://hub.docker.com/_/lightstreamer) and adds the Kafka Connector adapter.
 
-## Using Pre-Built Images
+## Quick Start
 
-Pre-built images are published to GitHub Container Registry on each release.
+Images are published to GitHub Container Registry on each release.
 
 ```sh
 # Pull the latest image
@@ -58,7 +58,7 @@ If you want to build the image from source:
 
 This script will:
 - Build the Kafka Connector distribution package using Gradle
-- Build the Docker image using multi-stage build
+- Build the Docker image
 - Tag the image as `lightstreamer-kafka-connector-<version>`
 
 ### Run the Image
@@ -68,7 +68,7 @@ This script will:
 docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
 ```
 
-**Note**: Configuration works the same as with pre-built images (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
+**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
 
 Verify at [http://localhost:8080](http://localhost:8080)
 
