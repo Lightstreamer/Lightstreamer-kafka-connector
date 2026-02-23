@@ -11,7 +11,7 @@ if [ -z "${REGISTRY:-}" ]; then
     REGISTRY="ghcr.io/lightstreamer"
 fi
 
-LOCAL_IMAGE="${IMAGE_NAME}-${VERSION}"
+LOCAL_IMAGE="${IMAGE_NAME}:${VERSION}"
 REMOTE_IMAGE_VERSION="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 REMOTE_IMAGE_LATEST="${REGISTRY}/${IMAGE_NAME}:latest"
 
@@ -21,7 +21,7 @@ if ! docker image inspect "${LOCAL_IMAGE}" &>/dev/null; then
     exit 1
 fi
 
-echo "Pushing ${IMAGE_NAME} version ${VERSION} to ${REGISTRY}"
+echo "Pushing ${IMAGE_NAME}:${VERSION} to ${REGISTRY}"
 
 echo "Step 1: Tagging images..."
 docker tag "${LOCAL_IMAGE}" "${REMOTE_IMAGE_VERSION}"
