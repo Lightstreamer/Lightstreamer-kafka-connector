@@ -26,7 +26,8 @@ echo "Step 3: Building Docker image..."
 BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 docker build \
-    -t "lightstreamer-kafka-connector-${VERSION}" \
+    -t "${IMAGE_NAME}:${VERSION}" \
+    -t "${IMAGE_NAME}:latest" \
     --build-arg VERSION="${VERSION}" \
     --build-arg BUILD_DATE="${BUILD_DATE}" \
     "${SCRIPT_DIR}"
@@ -38,9 +39,9 @@ fi
 echo ""
 echo "✓ Docker image built successfully!"
 echo ""
-echo "Image: lightstreamer-kafka-connector-${VERSION}"
-echo "Version: ${VERSION}"
+echo "Image: ${IMAGE_NAME}:${VERSION}"
+echo "       ${IMAGE_NAME}:latest"
 echo ""
 echo "Launch locally with:"
-echo "  docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-${VERSION}"
+echo "  docker run --name kafka-connector -d -p 8080:8080 ${IMAGE_NAME}:${VERSION}"
 echo ""
