@@ -35,6 +35,9 @@ LABEL org.opencontainers.image.title="Lightstreamer Kafka Connector" \
 # Copy only the extracted connector files from stage 1 (ZIP is not included in final image)
 COPY --from=extractor /extracted/${KAFKA_CONNECTOR_NAME} ${DEPLOY_DIR}
 
+# Copy container-optimized log4j.properties (outputs to stdout for docker logs compatibility)
+COPY log4j.properties ${DEPLOY_DIR}/log4j.properties
+
 # Configure Lightstreamer and install connector
 USER root
 RUN set -eux; \

@@ -18,7 +18,12 @@ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.4.0
 # Run the container
 docker run --name kafka-connector -d -p 8080:8080 \
   ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
+
+# Check container status
+docker logs kafka-connector
 ```
+
+The Lightstreamer web console will be available at [http://localhost:8080](http://localhost:8080)
 
 ### Configuration
 
@@ -37,7 +42,7 @@ docker run --name kafka-connector -d -p 8080:8080 \
 - `*.jks`, `*.p12` - SSL/TLS key stores and trust stores
 - Schema files - Avro schemas, JSON Schema or PROTOBUF descriptor files
 
-Verify deployment at [http://localhost:8080](http://localhost:8080)
+**Logging**: The Docker image uses a container-optimized `log4j.properties` that sends all logs to stdout (compatible with `docker logs`). To use file-based logging or custom log levels, mount your own `log4j.properties`.
 
 **Note**: Replace `<version>` with the actual version (e.g., `1.4.0`) in mount paths.
 
@@ -66,11 +71,12 @@ This script will:
 ```sh
 # Run the container
 docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+
+# Check container status
+docker logs kafka-connector
 ```
 
 **Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
-
-Verify at [http://localhost:8080](http://localhost:8080)
 
 ---
 
