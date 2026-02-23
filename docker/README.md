@@ -20,8 +20,6 @@ docker run --name kafka-connector -d -p 8080:8080 \
   ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 ```
 
-Verify the deployment at [http://localhost:8080](http://localhost:8080)
-
 ### Configuration
 
 Mount custom configuration files using Docker volumes:
@@ -37,18 +35,11 @@ docker run --name kafka-connector -d -p 8080:8080 \
 - `adapters.xml` - Main connector configuration (Kafka bootstrap servers, topics, mappings)
 - `log4j.properties` - Logging levels and output configuration
 - `*.jks`, `*.p12` - SSL/TLS key stores and trust stores
-- Schema files - Avro schemas or JSON Schema files
+- Schema files - Avro schemas, JSON Schema or PROTOBUF descriptor files
 
-**Example with SSL:**
-```sh
-docker run --name kafka-connector -d -p 8080:8080 \
-  -v $(pwd)/adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/adapters.xml \
-  -v $(pwd)/kafka.client.keystore.jks:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/kafka.client.keystore.jks \
-  -v $(pwd)/kafka.client.truststore.jks:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/kafka.client.truststore.jks \
-  ghcr.io/lightstreamer/lightstreamer-kafka-connector:<version>
-```
+Verify deployment at [http://localhost:8080](http://localhost:8080)
 
-**Tip**: Replace `<version>` with the actual version (e.g., `1.4.0`) in the mount paths and image tag.
+**Note**: Replace `<version>` with the actual version (e.g., `1.4.0`) in mount paths.
 
 ## Building Locally
 
@@ -70,29 +61,14 @@ This script will:
 - Build the Docker image using multi-stage build
 - Tag the image as `lightstreamer-kafka-connector-<version>`
 
-### Customizing Configuration
-
-The image includes default configuration from the Kafka Connector distribution. To customize:
-
-**Use Docker volumes** (recommended):
-```sh
-docker run -d -p 8080:8080 \
-  -v $(pwd)/my-adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/adapters.xml \
-  -v $(pwd)/my-log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/log4j.properties \
-  lightstreamer-kafka-connector-<version>
-```
-
-This allows you to use the same image with different configurations without rebuilding.
-
-### Verify and Run
+### Run the Image
 
 ```sh
-# Check the built image
-docker images lightstreamer-kafka-connector-*
-
 # Run the container
 docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
 ```
+
+**Note**: Configuration works the same as with pre-built images (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
 
 Verify at [http://localhost:8080](http://localhost:8080)
 
