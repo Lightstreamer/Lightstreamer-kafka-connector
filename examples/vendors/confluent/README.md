@@ -274,47 +274,41 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 ### Requirements
 
-- JDK (Java Development Kit) v17 or newer
 - Docker
 
-### Build the Image
+### Get the Image
 
-To build the Docker Image of the Lightstreamer Kafka Connector, follow the steps:
+Images are published to GitHub Container Registry on each release. You can pull an image from the registry or build it locally.
 
-1. Copy the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file into the [examples/docker/resources](/examples/docker/resources) folder.
+**Pull from GitHub Container Registry:**
 
-2. Customize the file by editing the _data provider_ block `QuickStart` as explained in the previous [Configure](#configure) section.
+```sh
+# Pull the latest image
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 
-3. Optionally, provide a minimal version of the `log4j.properties` file similar to the following:
+# Or pull a specific version
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.4.0
+```
 
-   ```java
-   log4j.logger.com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter
-   log4j.logger.org.apache.kafka=WARN, stdout
-   log4j.appender.stdout=org.apache.log4j.ConsoleAppender
-   log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
-   log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
-   log4j.appender.stdout.Target=System.out
+**Alternatively, build locally from source:**
 
-   # QuickStart logger
-   log4j.logger.QuickStart=INFO, stdout
-   ```
+See [/docker](/docker/) for build instructions.
 
-   and put it in the [examples/docker/resources](/examples/docker/resources) folder.
+### Configure
 
-3. Run the following from the [/examples/docker](examples/docker) directory:
+Prepare your `adapters.xml` configuration file. You can start from the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file and customize it following the guidelines in the [Configure](#configure) section above.
 
-    ```sh
-   $ ./build.sh
-   ```
-
-For more insights on creating a Docker Image for the Lightstreamer Kafka Connector, check out [examples/docker](/examples/docker/).
+You can also optionally prepare a `log4j.properties` file for custom logging configuration.
 
 ### Start
 
-To launch the container, run the following from the [examples/docker](/examples/docker/) directory:
+Launch the container with your configuration files mounted as Docker volumes:
 
 ```sh
-$ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+$ docker run --name kafka-connector -d -p 8080:8080 \
+  -v $(pwd)/adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml \
+  -v $(pwd)/log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties \
+  ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 ```
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
