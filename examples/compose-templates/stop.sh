@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -euo pipefail
 # Resolve symlink and find project root (from compose-templates, go up 2 levels)
 SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
 PROJECT_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/../.." && pwd)"
