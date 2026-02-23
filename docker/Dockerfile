@@ -8,7 +8,8 @@ ENV KAFKA_CONNECTOR_ZIP=lightstreamer-kafka-connector-${VERSION}.zip
 
 COPY tmp/${KAFKA_CONNECTOR_ZIP} /tmp/
 RUN apk add --no-cache unzip && \
-    unzip /tmp/${KAFKA_CONNECTOR_ZIP} -d /extracted
+    unzip /tmp/${KAFKA_CONNECTOR_ZIP} -d /extracted && \
+    mv /extracted/lightstreamer-kafka-connector-* /extracted/lightstreamer-kafka-connector
 
 # ============================================
 # Stage 2: Build the final image
@@ -18,7 +19,7 @@ FROM lightstreamer:7.4.6
 ARG VERSION
 ARG BUILD_DATE
 
-ENV KAFKA_CONNECTOR_NAME=lightstreamer-kafka-connector-${VERSION}
+ENV KAFKA_CONNECTOR_NAME=lightstreamer-kafka-connector
 ENV DEPLOY_DIR=/lightstreamer/adapters/${KAFKA_CONNECTOR_NAME}
 
 # OCI labels for metadata
