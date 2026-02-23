@@ -31,8 +31,8 @@ Mount custom configuration files using Docker volumes:
 
 ```sh
 docker run --name kafka-connector -d -p 8080:8080 \
-  -v $(pwd)/adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/adapters.xml \
-  -v $(pwd)/log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-<version>/log4j.properties \
+  -v $(pwd)/adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml \
+  -v $(pwd)/log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties \
   ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 ```
 
@@ -43,8 +43,6 @@ docker run --name kafka-connector -d -p 8080:8080 \
 - Schema files - Avro schemas, JSON Schema or PROTOBUF descriptor files
 
 **Logging**: The Docker image uses a container-optimized `log4j.properties` that sends all logs to stdout (compatible with `docker logs`). To use file-based logging or custom log levels, mount your own `log4j.properties`.
-
-**Note**: Replace `<version>` with the actual version (e.g., `1.4.0`) in mount paths.
 
 ## Building Locally
 
@@ -76,7 +74,7 @@ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector:
 docker logs kafka-connector
 ```
 
-**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates. Replace `<version>` with the actual version (e.g., `1.4.0`) or use `latest`.
+**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
 
 ---
 
