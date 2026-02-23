@@ -64,19 +64,19 @@ If you want to build the image from source:
 This script will:
 - Build the Kafka Connector distribution package using Gradle
 - Build the Docker image
-- Tag the image as `lightstreamer-kafka-connector-<version>`
+- Tag the image as `lightstreamer-kafka-connector:<version>` and `lightstreamer-kafka-connector:latest`
 
 ### Run the Image
 
 ```sh
 # Run the container
-docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector-<version>
+docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector:<version>
 
 # Check container status
 docker logs kafka-connector
 ```
 
-**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
+**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates. Replace `<version>` with the actual version (e.g., `1.4.0`) or use `latest`.
 
 ---
 
