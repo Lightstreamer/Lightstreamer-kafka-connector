@@ -11,7 +11,7 @@ services:
       - 8080:8080
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties
     networks:
       - automq_net
 

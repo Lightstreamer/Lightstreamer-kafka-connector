@@ -11,11 +11,11 @@ services:
       - 8080:8080
     configs:
       - source: adapters.xml
-        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml
       - source: const.js
         target: /lightstreamer/pages/AirportDemo/js/const.js
       - source: log4j.properties
-        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties
     volumes:
       - ./client/web/src:/lightstreamer/pages/AirportDemo
 
