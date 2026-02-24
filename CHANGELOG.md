@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+**Improvements**
+
+- **Official Docker Image**: Introduced official Docker images published to GitHub Container Registry (`ghcr.io/lightstreamer/lightstreamer-kafka-connector`), with automated builds via GitHub Actions on each release. Moved Docker resources from `examples/docker` to the new `/docker` folder with production-ready build scripts and Dockerfile. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+
+**Examples and Documentation**
+
+- Added comprehensive [`docker/README.md`](docker/README.md) with Quick Start guide, configuration examples, and instructions for pulling published images and building locally. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+
+- Updated [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md): Restructured the "Docker-based Deployment" section to prioritize the official Docker image from GitHub Container Registry. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+
+- Updated all examples to use the new official Docker image. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+
+
 ## [1.4.0] (2026-02-18)
 
 **Improvements**
