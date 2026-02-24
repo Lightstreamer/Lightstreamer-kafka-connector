@@ -106,39 +106,60 @@ This section is **optional** and only needed if your Azure Event Hubs setup incl
 
 If you need schema validation, you can enable schema registry support by uncommenting and configuring the appropriate parameters in [`adapters.xml`](./adapters.xml).
 
-### AVRO Schema
+### AVRO and JSON Schema
 
-For AVRO serialization, enable the following parameters:
+With the current setup, AVRO and JSON schema validation share the same configuration. Both formats leverage the Azure Schema Registry client library for seamless integration.
+
+#### Prerequisites
+
+Before enabling schema registry integration, ensure you have:
+
+1. **Created an Azure Schema Registry group** in your Event Hubs namespace through the Azure portal.
+2. **Registered your schemas** (AVRO or JSON) in the Schema Registry group via the Azure portal or SDK.
+
+#### Register an Azure AD Application
+
+The Lightstreamer Kafka Connector needs an Azure AD application identity to authenticate with Azure Schema Registry. Follow these steps:
+
+1. In the Azure portal, navigate to **Azure Active Directory** > **App registrations** > **New registration**.
+2. Provide a name for your application (e.g., `LightstreamerKafkaConnector`) and complete the registration.
+3. Once created, copy the **Application (client) ID** and the **Directory (tenant) ID** from the application overview page.
+4. Navigate to **Certificates & secrets** > **New client secret**, create a new secret, and copy its value immediately (it won't be visible again).
+
+#### Grant Access to Schema Registry
+
+The registered application must have permission to access the Schema Registry:
+
+1. In the Azure portal, navigate to your **Event Hubs namespace**.
+2. Go to **Access Control (IAM)** > **Add role assignment**.
+3. Select the **Schema Registry Reader** role (sufficient for consuming and validating messages).
+4. Assign access to the application you registered in the previous step.
+
+#### Configure Environment Variables
+
+Define the following environment variables with the values obtained during app registration:
+
+```sh
+set AZURE_CLIENT_ID=11111111-2222-3333-4444-555555555555
+set AZURE_TENANT_ID=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
+set AZURE_CLIENT_SECRET=Example~Secret~Value~NotARealSecret12345
+```
+
+These credentials will be automatically picked up by the Azure Schema Registry client library at runtime.
+
+> **Note**: These environment variables can be added to your Lightstreamer startup script to ensure they are available when the server launches.
+
+#### Enable Schema Registry in adapters.xml
+
+Finally, enable schema registry support by uncommenting and configuring the following parameters in [`adapters.xml`](./adapters.xml):
 
 ```xml
 <param name="record.value.evaluator.schema.registry.enable">true</param>
 <param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
 <param name="schema.registry.provider">AZURE</param>
-<param name="schema.registry.azure.schema.id.header">de4ad7aa6d70468ba862660f9aa51ba1</param>
-<param name="schema.registry.azure.client.id">b32caa30-0000-4444-6041-f29e75572449</param>
-<param name="schema.registry.azure.tenant.id">fb769c2b-0b0b-8888-aaaa-bb756bf7e924</param>
-<param name="schema.registry.azure.client.secret">Yij8Q~Z~myapplicationsecretfggmuzp-bQ~</param>
 ```
 
 Where:
 - `record.value.evaluator.schema.registry.enable` - Enables schema registry integration
 - `schema.registry.url` - The Azure Event Hubs namespace URL (e.g., `https://<namespace>.servicebus.windows.net`)
 - `schema.registry.provider` - Must be set to `AZURE` for Azure Schema Registry
-- `schema.registry.azure.schema.id.header` - The schema ID from Azure Schema Registry
-- `schema.registry.azure.client.id` - The application (client) ID for Azure AD authentication
-- `schema.registry.azure.tenant.id` - The Azure AD tenant ID
-- `schema.registry.azure.client.secret` - The client secret for Azure AD authentication
-
-### JSON Schema
-
-For JSON serialization with schema validation:
-
-```xml
-<param name="record.value.evaluator.schema.registry.enable">true</param>
-<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
-<param name="schema.registry.provider">AZURE</param>
-```
-
-The minimal configuration requires only the three parameters above. Additional authentication parameters (tenant ID, schema ID, and client secret) should be configured via environment variables for security reasons, similar to the connection string configuration shown in the main setup.
-
-> **Note**: To use schema registry features, you need to create an Azure Schema Registry group in your Event Hubs namespace and register your schemas through the Azure portal or SDK.
