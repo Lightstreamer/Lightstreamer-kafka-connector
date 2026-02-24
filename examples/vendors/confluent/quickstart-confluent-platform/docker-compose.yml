@@ -3,7 +3,7 @@ name: quickstart-kafka-connector-confluent-platform
 services:
   kafka-connector:
     container_name: kafka-connector
-    image: lightstreamer-kafka-connector-${version}
+    image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
       - broker
       - producer
@@ -11,7 +11,7 @@ services:
       - 8080:8080
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
 
   producer:
     container_name: producer
@@ -20,7 +20,7 @@ services:
     build:
       context: quickstart-producer
       args:
-        VERSION: ${version}
+        VERSION: ${VERSION}
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
 
   broker:

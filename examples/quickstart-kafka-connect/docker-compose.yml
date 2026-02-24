@@ -3,7 +3,7 @@ name: quickstart-kafka-connect
 services:
   kafka-connect-lightstreamer-sink:
     container_name: kafka-connect-lightstreamer-sink
-    image: kafka-connect-lightstreamer-${version}
+    image: kafka-connect-lightstreamer-${VERSION}
     volumes:
        - ../../kafka-connector-project/config/kafka-connect-config:/config
     command:
@@ -38,7 +38,7 @@ services:
     build:
       context: ../quickstart-producer
       args:
-        VERSION: ${version}
+        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties

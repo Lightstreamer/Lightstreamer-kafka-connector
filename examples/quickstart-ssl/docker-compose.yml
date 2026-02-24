@@ -3,7 +3,7 @@ name: quickstart-kafka-connector-ssl
 services:
   kafka-connector:
     container_name: kafka-connector
-    image: lightstreamer-kafka-connector-${version}
+    image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
       - broker
       - producer
@@ -11,9 +11,9 @@ services:
       - 8080:8080
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
-      - ./secrets/kafka-connector:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
+      - ./secrets/kafka-connector:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/secrets
 
   producer:
     container_name: producer
@@ -22,7 +22,7 @@ services:
     build:
       context: ../quickstart-producer
       args:
-        VERSION: ${version}
+        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties        

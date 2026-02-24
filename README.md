@@ -125,7 +125,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
-2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
+2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
 ## Run

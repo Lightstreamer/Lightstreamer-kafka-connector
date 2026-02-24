@@ -2,7 +2,6 @@
 
 This folder contains several examples showing you how to use Lightstreamer Kafka Connector:
 
-- [docker](./docker/): a minimal Docker image
 - [quickstart](quickstart/): the _Quick Start_ app
 - [quickstart-producer](quickstart-producer/): the producer for the _Quick Start_ app
 - [quickstart-ssl](quickstart-ssl/): the _Quick Start_ app with encryption settings

@@ -1,16 +1,30 @@
 #!/bin/bash
-set -eu
-source ../utils/helpers.sh
-SCRIPT_DIR=$(dirname ${BASH_SOURCE[0]})
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../" && pwd)"
+
+# Load version from shared location
+source "${PROJECT_ROOT}/kafka-connector-project/version.sh"
+
 TMP_DIR=${SCRIPT_DIR}/tmp
+GRADLEW="${KAFKA_PROJECT_DIR}/gradlew"
 
-# Generate the deployment package
-echo "Making the deployment package"
-$_gradle clean connectDistZip
+echo "Building Lightstreamer Kafka Connector Docker image version ${VERSION}"
 
-mkdir -p ${TMP_DIR}
-rm -fr ${TMP_DIR}/
-unzip ${projectDir}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${version}.zip -d ${TMP_DIR}
+echo "Step 1: Creating distribution package..."
+"${GRADLEW}" --project-dir "${KAFKA_PROJECT_DIR}" connectDistZip
 
-echo "Building the Kafka Connect Lightstreamer Sink Connector Docker image"
-docker build -t kafka-connect-lightstreamer-${version} $SCRIPT_DIR --build-arg VERSION=${version} "$@"
+echo "Step 2: Copying distribution to tmp/..."
+DIST_ZIP="${KAFKA_PROJECT_DIR}/kafka-connector/build/distributions/lightstreamer-kafka-connect-lightstreamer-${VERSION}.zip"
+
+rm -fr "${TMP_DIR}"
+mkdir -p "${TMP_DIR}"
+unzip "${DIST_ZIP}" -d "${TMP_DIR}"
+
+echo "Step 3: Building Docker image..." 
+docker build \
+    -t kafka-connect-lightstreamer-${VERSION} \
+    -t kafka-connect-lightstreamer:latest \
+    --build-arg VERSION="${VERSION}" \
+    "$SCRIPT_DIR" \
+    

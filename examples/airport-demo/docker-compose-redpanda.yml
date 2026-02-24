@@ -3,7 +3,7 @@ name: airport-demo-redpanda
 services:
   kafka-connector:
     container_name: kafka-connector
-    image: lightstreamer-kafka-connector-${version}
+    image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
       - redpanda
       - producer
@@ -11,11 +11,11 @@ services:
       - 8080:8080
     configs:
       - source: adapters.xml
-        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
       - source: const.js
         target: /lightstreamer/pages/AirportDemo/js/const.js
       - source: log4j.properties
-        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+        target: /lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
     volumes:
       - ./client/web/src:/lightstreamer/pages/AirportDemo
 
