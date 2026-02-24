@@ -38,9 +38,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       
+      - name: Set lowercase registry
+        run: echo "REGISTRY_LC=${{ env.REGISTRY }}/${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]' >> $GITHUB_ENV
+      
       - name: Push to registry
         env:
-          REGISTRY: ${{ env.REGISTRY }}/${{ github.repository_owner }}
+          REGISTRY: ${{ env.REGISTRY_LC }}
         run: |
           cd docker
           ./push.sh
