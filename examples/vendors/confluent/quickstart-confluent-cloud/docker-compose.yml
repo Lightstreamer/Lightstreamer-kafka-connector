@@ -14,8 +14,8 @@ services:
       - api_secret=${api_secret}
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties
 
   producer:
     container_name: producer
