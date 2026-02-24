@@ -3,7 +3,7 @@ name: quickstart-kafka-connector-msk
 services:
   kafka-connector:
     container_name: kafka-connector
-    image: lightstreamer-kafka-connector-${version}
+    image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
       - producer
     ports:
@@ -16,15 +16,15 @@ services:
         target: /lightstreamer/aws_credentials
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
 
   producer:
     container_name: producer
     build:
       context: quickstart-producer
       args:
-        VERSION: ${version}
+        VERSION: ${VERSION}
     environment:
       - AWS_SHARED_CREDENTIALS_FILE=/usr/app/aws_credentials
     configs:
