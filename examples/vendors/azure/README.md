@@ -135,31 +135,25 @@ The registered application must have permission to access the Schema Registry:
 3. Select the **Schema Registry Reader** role (sufficient for consuming and validating messages).
 4. Assign access to the application you registered in the previous step.
 
-#### Configure Environment Variables
-
-Define the following environment variables with the values obtained during app registration:
-
-```sh
-set AZURE_CLIENT_ID=11111111-2222-3333-4444-555555555555
-set AZURE_TENANT_ID=aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee
-set AZURE_CLIENT_SECRET=Example~Secret~Value~NotARealSecret12345
-```
-
-These credentials will be automatically picked up by the Azure Schema Registry client library at runtime.
-
-> **Note**: These environment variables can be added to your Lightstreamer startup script to ensure they are available when the server launches.
-
 #### Enable Schema Registry in adapters.xml
 
-Finally, enable schema registry support by uncommenting and configuring the following parameters in [`adapters.xml`](./adapters.xml):
+Enable schema registry support by uncommenting and configuring the following parameters in [`adapters.xml`](./adapters.xml):
 
 ```xml
 <param name="record.value.evaluator.schema.registry.enable">true</param>
-<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+<param name="schema.registry.url">https://<namespace>.servicebus.windows.net</param>
 <param name="schema.registry.provider">AZURE</param>
+<param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
+<param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
+<param name="schema.registry.azure.client.secret">Example~Secret~Value~NotARealSecret12345</param>
 ```
 
 Where:
-- `record.value.evaluator.schema.registry.enable` - Enables schema registry integration
-- `schema.registry.url` - The Azure Event Hubs namespace URL (e.g., `https://<namespace>.servicebus.windows.net`)
-- `schema.registry.provider` - Must be set to `AZURE` for Azure Schema Registry
+- `record.value.evaluator.schema.registry.enable` — Enables schema registry integration.
+- `schema.registry.url` — The Azure Event Hubs namespace URL (e.g., `https://<namespace>.servicebus.windows.net`).
+- `schema.registry.provider` — Must be set to `AZURE` for Azure Schema Registry.
+- `schema.registry.azure.tenant.id` — The **Directory (tenant) ID** copied from the app registration overview page.
+- `schema.registry.azure.client.id` — The **Application (client) ID** copied from the app registration overview page.
+- `schema.registry.azure.client.secret` — The **client secret value** generated under _Certificates & secrets_.
+
+The connector uses these three parameters to build a `ClientSecretCredential` at startup, so no environment variables or external credential sources are required.

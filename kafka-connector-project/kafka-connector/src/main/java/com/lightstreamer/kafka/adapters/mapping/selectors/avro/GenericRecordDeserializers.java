@@ -19,7 +19,9 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -35,6 +37,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GenericRecordDeserializers {
@@ -97,18 +100,32 @@ public class GenericRecordDeserializers {
 
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
-            delegate.configure(configs, isKey);
+            String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
+            String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+            String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+
+            Map<String, Object> mutableConfigs = new HashMap<>(configs);
+            if (tenantId != null && !tenantId.isEmpty()
+                    && clientId != null && !clientId.isEmpty()
+                    && clientSecret != null && !clientSecret.isEmpty()) {
+                mutableConfigs.put(
+                        "schema.registry.credential",
+                        new ClientSecretCredentialBuilder()
+                                .tenantId(tenantId)
+                                .clientId(clientId)
+                                .clientSecret(clientSecret)
+                                .build());
+            }
+            delegate.configure(mutableConfigs, isKey);
         }
 
         @Override
         public GenericRecord deserialize(String topic, byte[] data) {
-            System.out.println("AzureSchemaRegistryDeserializer: Deserializing data for topic " + topic);
             return (GenericRecord) delegate.deserialize(topic, data);
         }
 
         @Override
         public GenericRecord deserialize(String topic, org.apache.kafka.common.header.Headers headers, byte[] data) {
-            System.out.println("AzureSchemaRegistryDeserializer: Deserializing data for topic " + topic + " with headers " + headers);
             return (GenericRecord) delegate.deserialize(topic, headers, data);
         }
 
@@ -132,12 +149,6 @@ public class GenericRecordDeserializers {
         Deserializer<GenericRecord> deserializer = newDeserializer(config, isKey);
         
         Map<String, Object> props = Utils.propsToMap(config.baseConsumerProps());
-        if ((isKey && config.isSchemaRegistryEnabledForKey())
-                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
-                props.put("use.azure.credential", true);
-            }
-        }
         deserializer.configure(props, isKey);
         
         return deserializer;

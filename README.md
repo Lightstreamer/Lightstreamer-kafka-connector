@@ -1591,10 +1591,39 @@ Example:
 
 ### Azure Schema Registry Parameters
 
-When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), no additional adapter parameters are required in `adapters.xml`. However, authentication with Azure Schema Registry requires setting specific environment variables for Azure AD application credentials: `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_CLIENT_SECRET`. 
+When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
-For detailed instructions on registering an Azure AD application, granting it access to the Schema Registry, and configuring these environment variables, see the [Azure Event Hubs example](examples/vendors/azure/README.md#advanced-schema-registry-integration).
+##### `schema.registry.azure.tenant.id`
 
+_Mandatory if Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+```
+
+##### `schema.registry.azure.client.id`
+
+_Mandatory if Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
+```
+
+##### `schema.registry.azure.client.secret`
+
+_Mandatory if Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by `schema.registry.azure.client.id`. This secret is used to authenticate the application against Azure AD.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
+```
+
+> **ℹ️ Step-by-step setup**: For a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, see the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example.
 
 ### Confluent Schema Registry Parameters
 

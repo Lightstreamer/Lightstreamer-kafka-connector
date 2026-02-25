@@ -18,9 +18,11 @@ package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
@@ -35,6 +37,7 @@ import org.everit.json.schema.ValidationException;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 class JsonNodeDeserializers {
@@ -99,20 +102,7 @@ class JsonNodeDeserializers {
             ConnectorConfig config, boolean isKey) {
         checkEvaluator(config, isKey);
         Deserializer<JsonNode> deserializer = newDeserializer(config, isKey);
-
-            if ((isKey && config.isSchemaRegistryEnabledForKey())
-                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-                 if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
-                    var m = Utils.propsToMap(config.baseConsumerProps());
-                    m.put("use.azure.credential", true);
-                    deserializer.configure(m, isKey);
-                 } else {
-                    deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-                 }
-            } else {
-                deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
-            }
-        
+        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
         return deserializer;
     }
 
@@ -141,7 +131,23 @@ class JsonNodeDeserializers {
 
             @Override
             public void configure(Map<String, ?> configs, boolean isKey) {
-                delegate.configure(configs, isKey);
+                String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
+                String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+                String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+
+                Map<String, Object> mutableConfigs = new HashMap<>(configs);
+                if (tenantId != null && !tenantId.isEmpty()
+                        && clientId != null && !clientId.isEmpty()
+                        && clientSecret != null && !clientSecret.isEmpty()) {
+                    mutableConfigs.put(
+                            "schema.registry.credential",
+                            new ClientSecretCredentialBuilder()
+                                    .tenantId(tenantId)
+                                    .clientId(clientId)
+                                    .clientSecret(clientSecret)
+                                    .build());
+                }
+                delegate.configure(mutableConfigs, isKey);
             }
 
             @Override

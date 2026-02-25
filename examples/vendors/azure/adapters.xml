@@ -41,21 +41,13 @@
 		<param name="consumer.session.timeout.ms">30000</param>
 
         <!-- ##### Azure Schema Registry ##### -->
-        <!-- AVRO Schema Example 
+        <!-- AVRO or JSON Schema Example 
 		<param name="record.value.evaluator.schema.registry.enable">true</param>
-		<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
+		<param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 		<param name="schema.registry.provider">AZURE</param>
-		<param name="schema.registry.azure.schema.id.header">de4ad7aa6d70468ba862660f9aa51ba1</param>
-		<param name="schema.registry.azure.client.id">b32caa30-0000-4444-6041-f29e75572449</param>
-		<param name="schema.registry.azure.tenant.id">fb769c2b-0b0b-8888-aaaa-bb756bf7e924</param>
-		<param name="schema.registry.azure.client.secret">Yij8Q~Z~myapplicationsecretfggmuzp-bQ~</param>
-        -->
-        <!-- JSON Schema Example
-        <param name="record.value.evaluator.schema.registry.enable">true</param>
-		<param name="schema.registry.url">https://myeventhub.servicebus.windows.net</param>
-		<param name="schema.registry.provider">AZURE</param>
-        #### tenant id, schema id, and application client secret   ####
-        #### should be configured in environment variables.        ####
+        <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
+        <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
+        <param name="schema.registry.azure.client.secret">Example~Secret~Value~NotARealSecret12345</param>
         -->
 
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
