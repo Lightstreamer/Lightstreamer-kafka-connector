@@ -46,7 +46,6 @@ import java.util.Optional;
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
-    public static final String ADAPTER_DIR = "adapter.dir";
 
     private final ConfigsSpec configSpec;
     private final Map<String, String> configuration;
@@ -169,17 +168,19 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return Collections.emptyMap();
     }
 
-    public static final Map<String, String> appendAdapterDir(
+    public static final Map<String, String> resolveFilePaths(
             ConfigsSpec configSpec, Map<String, String> config, File configDir) {
         Map<String, String> updatedConfigs = new HashMap<>(config);
-        updatedConfigs.put(ADAPTER_DIR, configDir.getAbsolutePath());
+        String adapterDirPath = configDir.getAbsolutePath();
         List<ConfParameter> confParams = configSpec.getByType(FILE);
         for (ConfParameter confParameter : confParams) {
             String value = updatedConfigs.get(confParameter.name());
             if (value != null && !value.isBlank()) {
-                updatedConfigs.replace(
-                        confParameter.name(),
-                        Paths.get(updatedConfigs.get(ADAPTER_DIR), value).toString());
+                if (Paths.get(value).isAbsolute()) {
+                    continue;
+                }
+                String replacedValue = Paths.get(adapterDirPath, value).toString();
+                updatedConfigs.put(confParameter.name(), replacedValue);
             }
         }
         return updatedConfigs;
