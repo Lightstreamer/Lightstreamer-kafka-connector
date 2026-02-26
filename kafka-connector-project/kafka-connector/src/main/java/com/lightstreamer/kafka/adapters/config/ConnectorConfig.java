@@ -200,7 +200,6 @@ public final class ConnectorConfig extends AbstractConfig {
         CONFIG_SPEC =
                 new ConfigsSpec("root")
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
-                        .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
                         .add(DATA_ADAPTER_NAME, true, false, TEXT)
                         .add(ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
@@ -558,7 +557,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params)
             throws ConfigException {
         return new ConnectorConfig(
-                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
+                AbstractConfig.resolveFilePaths(CONFIG_SPEC, params, adapterDir));
     }
 
     public Properties baseConsumerProps() {
