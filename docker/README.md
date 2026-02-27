@@ -13,7 +13,7 @@ Images are published to GitHub Container Registry on each release.
 docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 
 # Or pull a specific version
-docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.4.0
+docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.4.1
 
 # Run the container
 docker run --name kafka-connector -d -p 8080:8080 \
