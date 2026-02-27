@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.4.1] (2026-02-27)
 
 **Improvements**
 
