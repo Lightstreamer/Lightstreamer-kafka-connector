@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.config;
 
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.DIRECTORY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 
@@ -36,7 +35,6 @@ public final class GlobalConfig extends AbstractConfig {
         CONFIG_SPEC =
                 new ConfigsSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
-                        .add(ADAPTER_DIR, true, false, DIRECTORY)
                         .add(LOGGING_CONFIGURATION_PATH, true, false, FILE);
     }
 
@@ -54,7 +52,7 @@ public final class GlobalConfig extends AbstractConfig {
 
     public static GlobalConfig newConfig(File adapterDir, Map<String, String> params) {
         Map<String, String> updatedConfigs =
-                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir);
+                AbstractConfig.resolveFilePaths(CONFIG_SPEC, params, adapterDir);
         return new GlobalConfig(updatedConfigs);
     }
 }
