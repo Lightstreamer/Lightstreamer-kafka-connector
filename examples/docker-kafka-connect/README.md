@@ -34,7 +34,7 @@ REPOSITORY                              TAG       IMAGE ID       CREATED        
 kafka-connect-lightstreamer-<version>   latest    417d099deaa8   18 seconds ago   1.75GB
 ```
 
-**Note**: Replace `<version>` with the actual version (e.g., `1.4.0`).
+**Note**: Replace `<version>` with the actual version (e.g., `1.4.1`).
 
 ## Running in Docker Compose
 
