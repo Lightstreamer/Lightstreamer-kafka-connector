@@ -27,12 +27,12 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       - truststore_password=${truststore_password}
     ...
     ```
-  - Mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets` in the container:
+  - Mounting of the local `secrets` folder to `/lightstreamer/adapters/lightstreamer-kafka-connector/secrets` in the container:
 
     ```yaml
     volumes:
       ...
-      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/secrets
+      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector/secrets
     ```
 
   - Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:

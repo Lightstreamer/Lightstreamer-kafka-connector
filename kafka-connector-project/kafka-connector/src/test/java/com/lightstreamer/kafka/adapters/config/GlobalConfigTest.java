@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.DIRECTORY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 
@@ -62,14 +61,6 @@ public class GlobalConfigTest {
         assertThat(adaptersConfId.defaultValue()).isNull();
         assertThat(adaptersConfId.type()).isEqualTo(TEXT);
 
-        ConfParameter adapterDir = configSpec.getParameter(GlobalConfig.ADAPTER_DIR);
-        assertThat(adapterDir.name()).isEqualTo(GlobalConfig.ADAPTER_DIR);
-        assertThat(adapterDir.required()).isTrue();
-        assertThat(adapterDir.multiple()).isFalse();
-        assertThat(adapterDir.mutable()).isTrue();
-        assertThat(adapterDir.defaultValue()).isNull();
-        assertThat(adapterDir.type()).isEqualTo(DIRECTORY);
-
         ConfParameter loggingConfigurationFile =
                 configSpec.getParameter(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         assertThat(loggingConfigurationFile.name())
@@ -103,20 +94,6 @@ public class GlobalConfigTest {
         e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
         assertThat(e)
                 .hasMessageThat()
-                .isEqualTo("Missing required parameter [%s]".formatted(GlobalConfig.ADAPTER_DIR));
-
-        params.put(GlobalConfig.ADAPTER_DIR, "");
-        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Specify a valid value for parameter [%s]"
-                                .formatted(GlobalConfig.ADAPTER_DIR));
-
-        params.put(GlobalConfig.ADAPTER_DIR, adapterDir.toString());
-        e = assertThrows(ConfigException.class, () -> new GlobalConfig(params));
-        assertThat(e)
-                .hasMessageThat()
                 .isEqualTo(
                         "Missing required parameter [%s]"
                                 .formatted(GlobalConfig.LOGGING_CONFIGURATION_PATH));
@@ -139,7 +116,6 @@ public class GlobalConfigTest {
     private Map<String, String> minimal() {
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
-        adapterParams.put(ConnectorConfig.ADAPTER_DIR, adapterDir.toString());
 
         // Ensure we are specifying a path name relative to the provided adapter dir.
         String farthestPathName = loggingConfigurationFile.getFileName().toString();
@@ -152,7 +128,6 @@ public class GlobalConfigTest {
     public void shouldGetNewConfig() {
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
         assertThat(config.getText(GlobalConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
-        assertThat(config.getDirectory(GlobalConfig.ADAPTER_DIR)).isEqualTo(adapterDir.toString());
         assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH))
                 .isEqualTo(loggingConfigurationFile.toString());
     }

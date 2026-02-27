@@ -15,7 +15,7 @@
         <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
 
         <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector). -->
+             (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
@@ -118,7 +118,7 @@
         -->
 
         <!-- Optional. The path of the trust store file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>).
+             (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as an absolute path.
              The trust store is used to validate the certificates provided by the Kafka brokers. -->
         <!--
         <param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
@@ -159,7 +159,7 @@
         -->
 
         <!-- Mandatory if key store is enabled. The path of the key store file, relative to
-             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as an absolute path. -->
         <!--
         <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
         -->
@@ -236,7 +236,7 @@
         -->
 
         <!-- Mandatory if keytab is enabled. The path to the keytab file, relative to
-             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>). -->
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as an absolute path. -->
         <!--
         <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
         -->
@@ -387,7 +387,7 @@
         <param name="record.value.evaluator.type">JSON</param>
 
         <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and the Confluent Schema Registry is disabled. The path of the local schema
-             (or binary descriptor) file relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) for
+             (or binary descriptor) file, relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) or as an absolute path, for
              message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>

@@ -15,9 +15,9 @@ services:
       - truststore_password=${truststore_password}
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/adapters.xml
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/log4j.properties
-      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector-${VERSION}/secrets
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties
+      - ./secrets:/lightstreamer/adapters/lightstreamer-kafka-connector/secrets
 
   producer:
     container_name: producer

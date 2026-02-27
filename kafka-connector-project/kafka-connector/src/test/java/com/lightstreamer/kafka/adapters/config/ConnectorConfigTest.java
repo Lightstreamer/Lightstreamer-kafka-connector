@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.AbstractConfig.ADAPTERS_CONF_ID;
-import static com.lightstreamer.kafka.adapters.config.AbstractConfig.ADAPTER_DIR;
 import static com.lightstreamer.kafka.adapters.config.BrokerAuthenticationConfigs.PASSWORD;
 import static com.lightstreamer.kafka.adapters.config.BrokerAuthenticationConfigs.USERNAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.AUTHENTICATION_ENABLE;
@@ -182,14 +181,6 @@ public class ConnectorConfigTest {
         assertThat(adapterConfId.mutable()).isTrue();
         assertThat(adapterConfId.defaultValue()).isNull();
         assertThat(adapterConfId.type()).isEqualTo(ConfType.TEXT);
-
-        ConfParameter adapterPath = configSpec.getParameter(ADAPTER_DIR);
-        assertThat(adapterPath.name()).isEqualTo(ADAPTER_DIR);
-        assertThat(adapterPath.required()).isTrue();
-        assertThat(adapterPath.multiple()).isFalse();
-        assertThat(adapterPath.mutable()).isTrue();
-        assertThat(adapterPath.defaultValue()).isNull();
-        assertThat(adapterPath.type()).isEqualTo(ConfType.DIRECTORY);
 
         ConfParameter dataAdapterName = configSpec.getParameter(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.name()).isEqualTo(DATA_ADAPTER_NAME);
@@ -681,26 +672,6 @@ public class ConnectorConfigTest {
                 .isEqualTo("Specify a valid value for parameter [%s]".formatted(ADAPTERS_CONF_ID));
 
         params.put(ADAPTERS_CONF_ID, "adapters_conf_id");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce)
-                .hasMessageThat()
-                .isEqualTo("Missing required parameter [%s]".formatted(ADAPTER_DIR));
-
-        params.put(ADAPTER_DIR, "");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce)
-                .hasMessageThat()
-                .isEqualTo("Specify a valid value for parameter [%s]".formatted(ADAPTER_DIR));
-
-        params.put(ADAPTER_DIR, "non-existing-directory");
-        ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
-        assertThat(ce)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Not found directory [non-existing-directory] specified in [%s]"
-                                .formatted(ADAPTER_DIR));
-
-        params.put(ADAPTER_DIR, adapterDir.toString());
         ce = assertThrows(ConfigException.class, () -> new ConnectorConfig(params));
         assertThat(ce)
                 .hasMessageThat()
@@ -1851,12 +1822,6 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [record.consume.max.poll.records]");
-    }
-
-    @Test
-    public void shouldGetDirectory() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
-        assertThat(config.getDirectory(ADAPTER_DIR)).isEqualTo(adapterDir.toString());
     }
 
     @Test
