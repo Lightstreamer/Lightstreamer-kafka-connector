@@ -6,6 +6,8 @@
 
 - **Official Docker Image**: Introduced official Docker images published to GitHub Container Registry (`ghcr.io/lightstreamer/lightstreamer-kafka-connector`), with automated builds via GitHub Actions on each release. Moved Docker resources from `examples/docker` to the new `/docker` folder with production-ready build scripts and Dockerfile. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
 
+- **Absolute Path Support**: Extended file path configuration parameters (such as `logging.configuration.path`, `encryption.truststore.path`, `encryption.keystore.path`, `authentication.gssapi.key.tab.path`, and `record.*.evaluator.schema.path`) to also accept absolute paths, in addition to paths relative to the deployment folder. Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) and [`README.md`](README.md) files accordingly. ([#78](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/79))
+
 **Examples and Documentation**
 
 - Added comprehensive [`docker/README.md`](docker/README.md) with Quick Start guide, configuration examples, and instructions for pulling published images and building locally. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
