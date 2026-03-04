@@ -39,6 +39,7 @@ import org.apache.kafka.connect.data.Struct;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -183,22 +184,22 @@ public class SampleMessageProviders {
         }
 
         private DynamicMessage buildMessage2() {
-            return DynamicMessage.newBuilder(
-                            Person.newBuilder()
-                                    .setName("mike")
-                                    .setJob(Job.ARTIST)
-                                    .addPhoneNumbers("111111")
-                                    .addPhoneNumbers("222222")
-                                    .addFriends(Person.newBuilder().setName("alex").build())
-                                    .setMainAddress(
-                                            Address.newBuilder()
-                                                    .setCity("London")
-                                                    .setCountry(
-                                                            Country.newBuilder()
-                                                                    .setName("England")
-                                                                    .build()))
-                                    .build())
-                    .build();
+            Person prototype =
+                    Person.newBuilder()
+                            .setName("mike")
+                            .setJob(Job.ARTIST)
+                            .addPhoneNumbers("111111")
+                            .addPhoneNumbers("222222")
+                            .addFriends(Person.newBuilder().setName("alex").build())
+                            .setMainAddress(
+                                    Address.newBuilder()
+                                            .setCity("London")
+                                            .setCountry(
+                                                    Country.newBuilder()
+                                                            .setName("England")
+                                                            .build()))
+                            .build();
+            return DynamicMessage.newBuilder(prototype).build();
         }
 
         private DynamicMessage buildMessage1() {
@@ -243,7 +244,7 @@ public class SampleMessageProviders {
                                             true, Address.newBuilder().setCity("Turin").build())
                                     .putBooleanAddresses(
                                             false, Address.newBuilder().setCity("Florence").build())
-                                    .putData("data", -13.3f)
+                                    .putData("aDataKey", -13.3f)
                                     .setSignature(ByteString.copyFromUtf8("abcd"))
                                     .setCar(Car.newBuilder().setBrand("BMW").build())
                                     .setAny(Any.pack(Car.newBuilder().setBrand("FORD").build()))
@@ -294,6 +295,7 @@ public class SampleMessageProviders {
 
         private final Schema valueSchema;
         private final Schema childrenSchema;
+        private final Schema arraySchema;
         private final Schema emptyArraySchema;
 
         private GenericRecordProvider() {
@@ -304,6 +306,7 @@ public class SampleMessageProviders {
                 valueSchema = parser.parse(classLoader.getResourceAsStream("value.avsc"));
                 childrenSchema = valueSchema.getField("children").schema();
                 emptyArraySchema = valueSchema.getField("emptyArray").schema();
+                arraySchema = valueSchema.getField("array").schema();
             } catch (IOException io) {
                 throw new RuntimeException(io);
             }
@@ -332,7 +335,12 @@ public class SampleMessageProviders {
             documentRecord.put("doc_type", "ID");
             joe.put("documents", Map.of(new Utf8("id"), documentRecord));
             joe.put("emptyArray", new GenericData.Array<>(emptyArraySchema, null));
-            joe.put("nullArray", null);
+            List<String> arrayValues = new ArrayList<>();
+            arrayValues.add("abc");
+            arrayValues.add("xyz");
+            arrayValues.add(null);
+            joe.put("array", new GenericData.Array<>(arraySchema, arrayValues));
+            joe.put("nullValue", null);
             return joe;
         }
 
@@ -399,6 +407,10 @@ public class SampleMessageProviders {
             joeChildren.add(null);
 
             Value root = new Value("joe", joeChildren);
+            root.notes.add("note1");
+            root.notes.add("note2");
+            root.stringsStrings.add(List.of("ss00", "ss01"));
+            root.mapsMaps.put("map1", Map.of("m11", "mv11", "m12", "mv12"));
             root.signature = new byte[] {97, 98, 99, 100};
             root.family =
                     new Value[][] {
@@ -423,6 +435,12 @@ public class SampleMessageProviders {
             @JsonProperty byte[] signature;
 
             @JsonProperty Value[][] family;
+
+            @JsonProperty final List<String> notes = new ArrayList<>();
+
+            @JsonProperty List<List<String>> stringsStrings = new ArrayList<>();
+
+            @JsonProperty Map<String, Map<String, String>> mapsMaps = new HashMap<>();
 
             Value(String name) {
                 this.name = name;

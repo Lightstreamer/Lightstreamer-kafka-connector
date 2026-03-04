@@ -182,7 +182,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
 
 ### Prerequisites
 
-- JDK version 17
+- JDK version 17 or newer
 - Docker Compose
 
 ### Run

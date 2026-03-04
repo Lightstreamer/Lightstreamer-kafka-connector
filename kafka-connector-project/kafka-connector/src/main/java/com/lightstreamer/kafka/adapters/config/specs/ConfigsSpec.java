@@ -92,6 +92,18 @@ public class ConfigsSpec {
             }
         },
 
+        POSITIVE_INT {
+            @Override
+            public boolean checkValidity(String param) {
+                try {
+                    Integer value = Integer.valueOf(param);
+                    return value > 0;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
         THREADS {
             @Override
             public boolean checkValidity(String param) {
@@ -295,7 +307,7 @@ public class ConfigsSpec {
             boolean required,
             boolean multiple,
             String suffix,
-            ConfigsSpec.Type type,
+            Type type,
             boolean mutable,
             DefaultHolder<String> defaultHolder) {
 

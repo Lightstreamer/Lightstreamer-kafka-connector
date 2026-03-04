@@ -24,6 +24,7 @@ import com.lightstreamer.example.Person;
 import com.lightstreamer.example.Role;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.MapFieldNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.MessageWrapperNode;
+import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.NullProtobufNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.ProtobufNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.RepeatedFieldNode;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageSelectorSuppliers.ScalarFieldNode;
@@ -33,21 +34,46 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ProtobufNodeTest {
 
     static DynamicMessage MESSAGE =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessage();
 
     @Test
+    public void shouldCreateRootNode() {
+        ProtobufNode rootNode = ProtobufNode.rootNode("rootNode", MESSAGE);
+        assertThat(rootNode).isInstanceOf(MessageWrapperNode.class);
+        assertThat(rootNode.name()).isEqualTo("rootNode");
+
+        ProtobufNode nullNode = ProtobufNode.rootNode("nullNode", null);
+        assertThat(nullNode).isInstanceOf(NullProtobufNode.class);
+        assertThat(nullNode.isNull()).isTrue();
+    }
+
+    @Test
     public void shouldCreateMessageWrapperNode() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        assertThat(personMessageWrapperNode.name()).isEqualTo("VALUE");
         assertThat(personMessageWrapperNode.isArray()).isFalse();
         assertThat(personMessageWrapperNode.size()).isEqualTo(0);
         assertThat(personMessageWrapperNode.isNull()).isFalse();
         assertThat(personMessageWrapperNode.isScalar()).isFalse();
         assertThat(personMessageWrapperNode.has("name")).isTrue();
         assertThat(personMessageWrapperNode.has("lastName")).isFalse();
-        assertThat(personMessageWrapperNode.asText())
+
+        Map<String, String> targetMap = new HashMap<>();
+        personMessageWrapperNode.flatIntoMap(targetMap);
+        assertThat(targetMap)
+                .containsAtLeast(
+                        "name", "joe",
+                        "job", "EMPLOYEE",
+                        "simpleRoleName", "Software Architect",
+                        "signature", "abcd");
+
+        assertThat(personMessageWrapperNode.text())
                 .isEqualTo(
                         """
             name: "joe"
@@ -102,7 +128,7 @@ public class ProtobufNodeTest {
               }
             }
             data {
-              key: "data"
+              key: "aDataKey"
               value: -13.3
             }
             signature: "abcd"
@@ -115,6 +141,21 @@ public class ProtobufNodeTest {
             """);
     }
 
+    @Test
+    public void shouldCreateNullProtobufNode() {
+        NullProtobufNode nullNode = new NullProtobufNode("NULLNODE");
+        assertThat(nullNode.name()).isEqualTo("NULLNODE");
+        assertThat(nullNode.isArray()).isFalse();
+        assertThat(nullNode.size()).isEqualTo(0);
+        assertThat(nullNode.isNull()).isTrue();
+        assertThat(nullNode.isScalar()).isTrue();
+        assertThat(nullNode.text()).isNull();
+
+        Map<String, String> targetMap = new HashMap<>();
+        nullNode.flatIntoMap(targetMap);
+        assertThat(targetMap).isEmpty();
+    }
+
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
@@ -123,11 +164,12 @@ public class ProtobufNodeTest {
                     FIELD,     VALUE
                     name,      joe
                     signature, abcd
-                    email,     <EMPTY>
+                    email,     ''
                     """)
-    public void shouldGetStringScalarField(String field, String value) {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode fieldNode = personMessageWrapperNode.get(field);
+    public void shouldGetStringScalarField(String field, String expectedValue) {
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode fieldNode = personMessageWrapperNode.getProperty("fieldNode", field);
+        assertThat(fieldNode.name()).isEqualTo("fieldNode");
         assertThat(fieldNode).isInstanceOf(ScalarFieldNode.class);
 
         ScalarFieldNode fieldScalarNode = (ScalarFieldNode) fieldNode;
@@ -135,22 +177,26 @@ public class ProtobufNodeTest {
         assertThat(fieldScalarNode.size()).isEqualTo(0);
         assertThat(fieldScalarNode.isNull()).isFalse();
         assertThat(fieldScalarNode.isScalar()).isTrue();
-        String expectedValue = "<EMPTY>".equals(value) ? "" : value;
-        assertThat(fieldScalarNode.asText()).isEqualTo(expectedValue);
+        assertThat(fieldScalarNode.text()).isEqualTo(expectedValue);
+
+        Map<String, String> targetMap = new HashMap<>();
+        fieldScalarNode.flatIntoMap(targetMap);
+        assertThat(targetMap).isEmpty();
     }
 
     @ParameterizedTest
     @CsvSource(
             useHeadersInDisplayName = true,
+            delimiter = '|',
             textBlock =
                     """
-                    FIELD,       VALUE
-                    mainAddress, <EMPTY>
-                    car,         brand: "BMW"
+                    FIELD       | VALUE
+                    mainAddress | ''
+                    car         | brand: "BMW"
                     """)
-    public void shouldGetMessageValue(String field, String value) {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode node = personMessageWrapperNode.get(field);
+    public void shouldGetMessageField(String field, String expectedValue) {
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode node = personMessageWrapperNode.getProperty("fieldNode", field);
         assertThat(node).isInstanceOf(MessageWrapperNode.class);
 
         MessageWrapperNode fieldMessageWrapperNode = (MessageWrapperNode) node;
@@ -158,15 +204,17 @@ public class ProtobufNodeTest {
         assertThat(fieldMessageWrapperNode.size()).isEqualTo(0);
         assertThat(fieldMessageWrapperNode.isNull()).isFalse();
         assertThat(fieldMessageWrapperNode.isScalar()).isFalse();
-        String expectedValue = "<EMPTY>".equals(value) ? "" : value + "\n";
-        String asText = fieldMessageWrapperNode.asText();
-        assertThat(asText).isEqualTo(expectedValue);
+        String text = fieldMessageWrapperNode.text();
+        if (!expectedValue.isEmpty()) {
+            expectedValue += "\n";
+        }
+        assertThat(text).isEqualTo(expectedValue);
     }
 
     @Test
     public void shouldGetEnumField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode node = personMessageWrapperNode.get("job");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode node = personMessageWrapperNode.getProperty("fieldNode", "job");
         assertThat(node).isInstanceOf(ScalarFieldNode.class);
 
         ScalarFieldNode fieldEnumNode = (ScalarFieldNode) node;
@@ -174,50 +222,66 @@ public class ProtobufNodeTest {
         assertThat(fieldEnumNode.size()).isEqualTo(0);
         assertThat(fieldEnumNode.isNull()).isFalse();
         assertThat(fieldEnumNode.isScalar()).isTrue();
-        assertThat(fieldEnumNode.asText()).isEqualTo("EMPLOYEE");
+        assertThat(fieldEnumNode.text()).isEqualTo("EMPLOYEE");
     }
 
     @Test
     public void shouldGetRepeatedScalarField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode phoneNumbersNode = personMessageWrapperNode.get("phoneNumbers");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode phoneNumbersNode =
+                personMessageWrapperNode.getProperty("fieldNode", "phoneNumbers");
         assertThat(phoneNumbersNode).isInstanceOf(RepeatedFieldNode.class);
 
         RepeatedFieldNode phoneNumbersRepeatedNode = (RepeatedFieldNode) phoneNumbersNode;
+        assertThat(phoneNumbersRepeatedNode.name()).isEqualTo("fieldNode");
         assertThat(phoneNumbersRepeatedNode.isArray()).isTrue();
         assertThat(phoneNumbersRepeatedNode.size()).isEqualTo(2);
         assertThat(phoneNumbersRepeatedNode.isNull()).isFalse();
         assertThat(phoneNumbersRepeatedNode.isScalar()).isFalse();
-        assertThat(phoneNumbersRepeatedNode.asText())
+
+        Map<String, String> targetMap = new HashMap<>();
+        phoneNumbersRepeatedNode.flatIntoMap(targetMap);
+        assertThat(targetMap)
+                .containsExactly(
+                        "fieldNode[0]", "012345",
+                        "fieldNode[1]", "123456");
+        targetMap.clear();
+
+        assertThat(phoneNumbersRepeatedNode.text())
                 .isEqualTo(
                         """
             phoneNumbers: "012345"
             phoneNumbers: "123456"
             """);
 
-        ProtobufNode elemNode1 = phoneNumbersRepeatedNode.get(0);
+        ProtobufNode elemNode1 =
+                phoneNumbersRepeatedNode.getIndexed("fieldNode1", 0, "phoneNumbers");
         assertThat(elemNode1).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode elemScalarNode1 = (ScalarFieldNode) elemNode1;
-        assertThat(elemScalarNode1.asText()).isEqualTo("012345");
+        assertThat(elemScalarNode1.name()).isEqualTo("fieldNode1");
+        assertThat(elemScalarNode1.text()).isEqualTo("012345");
 
-        ProtobufNode elemNode2 = phoneNumbersRepeatedNode.get(1);
+        ProtobufNode elemNode2 =
+                phoneNumbersRepeatedNode.getIndexed("fieldNode2", 1, "phoneNumbers");
         assertThat(elemNode2).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode elemScalarNode2 = (ScalarFieldNode) elemNode2;
-        assertThat(elemScalarNode2.asText()).isEqualTo("123456");
+        assertThat(elemScalarNode2.name()).isEqualTo("fieldNode2");
+        assertThat(elemScalarNode2.text()).isEqualTo("123456");
     }
 
     @Test
     public void shouldGetRepeatedMessageField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode friends = personMessageWrapperNode.get("friends");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode friends = personMessageWrapperNode.getProperty("friendsNode", "friends");
         assertThat(friends).isInstanceOf(RepeatedFieldNode.class);
 
         RepeatedFieldNode friendsRepeatedNode = (RepeatedFieldNode) friends;
+        assertThat(friendsRepeatedNode.name()).isEqualTo("friendsNode");
         assertThat(friendsRepeatedNode.isArray()).isTrue();
         assertThat(friendsRepeatedNode.size()).isEqualTo(2);
         assertThat(friendsRepeatedNode.isNull()).isFalse();
         assertThat(friendsRepeatedNode.isScalar()).isFalse();
-        assertThat(friendsRepeatedNode.asText())
+        assertThat(friendsRepeatedNode.text())
                 .isEqualTo(
                         """
             friends {
@@ -232,21 +296,33 @@ public class ProtobufNodeTest {
             }
             """);
 
-        ProtobufNode elemNode1 = friendsRepeatedNode.get(0);
-        assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
-        MessageWrapperNode elemMessageNode1 = (MessageWrapperNode) elemNode1;
-        assertThat(elemMessageNode1.get("name").asText()).isEqualTo("mike");
+        ProtobufNode friend1 = friendsRepeatedNode.getIndexed("friend1", 0, "friends");
+        assertThat(friend1).isInstanceOf(MessageWrapperNode.class);
 
-        ProtobufNode elemNode2 = friendsRepeatedNode.get(1);
-        assertThat(elemNode2).isInstanceOf(MessageWrapperNode.class);
-        MessageWrapperNode elemMessageNode2 = (MessageWrapperNode) elemNode2;
-        assertThat(elemMessageNode2.get("name").asText()).isEqualTo("john");
+        MessageWrapperNode mike = (MessageWrapperNode) friend1;
+        assertThat(mike.name()).isEqualTo("friend1");
+
+        ProtobufNode nameNode = mike.getProperty("nameNode", "name");
+        assertThat(nameNode.name()).isEqualTo("nameNode");
+        assertThat(nameNode.text()).isEqualTo("mike");
+
+        ProtobufNode friend2 = friendsRepeatedNode.getIndexed("friend2", 1, "friends");
+        assertThat(friend2).isInstanceOf(MessageWrapperNode.class);
+
+        MessageWrapperNode john = (MessageWrapperNode) friend2;
+        assertThat(john.name()).isEqualTo("friend2");
+
+        nameNode = john.getProperty("nameNode", "name");
+        assertThat(nameNode.name()).isEqualTo("nameNode");
+        assertThat(nameNode.text()).isEqualTo("john");
     }
 
     @Test
     public void shouldGetMapOfStringKeyAndMessageValueField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode otherAddressesNode = personMessageWrapperNode.get("otherAddresses");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode otherAddressesNode =
+                personMessageWrapperNode.getProperty("fieldNode", "otherAddresses");
+        assertThat(otherAddressesNode.name()).isEqualTo("fieldNode");
         assertThat(otherAddressesNode).isInstanceOf(MapFieldNode.class);
 
         MapFieldNode otherAddressesMapNode = (MapFieldNode) otherAddressesNode;
@@ -254,7 +330,7 @@ public class ProtobufNodeTest {
         assertThat(otherAddressesMapNode.size()).isEqualTo(0);
         assertThat(otherAddressesMapNode.isNull()).isFalse();
         assertThat(otherAddressesMapNode.isScalar()).isFalse();
-        assertThat(otherAddressesNode.asText())
+        assertThat(otherAddressesNode.text())
                 .isEqualTo(
                         """
             otherAddresses {
@@ -276,23 +352,25 @@ public class ProtobufNodeTest {
             }
                         """);
 
-        ProtobufNode elemNode1 = otherAddressesMapNode.get("work");
+        ProtobufNode elemNode1 = otherAddressesMapNode.getProperty("fieldNode", "work");
         assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
         MessageWrapperNode elemMessageNode1 = (MessageWrapperNode) elemNode1;
-        assertThat(elemMessageNode1.get("city").asText()).isEqualTo("Milan");
-        assertThat(elemMessageNode1.get("zip").asText()).isEqualTo("20124");
+        assertThat(elemMessageNode1.getProperty("fieldNode", "city").text()).isEqualTo("Milan");
+        assertThat(elemMessageNode1.getProperty("fieldNode", "zip").text()).isEqualTo("20124");
 
-        ProtobufNode elemNode2 = otherAddressesMapNode.get("club");
+        ProtobufNode elemNode2 = otherAddressesMapNode.getProperty("fieldNode", "club");
         assertThat(elemNode2).isInstanceOf(MessageWrapperNode.class);
+
         MessageWrapperNode elemMessageNode2 = (MessageWrapperNode) elemNode2;
-        assertThat(elemMessageNode2.get("city").asText()).isEqualTo("Siracusa");
-        assertThat(elemMessageNode2.get("zip").asText()).isEqualTo("96100");
+        assertThat(elemMessageNode2.getProperty("fieldNode", "city").text()).isEqualTo("Siracusa");
+        assertThat(elemMessageNode2.getProperty("fieldNode", "zip").text()).isEqualTo("96100");
     }
 
     @Test
     public void shouldGetMapOfIntegralKeyAndMessageValueField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode otherAddressesNode = personMessageWrapperNode.get("indexedAddresses");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode otherAddressesNode =
+                personMessageWrapperNode.getProperty("fieldNode", "indexedAddresses");
         assertThat(otherAddressesNode).isInstanceOf(MapFieldNode.class);
 
         MapFieldNode indexedAddressMapNode = (MapFieldNode) otherAddressesNode;
@@ -300,7 +378,7 @@ public class ProtobufNodeTest {
         assertThat(indexedAddressMapNode.size()).isEqualTo(0);
         assertThat(indexedAddressMapNode.isNull()).isFalse();
         assertThat(indexedAddressMapNode.isScalar()).isFalse();
-        assertThat(otherAddressesNode.asText())
+        assertThat(otherAddressesNode.text())
                 .isEqualTo(
                         """
           indexedAddresses {
@@ -311,16 +389,17 @@ public class ProtobufNodeTest {
           }
           """);
 
-        ProtobufNode elemNode1 = indexedAddressMapNode.get("1");
+        ProtobufNode elemNode1 = indexedAddressMapNode.getProperty("fieldNode", "1");
         assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
         MessageWrapperNode elemMessageNode1 = (MessageWrapperNode) elemNode1;
-        assertThat(elemMessageNode1.get("city").asText()).isEqualTo("Rome");
+        assertThat(elemMessageNode1.getProperty("fieldNode", "city").text()).isEqualTo("Rome");
     }
 
     @Test
     public void shouldGetMapOfBooleanKeyAndMessageValueField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode booleanAddressesNode = personMessageWrapperNode.get("booleanAddresses");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode booleanAddressesNode =
+                personMessageWrapperNode.getProperty("fieldNode", "booleanAddresses");
         assertThat(booleanAddressesNode).isInstanceOf(MapFieldNode.class);
 
         MapFieldNode indexedAddressMapNode = (MapFieldNode) booleanAddressesNode;
@@ -328,7 +407,7 @@ public class ProtobufNodeTest {
         assertThat(indexedAddressMapNode.size()).isEqualTo(0);
         assertThat(indexedAddressMapNode.isNull()).isFalse();
         assertThat(indexedAddressMapNode.isScalar()).isFalse();
-        assertThat(booleanAddressesNode.asText())
+        assertThat(booleanAddressesNode.text())
                 .isEqualTo(
                         """
           booleanAddresses {
@@ -345,21 +424,21 @@ public class ProtobufNodeTest {
           }
           """);
 
-        ProtobufNode elemNode1 = indexedAddressMapNode.get("true");
+        ProtobufNode elemNode1 = indexedAddressMapNode.getProperty("fieldNode", "true");
         assertThat(elemNode1).isInstanceOf(MessageWrapperNode.class);
         MessageWrapperNode elemMessageNode1 = (MessageWrapperNode) elemNode1;
-        assertThat(elemMessageNode1.get("city").asText()).isEqualTo("Turin");
+        assertThat(elemMessageNode1.getProperty("fieldNode", "city").text()).isEqualTo("Turin");
 
-        ProtobufNode elemNode2 = indexedAddressMapNode.get("false");
+        ProtobufNode elemNode2 = indexedAddressMapNode.getProperty("fieldNode", "false");
         assertThat(elemNode2).isInstanceOf(MessageWrapperNode.class);
         MessageWrapperNode elemMessageNode2 = (MessageWrapperNode) elemNode2;
-        assertThat(elemMessageNode2.get("city").asText()).isEqualTo("Florence");
+        assertThat(elemMessageNode2.getProperty("fieldNode", "city").text()).isEqualTo("Florence");
     }
 
     @Test
     public void shouldGetMapOfStringKeyAndIntegralValueField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode dataNode = personMessageWrapperNode.get("data");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode dataNode = personMessageWrapperNode.getProperty("mapNode", "data");
         assertThat(dataNode).isInstanceOf(MapFieldNode.class);
 
         MapFieldNode dataNapNode = (MapFieldNode) dataNode;
@@ -367,25 +446,31 @@ public class ProtobufNodeTest {
         assertThat(dataNapNode.size()).isEqualTo(0);
         assertThat(dataNapNode.isNull()).isFalse();
         assertThat(dataNapNode.isScalar()).isFalse();
-        assertThat(dataNode.asText())
+        assertThat(dataNode.text())
                 .isEqualTo(
                         """
           data {
-            key: "data"
+            key: "aDataKey"
             value: -13.3
           }
           """);
 
-        ProtobufNode elemNode = dataNapNode.get("data");
+        Map<String, String> targetMap = new HashMap<>();
+        dataNapNode.flatIntoMap(targetMap);
+        assertThat(targetMap).containsExactly("aDataKey", "-13.3");
+        targetMap.clear();
+
+        ProtobufNode elemNode = dataNapNode.getProperty("fieldNode", "aDataKey");
         assertThat(elemNode).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode elemMessageNode1 = (ScalarFieldNode) elemNode;
-        assertThat(elemMessageNode1.asText()).isEqualTo("-13.3");
+        assertThat(elemMessageNode1.text()).isEqualTo("-13.3");
     }
 
     @Test
     public void shouldGetOneofField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode simpleRoleNameNode = personMessageWrapperNode.get("simpleRoleName");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode simpleRoleNameNode =
+                personMessageWrapperNode.getProperty("fieldNode", "simpleRoleName");
         assertThat(simpleRoleNameNode).isInstanceOf(ScalarFieldNode.class);
 
         ScalarFieldNode simpleRoleNameScalarNode = (ScalarFieldNode) simpleRoleNameNode;
@@ -393,7 +478,7 @@ public class ProtobufNodeTest {
         assertThat(simpleRoleNameScalarNode.size()).isEqualTo(0);
         assertThat(simpleRoleNameScalarNode.isNull()).isFalse();
         assertThat(simpleRoleNameScalarNode.isScalar()).isTrue();
-        assertThat(simpleRoleNameScalarNode.asText()).isEqualTo("Software Architect");
+        assertThat(simpleRoleNameScalarNode.text()).isEqualTo("Software Architect");
 
         DynamicMessage message =
                 DynamicMessage.newBuilder(
@@ -404,8 +489,8 @@ public class ProtobufNodeTest {
                                                         .setScope("Engineering"))
                                         .build())
                         .build();
-        MessageWrapperNode personNode2 = new MessageWrapperNode(message);
-        ProtobufNode complexRoleNode = personNode2.get("complexRole");
+        MessageWrapperNode personNode2 = new MessageWrapperNode("VALUE", message);
+        ProtobufNode complexRoleNode = personNode2.getProperty("fieldNode", "complexRole");
         assertThat(complexRoleNode).isInstanceOf(MessageWrapperNode.class);
 
         MessageWrapperNode complexRoleMessageNode = (MessageWrapperNode) complexRoleNode;
@@ -413,43 +498,45 @@ public class ProtobufNodeTest {
         assertThat(complexRoleMessageNode.size()).isEqualTo(0);
         assertThat(complexRoleMessageNode.isNull()).isFalse();
         assertThat(complexRoleMessageNode.isScalar()).isFalse();
-        assertThat(complexRoleMessageNode.get("name").asText()).isEqualTo("Head of Development");
-        assertThat(complexRoleMessageNode.get("scope").asText()).isEqualTo("Engineering");
+        assertThat(complexRoleMessageNode.getProperty("fieldNode", "name").text())
+                .isEqualTo("Head of Development");
+        assertThat(complexRoleMessageNode.getProperty("fieldNode", "scope").text())
+                .isEqualTo("Engineering");
     }
 
     @Test
     public void shouldGetAnyField() {
-        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode(MESSAGE);
-        ProtobufNode anyNode = personMessageWrapperNode.get("any");
+        MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
+        ProtobufNode anyNode = personMessageWrapperNode.getProperty("fieldNode", "any");
         assertThat(anyNode).isInstanceOf(MessageWrapperNode.class);
         MessageWrapperNode anyMessageNode = (MessageWrapperNode) anyNode;
         assertThat(anyMessageNode.isArray()).isFalse();
         assertThat(anyMessageNode.size()).isEqualTo(0);
         assertThat(anyMessageNode.isNull()).isFalse();
         assertThat(anyMessageNode.isScalar()).isFalse();
-        assertThat(anyMessageNode.asText())
+        assertThat(anyMessageNode.text())
                 .isEqualTo(
                         """
             type_url: "type.googleapis.com/Car"
             value: "\\n\\004FORD"
             """);
 
-        ProtobufNode typeUrlNNode = anyMessageNode.get("type_url");
+        ProtobufNode typeUrlNNode = anyMessageNode.getProperty("fieldNode", "type_url");
         assertThat(typeUrlNNode).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode typeUrlScalarNode = (ScalarFieldNode) typeUrlNNode;
         assertThat(typeUrlScalarNode.isArray()).isFalse();
         assertThat(typeUrlScalarNode.size()).isEqualTo(0);
         assertThat(typeUrlScalarNode.isNull()).isFalse();
         assertThat(typeUrlScalarNode.isScalar()).isTrue();
-        assertThat(typeUrlScalarNode.asText()).isEqualTo("type.googleapis.com/Car");
+        assertThat(typeUrlScalarNode.text()).isEqualTo("type.googleapis.com/Car");
 
-        ProtobufNode valueNode = anyMessageNode.get("value");
+        ProtobufNode valueNode = anyMessageNode.getProperty("fieldNode", "value");
         assertThat(valueNode).isInstanceOf(ScalarFieldNode.class);
         ScalarFieldNode valueScalarNode = (ScalarFieldNode) valueNode;
         assertThat(valueScalarNode.isArray()).isFalse();
         assertThat(valueScalarNode.size()).isEqualTo(0);
         assertThat(valueScalarNode.isNull()).isFalse();
         assertThat(valueScalarNode.isScalar()).isTrue();
-        assertThat(valueScalarNode.asText()).isEqualTo("\n\004FORD");
+        assertThat(valueScalarNode.text()).isEqualTo("\n\004FORD");
     }
 }

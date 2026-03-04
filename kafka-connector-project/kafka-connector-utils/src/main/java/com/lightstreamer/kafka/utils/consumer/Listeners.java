@@ -115,8 +115,7 @@ public class Listeners {
 
         @Override
         public void onUnsubscription() {
-            System.out.println(
-                    "Now unsubscribed from demo item, no more messages will be received");
+            System.out.println("Now unsubscribed from item, no more messages will be received");
         }
 
         @Override

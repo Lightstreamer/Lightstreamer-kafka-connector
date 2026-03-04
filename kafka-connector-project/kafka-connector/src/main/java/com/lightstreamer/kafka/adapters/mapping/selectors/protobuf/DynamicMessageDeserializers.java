@@ -33,13 +33,14 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Map;
 
 public class DynamicMessageDeserializers {
 
-    static class DynamicMessageLocalDeserializer
+    public static class DynamicMessageLocalDeserializer
             extends AbstractLocalSchemaDeserializer<DynamicMessage> {
 
         private DynamicSchema dynamicSchema;
@@ -57,10 +58,18 @@ public class DynamicMessageDeserializers {
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
             try {
-                dynamicSchema =
-                        DynamicSchema.parseFrom(
-                                Files.newInputStream(getSchemaFile(isKey).toPath()));
+                File schemaFile = getSchemaFile(isKey);
+                dynamicSchema = DynamicSchema.parseFrom(Files.newInputStream(schemaFile.toPath()));
                 messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
+                if (messageDescriptor == null) {
+                    throw new IllegalArgumentException(
+                            "Message type "
+                                    + "["
+                                    + messageTypeName
+                                    + "]"
+                                    + " not found in schema "
+                                    + schemaFile.getAbsolutePath());
+                }
             } catch (IOException | DescriptorValidationException e) {
                 throw new RuntimeException(e);
             }
@@ -68,6 +77,9 @@ public class DynamicMessageDeserializers {
 
         @Override
         public DynamicMessage deserialize(String topic, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
             try {
                 return DynamicMessage.parseFrom(messageDescriptor, data);
             } catch (InvalidProtocolBufferException e) {
@@ -86,11 +98,14 @@ public class DynamicMessageDeserializers {
 
     private static Deserializer<DynamicMessage> newDeserializer(
             ConnectorConfig config, boolean isKey) {
-        if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            DynamicMessageLocalDeserializer jsonNodeLocalDeserializer =
+        if ((isKey && config.hasKeySchemaFile() && config.getProtobufKeyMessageType() != null)
+                || (!isKey
+                        && config.hasValueSchemaFile()
+                        && config.getProtobufValueMessageType() != null)) {
+            DynamicMessageLocalDeserializer localDeserializer =
                     new DynamicMessageLocalDeserializer();
-            jsonNodeLocalDeserializer.preConfigure(config, isKey);
-            return jsonNodeLocalDeserializer;
+            localDeserializer.preConfigure(config, isKey);
+            return localDeserializer;
         }
         return new KafkaProtobufDeserializer<>();
     }
@@ -119,11 +134,11 @@ public class DynamicMessageDeserializers {
         return config.getValueEvaluator().is(PROTOBUF);
     }
 
-    static Deserializer<DynamicMessage> ValueDeserializer(ConnectorConfig config) {
+    public static Deserializer<DynamicMessage> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
 
-    static Deserializer<DynamicMessage> KeyDeserializer(ConnectorConfig config) {
+    public static Deserializer<DynamicMessage> KeyDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, true);
     }
 }

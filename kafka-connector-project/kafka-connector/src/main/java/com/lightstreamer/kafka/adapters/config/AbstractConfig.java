@@ -18,15 +18,19 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.DIRECTORY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.URL;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Type;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
@@ -42,7 +46,6 @@ import java.util.Optional;
 abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
-    public static final String ADAPTER_DIR = "adapter.dir";
 
     private final ConfigsSpec configSpec;
     private final Map<String, String> configuration;
@@ -59,11 +62,15 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final String getInt(String configKey) {
-        return get(configKey, ConfType.INT, false);
+        return get(configKey, INT, false);
+    }
+
+    public final String getPositiveInt(String configKey) {
+        return get(configKey, POSITIVE_INT, false);
     }
 
     public final String getThreads(String configKey) {
-        return get(configKey, ConfType.THREADS, false);
+        return get(configKey, THREADS, false);
     }
 
     public final String getText(String configKey) {
@@ -111,11 +118,11 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final String getHostsList(String configKey) {
-        return get(configKey, ConfType.HOST_LIST, false);
+        return get(configKey, HOST_LIST, false);
     }
 
     public final String getDirectory(String configKey) {
-        return get(configKey, ConfType.DIRECTORY, false);
+        return get(configKey, DIRECTORY, false);
     }
 
     public final String getFile(String configKey) {
@@ -123,7 +130,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final String getFile(String configKey, boolean forceRequired) {
-        return get(configKey, ConfType.FILE, forceRequired);
+        return get(configKey, FILE, forceRequired);
     }
 
     protected final String get(String key, Type type, boolean forceRequired) {
@@ -132,15 +139,13 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
             if (param.type().equals(type)) {
                 if (param.required() && configuration.containsKey(key)) {
                     return configuration.get(key);
-                } else {
-                    String value =
-                            configuration.getOrDefault(
-                                    key, param.defaultHolder().value(configuration));
-                    if (forceRequired && value == null) {
-                        throw new ConfigException("Missing required parameter [%s]".formatted(key));
-                    }
-                    return value;
                 }
+                String value =
+                        configuration.getOrDefault(key, param.defaultHolder().value(configuration));
+                if (forceRequired && value == null) {
+                    throw new ConfigException("Missing required parameter [%s]".formatted(key));
+                }
+                return value;
             }
         }
         throw new ConfigException(
@@ -163,17 +168,19 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return Collections.emptyMap();
     }
 
-    public static final Map<String, String> appendAdapterDir(
+    public static final Map<String, String> resolveFilePaths(
             ConfigsSpec configSpec, Map<String, String> config, File configDir) {
         Map<String, String> updatedConfigs = new HashMap<>(config);
-        updatedConfigs.put(ADAPTER_DIR, configDir.getAbsolutePath());
+        String adapterDirPath = configDir.getAbsolutePath();
         List<ConfParameter> confParams = configSpec.getByType(FILE);
         for (ConfParameter confParameter : confParams) {
             String value = updatedConfigs.get(confParameter.name());
             if (value != null && !value.isBlank()) {
-                updatedConfigs.replace(
-                        confParameter.name(),
-                        Paths.get(updatedConfigs.get(ADAPTER_DIR), value).toString());
+                if (Paths.get(value).isAbsolute()) {
+                    continue;
+                }
+                String replacedValue = Paths.get(adapterDirPath, value).toString();
+                updatedConfigs.put(confParameter.name(), replacedValue);
             }
         }
         return updatedConfigs;
