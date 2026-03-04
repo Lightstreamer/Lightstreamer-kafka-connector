@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.AZURE;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -159,7 +160,7 @@ public class JsonNodeDeserializers {
         }
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SchemaRegistryConfigs.AZURE_PROVIDER.equalsIgnoreCase(config.schemaRegistryProvider())) {
+            if (AZURE.equals(config.schemaRegistryProvider())) {
                 return new AzureSchemaRegistryDeserializer();
             }
             return new KafkaJsonSchemaDeserializer<>();

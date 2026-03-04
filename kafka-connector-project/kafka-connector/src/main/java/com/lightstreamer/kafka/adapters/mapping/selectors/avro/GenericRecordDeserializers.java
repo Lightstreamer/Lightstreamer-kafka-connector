@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.AZURE;
 
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -170,7 +171,7 @@ public class GenericRecordDeserializers {
 
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SchemaRegistryConfigs.AZURE_PROVIDER.equalsIgnoreCase(config.schemaRegistryProvider())) {
+            if (AZURE.equals(config.schemaRegistryProvider())) {
                 return new AzureSchemaRegistryDeserializer();
             }
             return new WrapperKafkaAvroDeserializer();

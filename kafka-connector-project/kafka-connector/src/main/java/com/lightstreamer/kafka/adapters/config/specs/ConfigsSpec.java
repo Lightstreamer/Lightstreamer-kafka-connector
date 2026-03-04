@@ -135,6 +135,8 @@ public class ConfigsSpec {
 
         ORDER_STRATEGY(Options.orderStrategies()),
 
+        SCHEMA_REGISTRY_PROVIDER(Options.schemaRegistryProviders()),
+
         URL {
             @Override
             public boolean checkValidity(String param) {
@@ -409,6 +411,10 @@ public class ConfigsSpec {
             return new Options(SaslMechanism.names());
         }
 
+        static Options schemaRegistryProviders() {
+            return new Options(ConfigTypes.SchemaRegistryProvider.names());
+        }
+
         private Set<String> choices;
 
         Options(String... options) {
@@ -553,7 +559,7 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
-        ConfigsSpec newSpec = new ConfigsSpec();
+        ConfigsSpec newSpec = new ConfigsSpec(this.name);
         for (ConfParameter cp : paramSpec.values()) {
             newSpec.add(
                     new ConfParameter(
@@ -706,28 +712,6 @@ public class ConfigsSpec {
                         specChildren.stream().flatMap(s -> s.spec().getByType(type).stream()))
                 .toList();
     }
-
-    // public static Optional<String> extractPrefix(ConfParameter param, String value) {
-    //     if (!param.multiple()) {
-    //         return Optional.empty();
-    //     }
-
-    //     String prefix = param.name() + ".";
-    //     boolean startsWith = value.startsWith(prefix);
-    //     if (!startsWith) {
-    //         return Optional.empty();
-    //     }
-
-    //     infix = value.substring(prefix.length());
-    //     if (param.suffix() != null) {
-    //         String suffix = "." + param.suffix();
-    //         if (!infix.endsWith(suffix)) {
-    //             return Optional.empty();
-    //         }
-    //         infix = infix.substring(0, infix.lastIndexOf(suffix));
-    //     }
-    //     return Optional.of(infix);
-    // }
 
     public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.
