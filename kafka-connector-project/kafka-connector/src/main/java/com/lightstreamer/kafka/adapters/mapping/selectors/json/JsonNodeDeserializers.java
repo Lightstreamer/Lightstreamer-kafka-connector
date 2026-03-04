@@ -44,6 +44,59 @@ class JsonNodeDeserializers {
 
     private static final String SCHEMA_REGISTRY_PROVIDER_AZURE = "AZURE";
 
+    static class AzureSchemaRegistryDeserializer implements Deserializer<JsonNode> {
+
+        private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
+                delegate = new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<>();
+        private final ObjectMapper mapper = new ObjectMapper();
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
+            String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+            String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+
+            Map<String, Object> mutableConfigs = new HashMap<>(configs);
+            if (tenantId != null && !tenantId.isEmpty()
+                    && clientId != null && !clientId.isEmpty()
+                    && clientSecret != null && !clientSecret.isEmpty()) {
+                mutableConfigs.put(
+                        "schema.registry.credential",
+                        new ClientSecretCredentialBuilder()
+                                .tenantId(tenantId)
+                                .clientId(clientId)
+                                .clientSecret(clientSecret)
+                                .build());
+            }
+            delegate.configure(mutableConfigs, isKey);
+        }
+
+        @Override
+        public JsonNode deserialize(String topic, byte[] data) {
+            return toJsonNode(delegate.deserialize(topic, data));
+        }
+
+        @Override
+        public JsonNode deserialize(String topic, Headers headers, byte[] data) {
+            return toJsonNode(delegate.deserialize(topic, headers, data));
+        }
+
+        private JsonNode toJsonNode(Object data) {
+            if (data == null) {
+                return null;
+            }
+            if (data instanceof JsonNode node) {
+                return node;
+            }
+            return mapper.valueToTree(data);
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
+    }
+
     static class JsonNodeLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
         private final ObjectMapper objectMapper = new ObjectMapper();
@@ -116,65 +169,11 @@ class JsonNodeDeserializers {
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
             if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
-                return azureSchemaRegistryDeserializer();
+                return new AzureSchemaRegistryDeserializer();
             }
             return new KafkaJsonSchemaDeserializer<>();
         }
         return new KafkaJsonDeserializer<>();
-    }
-
-    private static Deserializer<JsonNode> azureSchemaRegistryDeserializer() {
-        return new Deserializer<JsonNode>() {
-            private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
-                    delegate = new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<>();
-            private final ObjectMapper mapper = new ObjectMapper();
-
-            @Override
-            public void configure(Map<String, ?> configs, boolean isKey) {
-                String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
-                String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
-                String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
-
-                Map<String, Object> mutableConfigs = new HashMap<>(configs);
-                if (tenantId != null && !tenantId.isEmpty()
-                        && clientId != null && !clientId.isEmpty()
-                        && clientSecret != null && !clientSecret.isEmpty()) {
-                    mutableConfigs.put(
-                            "schema.registry.credential",
-                            new ClientSecretCredentialBuilder()
-                                    .tenantId(tenantId)
-                                    .clientId(clientId)
-                                    .clientSecret(clientSecret)
-                                    .build());
-                }
-                delegate.configure(mutableConfigs, isKey);
-            }
-
-            @Override
-            public JsonNode deserialize(String topic, byte[] data) {
-                return toJsonNode(delegate.deserialize(topic, data));
-            }
-
-            @Override
-            public JsonNode deserialize(String topic, Headers headers, byte[] data) {
-                return toJsonNode(delegate.deserialize(topic, headers, data));
-            }
-
-            private JsonNode toJsonNode(Object data) {
-                if (data == null) {
-                    return null;
-                }
-                if (data instanceof JsonNode node) {
-                    return node;
-                }
-                return mapper.valueToTree(data);
-            }
-
-            @Override
-            public void close() {
-                delegate.close();
-            }
-        };
     }
 
     private static void checkEvaluator(ConnectorConfig config, boolean isKey) {
