@@ -42,8 +42,6 @@ import java.util.Map;
 
 class JsonNodeDeserializers {
 
-    private static final String SCHEMA_REGISTRY_PROVIDER_AZURE = "AZURE";
-
     static class AzureSchemaRegistryDeserializer implements Deserializer<JsonNode> {
 
         private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
@@ -168,7 +166,7 @@ class JsonNodeDeserializers {
         }
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
+            if (SchemaRegistryConfigs.AZURE_PROVIDER.equalsIgnoreCase(config.schemaRegistryProvider())) {
                 return new AzureSchemaRegistryDeserializer();
             }
             return new KafkaJsonSchemaDeserializer<>();
