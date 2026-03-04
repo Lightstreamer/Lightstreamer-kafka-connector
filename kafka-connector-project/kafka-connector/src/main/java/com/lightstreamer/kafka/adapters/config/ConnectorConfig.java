@@ -57,6 +57,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFr
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -1000,14 +1001,13 @@ public final class ConnectorConfig extends AbstractConfig {
         return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
     }
 
-    public String schemaRegistryProvider() {
+    public SchemaRegistryProvider schemaRegistryProvider() {
         checkSchemaRegistryEnabled();
-        return getText(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER);
-    }
-
-    public String azureSchemaIdHeader() {
-        checkSchemaRegistryEnabled();
-        return getText(SchemaRegistryConfigs.AZURE_SCHEMA_ID_HEADER);
+        return SchemaRegistryProvider.valueOf(
+                get(
+                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                        ConfType.SCHEMA_REGISTRY_PROVIDER,
+                        false));
     }
 
     public String azureTenantId() {
