@@ -18,14 +18,14 @@
 package com.lightstreamer.kafka.connect.config;
 
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.selectors.DataExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RecordErrorHandlingStrategy;
 
 import org.apache.kafka.connect.sink.SinkTaskContext;
 
 public interface DataAdapterConfig {
 
-    DataExtractor<Object, Object> fieldsExtractor();
+    FieldsExtractor<Object, Object> fieldsExtractor();
 
     ItemTemplates<Object, Object> itemTemplates();
 

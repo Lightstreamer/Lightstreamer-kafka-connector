@@ -110,6 +110,7 @@ public class LsClient implements Runnable {
             Subscription sub = new Subscription(this.subscriptionMode, item, this.fields);
             sub.setDataAdapter(dataAdapter);
             sub.addListener(listener);
+            System.out.printf("Subscribing to item %s in %s mode%n", item, this.subscriptionMode);
             client.subscribe(sub);
         }
 

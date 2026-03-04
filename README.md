@@ -21,15 +21,15 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Configure](#configure)
   - [Start](#start)
     - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
-    - [2. Attach a Lightstreamer consumer](#2-attach-a-lightstreamer-consumer)
+    - [2. Attach a Lightstreamer Consumer](#2-attach-a-lightstreamer-consumer)
     - [3. Publish the Events](#3-publish-the-events)
     - [4. Check the Consumed Events](#4-check-the-consumed-events)
 - [Configuration](#configuration)
-- [Global Settings](#global-settings)
-- [Connection Settings](#connection-settings)
-  - [General Parameters](#general-parameters)
-  - [Encryption Parameters](#encryption-parameters)
-  - [Broker Authentication Parameters](#broker-authentication-parameters)
+  - [Global Settings](#global-settings)
+  - [Connection Settings](#connection-settings)
+    - [General Parameters](#general-parameters)
+    - [Encryption Parameters](#encryption-parameters)
+    - [Broker Authentication Parameters](#broker-authentication-parameters)
   - [Record Evaluation](#record-evaluation)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
@@ -42,11 +42,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
       - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
       - [Encryption Parameters](#encryption-parameters-1)
-      - [Quick Start Schema Registry Example](#quick-start-schema-registry-example)
+      - [Schema Registry QuickStart](#schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
-- [Kafka Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
+- [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
     - [Lightstreamer Setup](#lightstreamer-setup)
     - [Running](#running)
@@ -92,7 +92,7 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 ![Architecture](/pictures/architecture-full.png)
 
-The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customize-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
+The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customizing-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
 
 Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
 
@@ -110,9 +110,9 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quick start application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
+![QuickStart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -122,10 +122,13 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Confluent Cloud`](/examples/vendors/confluent/quickstart-confluent-cloud/README.md)
  - [`Confluent Platform`](/examples/vendors/confluent/quickstart-confluent-platform/README.md)
  - [`Redpanda Serverless`](/examples/vendors/redpanda/quickstart-redpanda-serverless/README.md)
- - [`Redpanda Self-hosted`](/examples/vendors/redpanda/quickstart-redpanda-selfhosted/README.md)
- - [`Aiven`](/examples/quickstart-aiven/README.md)
+ - [`Redpanda Self-Managed`](/examples/vendors/redpanda/quickstart-redpanda-self-managed/README.md)
+ - [`Aiven`](/examples/vendors/aiven/quickstart-aiven/README.md)
+ - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
+ - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
+ - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
  - [`Azure Events Hub`](/examples/vendors/azure/README.md)
-2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image example](/examples/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
+2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
 ## Run
@@ -205,7 +208,7 @@ LS_HOME/
 
 ## Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quick Start_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_QuickStart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -215,7 +218,7 @@ To quickly complete the installation and verify the successful integration with 
   <param name="bootstrap.servers">kafka.connection.string</param>
   ```
 
-- Configure topic and record mapping.
+- Configure [topic and record mapping](#topic-mapping) to route Kafka events to Lightstreamer items.
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
@@ -226,7 +229,7 @@ To quickly complete the installation and verify the successful integration with 
     <param name="item-template.stock">stock-#{index=KEY}</param>
     ```
 
-    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` -  permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#data-extraction-language) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
+    which defines the general format name of the items a client must subscribe to to receive updates from the Kafka Connector. The [_extraction expression_](#filtered-record-routing-item-templatetemplate_name) syntax used here - denoted within `#{...}` - permits the clients to specify filtering values to be compared against the actual contents of a Kafka record, evaluated through [_Extraction Keys_](#data-extraction-language) used to extract each part of a record. In this case, the `KEY` predefined constant extracts the key part of Kafka records.
 
   - A topic mapping:
     ```xml
@@ -245,7 +248,7 @@ To quickly complete the installation and verify the successful integration with 
   In addition, the following section defines how to map the record to the tabular form of Lightstreamer fields, by using the aforementioned _Extraction Keys_. In this case, the `VALUE` predefined constant extracts the value part of Kafka records.
 
   ```xml
-  <param name="field.stock_name">#{VALUE.name}</param>
+  <param name="field.name">#{VALUE.name}</param>
   <param name="field.last_price">#{VALUE.last_price}</param>
   <param name="field.ask">#{VALUE.ask}</param>
   <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -261,7 +264,7 @@ To quickly complete the installation and verify the successful integration with 
 
   This way, the routed event is transformed into a flat structure, which can be forwarded to the clients.
 
-- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` file).
+- Optionally, customize the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/log4j.properties` file (the current settings produce the `quickstart.log` and `quickstart-monitor.log` files).
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
@@ -306,7 +309,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 ### 3. Publish the Events
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quick Start_ app.
+   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
 
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
@@ -324,41 +327,6 @@ You can get more details about all possible settings in the [Configuration](#con
    ```
 
    ![producer_video](/pictures/producer.gif)
-
-   #### Publishing with Confluent Cloud
-
-   If your target Kafka cluster is _Confluent Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
-
-   ```java
-   security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="<API.key>" password="<API.secret>";
-   sasl.mechanism=PLAIN
-   ...
-   ```
-
-   where you have to replace `<API.key>` and `<API.secret>` with the API key and API secret generated on the _Confluent CLI_ or from the _Confluent Cloud Console_.
-
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
-   ```
-
-   #### Publishing with Redpanda Cloud
-
-   If your target Kafka cluster is _Redpanda Cloud_, you also need to provide a properties file that includes encryption and authentication settings, as follows:
-
-   ```java
-   security.protocol=SASL_SSL
-   sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="username" password="password";
-   sasl.mechanism=SCRAM-SHA-256
-   #sasl.mechanism=SCRAM-SHA-512
-   ...
-   ```
-
-   where you have to replace `username` and `password` with the credentials generated from the _Redpanda Console_, and specify the configured SASL mechanism (`SCRAM-SHA-256` or `SCRAM-SHA-512`).
-
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
-   ```
 
 ### 4. Check the Consumed Events
 
@@ -410,7 +378,7 @@ Example:
 
 ### `logging.configuration.path`
 
-_Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+_Mandatory_. The path of the [reload4j](https://reload4j.qos.ch/) configuration file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`), or as an absolute path.
 
 The parameter is specified inside the _metadata_provider_ block.
 
@@ -445,8 +413,8 @@ _Optional_. The `name` attribute of the `data_provider` tag defines _Kafka Conne
 Furthermore, the name is also used to group all logging messages belonging to the same connection.
 
 > [!TIP]
-> For every Data Adapter connection, add a new logger and its relative file appender to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
-> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides the logger `QuickStart` to print every log messages relative to the `QuickStart` connection:
+> For every Data Adapter connection, add new loggers and their relative file appenders to `log4j.properties`, so that you can log to dedicated files all the interactions pertinent to the connection with the Kafka cluster and the message retrieval operations, along with their routing to the subscribed items.
+> For example, the factory [logging configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/log4j.properties#L23) provides both a regular logger `QuickStart` and a monitor logger `QuickStartMonitor` for the `QuickStart` connection:
 > ```java
 > ...
 > # QuickStart logger
@@ -455,6 +423,13 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartFile.layout=org.apache.log4j.PatternLayout
 > log4j.appender.QuickStartFile.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
 > log4j.appender.QuickStartFile.File=../../logs/quickstart.log
+>
+> # QuickStart Monitor logger
+> log4j.logger.QuickStartMonitor=INFO, QuickStartMonitorFile
+> log4j.appender.QuickStartMonitorFile=org.apache.log4j.RollingFileAppender
+> log4j.appender.QuickStartMonitorFile.layout=org.apache.log4j.PatternLayout
+> log4j.appender.QuickStartMonitorFile.layout.ConversionPattern=[%d] %m%n
+> log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
 Example:
@@ -491,7 +466,7 @@ Example:
 
 _Mandatory_. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to establish the initial connection.
 
-The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/documentation/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`bootstrap.servers`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers) key to configure the internal Kafka Consumer.
 
 Example:
 
@@ -503,7 +478,7 @@ Example:
 
 _Optional_. The name of the consumer group this connection belongs to.
 
-The parameter sets the value for the [`group.id`](https://kafka.apache.org/documentation/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
 Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
@@ -607,7 +582,7 @@ Example:
 
 #### `encryption.truststore.path`
 
-_Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+_Optional_. The path of the trust store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`), or as an absolute path.
 
 The trust store is used to validate the certificates provided by the Kafka brokers.
 
@@ -631,7 +606,7 @@ Example:
 <param name="encryption.truststore.type">PKCS12</param>
 ```
 
-#### `encryption.truststore.password `
+#### `encryption.truststore.password`
 
 _Optional_. The password of the trust store.
 
@@ -668,7 +643,7 @@ Example:
 
 #### `encryption.keystore.path`
 
-_Mandatory if [key store](#encryptionkeystoreenable) is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+_Mandatory if [key store](#encryptionkeystoreenable) is enabled_. The path of the key store file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`), or as an absolute path.
 
 Example:
 
@@ -712,9 +687,9 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start SSL Example
+#### SSL QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_Quick Start SSL_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
 
 ### Broker Authentication Parameters
 
@@ -796,7 +771,7 @@ When this mechanism is specified, you can configure the following authentication
 
 - `authentication.gssapi.key.tab.path`
 
-  _Mandatory if keytab is enabled_. The path to the keytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`).
+  _Mandatory if keytab is enabled_. The path to the keytab file, relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`), or as an absolute path.
 
 - `authentication.gssapi.store.key.enable`
 
@@ -894,29 +869,21 @@ When this mechanism is specified, you can configure the following authentication
 > [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
-#### Quick Start Confluent Cloud Example
+#### Confluent Cloud QuickStart
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L29) file of the [_Quick Start Confluent Cloud_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
 
-#### Quick Start with Redpanda Serverless Example
+#### Redpanda Serverless QuickStart
 
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Quick Start with Redpanda Serverless_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
+Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless QuickStart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
 
-#### Quick Start with MSK Example
+#### MSK QuickStart
 
-Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_Quick Start with MSK_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
+Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK QuickStart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
 
-#### Quick Start with Aiven for Apache Kafka Example
+#### Aiven for Apache Kafka QuickStart
 
-Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L25) file of the [_Quick Start with Aiven_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
-
-#### Quick Start with Axual Platform Example
-
-Check out the [adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.xml#L23) file of the [_Quick Start with Axual Platform_](/examples/vendors/aiven/quickstart-aiven/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
-
-#### Quick Start with Azure Events Hub Example
-
-Check out the [adapters.xml](/examples/vendors/azure/adapters.xml#L29) file of the [_Quick Start with Azure Event Hubs_](/examples/vendors/azure/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Aiven for Apache QuickStart_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
 
 ## Record Evaluation
 
@@ -941,7 +908,7 @@ The Kafka Connector enables the independent deserialization of keys and values, 
 - Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
-### Support for Key Value Pairs (KVP)
+**Support for Key Value Pairs (KVP)**
 
 In addition to the above formats, the Kafka Connector also supports the _Key Value Pairs_ (KVP) format. This format allows Kafka records to be represented as a collection of key-value pairs, making it particularly useful for structured data where each key is associated with a specific value.
 
@@ -954,12 +921,12 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional_. Specifies where to start consuming events from:
+_Optional_. Specifies where to start consuming events from. Can be one of the following:
 
-- `LATEST`: start consuming events from the end of the topic partition
-- `EARLIEST`: start consuming events from the beginning of the topic partition
+- `LATEST`: Start consuming events from the end of the topic partition.
+- `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
-The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/documentation/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
 
 Default value: `LATEST`.
 
@@ -969,14 +936,25 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
+#### `record.consume.max.poll.records`
+
+_Optional_. The maximum number of records fetched in each polling cycle.
+
+The parameter sets the value of the [`max.poll.records`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records) key to configure the internal Kafka Consumer.
+
+Default value: `500`.
+
+Example:
+
+```xml
+<param name="record.consume.max.poll.records">200</param>
+```
+
 #### `record.consume.with.num.threads`
 
 _Optional_. The number of threads to be used for concurrent processing of the incoming deserialized records. If set to `-1`, the number of threads will be automatically determined based on the number of available CPU cores.
 
 Default value: `1`.
-
-> [!CAUTION]
-> Concurrent processing is not compatible with _log compaction_. When log compaction is enabled in Kafka (which retains only the latest value per key), using multiple processing threads can lead to metadata bloat. This occurs because the offset tracking mechanism accumulates metadata for all processed messages, including those that may later be compacted away. For reliable operation with compacted topics, use a single processing thread (`record.consume.with.num.threads` set to `1`).
 
 Example:
 
@@ -1039,7 +1017,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
@@ -1065,7 +1043,7 @@ Examples:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided,_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
@@ -1103,7 +1081,7 @@ Then the corresponding message type parameter should be:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective when `record.key/value.evaluator.type` is set to `KVP`_.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1123,7 +1101,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional_ but only effective when `record.key/value.evaluator.type` is set to `KVP`.
+_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1183,7 +1161,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - **Record data**: Navigate through attribute or fields in JSON, Avro, and Protobuf records values and keys
+  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys
   - **Headers**: Retrieve values from record headers
 
   ```js
@@ -1235,15 +1213,25 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
  > HEADERS.['myKey']
  > ```
 
-- Expressions must evaluate to _scalar_ values
+- Expressions support **wildcards** to extract multiple values at once:
 
-  When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
+  - **`#{VALUE.*}`**: Extract all fields from the record value
+  - **`#{KEY.*}`**: Extract all fields from the record key
+  - **`#{HEADERS.*}`**: Extract all headers
+  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps)
+  - **`#{VALUE.items.*}`**: Extract all elements from an array
 
-  When an expression evaluates to a non-scalar value (object, array, or nested structure), the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
+  Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
-  To allow complex data structures to be directly mapped to fields instead, enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
+- Scalar vs Non-Scalar Value Extraction
 
-#### Record Routing (`map.TOPIC_NAME.to`)
+  By default, expressions must evaluate to _scalar_ values. When extracted, these values are converted to strings before being sent to Lightstreamer clients. In particular, the binary header values undergo byte-to-string conversion using UTF-8 encoding.
+
+  When an expression evaluates to a non-scalar value (object, array, or nested structure) and non-scalar mapping is not enabled, the connector will throw an extraction error, which is then processed according to the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting.
+
+  To allow complex data structures to be directly mapped to fields (preserving their structure as generic text), enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
+
+### Record Routing (`map.TOPIC_NAME.to`)
 
 To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC_NAME.TO` parameter. The general format is:
 
@@ -1287,7 +1275,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-##### Enable Regular Expression (`map.regex.enable`)
+#### Enable Regular Expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
@@ -1304,7 +1292,7 @@ Example:
 <param name="map.regex.enable">true</param>
 ```
 
-#### Record Mapping (`field.FIELD_NAME`)
+### Record Mapping (`field.FIELD_NAME`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -1322,13 +1310,13 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L471) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L495) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
 <param name="field.timestamp">#{VALUE.timestamp}</param>
 <param name="field.time">#{VALUE.time}</param>
-<param name="field.stock_name">#{VALUE.name}</param>
+<param name="field.name">#{VALUE.name}</param>
 <param name="field.last_price">#{VALUE.last_price}</param>
 <param name="field.ask">#{VALUE.ask}</param>
 <param name="field.ask_quantity">#{VALUE.ask_quantity}</param>
@@ -1343,7 +1331,109 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ..
 ```
 
-##### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
+#### Dynamic Field Discovery (`field.*`)
+
+Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
+
+- The record schema changes frequently and you want automatic adaptation
+- You have many fields and don't want to list them individually
+- You're working with schema-less or variable-structure records
+
+To enable dynamic field discovery, use wildcard expressions in your field configuration:
+
+```xml
+<param name="field.*">#{VALUE.*}</param>
+```
+
+This configuration automatically extracts all attributes from the record value and maps them to Lightstreamer fields with matching names. For example, a Kafka record with value:
+
+```json
+{
+  "symbol": "AAPL",
+  "price": 150.25,
+  "volume": 1000000,
+  "exchange": "NASDAQ"
+}
+```
+
+will automatically create fields `symbol`, `price`, `volume`, and `exchange` without needing to explicitly configure each one.
+
+**Supported wildcard patterns:**
+
+Wildcards can be applied at any level to extract all fields from non-scalar structures:
+
+- `#{VALUE.*}` - Discover all fields from the root record value
+- `#{KEY.*}` - Discover all fields from the root record key
+- `#{HEADERS.*}` - Discover all headers
+- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map)
+- `#{VALUE.items.*}` - Discover all elements from an array
+
+**How wildcards map to field names:**
+
+Wildcards can be applied at any level to any non-scalar part of the record. The resulting field names depend on the structure type:
+
+- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
+- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`)
+
+Dynamic field discovery automatically handles both scalar and non-scalar values. Non-scalar values (objects, arrays, nested structures) are serialized as generic text (e.g., JSON strings) and mapped to their corresponding field names.
+
+For example, with nested objects or maps:
+
+```json
+{
+  "trade": {
+    "symbol": "AAPL",
+    "details": {
+      "price": 150.25,
+      "volume": 1000000,
+      "exchange": "NASDAQ"
+    }
+  }
+}
+```
+
+You can extract all fields from the nested `details` structure with:
+
+```xml
+<param name="field.*">#{VALUE.trade.details.*}</param>
+```
+
+This creates fields `price`, `volume`, and `exchange` from the nested object. The same wildcard pattern works for maps, where the map keys become field names.
+
+For arrays, the wildcard discovers all elements with indexed field names:
+
+```json
+{
+  "prices": [150.25, 155.50, 148.75, 152.30]
+}
+```
+
+```xml
+<param name="field.*">#{VALUE.prices.*}</param>
+```
+
+This creates fields `prices[0]`, `prices[1]`, `prices[2]`, and `prices[3]` containing the individual price values.
+
+You can also combine static field mapping with dynamic discovery:
+
+```xml
+<!-- Explicitly map metadata fields -->
+<param name="field.timestamp">#{TIMESTAMP}</param>
+<param name="field.partition">#{PARTITION}</param>
+
+<!-- Discover all value fields automatically -->
+<param name="field.*">#{VALUE.*}</param>
+```
+
+When combining both approaches, static field mappings take precedence over dynamic discovery. If a field name is explicitly defined with `field.fieldName`, it will not be overridden by the wildcard `field.*` pattern.
+
+> [!NOTE]
+> The `field.*` configuration parameter name is static (defined at configuration time), while the wildcard expression `#{VALUE.*}` dynamically discovers field names at runtime from the actual record content.
+
+> [!IMPORTANT]
+> Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
+
+#### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
 
 _Optional_. Normally, if a field mapping fails during the extraction from the Kafka record because of an issue with the data, it leads to the entire record being discarded or even cause the subscription to be terminated, depending on the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting. By enabling this parameter, the connector becomes more resilient to such errors. If a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. This allows for partial updates even in the presence of data inconsistencies or transient extraction issues.
 
@@ -1359,7 +1449,7 @@ Example:
 <param name="fields.skip.failed.mapping.enable">true</param>
 ```
 
-##### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+#### Map Non-Scalar Values (`fields.map.non.scalar.values`)
 
 _Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
@@ -1373,6 +1463,9 @@ In the following example:
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
 
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
+
 Can be one of the following:
 - `true`
 - `false`
@@ -1385,9 +1478,9 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
-##### Evaluate As Command (`fields.evaluate.as.command.enable`)
+#### Evaluate As Command (`fields.evaluate.as.command.enable`)
 
-_Optional_. Enable support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-mode-fieldsautocommandmodeenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
@@ -1408,7 +1501,7 @@ A Kafka record must be structured to allow the Kafka Connector to map the values
 ```
 
 > [!TIP]
-> The `key` and `command` fields can be mapped from any part of the Kafka record.
+> The `key` and `command` fields can be mapped from any part of the Kafka record structure.
 
 Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
 
@@ -1425,7 +1518,38 @@ The parameter can be one of the following:
 
 Default value : `false`.
 
-#### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
+##### Auto Command Mode (`fields.auto.command.mode.enable`)
+
+_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
+
+When enabled, the connector:
+
+- Automatically adds a Lightstreamer command field to each update
+- Assigns the appropriate command value based on the record state:
+  - **`ADD`**: For records with a new mapped key (not previously processed)
+  - **`UPDATE`**: For records with a mapped key that has been previously processed
+  - **`DELETE`**: For records with a null message payload (_tombstone records_)
+
+You only need to map the `key` field from your record structure. For example:
+
+```xml
+<param name="fields.auto.command.mode.enable">true</param>
+<param name="field.key">#{KEY}</param>
+...
+```
+
+> [!TIP]
+> The `key` field can be mapped from any part of the Kafka record structure.
+
+This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
+
+The parameter can be one of the following:
+- `true`
+- `false`
+
+Default value : `false`.
+
+### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
@@ -1478,7 +1602,7 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-##### Example
+#### Example
 
 Consider the following configuration:
 
@@ -1557,7 +1681,7 @@ A _Schema Registry_ is a centralized repository that manages and validates schem
 
 The Kafka Connector supports integration with both the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) and the [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview) through the configuration of parameters with the prefix `schema.registry`.
 
-#### `schema.registry.url`
+### `schema.registry.url`
 
 _Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
 
@@ -1633,7 +1757,7 @@ When using Confluent Schema Registry (`schema.registry.provider` set to `CONFLUE
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
 
-##### `schema.registry.basic.authentication.enable`
+#### `schema.registry.basic.authentication.enable`
 
 _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
 - `true`
@@ -1647,7 +1771,7 @@ Example:
 <param name="schema.registry.basic.authentication.enable">true</param>
 ```
 
-##### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+#### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
 _Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
@@ -1661,7 +1785,7 @@ Example:
 <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
 ```
 
-#### Encryption Parameters
+### Encryption Parameters
 
 A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
 
@@ -1700,9 +1824,9 @@ Example:
 <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Quick Start Schema Registry Example
+### Schema Registry QuickStart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Quick Start Schema Registry_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
 # Client Side Error Handling
 
@@ -1926,7 +2050,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quick Start_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _QuickStart_ app.
 
 ## Supported Converters
 
@@ -2176,14 +2300,14 @@ Example:
 
 ```
 record.mappings=index:#{KEY.}, \
-                stock_name:#{VALUE.name}, \
+                name:#{VALUE.name}, \
                 last_price:#{VALUE.last_price}
 ```
 
 The configuration above specifies the following mappings:
 
 1. The record key to the Lightstreamer field `index`
-2. The `name` attribute of the record value to the Lightstreamer field `stock_name`
+2. The `name` attribute of the record value to the Lightstreamer field `name`
 3. The `last_price` of the record value to the Lightstreamer field `last_price`
 
 ### `record.mappings.skip.failed.enable`

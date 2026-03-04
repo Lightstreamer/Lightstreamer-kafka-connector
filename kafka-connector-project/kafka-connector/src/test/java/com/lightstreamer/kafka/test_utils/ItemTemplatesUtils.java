@@ -23,12 +23,15 @@ import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.AvroKeyJs
 import static java.util.stream.Collectors.joining;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 
 import org.apache.avro.generic.GenericRecord;
@@ -101,5 +104,26 @@ public class ItemTemplatesUtils {
             throws ExtractionException {
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, topicMappings);
         return Items.templatesFrom(topicsConfig, sSuppliers);
+    }
+
+    public static ItemTemplates<String, String> itemTemplates(String topic, String items) {
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(
+                        ItemTemplateConfigs.empty(),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, items)));
+        try {
+            return Items.templatesFrom(topicsConfig, OthersSelectorSuppliers.String());
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static FieldsExtractor<String, String> fieldsExtractor() {
+        try {
+            return FieldConfigs.from(Map.of("field", "#{VALUE}"))
+                    .fieldsExtractor(OthersSelectorSuppliers.String(), false, false);
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

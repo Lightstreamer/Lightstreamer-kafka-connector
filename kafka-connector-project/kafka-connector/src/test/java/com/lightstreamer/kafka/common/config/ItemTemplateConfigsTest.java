@@ -18,12 +18,12 @@
 package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
-import com.lightstreamer.kafka.common.expressions.Expressions;
-import com.lightstreamer.kafka.common.expressions.Expressions.TemplateExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,13 +38,13 @@ public class ItemTemplateConfigsTest {
     @Test
     void shouldCreateFromEmptyMap() {
         ItemTemplateConfigs templateConfigs = ItemTemplateConfigs.from(Collections.emptyMap());
-        assertThat(templateConfigs.expressions()).isEmpty();
+        assertThat(templateConfigs.templates()).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyConfigs() {
         ItemTemplateConfigs templateConfigs = ItemTemplateConfigs.empty();
-        assertThat(templateConfigs.expressions()).isEmpty();
+        assertThat(templateConfigs.templates()).isEmpty();
     }
 
     @Test
@@ -52,11 +52,12 @@ public class ItemTemplateConfigsTest {
         ItemTemplateConfigs it =
                 ItemTemplateConfigs.from(
                         Map.of("template-name", "template-prefix-#{param=OFFSET}"));
-        assertThat(it.expressions()).hasSize((1));
+        assertThat(it.templates()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
-        TemplateExpression expression = it.getExpression("template-name");
+        TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
-        assertThat(expression.params()).containsExactly("param", Expressions.Expression("OFFSET"));
+        assertThat(expression.params())
+                .containsExactly("param", WrappedNoWildcardCheck("#{OFFSET}"));
     }
 
     @Test
@@ -66,18 +67,18 @@ public class ItemTemplateConfigsTest {
                         Map.of(
                                 "template-name",
                                 "template-prefix-#{param1=OFFSET,param2=PARTITION,param3=TIMESTAMP}"));
-        assertThat(it.expressions()).hasSize((1));
+        assertThat(it.templates()).hasSize((1));
         assertThat(it.contains("template-name")).isTrue();
-        TemplateExpression expression = it.getExpression("template-name");
+        TemplateExpression expression = it.getTemplateExpression("template-name");
         assertThat(expression.prefix()).isEqualTo("template-prefix");
         assertThat(expression.params())
                 .containsExactly(
                         "param1",
-                        Expressions.Expression("OFFSET"),
+                        WrappedNoWildcardCheck("#{OFFSET}"),
                         "param2",
-                        Expressions.Expression("PARTITION"),
+                        WrappedNoWildcardCheck("#{PARTITION}"),
                         "param3",
-                        Expressions.Expression("TIMESTAMP"));
+                        WrappedNoWildcardCheck("#{TIMESTAMP}"));
     }
 
     @Test
@@ -89,30 +90,29 @@ public class ItemTemplateConfigsTest {
                                 "template-prefix-a-#{param1a=VALUE,param2a=KEY,param3a=PARTITION}",
                                 "template-name-b",
                                 "template-prefix-b-#{param1b=VALUE.b,param2b=KEY.b,param3b=KEY.c}"));
-        assertThat(it.expressions()).hasSize((2));
+        assertThat(it.templates()).hasSize((2));
         assertThat(it.contains("template-name-a")).isTrue();
 
-        TemplateExpression expression_a = it.getExpression("template-name-a");
+        TemplateExpression expression_a = it.getTemplateExpression("template-name-a");
         assertThat(expression_a.prefix()).isEqualTo("template-prefix-a");
         assertThat(expression_a.params())
                 .containsExactly(
                         "param1a",
-                        Expressions.Expression("VALUE"),
+                        WrappedNoWildcardCheck("#{VALUE}"),
                         "param2a",
-                        Expressions.Expression("KEY"),
+                        WrappedNoWildcardCheck("#{KEY}"),
                         "param3a",
-                        Expressions.Expression("PARTITION"));
-
-        TemplateExpression expression_b = it.getExpression("template-name-b");
+                        WrappedNoWildcardCheck("#{PARTITION}"));
+        TemplateExpression expression_b = it.getTemplateExpression("template-name-b");
         assertThat(expression_b.prefix()).isEqualTo("template-prefix-b");
         assertThat(expression_b.params())
                 .containsExactly(
                         "param1b",
-                        Expressions.Expression("VALUE.b"),
+                        WrappedNoWildcardCheck("#{VALUE.b}"),
                         "param2b",
-                        Expressions.Expression("KEY.b"),
+                        WrappedNoWildcardCheck("#{KEY.b}"),
                         "param3b",
-                        Expressions.Expression("KEY.c"));
+                        WrappedNoWildcardCheck("#{KEY.c}"));
     }
 
     @ParameterizedTest
@@ -140,16 +140,16 @@ public class ItemTemplateConfigsTest {
                         () ->
                                 ItemTemplateConfigs.from(
                                         Map.of("template-name", templateExpression)));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Found the invalid expression ["
+                        "Got the following error while evaluating the template [template-name] containing the expression ["
                                 + templateExpression
-                                + "] while"
-                                + " evaluating [template-name]: <Invalid template expression>");
+                                + "]: <Invalid template expression>");
     }
 
     @Test
-    public void shouldNotAllowDuplicatedKeysOnTheSameTemplate() {
+    public void shouldNotAllowDuplicatedKeysInTheSameTemplate() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -158,9 +158,9 @@ public class ItemTemplateConfigsTest {
                                         Map.of(
                                                 "template-name",
                                                 "item-#{name=VALUE,name=PARTITION}")));
-        assertThat(ce.getMessage())
+        assertThat(ce)
+                .hasMessageThat()
                 .isEqualTo(
-                        "Found the invalid expression [item-#{name=VALUE,name=PARTITION}] while"
-                                + " evaluating [template-name]: <No duplicated keys are allowed>");
+                        "Got the following error while evaluating the template [template-name] containing the expression [item-#{name=VALUE,name=PARTITION}]: <No duplicated keys are allowed>");
     }
 }

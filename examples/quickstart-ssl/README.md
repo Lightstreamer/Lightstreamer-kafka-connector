@@ -1,6 +1,6 @@
-# Quick Start SSL
+# SSL QuickStart
 
-This folder contains a variant of the [_Quick Start_](../../README.md#quick-start-set-up-in-5-minutes) app configured to establish a secure connection with the Kafka broker.
+This folder contains a variant of the [_QuickStart_](../../README.md#quick-start-set-up-in-5-minutes) app configured to establish a secure connection with the Kafka broker.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to enable support for SSL, as follows:
 
@@ -19,7 +19,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
 
 - _kafka-connector_:
 
-  Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+  Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:
 
   - Update of the parameter `bootstrap.servers` to the new SSL endpoint (`broker:29094`):
   

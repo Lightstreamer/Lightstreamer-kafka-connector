@@ -56,7 +56,8 @@ public class JsonNodeDeserializerTest {
                 ConnectorConfigProvider.minimalWith(
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            deser.deserialize("topic", s.getBytes());
+            JsonNode node = deser.deserialize("topic", s.getBytes());
+            assertThat(node).isNotNull();
         }
     }
 
@@ -93,6 +94,24 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
+    public void shouldDeserializeNullWithLocalSchema() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE));
+
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            JsonNode node = deserializer.deserialize("topic", null);
+            assertThat(node).isNull();
+        }
+    }
+
+    @Test
     public void shouldNotDeserializeWithLocalSchemaDueToInvalidRecord() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -118,7 +137,7 @@ public class JsonNodeDeserializerTest {
                     assertThrows(
                             SerializationException.class,
                             () -> deser.deserialize("topic", flight.getBytes()));
-            assertThat(se.getMessage()).contains("required key [terminal] not found");
+            assertThat(se).hasMessageThat().contains("required key [terminal] not found");
         }
     }
 

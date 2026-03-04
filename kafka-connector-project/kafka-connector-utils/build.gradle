@@ -3,8 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation group: 'info.picocli', name:'picocli', version:'4.7.5'
-    implementation group: 'com.lightstreamer', name: 'ls-javase-client', version:'5.0.0'
+    implementation("info.picocli:picocli:4.7.5")
+    implementation("com.lightstreamer:ls-javase-client:5.2.1")
 }
 
 jar {

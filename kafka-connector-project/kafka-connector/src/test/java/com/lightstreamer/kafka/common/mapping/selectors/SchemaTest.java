@@ -56,7 +56,7 @@ public class SchemaTest {
         Schema schema1 = Schema.from("test", Set.of("a", "b"));
         Schema schema2 = Schema.from("test", Set.of("a", "b"));
 
-        assertThat(schema1.matches(schema2)).isTrue();
+        assertThat(schema1.equals(schema2)).isTrue();
         assertThat(schema1.hashCode()).isEqualTo(schema2.hashCode());
     }
 
@@ -65,7 +65,7 @@ public class SchemaTest {
         Schema schema1 = Schema.from("test1", Set.of("a", "b"));
         Schema schema2 = Schema.from("test2", Set.of("a", "b"));
 
-        assertThat(schema1.matches(schema2)).isFalse();
+        assertThat(schema1.equals(schema2)).isFalse();
     }
 
     @Test
@@ -73,7 +73,7 @@ public class SchemaTest {
         Schema schema1 = Schema.from("test", Set.of("a", "b"));
         Schema schema2 = Schema.from("test", Set.of("a", "c"));
 
-        assertThat(schema1.matches(schema2)).isFalse();
+        assertThat(schema1.equals(schema2)).isFalse();
     }
 
     @Test
@@ -84,7 +84,7 @@ public class SchemaTest {
                         () -> {
                             Schema.from(null, Set.of("a", "b"));
                         });
-        assertThat(exception.getMessage()).isEqualTo("Schema name must be a non empty string");
+        assertThat(exception).hasMessageThat().isEqualTo("Schema name must be a non empty string");
     }
 
     @Test
@@ -95,6 +95,6 @@ public class SchemaTest {
                         () -> {
                             Schema.from("  ", Set.of("a", "b"));
                         });
-        assertThat(exception.getMessage()).isEqualTo("Schema name must be a non empty string");
+        assertThat(exception).hasMessageThat().isEqualTo("Schema name must be a non empty string");
     }
 }

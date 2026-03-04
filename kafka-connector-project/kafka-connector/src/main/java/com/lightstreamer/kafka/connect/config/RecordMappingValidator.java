@@ -17,8 +17,8 @@
 
 package com.lightstreamer.kafka.connect.config;
 
-import com.lightstreamer.kafka.common.expressions.ExpressionException;
-import com.lightstreamer.kafka.common.expressions.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.utils.Split;
 import com.lightstreamer.kafka.common.utils.Split.Pair;
 
@@ -40,7 +40,7 @@ public class RecordMappingValidator extends ListValidator {
                                                         "[fieldName]:[extractionExpression]")));
         try {
             // Validates <field-expression>
-            Expressions.Wrapped(pair.value());
+            Expressions.WrappedNoWildcardCheck(pair.value());
             return pair.key();
         } catch (ExpressionException ee) {
             throw new ConfigException(

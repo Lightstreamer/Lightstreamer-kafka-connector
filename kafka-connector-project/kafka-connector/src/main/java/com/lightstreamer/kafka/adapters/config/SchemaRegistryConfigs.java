@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -88,7 +89,12 @@ public class SchemaRegistryConfigs {
         CONFIG_SPEC =
                 new ConfigsSpec("schemaRegistry")
                         .add(URL, true, false, ConfType.URL)
-                        .add(SCHEMA_REGISTRY_PROVIDER, false, false, TEXT, defaultValue("CONFLUENT"))
+                        .add(
+                                SCHEMA_REGISTRY_PROVIDER,
+                                false,
+                                false,
+                                TEXT,
+                                defaultValue("CONFLUENT"))
                         .add(AZURE_SCHEMA_ID_HEADER, false, false, TEXT, defaultValue(""))
                         .add(ENABLE_BASIC_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
                         .withEnabledChildConfigs(

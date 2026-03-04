@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -24,6 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
@@ -48,6 +50,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -106,6 +109,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
             "fields.evaluate.as.command.enable";
 
+    public static final String FIELDS_AUTO_COMMAND_MODE_ENABLE = "fields.auto.command.mode.enable";
+
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
             "record.key.evaluator.schema.path";
@@ -152,9 +157,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String AUTHENTICATION_ENABLE = "authentication.enable";
 
-    // Kafka consumer specific settings
-    private static final String CONNECTOR_PREFIX = "consumer.";
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
+
+    // Kafka consumer specific settings
+    public static final String RECORD_CONSUME_MAX_POLL_RECORDS =
+            "record.consume." + MAX_POLL_RECORDS_CONFIG;
+
+    // Prefix for all hidden consumer configs
+    private static final String CONNECTOR_PREFIX = "consumer.";
     public static final String CONSUMER_CLIENT_ID =
             CONNECTOR_PREFIX + CommonClientConfigs.CLIENT_ID_CONFIG;
     public static final String CONSUMER_ENABLE_AUTO_COMMIT_CONFIG =
@@ -165,8 +175,6 @@ public final class ConnectorConfig extends AbstractConfig {
             CONNECTOR_PREFIX + FETCH_MAX_BYTES_CONFIG;
     public static final String CONSUMER_FETCH_MAX_WAIT_MS_CONFIG =
             CONNECTOR_PREFIX + FETCH_MAX_WAIT_MS_CONFIG;
-    public static final String CONSUMER_MAX_POLL_RECORDS =
-            CONNECTOR_PREFIX + MAX_POLL_RECORDS_CONFIG;
     public static final String CONSUMER_RECONNECT_BACKOFF_MS_CONFIG =
             CONNECTOR_PREFIX + RECONNECT_BACKOFF_MS_CONFIG;
     public static final String CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG =
@@ -192,7 +200,6 @@ public final class ConnectorConfig extends AbstractConfig {
         CONFIG_SPEC =
                 new ConfigsSpec("root")
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
-                        .add(ADAPTER_DIR, true, false, ConfType.DIRECTORY)
                         .add(DATA_ADAPTER_NAME, true, false, TEXT)
                         .add(ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(BOOTSTRAP_SERVERS, true, false, ConfType.HOST_LIST)
@@ -239,6 +246,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                false,
+                                false,
+                                BOOL,
+                                defaultValue("false"))
+                        .add(
+                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
                                 false,
                                 false,
                                 BOOL,
@@ -350,7 +363,13 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
-                        .add(CONSUMER_MAX_POLL_RECORDS, false, false, INT)
+                        .add(
+                                RECORD_CONSUME_MAX_POLL_RECORDS,
+                                false,
+                                false,
+                                POSITIVE_INT,
+                                true,
+                                defaultValue("500"))
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
                         .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
                         .add(
@@ -398,7 +417,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     private FieldConfigs fieldConfigs;
 
-    private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) {
+    private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
         this.consumerProps = initProps();
         itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
@@ -407,7 +426,7 @@ public final class ConnectorConfig extends AbstractConfig {
         postValidate();
     }
 
-    public ConnectorConfig(Map<String, String> configs) {
+    public ConnectorConfig(Map<String, String> configs) throws ConfigException {
         this(CONFIG_SPEC, configs);
     }
 
@@ -468,22 +487,31 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandMode() {
+        if (isAutoCommandModeEnabled()) {
+            checkCommandKey();
+            return;
+        }
+
         if (isCommandEnforceEnabled()) {
             if (getRecordConsumeWithNumThreads() != 1) {
                 throw new ConfigException(
                         "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
                                 .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
             }
-            if (fieldConfigs.getExpression("key") == null) {
-                throw new ConfigException(
-                        "Command mode requires a key field. Parameter [%s] must be set"
-                                .formatted("field.key"));
-            }
-            if (fieldConfigs.getExpression("command") == null) {
+            checkCommandKey();
+            if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
                 throw new ConfigException(
                         "Command mode requires a command field. Parameter [%s] must be set"
                                 .formatted("field.command"));
             }
+        }
+    }
+
+    private void checkCommandKey() {
+        if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
+            throw new ConfigException(
+                    "Command mode requires a key field. Parameter [%s] must be set"
+                            .formatted("field.key"));
         }
     }
 
@@ -501,7 +529,8 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
         properties.setProperty(
                 HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
-        properties.setProperty(MAX_POLL_RECORDS_CONFIG, getInt(CONSUMER_MAX_POLL_RECORDS));
+        properties.setProperty(
+                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_RECORDS));
         properties.setProperty(
                 RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
@@ -525,9 +554,10 @@ public final class ConnectorConfig extends AbstractConfig {
         return CONFIG_SPEC;
     }
 
-    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params) {
+    public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params)
+            throws ConfigException {
         return new ConnectorConfig(
-                AbstractConfig.appendAdapterDir(CONFIG_SPEC, params, adapterDir));
+                AbstractConfig.resolveFilePaths(CONFIG_SPEC, params, adapterDir));
     }
 
     public Properties baseConsumerProps() {
@@ -560,6 +590,14 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isCommandEnforceEnabled() {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+    }
+
+    public boolean isAutoCommandModeEnabled() {
+        return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
+    }
+
+    public CommandModeStrategy getCommandModeStrategy() {
+        return CommandModeStrategy.from(isAutoCommandModeEnabled(), isCommandEnforceEnabled());
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {

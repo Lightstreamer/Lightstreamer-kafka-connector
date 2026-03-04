@@ -1,6 +1,6 @@
-# Quick Start with MSK
+# MSK QuickStart
 
-This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Amazon MSK_](https://aws.amazon.com/msk/) as the target Kafka cluster.
+This folder contains a variant of the [_SSL QuickStart_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Amazon MSK_](https://aws.amazon.com/msk/) as the target Kafka cluster.
 
 ## Requirements
 
@@ -123,7 +123,7 @@ This folder contains a variant of the [_Quick Start SSL_](../../../quickstart-ss
    
 ## Set Up the Docker Compose File
 
-With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app, the [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Amazon MSK_ as follows:
+With respect to the [_QuickStart SSL_](../../../quickstart-ssl/README.md#quick-start-ssl) app, the [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Amazon MSK_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster.
 
@@ -156,7 +156,7 @@ With respect to the [_Quick Start SSL_](../../../quickstart-ssl/README.md#quick-
         target: /lightstreamer/aws_credentials
     ```
 
-  - Adaption of [`adapters.xml`](./adapters.xml) to include the following changes:
+  - Mounting of the [`adapters.xml`](./adapters.xml) file with the following changes:
 
     - Update of the parameter `bootstrap.servers` to the environment variable `bootstrap_server`:
 
