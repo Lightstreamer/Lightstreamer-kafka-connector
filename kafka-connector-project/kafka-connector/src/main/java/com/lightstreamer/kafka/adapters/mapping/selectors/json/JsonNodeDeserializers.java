@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2024 Lightstreamer Srl
  *
@@ -36,11 +37,10 @@ import org.apache.kafka.common.utils.Utils;
 import org.everit.json.schema.ValidationException;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-class JsonNodeDeserializers {
+public class JsonNodeDeserializers {
 
     private static final String SCHEMA_REGISTRY_PROVIDER_AZURE = "AZURE";
 
@@ -114,20 +114,27 @@ class JsonNodeDeserializers {
 
     private static Deserializer<JsonNode> azureSchemaRegistryDeserializer() {
         return new Deserializer<JsonNode>() {
-            private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
-                    delegate = new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<>();
+            private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<
+                            Object>
+                    delegate =
+                            new com.microsoft.azure.schemaregistry.kafka.json
+                                    .KafkaJsonDeserializer<>();
             private final ObjectMapper mapper = new ObjectMapper();
 
             @Override
             public void configure(Map<String, ?> configs, boolean isKey) {
                 String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
                 String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
-                String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+                String clientSecret =
+                        (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
 
                 Map<String, Object> mutableConfigs = new HashMap<>(configs);
-                if (tenantId != null && !tenantId.isEmpty()
-                        && clientId != null && !clientId.isEmpty()
-                        && clientSecret != null && !clientSecret.isEmpty()) {
+                if (tenantId != null
+                        && !tenantId.isEmpty()
+                        && clientId != null
+                        && !clientId.isEmpty()
+                        && clientSecret != null
+                        && !clientSecret.isEmpty()) {
                     mutableConfigs.put(
                             "schema.registry.credential",
                             new ClientSecretCredentialBuilder()
