@@ -77,6 +77,7 @@ public class SchemaRegistryConfigs {
     public static final String BASIC_AUTHENTICATION_USER_PASSWORD =
             ns("basic.authentication.password");
 
+    public static final String AZURE_PROVIDER = "AZURE";
     public static final String AZURE_SCHEMA_ID_HEADER = ns("azure.schema.id.header");
     public static final String AZURE_TENANT_ID = ns("azure.tenant.id");
     public static final String AZURE_CLIENT_ID = ns("azure.client.id");
@@ -95,15 +96,19 @@ public class SchemaRegistryConfigs {
                                 TEXT,
                                 defaultValue("CONFLUENT"))
                         .add(AZURE_SCHEMA_ID_HEADER, false, false, TEXT, defaultValue(""))
-                        .add(AZURE_TENANT_ID, false, false, TEXT)
-                        .add(AZURE_CLIENT_ID, false, false, TEXT)
-                        .add(AZURE_CLIENT_SECRET, false, false, TEXT)
                         .add(ENABLE_BASIC_AUTHENTICATION, false, false, BOOL, defaultValue("false"))
                         .withEnabledChildConfigs(
                                 new ConfigsSpec("basicAuthentication")
                                         .add(BASIC_AUTHENTICATION_USER_NAME, true, false, TEXT)
                                         .add(BASIC_AUTHENTICATION_USER_PASSWORD, true, false, TEXT),
                                 ENABLE_BASIC_AUTHENTICATION)
+                        .withEnabledChildConfigs(
+                                new ConfigsSpec("azureCredentials")
+                                        .add(AZURE_TENANT_ID, true, false, TEXT)
+                                        .add(AZURE_CLIENT_ID, true, false, TEXT)
+                                        .add(AZURE_CLIENT_SECRET, true, false, TEXT),
+                                (map, key) -> AZURE_PROVIDER.equalsIgnoreCase(map.get(key)),
+                                SCHEMA_REGISTRY_PROVIDER)
                         .withEnabledChildConfigs(
                                 TlsConfigs.spec().newSpecWithNameSpace(ENCRYPTION_NAME_SPACE),
                                 (map, key) -> map.get(key).startsWith("https"),
@@ -141,10 +146,13 @@ public class SchemaRegistryConfigs {
         props.setProperty(
                 AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, cfg.schemaRegistryUrl());
         props.setProperty(SCHEMA_REGISTRY_PROVIDER, provider);
-        props.setProperty(AZURE_SCHEMA_ID_HEADER, cfg.azureSchemaIdHeader());
-        props.setProperty(AZURE_TENANT_ID, cfg.getText(AZURE_TENANT_ID));
-        props.setProperty(AZURE_CLIENT_ID, cfg.getText(AZURE_CLIENT_ID));
-        props.setProperty(AZURE_CLIENT_SECRET, cfg.getText(AZURE_CLIENT_SECRET));
+
+        if (AZURE_PROVIDER.equalsIgnoreCase(provider)) {
+            props.setProperty(AZURE_SCHEMA_ID_HEADER, cfg.azureSchemaIdHeader());
+            props.setProperty(AZURE_TENANT_ID, cfg.getText(AZURE_TENANT_ID));
+            props.setProperty(AZURE_CLIENT_ID, cfg.getText(AZURE_CLIENT_ID));
+            props.setProperty(AZURE_CLIENT_SECRET, cfg.getText(AZURE_CLIENT_SECRET));
+        }
 
         if (cfg.isSchemaRegistryEncryptionEnabled()) {
             props.setProperty(

@@ -42,8 +42,6 @@ import java.util.Map;
 
 public class GenericRecordDeserializers {
 
-    private static final String SCHEMA_REGISTRY_PROVIDER_AZURE = "AZURE";
-
     static class WrapperKafkaAvroDeserializer implements Deserializer<GenericRecord> {
 
         private final KafkaAvroDeserializer innerDeserializer;
@@ -172,7 +170,7 @@ public class GenericRecordDeserializers {
 
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
-            if (SCHEMA_REGISTRY_PROVIDER_AZURE.equalsIgnoreCase(config.schemaRegistryProvider())) {
+            if (SchemaRegistryConfigs.AZURE_PROVIDER.equalsIgnoreCase(config.schemaRegistryProvider())) {
                 return new AzureSchemaRegistryDeserializer();
             }
             return new WrapperKafkaAvroDeserializer();
