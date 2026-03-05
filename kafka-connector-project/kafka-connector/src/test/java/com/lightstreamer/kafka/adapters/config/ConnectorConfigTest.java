@@ -2965,8 +2965,9 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8080");
         updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
-        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION, "true");
 
         ConfigException ce =
                 assertThrows(
