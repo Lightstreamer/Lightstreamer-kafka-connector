@@ -29,12 +29,10 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_F
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MAX_WAIT_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MAX_POLL_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_SESSION_TIMEOUT_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
@@ -46,9 +44,11 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_INFO_
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_ORDER_STRATEGY;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR;
@@ -65,7 +65,6 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.TOPIC_MAPPING;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD;
-import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs.KEYSTORE_PASSWORD;
@@ -97,6 +96,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStra
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -173,7 +173,7 @@ public class ConnectorConfigTest {
     public void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
 
-        ConfParameter adapterConfId = configSpec.getParameter(ADAPTERS_CONF_ID);
+        ConfParameter adapterConfId = configSpec.findParameter(ADAPTERS_CONF_ID);
         assertThat(adapterConfId.name()).isEqualTo(ADAPTERS_CONF_ID);
         assertThat(adapterConfId.required()).isTrue();
         assertThat(adapterConfId.multiple()).isFalse();
@@ -181,7 +181,7 @@ public class ConnectorConfigTest {
         assertThat(adapterConfId.defaultValue()).isNull();
         assertThat(adapterConfId.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter dataAdapterName = configSpec.getParameter(DATA_ADAPTER_NAME);
+        ConfParameter dataAdapterName = configSpec.findParameter(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.name()).isEqualTo(DATA_ADAPTER_NAME);
         assertThat(dataAdapterName.required()).isTrue();
         assertThat(dataAdapterName.multiple()).isFalse();
@@ -189,7 +189,7 @@ public class ConnectorConfigTest {
         assertThat(dataAdapterName.defaultValue()).isNull();
         assertThat(dataAdapterName.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter enabled = configSpec.getParameter(ENABLE);
+        ConfParameter enabled = configSpec.findParameter(ENABLE);
         assertThat(enabled.name()).isEqualTo(ENABLE);
         assertThat(enabled.required()).isFalse();
         assertThat(enabled.multiple()).isFalse();
@@ -197,7 +197,7 @@ public class ConnectorConfigTest {
         assertThat(enabled.defaultValue()).isEqualTo("true");
         assertThat(enabled.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter bootStrapServers = configSpec.getParameter(BOOTSTRAP_SERVERS);
+        ConfParameter bootStrapServers = configSpec.findParameter(BOOTSTRAP_SERVERS);
         assertThat(bootStrapServers.name()).isEqualTo(BOOTSTRAP_SERVERS);
         assertThat(bootStrapServers.required()).isTrue();
         assertThat(bootStrapServers.multiple()).isFalse();
@@ -205,7 +205,7 @@ public class ConnectorConfigTest {
         assertThat(bootStrapServers.defaultValue()).isNull();
         assertThat(bootStrapServers.type()).isEqualTo(ConfType.HOST_LIST);
 
-        ConfParameter groupId = configSpec.getParameter(GROUP_ID);
+        ConfParameter groupId = configSpec.findParameter(GROUP_ID);
         assertThat(groupId.name()).isEqualTo(GROUP_ID);
         assertThat(groupId.required()).isFalse();
         assertThat(groupId.multiple()).isFalse();
@@ -213,7 +213,7 @@ public class ConnectorConfigTest {
         assertThat(groupId.defaultValue()).isNotNull();
         assertThat(groupId.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter itemTemplate = configSpec.getParameter(ITEM_TEMPLATE);
+        ConfParameter itemTemplate = configSpec.findParameter(ITEM_TEMPLATE);
         assertThat(itemTemplate.name()).isEqualTo(ITEM_TEMPLATE);
         assertThat(itemTemplate.required()).isFalse();
         assertThat(itemTemplate.multiple()).isTrue();
@@ -222,7 +222,7 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter topicMapping = configSpec.getParameter(TOPIC_MAPPING);
+        ConfParameter topicMapping = configSpec.findParameter(TOPIC_MAPPING);
         assertThat(topicMapping.name()).isEqualTo(TOPIC_MAPPING);
         assertThat(topicMapping.required()).isTrue();
         assertThat(topicMapping.multiple()).isTrue();
@@ -231,7 +231,7 @@ public class ConnectorConfigTest {
         assertThat(topicMapping.defaultValue()).isNull();
         assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
 
-        ConfParameter mapRegExEnable = configSpec.getParameter(ConnectorConfig.MAP_REG_EX_ENABLE);
+        ConfParameter mapRegExEnable = configSpec.findParameter(ConnectorConfig.MAP_REG_EX_ENABLE);
         assertThat(mapRegExEnable.name()).isEqualTo(ConnectorConfig.MAP_REG_EX_ENABLE);
         assertThat(mapRegExEnable.required()).isFalse();
         assertThat(mapRegExEnable.multiple()).isFalse();
@@ -240,7 +240,7 @@ public class ConnectorConfigTest {
         assertThat(mapRegExEnable.defaultValue()).isEqualTo("false");
         assertThat(mapRegExEnable.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter fieldMapping = configSpec.getParameter(ConnectorConfig.FIELD_MAPPING);
+        ConfParameter fieldMapping = configSpec.findParameter(ConnectorConfig.FIELD_MAPPING);
         assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
         assertThat(fieldMapping.required()).isTrue();
         assertThat(fieldMapping.multiple()).isTrue();
@@ -250,7 +250,7 @@ public class ConnectorConfigTest {
         assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter fieldsSkipFailedMappingEnable =
-                configSpec.getParameter(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+                configSpec.findParameter(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.name())
                 .isEqualTo(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.required()).isFalse();
@@ -261,7 +261,7 @@ public class ConnectorConfigTest {
         assertThat(fieldsSkipFailedMappingEnable.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter fieldsMapNonScalarValuesEnable =
-                configSpec.getParameter(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+                configSpec.findParameter(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.name())
                 .isEqualTo(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.required()).isFalse();
@@ -272,7 +272,7 @@ public class ConnectorConfigTest {
         assertThat(fieldsMapNonScalarValuesEnable.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter fieldEvaluateCommandEnabled =
-                configSpec.getParameter(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
+                configSpec.findParameter(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
         assertThat(fieldEvaluateCommandEnabled.name()).isEqualTo(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
         assertThat(fieldEvaluateCommandEnabled.required()).isFalse();
         assertThat(fieldEvaluateCommandEnabled.multiple()).isFalse();
@@ -281,7 +281,7 @@ public class ConnectorConfigTest {
         assertThat(fieldEvaluateCommandEnabled.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter transformToCommandEnabled =
-                configSpec.getParameter(FIELDS_AUTO_COMMAND_MODE_ENABLE);
+                configSpec.findParameter(FIELDS_AUTO_COMMAND_MODE_ENABLE);
         assertThat(transformToCommandEnabled.name()).isEqualTo(FIELDS_AUTO_COMMAND_MODE_ENABLE);
         assertThat(transformToCommandEnabled.required()).isFalse();
         assertThat(transformToCommandEnabled.multiple()).isFalse();
@@ -289,7 +289,7 @@ public class ConnectorConfigTest {
         assertThat(transformToCommandEnabled.defaultValue()).isEqualTo("false");
         assertThat(transformToCommandEnabled.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter keyEvaluatorType = configSpec.getParameter(RECORD_KEY_EVALUATOR_TYPE);
+        ConfParameter keyEvaluatorType = configSpec.findParameter(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.name()).isEqualTo(RECORD_KEY_EVALUATOR_TYPE);
         assertThat(keyEvaluatorType.required()).isFalse();
         assertThat(keyEvaluatorType.multiple()).isFalse();
@@ -297,7 +297,7 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(keyEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter keySchemaPath = configSpec.getParameter(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
+        ConfParameter keySchemaPath = configSpec.findParameter(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         assertThat(keySchemaPath.name()).isEqualTo(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         assertThat(keySchemaPath.required()).isFalse();
         assertThat(keySchemaPath.multiple()).isFalse();
@@ -306,7 +306,7 @@ public class ConnectorConfigTest {
         assertThat(keySchemaPath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForKey =
-                configSpec.getParameter(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.findParameter(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.name())
                 .isEqualTo(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForKey.required()).isFalse();
@@ -315,7 +315,7 @@ public class ConnectorConfigTest {
         assertThat(schemaRegistryEnabledForKey.defaultValue()).isEqualTo("false");
         assertThat(schemaRegistryEnabledForKey.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter valueEvaluatorType = configSpec.getParameter(RECORD_VALUE_EVALUATOR_TYPE);
+        ConfParameter valueEvaluatorType = configSpec.findParameter(RECORD_VALUE_EVALUATOR_TYPE);
         assertThat(valueEvaluatorType.name()).isEqualTo(RECORD_VALUE_EVALUATOR_TYPE);
         assertThat(valueEvaluatorType.required()).isFalse();
         assertThat(valueEvaluatorType.multiple()).isFalse();
@@ -323,7 +323,8 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
 
-        ConfParameter valueSchemaPath = configSpec.getParameter(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
+        ConfParameter valueSchemaPath =
+                configSpec.findParameter(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
         assertThat(valueSchemaPath.name()).isEqualTo(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
         assertThat(valueSchemaPath.required()).isFalse();
         assertThat(valueSchemaPath.multiple()).isFalse();
@@ -332,7 +333,7 @@ public class ConnectorConfigTest {
         assertThat(valueSchemaPath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter schemaRegistryEnabledForValue =
-                configSpec.getParameter(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
+                configSpec.findParameter(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.name())
                 .isEqualTo(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE);
         assertThat(schemaRegistryEnabledForValue.required()).isFalse();
@@ -342,7 +343,7 @@ public class ConnectorConfigTest {
         assertThat(schemaRegistryEnabledForValue.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter keyKvpSeparator =
-                configSpec.getParameter(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR);
+                configSpec.findParameter(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR);
         assertThat(keyKvpSeparator.name()).isEqualTo(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR);
         assertThat(keyKvpSeparator.required()).isFalse();
         assertThat(keyKvpSeparator.multiple()).isFalse();
@@ -351,7 +352,7 @@ public class ConnectorConfigTest {
         assertThat(keyKvpSeparator.type()).isEqualTo(ConfType.CHAR);
 
         ConfParameter keyKvpKeyValueSeparator =
-                configSpec.getParameter(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+                configSpec.findParameter(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
         assertThat(keyKvpKeyValueSeparator.name())
                 .isEqualTo(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
         assertThat(keyKvpKeyValueSeparator.required()).isFalse();
@@ -361,7 +362,7 @@ public class ConnectorConfigTest {
         assertThat(keyKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
 
         ConfParameter valueKvpSeparator =
-                configSpec.getParameter(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR);
+                configSpec.findParameter(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR);
         assertThat(valueKvpSeparator.name()).isEqualTo(RECORD_VALUE_EVALUATOR_KVP_PAIRS_SEPARATOR);
         assertThat(valueKvpSeparator.required()).isFalse();
         assertThat(valueKvpSeparator.multiple()).isFalse();
@@ -370,7 +371,7 @@ public class ConnectorConfigTest {
         assertThat(valueKvpSeparator.type()).isEqualTo(ConfType.CHAR);
 
         ConfParameter valueKvpKeyValueSeparator =
-                configSpec.getParameter(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
+                configSpec.findParameter(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
         assertThat(valueKvpKeyValueSeparator.name())
                 .isEqualTo(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR);
         assertThat(valueKvpKeyValueSeparator.required()).isFalse();
@@ -380,7 +381,7 @@ public class ConnectorConfigTest {
         assertThat(valueKvpKeyValueSeparator.type()).isEqualTo(ConfType.CHAR);
 
         ConfParameter keyEvaluatorProtobufMessageType =
-                configSpec.getParameter(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+                configSpec.findParameter(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
         assertThat(keyEvaluatorProtobufMessageType.name())
                 .isEqualTo(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
         assertThat(keyEvaluatorProtobufMessageType.required()).isFalse();
@@ -390,7 +391,7 @@ public class ConnectorConfigTest {
         assertThat(keyEvaluatorProtobufMessageType.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter valueEvaluatorProtobufMessageType =
-                configSpec.getParameter(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
+                configSpec.findParameter(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
         assertThat(valueEvaluatorProtobufMessageType.name())
                 .isEqualTo(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE);
         assertThat(valueEvaluatorProtobufMessageType.required()).isFalse();
@@ -399,7 +400,7 @@ public class ConnectorConfigTest {
         assertThat(valueEvaluatorProtobufMessageType.defaultValue()).isNull();
         assertThat(valueEvaluatorProtobufMessageType.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter itemInfoName = configSpec.getParameter(ITEM_INFO_NAME);
+        ConfParameter itemInfoName = configSpec.findParameter(ITEM_INFO_NAME);
         assertThat(itemInfoName.name()).isEqualTo(ITEM_INFO_NAME);
         assertThat(itemInfoName.required()).isFalse();
         assertThat(itemInfoName.multiple()).isFalse();
@@ -407,7 +408,7 @@ public class ConnectorConfigTest {
         assertThat(itemInfoName.defaultValue()).isEqualTo("INFO");
         assertThat(itemInfoName.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter itemInfoField = configSpec.getParameter(ITEM_INFO_FIELD);
+        ConfParameter itemInfoField = configSpec.findParameter(ITEM_INFO_FIELD);
         assertThat(itemInfoField.name()).isEqualTo(ITEM_INFO_FIELD);
         assertThat(itemInfoField.required()).isFalse();
         assertThat(itemInfoField.multiple()).isFalse();
@@ -416,7 +417,7 @@ public class ConnectorConfigTest {
         assertThat(itemInfoField.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter recordExtractionErrorHandling =
-                configSpec.getParameter(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
+                configSpec.findParameter(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
         assertThat(recordExtractionErrorHandling.name())
                 .isEqualTo(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY);
         assertThat(recordExtractionErrorHandling.required()).isFalse();
@@ -426,7 +427,7 @@ public class ConnectorConfigTest {
         assertThat(recordExtractionErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
 
         ConfParameter recordConsumeWithOrderStrategy =
-                configSpec.getParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
+                configSpec.findParameter(RECORD_CONSUME_WITH_ORDER_STRATEGY);
         assertThat(recordConsumeWithOrderStrategy.name())
                 .isEqualTo(RECORD_CONSUME_WITH_ORDER_STRATEGY);
         assertThat(recordConsumeWithOrderStrategy.required()).isFalse();
@@ -436,7 +437,7 @@ public class ConnectorConfigTest {
         assertThat(recordConsumeWithOrderStrategy.type()).isEqualTo(ConfType.ORDER_STRATEGY);
 
         ConfParameter recordConsumeWithThreadsNumber =
-                configSpec.getParameter(RECORD_CONSUME_WITH_NUM_THREADS);
+                configSpec.findParameter(RECORD_CONSUME_WITH_NUM_THREADS);
         assertThat(recordConsumeWithThreadsNumber.name())
                 .isEqualTo(RECORD_CONSUME_WITH_NUM_THREADS);
         assertThat(recordConsumeWithThreadsNumber.required()).isFalse();
@@ -446,7 +447,7 @@ public class ConnectorConfigTest {
         assertThat(recordConsumeWithThreadsNumber.type()).isEqualTo(ConfType.THREADS);
 
         ConfParameter enableAutoCommit =
-                configSpec.getParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+                configSpec.findParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
         assertThat(enableAutoCommit.name()).isEqualTo(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
         assertThat(enableAutoCommit.required()).isFalse();
         assertThat(enableAutoCommit.multiple()).isFalse();
@@ -454,7 +455,7 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommit.defaultValue()).isEqualTo("false");
         assertThat(enableAutoCommit.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter encryptionEnabled = configSpec.getParameter(ENCRYPTION_ENABLE);
+        ConfParameter encryptionEnabled = configSpec.findParameter(ENCRYPTION_ENABLE);
         assertThat(encryptionEnabled.name()).isEqualTo(ENCRYPTION_ENABLE);
         assertThat(encryptionEnabled.required()).isFalse();
         assertThat(encryptionEnabled.multiple()).isFalse();
@@ -462,7 +463,7 @@ public class ConnectorConfigTest {
         assertThat(encryptionEnabled.defaultValue()).isEqualTo("false");
         assertThat(encryptionEnabled.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter authenticationEnabled = configSpec.getParameter(AUTHENTICATION_ENABLE);
+        ConfParameter authenticationEnabled = configSpec.findParameter(AUTHENTICATION_ENABLE);
         assertThat(authenticationEnabled.name()).isEqualTo(AUTHENTICATION_ENABLE);
         assertThat(authenticationEnabled.required()).isFalse();
         assertThat(authenticationEnabled.multiple()).isFalse();
@@ -470,7 +471,7 @@ public class ConnectorConfigTest {
         assertThat(authenticationEnabled.defaultValue()).isEqualTo("false");
         assertThat(authenticationEnabled.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter consumeEventsFrom = configSpec.getParameter(RECORD_CONSUME_FROM);
+        ConfParameter consumeEventsFrom = configSpec.findParameter(RECORD_CONSUME_FROM);
         assertThat(consumeEventsFrom.name()).isEqualTo(RECORD_CONSUME_FROM);
         assertThat(consumeEventsFrom.required()).isFalse();
         assertThat(consumeEventsFrom.multiple()).isFalse();
@@ -478,7 +479,7 @@ public class ConnectorConfigTest {
         assertThat(consumeEventsFrom.defaultValue()).isEqualTo("LATEST");
         assertThat(consumeEventsFrom.type()).isEqualTo(ConfType.CONSUME_FROM);
 
-        ConfParameter clientId = configSpec.getParameter(CONSUMER_CLIENT_ID);
+        ConfParameter clientId = configSpec.findParameter(CONSUMER_CLIENT_ID);
         assertThat(clientId.name()).isEqualTo(CONSUMER_CLIENT_ID);
         assertThat(clientId.required()).isFalse();
         assertThat(clientId.multiple()).isFalse();
@@ -487,7 +488,7 @@ public class ConnectorConfigTest {
         assertThat(clientId.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter enableAutoCommitConfig =
-                configSpec.getParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
+                configSpec.findParameter(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
         assertThat(enableAutoCommitConfig.name()).isEqualTo(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG);
         assertThat(enableAutoCommitConfig.required()).isFalse();
         assertThat(enableAutoCommitConfig.multiple()).isFalse();
@@ -496,7 +497,7 @@ public class ConnectorConfigTest {
         assertThat(enableAutoCommitConfig.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter reconnectBackoffMaxMs =
-                configSpec.getParameter(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG);
+                configSpec.findParameter(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG);
         assertThat(reconnectBackoffMaxMs.name())
                 .isEqualTo(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG);
         assertThat(reconnectBackoffMaxMs.required()).isFalse();
@@ -506,7 +507,7 @@ public class ConnectorConfigTest {
         assertThat(reconnectBackoffMaxMs.type()).isEqualTo(ConfType.INT);
 
         ConfParameter reconnectBackoffMs =
-                configSpec.getParameter(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG);
+                configSpec.findParameter(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG);
         assertThat(reconnectBackoffMs.name()).isEqualTo(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG);
         assertThat(reconnectBackoffMs.required()).isFalse();
         assertThat(reconnectBackoffMs.multiple()).isFalse();
@@ -514,7 +515,7 @@ public class ConnectorConfigTest {
         assertThat(reconnectBackoffMs.defaultValue()).isNull();
         assertThat(reconnectBackoffMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter fetchMinBytes = configSpec.getParameter(CONSUMER_FETCH_MIN_BYTES_CONFIG);
+        ConfParameter fetchMinBytes = configSpec.findParameter(CONSUMER_FETCH_MIN_BYTES_CONFIG);
         assertThat(fetchMinBytes.name()).isEqualTo(CONSUMER_FETCH_MIN_BYTES_CONFIG);
         assertThat(fetchMinBytes.required()).isFalse();
         assertThat(fetchMinBytes.multiple()).isFalse();
@@ -522,7 +523,7 @@ public class ConnectorConfigTest {
         assertThat(fetchMinBytes.defaultValue()).isNull();
         assertThat(fetchMinBytes.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter fetchMaxBytes = configSpec.getParameter(CONSUMER_FETCH_MAX_BYTES_CONFIG);
+        ConfParameter fetchMaxBytes = configSpec.findParameter(CONSUMER_FETCH_MAX_BYTES_CONFIG);
         assertThat(fetchMaxBytes.name()).isEqualTo(CONSUMER_FETCH_MAX_BYTES_CONFIG);
         assertThat(fetchMaxBytes.required()).isFalse();
         assertThat(fetchMaxBytes.multiple()).isFalse();
@@ -530,7 +531,7 @@ public class ConnectorConfigTest {
         assertThat(fetchMaxBytes.defaultValue()).isNull();
         assertThat(fetchMaxBytes.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter fetchMaxWaitMs = configSpec.getParameter(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG);
+        ConfParameter fetchMaxWaitMs = configSpec.findParameter(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG);
         assertThat(fetchMaxWaitMs.name()).isEqualTo(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG);
         assertThat(fetchMaxWaitMs.required()).isFalse();
         assertThat(fetchMaxWaitMs.multiple()).isFalse();
@@ -538,15 +539,17 @@ public class ConnectorConfigTest {
         assertThat(fetchMaxWaitMs.defaultValue()).isNull();
         assertThat(fetchMaxWaitMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter maxPollRecords = configSpec.getParameter(RECORD_CONSUME_MAX_POLL_RECORDS);
-        assertThat(maxPollRecords.name()).isEqualTo(RECORD_CONSUME_MAX_POLL_RECORDS);
+        ConfParameter maxPollRecords =
+                configSpec.findParameter(RECORD_CONSUME_WITH_MAX_POLL_RECORDS);
+        assertThat(maxPollRecords.name()).isEqualTo(RECORD_CONSUME_WITH_MAX_POLL_RECORDS);
         assertThat(maxPollRecords.required()).isFalse();
         assertThat(maxPollRecords.multiple()).isFalse();
         assertThat(maxPollRecords.mutable()).isTrue();
         assertThat(maxPollRecords.defaultValue()).isEqualTo("500");
         assertThat(maxPollRecords.type()).isEqualTo(ConfType.POSITIVE_INT);
 
-        ConfParameter heartBeatIntervalMs = configSpec.getParameter(CONSUMER_HEARTBEAT_INTERVAL_MS);
+        ConfParameter heartBeatIntervalMs =
+                configSpec.findParameter(CONSUMER_HEARTBEAT_INTERVAL_MS);
         assertThat(heartBeatIntervalMs.name()).isEqualTo(CONSUMER_HEARTBEAT_INTERVAL_MS);
         assertThat(heartBeatIntervalMs.required()).isFalse();
         assertThat(heartBeatIntervalMs.multiple()).isFalse();
@@ -554,23 +557,25 @@ public class ConnectorConfigTest {
         assertThat(heartBeatIntervalMs.defaultValue()).isNull();
         assertThat(heartBeatIntervalMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter sessionTimeoutMs = configSpec.getParameter(CONSUMER_SESSION_TIMEOUT_MS);
-        assertThat(sessionTimeoutMs.name()).isEqualTo(CONSUMER_SESSION_TIMEOUT_MS);
+        ConfParameter sessionTimeoutMs =
+                configSpec.findParameter(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS);
+        assertThat(sessionTimeoutMs.name()).isEqualTo(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS);
         assertThat(sessionTimeoutMs.required()).isFalse();
         assertThat(sessionTimeoutMs.multiple()).isFalse();
         assertThat(sessionTimeoutMs.mutable()).isTrue();
-        assertThat(sessionTimeoutMs.defaultValue()).isNull();
+        assertThat(sessionTimeoutMs.defaultValue()).isEqualTo("45000");
         assertThat(sessionTimeoutMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter maxPollIntervalMs = configSpec.getParameter(CONSUMER_MAX_POLL_INTERVAL_MS);
-        assertThat(maxPollIntervalMs.name()).isEqualTo(CONSUMER_MAX_POLL_INTERVAL_MS);
+        ConfParameter maxPollIntervalMs =
+                configSpec.findParameter(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS);
+        assertThat(maxPollIntervalMs.name()).isEqualTo(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS);
         assertThat(maxPollIntervalMs.required()).isFalse();
         assertThat(maxPollIntervalMs.multiple()).isFalse();
         assertThat(maxPollIntervalMs.mutable()).isTrue();
-        assertThat(maxPollIntervalMs.defaultValue()).isEqualTo("5000");
-        assertThat(maxPollIntervalMs.type()).isEqualTo(ConfType.INT);
+        assertThat(maxPollIntervalMs.defaultValue()).isEqualTo("30000");
+        assertThat(maxPollIntervalMs.type()).isEqualTo(ConfType.POSITIVE_INT);
 
-        ConfParameter metadataMaxAge = configSpec.getParameter(CONSUMER_METADATA_MAX_AGE_CONFIG);
+        ConfParameter metadataMaxAge = configSpec.findParameter(CONSUMER_METADATA_MAX_AGE_CONFIG);
         assertThat(metadataMaxAge.name()).isEqualTo(CONSUMER_METADATA_MAX_AGE_CONFIG);
         assertThat(metadataMaxAge.required()).isFalse();
         assertThat(metadataMaxAge.multiple()).isFalse();
@@ -579,7 +584,7 @@ public class ConnectorConfigTest {
         assertThat(metadataMaxAge.type()).isEqualTo(ConfType.INT);
 
         ConfParameter requestTimeoutMs =
-                configSpec.getParameter(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
+                configSpec.findParameter(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
         assertThat(requestTimeoutMs.name()).isEqualTo(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
         assertThat(requestTimeoutMs.required()).isFalse();
         assertThat(requestTimeoutMs.multiple()).isFalse();
@@ -606,10 +611,10 @@ public class ConnectorConfigTest {
         standardParams.put(ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG, "300");
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, "400");
         standardParams.put(ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, "500");
+        standardParams.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "5000");
+        standardParams.put(ConnectorConfig.RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS, "800");
         standardParams.put(CONSUMER_HEARTBEAT_INTERVAL_MS, "600");
-        standardParams.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, "700");
-        standardParams.put(CONSUMER_SESSION_TIMEOUT_MS, "800");
-        standardParams.put(CONSUMER_MAX_POLL_INTERVAL_MS, "2000"); // Unmodifiable
+        standardParams.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS, "700");
         standardParams.put(CONSUMER_METADATA_MAX_AGE_CONFIG, "250"); // Unmodifiable
         standardParams.put(
                 ConnectorConfig.CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG, "1000"); // Unmodifiable
@@ -900,6 +905,10 @@ public class ConnectorConfigTest {
             updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfig.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
+            updatedConfig.put(
+                    SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                    SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER.toString());
+            updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
         }
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
@@ -998,6 +1007,11 @@ public class ConnectorConfigTest {
                                         RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081",
+                                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                        SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER
+                                                .toString(),
+                                        SchemaRegistryConfigs.CONFLUENT_URL,
                                         "http://localhost:8081")));
 
         ce =
@@ -1046,6 +1060,8 @@ public class ConnectorConfigTest {
                                         RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081",
+                                        SchemaRegistryConfigs.CONFLUENT_URL,
                                         "http://localhost:8081")));
     }
 
@@ -1115,6 +1131,11 @@ public class ConnectorConfigTest {
                                         RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081",
+                                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                        SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER
+                                                .toString(),
+                                        SchemaRegistryConfigs.CONFLUENT_URL,
                                         "http://localhost:8081")));
 
         ce =
@@ -1181,6 +1202,11 @@ public class ConnectorConfigTest {
                                         RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
+                                        "http://localhost:8081",
+                                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                        SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER
+                                                .toString(),
+                                        SchemaRegistryConfigs.CONFLUENT_URL,
                                         "http://localhost:8081")));
     }
 
@@ -1748,10 +1774,10 @@ public class ConnectorConfigTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, -2})
-    public void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(int invalidThreadsNumber) {
+    @ValueSource(strings = {"0", "-2", "abc", "0.5"})
+    public void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(String invalidThreadsNumber) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, String.valueOf(invalidThreadsNumber));
+        updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, invalidThreadsNumber);
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -1767,24 +1793,76 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetOverriddenMaxPollRecords() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, "200");
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS, "200");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.baseConsumerProps())
                 .containsEntry(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "200");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"0", "-1", "abc"})
+    @ValueSource(strings = {"0", "-1", "0.4", "abc"})
     public void shouldFailDueToInvalidMaxPollRecords(String invalidMaxPollRecords) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_MAX_POLL_RECORDS, invalidMaxPollRecords);
+        updatedConfig.put(
+                ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS, invalidMaxPollRecords);
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
         assertThat(ce)
                 .hasMessageThat()
-                .isEqualTo("Specify a valid value for parameter [record.consume.max.poll.records]");
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.consume.with.max.poll.records]");
+    }
+
+    @Test
+    public void shouldGetOverriddenSessionTimeoutMs() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS, "35000");
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.baseConsumerProps())
+                .containsEntry(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "35000");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0.4", "abc"})
+    public void shouldFailDueToInvalidSessionTimeoutMs(String invalidSessionTimeoutMs) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(
+                ConnectorConfig.RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS, invalidSessionTimeoutMs);
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.consume.with.session.timeout.ms]");
+    }
+
+    @Test
+    public void shouldGetOverriddenMaxPollIntervalMs() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "35000");
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.baseConsumerProps())
+                .containsEntry(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "35000");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "-1", "abc"})
+    public void shouldFailDueToInvalidMaxPollIntervalMs(String invalidMaxPollIntervalMs) {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(
+                ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, invalidMaxPollIntervalMs);
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [record.consume.with.max.poll.interval.ms]");
     }
 
     @Test
@@ -1850,7 +1928,6 @@ public class ConnectorConfigTest {
         assertThat(config.getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
         assertThat(config.getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
         assertThat(config.getInt(CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
-        assertThat(config.getInt(CONSUMER_SESSION_TIMEOUT_MS)).isNull();
     }
 
     @Test
@@ -2643,6 +2720,10 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
+        updatedConfig.put(
+                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER.toString());
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
@@ -2673,6 +2754,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("https://localhost:8080");
@@ -2716,7 +2799,7 @@ public class ConnectorConfigTest {
             assertThat(ce)
                     .hasMessageThat()
                     .isEqualTo(
-                            "Parameter [schema.registry.encryption.keystore.enable] is not enabled");
+                            "Parameter [schema.registry.confluent.encryption.keystore.enable] is not enabled");
         }
     }
 
@@ -2725,6 +2808,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
         updatedConfig.put(TRUSTSTORE_PATH, trustStoreFile.getFileName().toString());
         updatedConfig.put(TRUSTSTORE_PASSWORD, "truststore-password");
         updatedConfig.put(SSL_ENABLED_PROTOCOLS, "TLSv1.2");
@@ -2778,6 +2863,9 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
+
         updatedConfig.put(KEYSTORE_ENABLE, "true");
         updatedConfig.put(KEYSTORE_PATH, keyStoreFile.getFileName().toString());
         updatedConfig.put(KEYSTORE_PASSWORD, "keystore-password");
@@ -2808,6 +2896,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
         updatedConfig.put(KEYSTORE_ENABLE, "true");
         updatedConfig.put(KEYSTORE_TYPE, "PKCS12");
         updatedConfig.put(KEYSTORE_PATH, keyStoreFile.getFileName().toString());
@@ -2815,6 +2905,7 @@ public class ConnectorConfigTest {
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
+        assertThat(config.schemaRegistryProvider()).isEqualTo(SchemaRegistryProvider.CONFLUENT);
         assertThat(config.isSchemaRegistryKeystoreEnabled()).isTrue();
         assertThat(config.schemaRegistryKeystoreType().toString()).isEqualTo("PKCS12");
 
@@ -2826,7 +2917,7 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value for parameter [schema.registry.encryption.keystore.key.password]");
+                        "Specify a valid value for parameter [schema.registry.confluent.encryption.keystore.key.password]");
 
         updatedConfig.put(KEY_PASSWORD, "key-password");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -2850,6 +2941,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isFalse();
@@ -2863,7 +2956,7 @@ public class ConnectorConfigTest {
             assertThat(ce)
                     .hasMessageThat()
                     .isEqualTo(
-                            "Parameter [schema.registry.basic.authentication.enable] is not enabled");
+                            "Parameter [schema.registry.confluent.basic.authentication.enable] is not enabled");
         }
     }
 
@@ -2872,7 +2965,8 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
-        updatedConfig.put(ENABLE_BASIC_AUTHENTICATION, "true");
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
+        updatedConfig.put(SchemaRegistryConfigs.CONFLUENT_URL, "https://localhost:8080");
 
         ConfigException ce =
                 assertThrows(
@@ -2881,7 +2975,7 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Missing required parameter [schema.registry.basic.authentication.username]");
+                        "Missing required parameter [schema.registry.confluent.basic.authentication.username]");
 
         updatedConfig.put(BASIC_AUTHENTICATION_USER_NAME, "");
         ce =
@@ -2891,7 +2985,7 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value for parameter [schema.registry.basic.authentication.username]");
+                        "Specify a valid value for parameter [schema.registry.confluent.basic.authentication.username]");
 
         updatedConfig.put(BASIC_AUTHENTICATION_USER_NAME, "username");
         ce =
@@ -2901,7 +2995,7 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Missing required parameter [schema.registry.basic.authentication.password]");
+                        "Missing required parameter [schema.registry.confluent.basic.authentication.password]");
 
         updatedConfig.put(BASIC_AUTHENTICATION_USER_PASSWORD, "");
         ce =
@@ -2911,7 +3005,7 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Specify a valid value for parameter [schema.registry.basic.authentication.password]");
+                        "Specify a valid value for parameter [schema.registry.confluent.basic.authentication.password]");
 
         updatedConfig.put(BASIC_AUTHENTICATION_USER_PASSWORD, "password");
 
