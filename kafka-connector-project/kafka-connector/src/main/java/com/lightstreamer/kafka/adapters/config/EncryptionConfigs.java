@@ -33,8 +33,8 @@ public class EncryptionConfigs {
 
     public static final String NAME_SPACE = "encryption";
 
-    public static final String SSL_PROTOCOL = adapt(TlsConfigs.SSL_PROTOCOL);
     public static final String SSL_ENABLED_PROTOCOLS = adapt(TlsConfigs.SSL_ENABLED_PROTOCOLS);
+    public static final String SSL_PROTOCOL = adapt(TlsConfigs.SSL_PROTOCOL);
     public static final String SSL_CIPHER_SUITES = adapt(TlsConfigs.SSL_CIPHER_SUITES);
 
     public static final String TRUSTSTORE_TYPE = adapt(TlsConfigs.TRUSTSTORE_TYPE);
