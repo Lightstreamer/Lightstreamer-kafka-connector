@@ -31,7 +31,7 @@ public class EncryptionConfigsTest {
     void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = EncryptionConfigs.spec();
 
-        ConfParameter sslProtocol = configSpec.getParameter(EncryptionConfigs.SSL_PROTOCOL);
+        ConfParameter sslProtocol = configSpec.findParameter(EncryptionConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.name()).isEqualTo(EncryptionConfigs.SSL_PROTOCOL);
         assertThat(sslProtocol.required()).isFalse();
         assertThat(sslProtocol.multiple()).isFalse();
@@ -39,7 +39,7 @@ public class EncryptionConfigsTest {
         assertThat(sslProtocol.defaultValue()).isEqualTo("TLSv1.3");
         assertThat(sslProtocol.type()).isEqualTo(ConfType.SSL_PROTOCOL);
 
-        ConfParameter trustStoreType = configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_TYPE);
+        ConfParameter trustStoreType = configSpec.findParameter(EncryptionConfigs.TRUSTSTORE_TYPE);
         assertThat(trustStoreType.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_TYPE);
         assertThat(trustStoreType.required()).isFalse();
         assertThat(trustStoreType.multiple()).isFalse();
@@ -47,7 +47,7 @@ public class EncryptionConfigsTest {
         assertThat(trustStoreType.defaultValue()).isEqualTo("JKS");
         assertThat(trustStoreType.type()).isEqualTo(ConfType.KEYSTORE_TYPE);
 
-        ConfParameter trustStorePath = configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_PATH);
+        ConfParameter trustStorePath = configSpec.findParameter(EncryptionConfigs.TRUSTSTORE_PATH);
         assertThat(trustStorePath.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_PATH);
         assertThat(trustStorePath.required()).isFalse();
         assertThat(trustStorePath.multiple()).isFalse();
@@ -56,7 +56,7 @@ public class EncryptionConfigsTest {
         assertThat(trustStorePath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter trustStorePassword =
-                configSpec.getParameter(EncryptionConfigs.TRUSTSTORE_PASSWORD);
+                configSpec.findParameter(EncryptionConfigs.TRUSTSTORE_PASSWORD);
         assertThat(trustStorePassword.name()).isEqualTo(EncryptionConfigs.TRUSTSTORE_PASSWORD);
         assertThat(trustStorePassword.required()).isFalse();
         assertThat(trustStorePassword.multiple()).isFalse();
@@ -65,7 +65,7 @@ public class EncryptionConfigsTest {
         assertThat(trustStorePassword.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter enableHostNameVerification =
-                configSpec.getParameter(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);
+                configSpec.findParameter(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);
         assertThat(enableHostNameVerification.name())
                 .isEqualTo(EncryptionConfigs.ENABLE_HOSTNAME_VERIFICATION);
         assertThat(enableHostNameVerification.required()).isFalse();
@@ -75,7 +75,7 @@ public class EncryptionConfigsTest {
         assertThat(enableHostNameVerification.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter sslCipherSuites =
-                configSpec.getParameter(EncryptionConfigs.SSL_CIPHER_SUITES);
+                configSpec.findParameter(EncryptionConfigs.SSL_CIPHER_SUITES);
         assertThat(sslCipherSuites.name()).isEqualTo(EncryptionConfigs.SSL_CIPHER_SUITES);
         assertThat(sslCipherSuites.required()).isFalse();
         assertThat(sslCipherSuites.multiple()).isFalse();
@@ -83,7 +83,7 @@ public class EncryptionConfigsTest {
         assertThat(sslCipherSuites.defaultValue()).isNull();
         assertThat(sslCipherSuites.type()).isEqualTo(ConfType.TEXT_LIST);
 
-        ConfParameter sslProviders = configSpec.getParameter(EncryptionConfigs.SSL_PROVIDER);
+        ConfParameter sslProviders = configSpec.findParameter(EncryptionConfigs.SSL_PROVIDER);
         assertThat(sslProviders.name()).isEqualTo(EncryptionConfigs.SSL_PROVIDER);
         assertThat(sslProviders.required()).isFalse();
         assertThat(sslProviders.multiple()).isFalse();
@@ -92,7 +92,7 @@ public class EncryptionConfigsTest {
         assertThat(sslProviders.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslEngineFactoryClass =
-                configSpec.getParameter(EncryptionConfigs.SSL_ENGINE_FACTORY_CLASS);
+                configSpec.findParameter(EncryptionConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.name())
                 .isEqualTo(EncryptionConfigs.SSL_ENGINE_FACTORY_CLASS);
         assertThat(sslEngineFactoryClass.required()).isFalse();
@@ -102,7 +102,7 @@ public class EncryptionConfigsTest {
         assertThat(sslEngineFactoryClass.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslKeyManagerAlgorithm =
-                configSpec.getParameter(EncryptionConfigs.SSL_KEYMANAGER_ALGORITHM);
+                configSpec.findParameter(EncryptionConfigs.SSL_KEYMANAGER_ALGORITHM);
         assertThat(sslKeyManagerAlgorithm.name())
                 .isEqualTo(EncryptionConfigs.SSL_KEYMANAGER_ALGORITHM);
         assertThat(sslKeyManagerAlgorithm.required()).isFalse();
@@ -112,7 +112,7 @@ public class EncryptionConfigsTest {
         assertThat(sslKeyManagerAlgorithm.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslSecureRandomImplementation =
-                configSpec.getParameter(EncryptionConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);
+                configSpec.findParameter(EncryptionConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);
         assertThat(sslSecureRandomImplementation.name())
                 .isEqualTo(EncryptionConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION);
         assertThat(sslSecureRandomImplementation.required()).isFalse();
@@ -122,7 +122,7 @@ public class EncryptionConfigsTest {
         assertThat(sslSecureRandomImplementation.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter sslTrustManagerAlgorithm =
-                configSpec.getParameter(EncryptionConfigs.SSL_TRUSTMANAGER_ALGORITHM);
+                configSpec.findParameter(EncryptionConfigs.SSL_TRUSTMANAGER_ALGORITHM);
         assertThat(sslTrustManagerAlgorithm.name())
                 .isEqualTo(EncryptionConfigs.SSL_TRUSTMANAGER_ALGORITHM);
         assertThat(sslTrustManagerAlgorithm.required()).isFalse();
@@ -132,7 +132,7 @@ public class EncryptionConfigsTest {
         assertThat(sslTrustManagerAlgorithm.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter securityProviders =
-                configSpec.getParameter(EncryptionConfigs.SECURITY_PROVIDERS);
+                configSpec.findParameter(EncryptionConfigs.SECURITY_PROVIDERS);
         assertThat(securityProviders.name()).isEqualTo(EncryptionConfigs.SECURITY_PROVIDERS);
         assertThat(securityProviders.required()).isFalse();
         assertThat(securityProviders.multiple()).isFalse();
@@ -140,7 +140,7 @@ public class EncryptionConfigsTest {
         assertThat(securityProviders.defaultValue()).isNull();
         assertThat(securityProviders.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter keyStoreType = configSpec.getParameter(EncryptionConfigs.KEYSTORE_TYPE);
+        ConfParameter keyStoreType = configSpec.findParameter(EncryptionConfigs.KEYSTORE_TYPE);
         assertThat(keyStoreType.name()).isEqualTo(EncryptionConfigs.KEYSTORE_TYPE);
         assertThat(keyStoreType.required()).isFalse();
         assertThat(keyStoreType.multiple()).isFalse();
@@ -148,7 +148,7 @@ public class EncryptionConfigsTest {
         assertThat(keyStoreType.defaultValue()).isEqualTo("JKS");
         assertThat(keyStoreType.type()).isEqualTo(ConfType.KEYSTORE_TYPE);
 
-        ConfParameter keystorePath = configSpec.getParameter(EncryptionConfigs.KEYSTORE_PATH);
+        ConfParameter keystorePath = configSpec.findParameter(EncryptionConfigs.KEYSTORE_PATH);
         assertThat(keystorePath.name()).isEqualTo(EncryptionConfigs.KEYSTORE_PATH);
         assertThat(keystorePath.required()).isTrue();
         assertThat(keystorePath.multiple()).isFalse();
@@ -157,7 +157,7 @@ public class EncryptionConfigsTest {
         assertThat(keystorePath.type()).isEqualTo(ConfType.FILE);
 
         ConfParameter keystorePassword =
-                configSpec.getParameter(EncryptionConfigs.KEYSTORE_PASSWORD);
+                configSpec.findParameter(EncryptionConfigs.KEYSTORE_PASSWORD);
         assertThat(keystorePassword.name()).isEqualTo(EncryptionConfigs.KEYSTORE_PASSWORD);
         assertThat(keystorePassword.required()).isFalse();
         assertThat(keystorePassword.multiple()).isFalse();
@@ -165,7 +165,7 @@ public class EncryptionConfigsTest {
         assertThat(keystorePassword.defaultValue()).isNull();
         assertThat(keystorePassword.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter keyPassword = configSpec.getParameter(EncryptionConfigs.KEY_PASSWORD);
+        ConfParameter keyPassword = configSpec.findParameter(EncryptionConfigs.KEY_PASSWORD);
         assertThat(keyPassword.name()).isEqualTo(EncryptionConfigs.KEY_PASSWORD);
         assertThat(keyPassword.required()).isFalse();
         assertThat(keyPassword.multiple()).isFalse();
