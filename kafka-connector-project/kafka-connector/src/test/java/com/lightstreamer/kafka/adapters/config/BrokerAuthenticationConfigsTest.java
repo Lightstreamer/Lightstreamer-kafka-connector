@@ -34,7 +34,7 @@ public class BrokerAuthenticationConfigsTest {
     void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = BrokerAuthenticationConfigs.spec();
         ConfParameter saslMechanism =
-                configSpec.getParameter(BrokerAuthenticationConfigs.SASL_MECHANISM);
+                configSpec.findParameter(BrokerAuthenticationConfigs.SASL_MECHANISM);
         assertThat(saslMechanism.name()).isEqualTo(BrokerAuthenticationConfigs.SASL_MECHANISM);
         assertThat(saslMechanism.required()).isFalse();
         assertThat(saslMechanism.multiple()).isFalse();
@@ -42,7 +42,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(saslMechanism.defaultValue()).isEqualTo("PLAIN");
         assertThat(saslMechanism.type()).isEqualTo(SASL_MECHANISM);
 
-        ConfParameter username = configSpec.getParameter(BrokerAuthenticationConfigs.USERNAME);
+        ConfParameter username = configSpec.findParameter(BrokerAuthenticationConfigs.USERNAME);
         assertThat(username.name()).isEqualTo(BrokerAuthenticationConfigs.USERNAME);
         assertThat(username.required()).isFalse();
         assertThat(username.multiple()).isFalse();
@@ -50,7 +50,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(username.defaultValue()).isNull();
         assertThat(username.type()).isEqualTo(TEXT);
 
-        ConfParameter password = configSpec.getParameter(BrokerAuthenticationConfigs.PASSWORD);
+        ConfParameter password = configSpec.findParameter(BrokerAuthenticationConfigs.PASSWORD);
         assertThat(password.name()).isEqualTo(BrokerAuthenticationConfigs.PASSWORD);
         assertThat(password.required()).isFalse();
         assertThat(password.multiple()).isFalse();
@@ -59,7 +59,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(password.type()).isEqualTo(TEXT);
 
         ConfParameter useKeyTab =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
         assertThat(useKeyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_ENABLE);
         assertThat(useKeyTab.required()).isFalse();
         assertThat(useKeyTab.multiple()).isFalse();
@@ -68,7 +68,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(useKeyTab.type()).isEqualTo(BOOL);
 
         ConfParameter storeKey =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
         assertThat(storeKey.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_STORE_KEY_ENABLE);
         assertThat(storeKey.required()).isFalse();
         assertThat(storeKey.multiple()).isFalse();
@@ -77,7 +77,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(storeKey.type()).isEqualTo(BOOL);
 
         ConfParameter keyTab =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH);
         assertThat(keyTab.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KEY_TAB_PATH);
         assertThat(keyTab.required()).isFalse();
         assertThat(keyTab.multiple()).isFalse();
@@ -86,7 +86,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(keyTab.type()).isEqualTo(FILE);
 
         ConfParameter principal =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
         assertThat(principal.name()).isEqualTo(BrokerAuthenticationConfigs.GSSAPI_PRINCIPAL);
         assertThat(principal.required()).isFalse();
         assertThat(principal.multiple()).isFalse();
@@ -95,7 +95,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(principal.type()).isEqualTo(TEXT);
 
         ConfParameter kerberosServiceName =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
         assertThat(kerberosServiceName.name())
                 .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_KERBEROS_SERVICE_NAME);
         assertThat(kerberosServiceName.required()).isTrue();
@@ -105,7 +105,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(kerberosServiceName.type()).isEqualTo(TEXT);
 
         ConfParameter useTicketCache =
-                configSpec.getParameter(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
+                configSpec.findParameter(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
         assertThat(useTicketCache.name())
                 .isEqualTo(BrokerAuthenticationConfigs.GSSAPI_TICKET_CACHE_ENABLE);
         assertThat(useTicketCache.required()).isFalse();
@@ -115,7 +115,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(useTicketCache.type()).isEqualTo(BOOL);
 
         ConfParameter awsMskIamCredentialProfileName =
-                configSpec.getParameter(
+                configSpec.findParameter(
                         BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
         assertThat(awsMskIamCredentialProfileName.name())
                 .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_CREDENTIAL_PROFILE_NAME);
@@ -126,7 +126,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(awsMskIamCredentialProfileName.type()).isEqualTo(TEXT);
 
         ConfParameter awsMskIamRoleArn =
-                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN);
+                configSpec.findParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN);
         assertThat(awsMskIamRoleArn.name())
                 .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_ARN);
         assertThat(awsMskIamRoleArn.required()).isFalse();
@@ -136,7 +136,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(awsMskIamRoleArn.type()).isEqualTo(TEXT);
 
         ConfParameter awsMskIamRoleSessionName =
-                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
+                configSpec.findParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
         assertThat(awsMskIamRoleSessionName.name())
                 .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_ROLE_SESSION_NAME);
         assertThat(awsMskIamRoleSessionName.required()).isFalse();
@@ -146,7 +146,7 @@ public class BrokerAuthenticationConfigsTest {
         assertThat(awsMskIamRoleSessionName.type()).isEqualTo(TEXT);
 
         ConfParameter awsMskIamStsRegion =
-                configSpec.getParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION);
+                configSpec.findParameter(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION);
         assertThat(awsMskIamStsRegion.name())
                 .isEqualTo(BrokerAuthenticationConfigs.AWS_MSK_IAM_STS_REGION);
         assertThat(awsMskIamStsRegion.required()).isFalse();
