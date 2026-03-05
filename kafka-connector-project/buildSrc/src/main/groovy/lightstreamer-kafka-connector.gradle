@@ -24,7 +24,6 @@ spotless {
                 .reflowLongStrings(false)
                 .groupArtifact('com.google.googlejavaformat:google-java-format')
         removeUnusedImports()
-        expandWildcardImports()
         formatAnnotations()
         licenseHeader '''
 /*
