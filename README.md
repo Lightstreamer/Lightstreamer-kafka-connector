@@ -486,30 +486,6 @@ Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly gene
 <param name="group.id">kafka-connector-group</param>
 ```
 
-#### `record.consume.session.timeout.ms`
-
-_Optional_. The timeout used to detect client failures when using Kafka's group management facility.
-
-The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
-
-Default value: 45000
-
-```xml
-<param name="record.consume.session.timeout.ms">30000</param>
-```
-
-#### `record.consume.max.poll.interval.ms`
-
-_Optional_. The maximum delay between invocations of poll() when using consumer group management. This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
-
-The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
-
-Default value: 30000
-
-```xml
-<param name="record.consume.max.poll.interval.ms">50000</param>
-```
-
 ### Encryption Parameters
 
 A TCP secure connection to Kafka is configured through parameters with the prefix `encryption`.
@@ -936,7 +912,7 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-#### `record.consume.max.poll.records`
+#### `record.consume.with.max.poll.records`
 
 _Optional_. The maximum number of records fetched in each polling cycle.
 
@@ -947,7 +923,31 @@ Default value: `500`.
 Example:
 
 ```xml
-<param name="record.consume.max.poll.records">200</param>
+<param name="record.consume.with.max.poll.records">200</param>
+```
+
+#### `record.consume.with.session.timeout.ms`
+
+_Optional_. The timeout used to detect client failures when using Kafka's group management facility.
+
+The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
+
+Default value: 45000
+
+```xml
+<param name="record.consume.with.session.timeout.ms">30000</param>
+```
+
+#### `record.consume.with.max.poll.interval.ms`
+
+_Optional_. The maximum delay between invocations of poll() when using consumer group management. This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+
+The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
+
+Default value: 30000
+
+```xml
+<param name="record.consume.with.max.poll.interval.ms">50000</param>
 ```
 
 #### `record.consume.with.num.threads`
