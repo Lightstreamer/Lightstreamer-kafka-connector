@@ -161,14 +161,14 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
 
     // Kafka consumer specific settings
-    public static final String RECORD_CONSUME_MAX_POLL_RECORDS =
-            "record.consume." + MAX_POLL_RECORDS_CONFIG;
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =
+            "record.consume.with." + MAX_POLL_RECORDS_CONFIG;
 
-    public static final String RECORD_CONSUME_SESSION_TIMEOUT_MS =
-            "record.consume." + SESSION_TIMEOUT_MS_CONFIG;
+    public static final String RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS =
+            "record.consume.with." + SESSION_TIMEOUT_MS_CONFIG;
 
-    public static final String RECORD_CONSUME_MAX_POLL_INTERVAL_MS =
-            "record.consume." + MAX_POLL_INTERVAL_MS_CONFIG;
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS =
+            "record.consume.with." + MAX_POLL_INTERVAL_MS_CONFIG;
 
     // Prefix for all hidden consumer configs
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -367,7 +367,7 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
                         .add(
-                                RECORD_CONSUME_MAX_POLL_RECORDS,
+                                RECORD_CONSUME_WITH_MAX_POLL_RECORDS,
                                 false,
                                 false,
                                 POSITIVE_INT,
@@ -375,14 +375,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("500"))
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
                         .add(
-                                RECORD_CONSUME_SESSION_TIMEOUT_MS,
+                                RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS,
                                 false,
                                 false,
                                 INT,
                                 true,
                                 defaultValue("45000"))
                         .add(
-                                RECORD_CONSUME_MAX_POLL_INTERVAL_MS,
+                                RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS,
                                 false,
                                 false,
                                 POSITIVE_INT,
@@ -539,15 +539,16 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(
                 HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
         properties.setProperty(
-                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_RECORDS));
+                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_RECORDS));
         properties.setProperty(
                 RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
                 RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
         properties.setProperty(
-                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_SESSION_TIMEOUT_MS));
+                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS));
         properties.setProperty(
-                MAX_POLL_INTERVAL_MS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_INTERVAL_MS));
+                MAX_POLL_INTERVAL_MS_CONFIG,
+                getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
                 REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
