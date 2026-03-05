@@ -70,6 +70,10 @@ public class DynamicMessageSelectorSuppliersTest {
                     Map.of(
                             SchemaRegistryConfigs.URL,
                             "https://localhost:8081",
+                            SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                            "CONFLUENT",
+                            SchemaRegistryConfigs.CONFLUENT_URL,
+                            "https://localhost:8081",
                             RECORD_KEY_EVALUATOR_TYPE,
                             PROTOBUF.toString(),
                             RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -119,6 +123,8 @@ public class DynamicMessageSelectorSuppliersTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8081",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8081"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         KeySelectorSupplier<DynamicMessage> keySelectorSupplier = s.makeKeySelectorSupplier();
@@ -197,6 +203,8 @@ public class DynamicMessageSelectorSuppliersTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8081",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8081"));
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         ValueSelectorSupplier<DynamicMessage> valueSelectorSupplier = s.makeValueSelectorSupplier();
