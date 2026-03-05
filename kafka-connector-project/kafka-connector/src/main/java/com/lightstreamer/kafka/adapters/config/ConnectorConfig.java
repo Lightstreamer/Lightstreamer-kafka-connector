@@ -164,6 +164,12 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_CONSUME_MAX_POLL_RECORDS =
             "record.consume." + MAX_POLL_RECORDS_CONFIG;
 
+    public static final String RECORD_CONSUME_SESSION_TIMEOUT_MS =
+            "record.consume." + SESSION_TIMEOUT_MS_CONFIG;
+
+    public static final String RECORD_CONSUME_MAX_POLL_INTERVAL_MS =
+            "record.consume." + MAX_POLL_INTERVAL_MS_CONFIG;
+
     // Prefix for all hidden consumer configs
     private static final String CONNECTOR_PREFIX = "consumer.";
     public static final String CONSUMER_CLIENT_ID =
@@ -182,10 +188,6 @@ public final class ConnectorConfig extends AbstractConfig {
             CONNECTOR_PREFIX + RECONNECT_BACKOFF_MAX_MS_CONFIG;
     public static final String CONSUMER_HEARTBEAT_INTERVAL_MS =
             CONNECTOR_PREFIX + HEARTBEAT_INTERVAL_MS_CONFIG;
-    public static final String CONSUMER_SESSION_TIMEOUT_MS =
-            CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
-    public static final String CONSUMER_MAX_POLL_INTERVAL_MS =
-            CONNECTOR_PREFIX + MAX_POLL_INTERVAL_MS_CONFIG;
     public static final String CONSUMER_METADATA_MAX_AGE_CONFIG =
             CONNECTOR_PREFIX + METADATA_MAX_AGE_CONFIG;
     public static final String CONSUMER_REQUEST_TIMEOUT_MS_CONFIG =
@@ -372,14 +374,20 @@ public final class ConnectorConfig extends AbstractConfig {
                                 true,
                                 defaultValue("500"))
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
-                        .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
                         .add(
-                                CONSUMER_MAX_POLL_INTERVAL_MS,
+                                RECORD_CONSUME_SESSION_TIMEOUT_MS,
                                 false,
                                 false,
                                 INT,
                                 true,
-                                defaultValue("5000"))
+                                defaultValue("45000"))
+                        .add(
+                                RECORD_CONSUME_MAX_POLL_INTERVAL_MS,
+                                false,
+                                false,
+                                POSITIVE_INT,
+                                true,
+                                defaultValue("30000"))
                         .add(
                                 CONSUMER_METADATA_MAX_AGE_CONFIG,
                                 false,
@@ -536,8 +544,10 @@ public final class ConnectorConfig extends AbstractConfig {
                 RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
                 RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
-        properties.setProperty(SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
-        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+        properties.setProperty(
+                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_SESSION_TIMEOUT_MS));
+        properties.setProperty(
+                MAX_POLL_INTERVAL_MS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
                 REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
