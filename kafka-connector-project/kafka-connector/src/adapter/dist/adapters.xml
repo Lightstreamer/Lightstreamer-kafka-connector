@@ -73,12 +73,12 @@
 
        <!-- Optional. The timeout used to detect client failures when using Kafka's group management facility.
 
-             The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
+             The parameter sets the value of the "session.timeout.ms" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms for more details.
 
              Default value: 800 -->
         <!--
-        <param name="consumer.session.timeout.ms">800</param>
+        <param name="record.consume.session.timeout.ms">800</param>
         -->
 
         <!-- Optional. The maximum delay between invocations of poll() when using consumer group management. 
@@ -89,7 +89,7 @@
 
              Default value: 5000 -->
         <!--
-        <param name="max.poll.interval.ms">5000</param>
+        <param name="record.consume.max.poll.interval.ms">5000</param>
         -->
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
