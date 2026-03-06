@@ -31,6 +31,7 @@ import static org.junit.Assert.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.AzureSchemaRegistryDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeLocalSchemaDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
@@ -192,6 +193,45 @@ public class JsonNodeDeserializerTest {
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
             assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.URL,
+                                "https://my-namespace.servicebus.windows.net"));
+
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.URL,
+                                "https://my-namespace.servicebus.windows.net"));
+
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 

@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.AzureSchemaRegistryDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.WrapperKafkaAvroDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
@@ -144,6 +145,46 @@ public class GenericRecordDeserializerTest {
         try (Deserializer<GenericRecord> deserializer =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
             assertThat(deserializer.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.URL,
+                                "https://my-namespace.servicebus.windows.net"));
+
+        try (Deserializer<GenericRecord> deserializer =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.URL,
+                                "https://my-namespace.servicebus.windows.net"));
+
+        try (Deserializer<GenericRecord> deserializer =
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
