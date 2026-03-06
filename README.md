@@ -38,9 +38,11 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
   - [Schema Registry](#schema-registry)
     - [`schema.registry.url`](#schemaregistryurl)
-    - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
-    - [Encryption Parameters](#encryption-parameters-1)
-    - [Schema Registry QuickStart](#schema-registry-quickstart)
+    - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
+    - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
+      - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
+      - [Encryption Parameters](#encryption-parameters-1)
+      - [Schema Registry QuickStart](#schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -125,6 +127,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
+ - [`Azure Events Hub`](/examples/vendors/azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -909,7 +912,7 @@ Example:
 <param name="record.consume.from">EARLIEST</param>
 ```
 
-#### `record.consume.max.poll.records`
+#### `record.consume.with.max.poll.records`
 
 _Optional_. The maximum number of records fetched in each polling cycle.
 
@@ -920,7 +923,31 @@ Default value: `500`.
 Example:
 
 ```xml
-<param name="record.consume.max.poll.records">200</param>
+<param name="record.consume.with.max.poll.records">200</param>
+```
+
+#### `record.consume.with.session.timeout.ms`
+
+_Optional_. The timeout used to detect client failures when using Kafka's group management facility.
+
+The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
+
+Default value: 45000
+
+```xml
+<param name="record.consume.with.session.timeout.ms">30000</param>
+```
+
+#### `record.consume.with.max.poll.interval.ms`
+
+_Optional_. The maximum delay between invocations of poll() when using consumer group management. This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+
+The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
+
+Default value: 30000
+
+```xml
+<param name="record.consume.with.max.poll.interval.ms">50000</param>
 ```
 
 #### `record.consume.with.num.threads`
@@ -1652,11 +1679,11 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-The Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
+The Kafka Connector supports integration with both the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) and the [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview) through the configuration of parameters with the prefix `schema.registry`.
 
 ### `schema.registry.url`
 
-_Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
+_Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
 
 Example:
 
@@ -1672,7 +1699,61 @@ Example:
 <param name="schema.registry.url">https://localhost:8084</param>
 ```
 
-### Basic HTTP Authentication Parameters
+#### `schema.registry.provider`
+
+_Optional_. Specifies the Schema Registry provider implementation to use. The Kafka Connector supports multiple Schema Registry providers to accommodate different cloud and on-premise environments. Can be one of the following:
+- `CONFLUENT`: Use the Confluent Schema Registry implementation
+- `AZURE`: Use the Azure Schema Registry implementation
+
+Default value: `CONFLUENT`.
+
+Example:
+
+```xml
+<param name="schema.registry.provider">AZURE</param>
+```
+
+### Azure Schema Registry Parameters
+
+When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
+
+##### `schema.registry.azure.tenant.id`
+
+_Mandatory if Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+```
+
+##### `schema.registry.azure.client.id`
+
+_Mandatory if Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
+```
+
+##### `schema.registry.azure.client.secret`
+
+_Mandatory if Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by `schema.registry.azure.client.id`. This secret is used to authenticate the application against Azure AD.
+
+Example:
+
+```xml
+<param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
+```
+
+> **ℹ️ Step-by-step setup**: For a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, see the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example.
+
+### Confluent Schema Registry Parameters
+
+When using Confluent Schema Registry (`schema.registry.provider` set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
+
+#### Basic HTTP Authentication Parameters
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
 

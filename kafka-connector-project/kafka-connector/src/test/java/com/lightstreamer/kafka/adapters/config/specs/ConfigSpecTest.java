@@ -62,8 +62,8 @@ public class ConfigSpecTest {
 
         ConfigsSpec sub = source.newSpecWithNameSpace("sub");
 
-        ConfParameter origin = source.getParameter("prop1");
-        ConfParameter nameSpaced = sub.getParameter("sub.prop1");
+        ConfParameter origin = source.findParameter("prop1");
+        ConfParameter nameSpaced = sub.findParameter("sub.prop1");
 
         assertThat(nameSpaced).isNotNull();
         assertParams("sub", nameSpaced, origin);
@@ -81,8 +81,8 @@ public class ConfigSpecTest {
 
         ConfigsSpec sub = source.newSpecWithNameSpace("sub");
 
-        ConfParameter origin = source.getParameter("nested.prop1");
-        ConfParameter nameSpaced = sub.getParameter("sub.nested.prop1");
+        ConfParameter origin = source.findParameter("nested.prop1");
+        ConfParameter nameSpaced = sub.findParameter("sub.nested.prop1");
 
         assertThat(nameSpaced).isNotNull();
         assertParams("sub", nameSpaced, origin);

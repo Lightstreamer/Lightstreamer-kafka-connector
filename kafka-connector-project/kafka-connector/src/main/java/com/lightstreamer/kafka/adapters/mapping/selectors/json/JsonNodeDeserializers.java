@@ -18,10 +18,13 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.json;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.AZURE;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.schemaregistry.json.JsonSchema;
@@ -29,14 +32,73 @@ import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 import org.everit.json.schema.ValidationException;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class JsonNodeDeserializers {
+
+    static class AzureSchemaRegistryDeserializer implements Deserializer<JsonNode> {
+
+        private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
+                delegate =
+                        new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<>();
+        private final ObjectMapper mapper = new ObjectMapper();
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
+            String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+            String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+
+            Map<String, Object> mutableConfigs = new HashMap<>(configs);
+            if (tenantId != null
+                    && !tenantId.isEmpty()
+                    && clientId != null
+                    && !clientId.isEmpty()
+                    && clientSecret != null
+                    && !clientSecret.isEmpty()) {
+                mutableConfigs.put(
+                        "schema.registry.credential",
+                        new ClientSecretCredentialBuilder()
+                                .tenantId(tenantId)
+                                .clientId(clientId)
+                                .clientSecret(clientSecret)
+                                .build());
+            }
+            delegate.configure(mutableConfigs, isKey);
+        }
+
+        @Override
+        public JsonNode deserialize(String topic, byte[] data) {
+            return toJsonNode(delegate.deserialize(topic, data));
+        }
+
+        @Override
+        public JsonNode deserialize(String topic, Headers headers, byte[] data) {
+            return toJsonNode(delegate.deserialize(topic, headers, data));
+        }
+
+        private JsonNode toJsonNode(Object data) {
+            if (data == null) {
+                return null;
+            }
+            if (data instanceof JsonNode node) {
+                return node;
+            }
+            return mapper.valueToTree(data);
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
+    }
 
     static class JsonNodeLocalSchemaDeserializer extends AbstractLocalSchemaDeserializer<JsonNode> {
 
@@ -98,6 +160,9 @@ public class JsonNodeDeserializers {
         }
         if ((isKey && config.isSchemaRegistryEnabledForKey())
                 || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            if (AZURE.equals(config.schemaRegistryProvider())) {
+                return new AzureSchemaRegistryDeserializer();
+            }
             return new KafkaJsonSchemaDeserializer<>();
         }
         return new KafkaJsonDeserializer<>();

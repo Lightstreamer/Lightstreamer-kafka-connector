@@ -135,6 +135,8 @@ public class ConfigsSpec {
 
         ORDER_STRATEGY(Options.orderStrategies()),
 
+        SCHEMA_REGISTRY_PROVIDER(Options.schemaRegistryProviders()),
+
         URL {
             @Override
             public boolean checkValidity(String param) {
@@ -297,6 +299,10 @@ public class ConfigsSpec {
             return new EnablingKey(key().map(k -> ns + "." + k).toList());
         }
 
+        public String toString() {
+            return keys.toString();
+        }
+
         Stream<String> key() {
             return keys.stream();
         }
@@ -407,6 +413,10 @@ public class ConfigsSpec {
 
         static Options saslMechanisms() {
             return new Options(SaslMechanism.names());
+        }
+
+        static Options schemaRegistryProviders() {
+            return new Options(ConfigTypes.SchemaRegistryProvider.names());
         }
 
         private Set<String> choices;
@@ -529,7 +539,7 @@ public class ConfigsSpec {
                     paramSpec.put(name, p);
                 });
         for (ChildSpec childSpec : from.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
     }
 
@@ -546,14 +556,14 @@ public class ConfigsSpec {
                             cp.defaultHolder()));
         }
         for (ChildSpec childSpec : childConfigSpec.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
 
         return this;
     }
 
     public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
-        ConfigsSpec newSpec = new ConfigsSpec();
+        ConfigsSpec newSpec = new ConfigsSpec(this.name);
         for (ConfParameter cp : paramSpec.values()) {
             newSpec.add(
                     new ConfParameter(
@@ -567,7 +577,7 @@ public class ConfigsSpec {
         }
         for (ChildSpec childSpec : specChildren) {
             ConfigsSpec spec = childSpec.spec();
-            newSpec.addChildConfigs(
+            newSpec.withChildConfigs(
                     spec.newSpecWithNameSpace(nameSpace),
                     childSpec.evalStrategy(),
                     childSpec.enablingKey().newNameSpaced(nameSpace));
@@ -654,7 +664,7 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, EnablingKey enablingKey) {
-        return addChildConfigs(
+        return withChildConfigs(
                 spec, (map, key) -> map.getOrDefault(key, "false").equals("true"), enablingKey);
     }
 
@@ -662,16 +672,16 @@ public class ConfigsSpec {
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             String enablingKey) {
-        return addChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
+        return withChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
     }
 
-    public ConfigsSpec addChildConfigs(
+    private ConfigsSpec withChildConfigs(
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             EnablingKey enablingKey) {
         enablingKey
                 .key()
-                .map(s -> getParameter(s))
+                .map(s -> lookUpParameter(s))
                 .filter(Objects::nonNull)
                 .findAny()
                 .orElseThrow(
@@ -683,14 +693,14 @@ public class ConfigsSpec {
         return this;
     }
 
-    public ConfParameter getParameter(String name) {
-        ConfParameter parameter = paramSpec.get(name);
+    public ConfParameter findParameter(String name) {
+        ConfParameter parameter = lookUpParameter(name);
         if (parameter != null) {
             return parameter;
         }
 
         for (ChildSpec trigger : specChildren) {
-            parameter = trigger.spec().getParameter(name);
+            parameter = trigger.spec().findParameter(name);
             if (parameter != null) {
                 return parameter;
             }
@@ -700,34 +710,21 @@ public class ConfigsSpec {
         return null;
     }
 
+    private ConfParameter lookUpParameter(String name) {
+        System.out.println("Checking parameter [%s] in spec [%s]".formatted(name, this.name));
+        ConfParameter confParameter = paramSpec.get(name);
+        if (confParameter != null) {
+            System.err.println("Found parameter [%s] in spec [%s]".formatted(name, this.name));
+        }
+        return confParameter;
+    }
+
     public List<ConfParameter> getByType(Type type) {
         return Stream.concat(
                         paramSpec.values().stream().filter(p -> p.type().equals(type)),
                         specChildren.stream().flatMap(s -> s.spec().getByType(type).stream()))
                 .toList();
     }
-
-    // public static Optional<String> extractPrefix(ConfParameter param, String value) {
-    //     if (!param.multiple()) {
-    //         return Optional.empty();
-    //     }
-
-    //     String prefix = param.name() + ".";
-    //     boolean startsWith = value.startsWith(prefix);
-    //     if (!startsWith) {
-    //         return Optional.empty();
-    //     }
-
-    //     infix = value.substring(prefix.length());
-    //     if (param.suffix() != null) {
-    //         String suffix = "." + param.suffix();
-    //         if (!infix.endsWith(suffix)) {
-    //             return Optional.empty();
-    //         }
-    //         infix = infix.substring(0, infix.lastIndexOf(suffix));
-    //     }
-    //     return Optional.of(infix);
-    // }
 
     public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.

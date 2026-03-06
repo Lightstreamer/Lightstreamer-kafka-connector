@@ -18,8 +18,11 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.AZURE;
 
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -35,6 +38,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GenericRecordDeserializers {
@@ -91,6 +95,52 @@ public class GenericRecordDeserializers {
         }
     }
 
+    static class AzureSchemaRegistryDeserializer implements Deserializer<GenericRecord> {
+
+        private final com.microsoft.azure.schemaregistry.kafka.avro.KafkaAvroDeserializer delegate =
+                new com.microsoft.azure.schemaregistry.kafka.avro.KafkaAvroDeserializer();
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
+            String clientId = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+            String clientSecret = (String) configs.get(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
+
+            Map<String, Object> mutableConfigs = new HashMap<>(configs);
+            if (tenantId != null
+                    && !tenantId.isEmpty()
+                    && clientId != null
+                    && !clientId.isEmpty()
+                    && clientSecret != null
+                    && !clientSecret.isEmpty()) {
+                mutableConfigs.put(
+                        "schema.registry.credential",
+                        new ClientSecretCredentialBuilder()
+                                .tenantId(tenantId)
+                                .clientId(clientId)
+                                .clientSecret(clientSecret)
+                                .build());
+            }
+            delegate.configure(mutableConfigs, isKey);
+        }
+
+        @Override
+        public GenericRecord deserialize(String topic, byte[] data) {
+            return (GenericRecord) delegate.deserialize(topic, data);
+        }
+
+        @Override
+        public GenericRecord deserialize(
+                String topic, org.apache.kafka.common.header.Headers headers, byte[] data) {
+            return (GenericRecord) delegate.deserialize(topic, headers, data);
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
+    }
+
     static Deserializer<GenericRecord> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
@@ -103,7 +153,10 @@ public class GenericRecordDeserializers {
             ConnectorConfig config, boolean isKey) {
         checkEvaluator(config, isKey);
         Deserializer<GenericRecord> deserializer = newDeserializer(config, isKey);
-        deserializer.configure(Utils.propsToMap(config.baseConsumerProps()), isKey);
+
+        Map<String, Object> props = Utils.propsToMap(config.baseConsumerProps());
+        deserializer.configure(props, isKey);
+
         return deserializer;
     }
 
@@ -114,6 +167,14 @@ public class GenericRecordDeserializers {
                     new GenericRecordLocalSchemaDeserializer();
             localSchemaDeser.preConfigure(config, isKey);
             return localSchemaDeser;
+        }
+
+        if ((isKey && config.isSchemaRegistryEnabledForKey())
+                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            if (AZURE.equals(config.schemaRegistryProvider())) {
+                return new AzureSchemaRegistryDeserializer();
+            }
+            return new WrapperKafkaAvroDeserializer();
         }
 
         return new WrapperKafkaAvroDeserializer();

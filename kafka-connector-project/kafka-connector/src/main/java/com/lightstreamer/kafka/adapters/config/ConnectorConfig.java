@@ -57,6 +57,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFr
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -160,8 +161,14 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
 
     // Kafka consumer specific settings
-    public static final String RECORD_CONSUME_MAX_POLL_RECORDS =
-            "record.consume." + MAX_POLL_RECORDS_CONFIG;
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =
+            "record.consume.with." + MAX_POLL_RECORDS_CONFIG;
+
+    public static final String RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS =
+            "record.consume.with." + SESSION_TIMEOUT_MS_CONFIG;
+
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS =
+            "record.consume.with." + MAX_POLL_INTERVAL_MS_CONFIG;
 
     // Prefix for all hidden consumer configs
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -181,10 +188,6 @@ public final class ConnectorConfig extends AbstractConfig {
             CONNECTOR_PREFIX + RECONNECT_BACKOFF_MAX_MS_CONFIG;
     public static final String CONSUMER_HEARTBEAT_INTERVAL_MS =
             CONNECTOR_PREFIX + HEARTBEAT_INTERVAL_MS_CONFIG;
-    public static final String CONSUMER_SESSION_TIMEOUT_MS =
-            CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
-    public static final String CONSUMER_MAX_POLL_INTERVAL_MS =
-            CONNECTOR_PREFIX + MAX_POLL_INTERVAL_MS_CONFIG;
     public static final String CONSUMER_METADATA_MAX_AGE_CONFIG =
             CONNECTOR_PREFIX + METADATA_MAX_AGE_CONFIG;
     public static final String CONSUMER_REQUEST_TIMEOUT_MS_CONFIG =
@@ -364,21 +367,27 @@ public final class ConnectorConfig extends AbstractConfig {
                         .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
                         .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
                         .add(
-                                RECORD_CONSUME_MAX_POLL_RECORDS,
+                                RECORD_CONSUME_WITH_MAX_POLL_RECORDS,
                                 false,
                                 false,
                                 POSITIVE_INT,
                                 true,
                                 defaultValue("500"))
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
-                        .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
                         .add(
-                                CONSUMER_MAX_POLL_INTERVAL_MS,
+                                RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS,
                                 false,
                                 false,
                                 INT,
+                                true,
+                                defaultValue("45000"))
+                        .add(
+                                RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS,
                                 false,
-                                defaultValue("5000"))
+                                false,
+                                POSITIVE_INT,
+                                true,
+                                defaultValue("30000"))
                         .add(
                                 CONSUMER_METADATA_MAX_AGE_CONFIG,
                                 false,
@@ -530,13 +539,16 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(
                 HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
         properties.setProperty(
-                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_RECORDS));
+                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_RECORDS));
         properties.setProperty(
                 RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
                 RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
-        properties.setProperty(SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
-        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+        properties.setProperty(
+                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS));
+        properties.setProperty(
+                MAX_POLL_INTERVAL_MS_CONFIG,
+                getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
                 REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
@@ -998,6 +1010,30 @@ public final class ConnectorConfig extends AbstractConfig {
     public String schemaRegistryBasicAuthenticationPassword() {
         checkSchemaRegistryBasicAuthentication();
         return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
+    }
+
+    public SchemaRegistryProvider schemaRegistryProvider() {
+        checkSchemaRegistryEnabled();
+        return SchemaRegistryProvider.valueOf(
+                get(
+                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                        ConfType.SCHEMA_REGISTRY_PROVIDER,
+                        false));
+    }
+
+    public String azureTenantId() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_TENANT_ID);
+    }
+
+    public String azureClientId() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+    }
+
+    public String azureClientSecret() {
+        checkSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
     }
 
     public ItemTemplateConfigs getItemTemplateConfigs() {
