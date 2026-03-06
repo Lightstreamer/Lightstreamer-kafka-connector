@@ -53,7 +53,7 @@ public class GlobalConfigTest {
     public void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = GlobalConfig.configSpec();
 
-        ConfParameter adaptersConfId = configSpec.getParameter(GlobalConfig.ADAPTERS_CONF_ID);
+        ConfParameter adaptersConfId = configSpec.findParameter(GlobalConfig.ADAPTERS_CONF_ID);
         assertThat(adaptersConfId.name()).isEqualTo(GlobalConfig.ADAPTERS_CONF_ID);
         assertThat(adaptersConfId.required()).isTrue();
         assertThat(adaptersConfId.multiple()).isFalse();
@@ -62,7 +62,7 @@ public class GlobalConfigTest {
         assertThat(adaptersConfId.type()).isEqualTo(TEXT);
 
         ConfParameter loggingConfigurationFile =
-                configSpec.getParameter(GlobalConfig.LOGGING_CONFIGURATION_PATH);
+                configSpec.findParameter(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         assertThat(loggingConfigurationFile.name())
                 .isEqualTo(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         assertThat(loggingConfigurationFile.required()).isTrue();

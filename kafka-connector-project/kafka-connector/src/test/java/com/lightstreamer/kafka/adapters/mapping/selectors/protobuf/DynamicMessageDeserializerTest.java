@@ -104,6 +104,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<DynamicMessage> deserializer =
@@ -122,6 +124,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<DynamicMessage> deserializer =
@@ -144,6 +148,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<DynamicMessage> deser =
@@ -213,6 +219,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE,
                                 "Person",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<DynamicMessage> deser =
@@ -242,6 +250,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<DynamicMessage> deser =
@@ -275,6 +285,8 @@ public class DynamicMessageDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
+                                "http://localhost:8080",
+                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080",
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE,

@@ -104,11 +104,16 @@ public class SchemaRegistryConfigs {
                                 SCHEMA_REGISTRY_PROVIDER,
                                 false,
                                 false,
-                                TEXT,
+                                ConfType.SCHEMA_REGISTRY_PROVIDER,
                                 defaultValue(DEFAULT_SCHEMA_REGISTRY_PROVIDER.toString()))
                         .withEnabledChildConfigs(
                                 new ConfigsSpec("confluent")
-                                        .add(CONFLUENT_URL, true, false, ConfType.URL)
+                                        .add(
+                                                CONFLUENT_URL,
+                                                true,
+                                                false,
+                                                ConfType.URL,
+                                                defaultValue(params -> params.get(URL)))
                                         .add(
                                                 ENABLE_BASIC_AUTHENTICATION,
                                                 false,
@@ -132,7 +137,9 @@ public class SchemaRegistryConfigs {
                                                 TlsConfigs.spec()
                                                         .newSpecWithNameSpace(
                                                                 ENCRYPTION_NAME_SPACE),
-                                                (map, key) -> map.get(key).startsWith("https"),
+                                                (map, key) -> {
+                                                    return map.get(key).startsWith("https");
+                                                },
                                                 CONFLUENT_URL),
                                 (map, key) ->
                                         SchemaRegistryProvider.CONFLUENT.equals(

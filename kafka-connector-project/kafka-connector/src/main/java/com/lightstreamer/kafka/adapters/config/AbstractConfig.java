@@ -134,7 +134,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     protected final String get(String key, Type type, boolean forceRequired) {
-        ConfParameter param = configSpec.getParameter(key);
+        ConfParameter param = configSpec.findParameter(key);
         if (param != null) {
             if (param.type().equals(type)) {
                 if (param.required() && configuration.containsKey(key)) {
@@ -154,7 +154,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final Map<String, String> getValues(String configKey) {
-        ConfParameter param = configSpec.getParameter(configKey);
+        ConfParameter param = configSpec.findParameter(configKey);
         if (param.multiple()) {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {

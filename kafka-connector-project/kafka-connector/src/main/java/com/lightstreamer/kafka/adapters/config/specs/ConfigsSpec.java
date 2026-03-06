@@ -299,6 +299,10 @@ public class ConfigsSpec {
             return new EnablingKey(key().map(k -> ns + "." + k).toList());
         }
 
+        public String toString() {
+            return keys.toString();
+        }
+
         Stream<String> key() {
             return keys.stream();
         }
@@ -535,7 +539,7 @@ public class ConfigsSpec {
                     paramSpec.put(name, p);
                 });
         for (ChildSpec childSpec : from.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
     }
 
@@ -552,7 +556,7 @@ public class ConfigsSpec {
                             cp.defaultHolder()));
         }
         for (ChildSpec childSpec : childConfigSpec.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
 
         return this;
@@ -573,7 +577,7 @@ public class ConfigsSpec {
         }
         for (ChildSpec childSpec : specChildren) {
             ConfigsSpec spec = childSpec.spec();
-            newSpec.addChildConfigs(
+            newSpec.withChildConfigs(
                     spec.newSpecWithNameSpace(nameSpace),
                     childSpec.evalStrategy(),
                     childSpec.enablingKey().newNameSpaced(nameSpace));
@@ -660,7 +664,7 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, EnablingKey enablingKey) {
-        return addChildConfigs(
+        return withChildConfigs(
                 spec, (map, key) -> map.getOrDefault(key, "false").equals("true"), enablingKey);
     }
 
@@ -668,16 +672,16 @@ public class ConfigsSpec {
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             String enablingKey) {
-        return addChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
+        return withChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
     }
 
-    public ConfigsSpec addChildConfigs(
+    private ConfigsSpec withChildConfigs(
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             EnablingKey enablingKey) {
         enablingKey
                 .key()
-                .map(s -> getParameter(s))
+                .map(s -> lookUpParameter(s))
                 .filter(Objects::nonNull)
                 .findAny()
                 .orElseThrow(
@@ -689,14 +693,14 @@ public class ConfigsSpec {
         return this;
     }
 
-    public ConfParameter getParameter(String name) {
-        ConfParameter parameter = paramSpec.get(name);
+    public ConfParameter findParameter(String name) {
+        ConfParameter parameter = lookUpParameter(name);
         if (parameter != null) {
             return parameter;
         }
 
         for (ChildSpec trigger : specChildren) {
-            parameter = trigger.spec().getParameter(name);
+            parameter = trigger.spec().findParameter(name);
             if (parameter != null) {
                 return parameter;
             }
@@ -704,6 +708,15 @@ public class ConfigsSpec {
 
         // No parameter found
         return null;
+    }
+
+    private ConfParameter lookUpParameter(String name) {
+        System.out.println("Checking parameter [%s] in spec [%s]".formatted(name, this.name));
+        ConfParameter confParameter = paramSpec.get(name);
+        if (confParameter != null) {
+            System.err.println("Found parameter [%s] in spec [%s]".formatted(name, this.name));
+        }
+        return confParameter;
     }
 
     public List<ConfParameter> getByType(Type type) {
