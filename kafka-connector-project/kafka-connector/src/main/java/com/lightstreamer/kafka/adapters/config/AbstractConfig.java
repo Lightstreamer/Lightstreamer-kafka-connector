@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
@@ -67,6 +68,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public final String getPositiveInt(String configKey) {
         return get(configKey, POSITIVE_INT, false);
+    }
+
+    public final String getNonNegativeInt(String configKey) {
+        return get(configKey, NON_NEGATIVE_INT, false);
     }
 
     public final String getThreads(String configKey) {
@@ -135,18 +140,12 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     protected final String get(String key, Type type, boolean forceRequired) {
         ConfParameter param = configSpec.findParameter(key);
-        if (param != null) {
-            if (param.type().equals(type)) {
-                if (param.required() && configuration.containsKey(key)) {
-                    return configuration.get(key);
-                }
-                String value =
-                        configuration.getOrDefault(key, param.defaultHolder().value(configuration));
-                if (forceRequired && value == null) {
-                    throw new ConfigException("Missing required parameter [%s]".formatted(key));
-                }
-                return value;
+        if (param != null && param.type().equals(type)) {
+            String value = configuration.get(key);
+            if (forceRequired && value == null) {
+                throw new ConfigException("Missing required parameter [%s]".formatted(key));
             }
+            return value;
         }
         throw new ConfigException(
                 "No parameter [%s] of %s type is present in the configuration"
