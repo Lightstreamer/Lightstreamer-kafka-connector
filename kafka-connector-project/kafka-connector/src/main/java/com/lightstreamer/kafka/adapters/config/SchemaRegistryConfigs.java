@@ -95,9 +95,9 @@ public class SchemaRegistryConfigs {
             cns("basic.authentication.password");
 
     // Azure specific configs
-    public static final String AZURE_TENANT_ID = ans("azure.tenant.id");
-    public static final String AZURE_CLIENT_ID = ans("azure.client.id");
-    public static final String AZURE_CLIENT_SECRET = ans("azure.client.secret");
+    public static final String AZURE_TENANT_ID = ans("tenant.id");
+    public static final String AZURE_CLIENT_ID = ans("client.id");
+    public static final String AZURE_CLIENT_SECRET = ans("client.secret");
 
     private static ConfigsSpec CONFIG_SPEC;
 
@@ -179,7 +179,7 @@ public class SchemaRegistryConfigs {
     }
 
     static String ans(String key) {
-        return "azureCredentials." + key;
+        return AZURE_NAME_SPACE + "." + key;
     }
 
     static ConfigsSpec spec() {
