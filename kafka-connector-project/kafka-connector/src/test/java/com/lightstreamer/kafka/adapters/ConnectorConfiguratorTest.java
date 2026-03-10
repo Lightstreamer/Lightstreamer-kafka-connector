@@ -151,13 +151,11 @@ public class ConnectorConfiguratorTest {
         if (keyType.equals("PROTOBUF")) {
             updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
-            updatedConfigs.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
         }
         if (valueType.equals("PROTOBUF")) {
             updatedConfigs.put(
                     ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
             updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
-            updatedConfigs.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
         }
 
         ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
@@ -294,7 +292,6 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "test_schema.avsc");
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
-        updatedConfigs.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.consumerConfig();
@@ -340,7 +337,6 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF");
         updatedConfigs.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfigs.put(SchemaRegistryConfigs.URL, "http://localhost:8081");
-        updatedConfigs.put(SchemaRegistryConfigs.CONFLUENT_URL, "http://localhost:8081");
 
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         Config<?, ?> consumerConfig = configurator.consumerConfig();
