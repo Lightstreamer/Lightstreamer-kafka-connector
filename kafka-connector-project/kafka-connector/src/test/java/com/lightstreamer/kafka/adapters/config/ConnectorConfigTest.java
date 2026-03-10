@@ -2684,6 +2684,98 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldSpecifyRequiredParamsForAzureSchemaRegistry() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, "AVRO");
+        updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(URL, "http://localhost:8080");
+
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, null);
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [schema.registry.provider]");
+
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "INVALID");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [schema.registry.provider]");
+
+        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "AZURE");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.azure.tenant.id]");
+
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_TENANT_ID, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [schema.registry.azure.tenant.id]");
+
+        updatedConfig.put(
+                SchemaRegistryConfigs.AZURE_TENANT_ID, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.azure.client.id]");
+
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_ID, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [schema.registry.azure.client.id]");
+
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_ID, "client-id");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Missing required parameter [schema.registry.azure.client.secret]");
+
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_SECRET, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [schema.registry.azure.client.secret]");
+
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_SECRET, "client-secret");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isSchemaRegistryEnabled()).isTrue();
+        assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
+        assertThat(config.schemaRegistryProvider()).isEqualTo(SchemaRegistryProvider.AZURE);
+        assertThat(config.azureTenantId()).isEqualTo("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        assertThat(config.azureClientId()).isEqualTo("client-id");
+        assertThat(config.azureClientSecret()).isEqualTo("client-secret");
+    }
+
+    @Test
     public void shouldNotAccessToSchemaRegistrySettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
