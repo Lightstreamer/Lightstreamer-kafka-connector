@@ -1896,7 +1896,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessToEncryptionSettings() {
+    public void shouldNotAccessEncryptionSettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
@@ -2280,7 +2280,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessToAuthenticationSettings() {
+    public void shouldNotAccessAuthenticationSettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
@@ -2654,7 +2654,6 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyRequiredParamsForConfluentSchemaRegistry() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
 
@@ -2686,7 +2685,6 @@ public class ConnectorConfigTest {
     @Test
     public void shouldSpecifyRequiredParamsForAzureSchemaRegistry() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
 
@@ -2776,7 +2774,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessToSchemaRegistrySettings() {
+    public void shouldNotAccessSchemaRegistrySettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
@@ -2808,26 +2806,70 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessToConfluentSchemaRegistrySettings() {
+    public void shouldNotAccessAzureSchemaRegistrySettings() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
+        updatedConfig.put(URL, "http://localhost:8080");
+
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.azureTenantId(),
+                        () -> config.azureClientId(),
+                        () -> config.azureClientSecret());
+
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce)
+                    .hasMessageThat()
+                    .isEqualTo("Parameter [schema.registry.provider] is not set to [AZURE]");
+        }
+    }
+
+    @Test
+    public void shouldNotAccessConfluentSchemaRegistrySettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(URL, "http://localhost:8080");
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(
                 SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
                 SchemaRegistryProvider.AZURE.toString());
+        updatedConfig.put(
+                SchemaRegistryConfigs.AZURE_TENANT_ID, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_ID, "client-id");
+        updatedConfig.put(SchemaRegistryConfigs.AZURE_CLIENT_SECRET, "client-secret");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
+
+        List<ThrowingRunnable> runnables =
+                List.of(
+                        () -> config.isConfluentSchemaRegistryEncryptionEnabled(),
+                        () -> config.confluentSchemaRegistryEnabledProtocols(),
+                        () -> config.confluentSchemaRegistryEnabledProtocolsAsStr(),
+                        () -> config.confluentSchemaRegistrySslProtocol(),
+                        () -> config.confluentSchemaRegistryTruststoreType(),
+                        () -> config.confluentSchemaRegistryTruststorePath(),
+                        () -> config.confluentSchemaRegistryTruststorePassword(),
+                        () -> config.isConfluentSchemaRegistryHostNameVerificationEnabled(),
+                        () -> config.confluentSchemaRegistryCipherSuites(),
+                        () -> config.confluentSchemaRegistryCipherSuitesAsStr(),
+                        () -> config.confluentSchemaRegistrySslProvider(),
+                        () -> config.isSchemaRegistryBasicAuthenticationEnabled());
+        for (ThrowingRunnable executable : runnables) {
+            ConfigException ce = assertThrows(ConfigException.class, executable);
+            assertThat(ce)
+                    .hasMessageThat()
+                    .isEqualTo("Parameter [schema.registry.provider] is not set to [CONFLUENT]");
+        }
     }
 
     @Test
-    public void shouldNotAccessToSchemaRegistryEncryptionSettings() {
+    public void shouldNotAccessConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
-        updatedConfig.put(
-                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER.toString());
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
@@ -2849,12 +2891,12 @@ public class ConnectorConfigTest {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
-                    .isEqualTo("Parameter [schema.registry.url] is not set with https protocol");
+                    .isEqualTo("Parameter [schema.registry.url] is not set to https protocol");
         }
     }
 
     @Test
-    public void shouldGetDefaultSchemaRegistryEncryptionSettings() {
+    public void shouldGetDefaultConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -2909,7 +2951,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideSchemaRegistryEncryptionSettings() {
+    public void shouldOverrideConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -2965,7 +3007,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultSchemaRegistryKeystoreSettings() {
+    public void shouldGetDefaultConfluentSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -2997,7 +3039,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideSchemaRegistryKeystoreSettings() {
+    public void shouldOverrideConfluentSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -3041,7 +3083,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessToSchemaRegistryBasicAuthenticationSettings() {
+    public void shouldNotAccessConfluentSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
@@ -3064,7 +3106,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetSchemaRegistryBasicAuthenticationSettings() {
+    public void shouldGetConfluentSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
