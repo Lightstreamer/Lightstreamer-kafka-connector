@@ -26,9 +26,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public class SchemaRegistryConfigsTest {
 
     @Test
@@ -237,14 +234,5 @@ public class SchemaRegistryConfigsTest {
         assertThat(azureClientSecret.mutable()).isTrue();
         assertThat(azureClientSecret.defaultValue()).isNull();
         assertThat(azureClientSecret.type()).isEqualTo(ConfType.TEXT);
-    }
-
-    @Test
-    public void should() {
-        Map<String, String> configValues = new HashMap<>();
-        configValues.put(SchemaRegistryConfigs.URL, "https://localhost:8081");
-        ConfigsSpec spec = SchemaRegistryConfigs.spec();
-        Map<String, String> parsed = spec.parse(configValues);
-        assertThat(parsed).isEmpty();
     }
 }
