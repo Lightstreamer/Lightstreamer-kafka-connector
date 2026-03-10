@@ -52,6 +52,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -886,15 +887,36 @@ public final class ConnectorConfig extends AbstractConfig {
         return getUrl(SchemaRegistryConfigs.URL);
     }
 
+    private void checkConfluentSchemaRegistryEnabled() {
+        if (!ConfigTypes.SchemaRegistryProvider.CONFLUENT.equals(schemaRegistryProvider())) {
+            throw new ConfigException(
+                    "Parameter [%s] is not set to [%s]"
+                            .formatted(
+                                    SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                    ConfigTypes.SchemaRegistryProvider.CONFLUENT));
+        }
+    }
+
+    private void checkAzureSchemaRegistryEnabled() {
+        if (!ConfigTypes.SchemaRegistryProvider.AZURE.equals(schemaRegistryProvider())) {
+            throw new ConfigException(
+                    "Parameter [%s] is not set to [%s]"
+                            .formatted(
+                                    SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                    ConfigTypes.SchemaRegistryProvider.AZURE));
+        }
+    }
+
     public boolean isConfluentSchemaRegistryEncryptionEnabled() {
-        checkSchemaRegistryEnabled();
+        checkConfluentSchemaRegistryEnabled();
         return schemaRegistryUrl().startsWith("https");
     }
 
     private void checkConfluentSchemaRegistryEncryptionEnabled() {
+        checkConfluentSchemaRegistryEnabled();
         if (!isConfluentSchemaRegistryEncryptionEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not set with https protocol"
+                    "Parameter [%s] is not set to https protocol"
                             .formatted(SchemaRegistryConfigs.URL));
         }
     }
@@ -992,7 +1014,7 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public boolean isSchemaRegistryBasicAuthenticationEnabled() {
-        checkSchemaRegistryEnabled();
+        checkConfluentSchemaRegistryEnabled();
         return getBoolean(SchemaRegistryConfigs.CONFLUENT_ENABLE_BASIC_AUTHENTICATION);
     }
 
@@ -1025,17 +1047,17 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public String azureTenantId() {
-        checkSchemaRegistryEnabled();
+        checkAzureSchemaRegistryEnabled();
         return getText(SchemaRegistryConfigs.AZURE_TENANT_ID);
     }
 
     public String azureClientId() {
-        checkSchemaRegistryEnabled();
+        checkAzureSchemaRegistryEnabled();
         return getText(SchemaRegistryConfigs.AZURE_CLIENT_ID);
     }
 
     public String azureClientSecret() {
-        checkSchemaRegistryEnabled();
+        checkAzureSchemaRegistryEnabled();
         return getText(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
     }
 
