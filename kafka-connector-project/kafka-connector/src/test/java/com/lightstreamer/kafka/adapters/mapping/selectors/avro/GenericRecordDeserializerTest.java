@@ -46,6 +46,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class GenericRecordDeserializerTest {
@@ -113,7 +114,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithSchemaRegistry() {
+    public void shouldGetKeyDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -122,8 +123,6 @@ public class GenericRecordDeserializerTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deserializer =
@@ -133,7 +132,34 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithSchemaRegistry() {
+    public void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+        }
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -142,33 +168,11 @@ public class GenericRecordDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deserializer =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
             assertThat(deserializer.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
-        }
-    }
-
-    @Test
-    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(
-                                RECORD_VALUE_EVALUATOR_TYPE,
-                                AVRO.toString(),
-                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
-                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                "AZURE",
-                                SchemaRegistryConfigs.URL,
-                                "https://my-namespace.servicebus.windows.net"));
-
-        try (Deserializer<GenericRecord> deserializer =
-                GenericRecordDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -183,6 +187,12 @@ public class GenericRecordDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
                                 "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret",
                                 SchemaRegistryConfigs.URL,
                                 "https://my-namespace.servicebus.windows.net"));
 
@@ -193,31 +203,28 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializeWithSchemaRegistry() {
+    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                RECORD_KEY_EVALUATOR_TYPE,
-                                AVRO.toString(),
-                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 AVRO.toString(),
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080"));
+                                "https://my-namespace.servicebus.windows.net"));
 
-        try (Deserializer<GenericRecord> deser =
-                GenericRecordDeserializers.KeyDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
-        }
-
-        try (Deserializer<GenericRecord> deser =
+        try (Deserializer<GenericRecord> deserializer =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -284,7 +291,8 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
+    public void
+            shouldGetKeyDeserializerWithConfluentSchemaRegistryAndValueDeserializerWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -298,8 +306,6 @@ public class GenericRecordDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE,
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<GenericRecord> deser =
@@ -314,7 +320,35 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() {
+    public void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                AVRO.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
+        }
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -329,8 +363,14 @@ public class GenericRecordDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080"));
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret"));
 
         try (Deserializer<GenericRecord> deser =
                 GenericRecordDeserializers.KeyDeserializer(config)) {
@@ -339,12 +379,12 @@ public class GenericRecordDeserializerTest {
 
         try (Deserializer<GenericRecord> deser =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(WrapperKafkaAvroDeserializer.class);
+            assertThat(deser.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
+    public void shouldDeserializationWithLocalSchemaTakesPrecedenceOverConfluentSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -362,10 +402,49 @@ public class GenericRecordDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080",
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE));
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
+        }
+
+        try (Deserializer<GenericRecord> deser =
+                GenericRecordDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(GenericRecordLocalSchemaDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverAzureSchemaRegistry()
+            throws IOException {
+        Map<String, String> configs =
+                Map.of(
+                        RECORD_KEY_EVALUATOR_TYPE,
+                        AVRO.toString(),
+                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        "true",
+                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                        TEST_SCHEMA_FILE,
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        AVRO.toString(),
+                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        "true",
+                        SchemaRegistryConfigs.URL,
+                        "http://localhost:8080",
+                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                        "AZURE",
+                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                        TEST_SCHEMA_FILE);
+        Map<String, String> configsWithAzureSettings = new HashMap<>(configs);
+        configsWithAzureSettings.put(
+                SchemaRegistryConfigs.AZURE_TENANT_ID, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        configsWithAzureSettings.put(SchemaRegistryConfigs.AZURE_CLIENT_ID, "client-id");
+        configsWithAzureSettings.put(SchemaRegistryConfigs.AZURE_CLIENT_SECRET, "client-secret");
+
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(SCHEMA_FOLDER, configsWithAzureSettings);
 
         try (Deserializer<GenericRecord> deser =
                 GenericRecordDeserializers.KeyDeserializer(config)) {
