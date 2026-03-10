@@ -1104,10 +1104,33 @@ public class ConnectorConfigTest {
                                         RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
-                                        "http://localhost:8081",
-                                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                        SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER
-                                                .toString())));
+                                        "http://localhost:8081")));
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_KEY_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true",
+                                                SchemaRegistryConfigs.URL,
+                                                "http://localhost:8081",
+                                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                                SchemaRegistryProvider.AZURE.toString(),
+                                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                                "azure-client-id",
+                                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                                "azure-client-secret",
+                                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                                "azure-tenant-id")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Schema registry provider [AZURE] does not support Protobuf schema evaluation for record key");
 
         ce =
                 assertThrows(
@@ -1173,10 +1196,33 @@ public class ConnectorConfigTest {
                                         RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                         "true",
                                         SchemaRegistryConfigs.URL,
-                                        "http://localhost:8081",
-                                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                        SchemaRegistryConfigs.DEFAULT_SCHEMA_REGISTRY_PROVIDER
-                                                .toString())));
+                                        "http://localhost:8081")));
+
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                RECORD_VALUE_EVALUATOR_TYPE,
+                                                "PROTOBUF",
+                                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                                "true",
+                                                SchemaRegistryConfigs.URL,
+                                                "http://localhost:8081",
+                                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                                SchemaRegistryProvider.AZURE.toString(),
+                                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                                "azure-client-id",
+                                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                                "azure-client-secret",
+                                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                                "azure-tenant-id")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Schema registry provider [AZURE] does not support Protobuf schema evaluation for record value");
     }
 
     @Test
@@ -2706,7 +2752,9 @@ public class ConnectorConfigTest {
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [schema.registry.provider]");
 
-        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "AZURE");
+        updatedConfig.put(
+                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                SchemaRegistryProvider.AZURE.toString());
         ce =
                 assertThrows(
                         ConfigException.class,
