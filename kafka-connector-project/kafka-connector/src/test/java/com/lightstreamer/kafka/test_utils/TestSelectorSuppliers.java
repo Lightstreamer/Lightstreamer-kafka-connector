@@ -30,7 +30,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
@@ -145,8 +144,6 @@ public interface TestSelectorSuppliers {
                         RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                         "true",
                         URL,
-                        "http://localhost:8081",
-                        SchemaRegistryConfigs.CONFLUENT_URL,
                         "http://localhost:8081"));
     }
 }
