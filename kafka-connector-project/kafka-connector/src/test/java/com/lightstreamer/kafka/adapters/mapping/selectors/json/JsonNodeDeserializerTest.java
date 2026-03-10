@@ -43,6 +43,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 public class JsonNodeDeserializerTest {
@@ -162,7 +163,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGeKeyDeserializerWithSchemaRegistry() {
+    public void shouldGeKeyDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -171,8 +172,6 @@ public class JsonNodeDeserializerTest {
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
@@ -181,7 +180,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithSchemaRegistry() {
+    public void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -190,8 +189,6 @@ public class JsonNodeDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<JsonNode> deserializer =
@@ -201,22 +198,28 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
+    public void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
-                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                "AZURE",
                                 SchemaRegistryConfigs.URL,
-                                "https://my-namespace.servicebus.windows.net"));
+                                "http://localhost:8080"));
+
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
+        }
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
         }
     }
 
@@ -231,6 +234,12 @@ public class JsonNodeDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
                                 "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret",
                                 SchemaRegistryConfigs.URL,
                                 "https://my-namespace.servicebus.windows.net"));
 
@@ -240,30 +249,28 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializeWithSchemaRegistry() {
+    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
-                                RECORD_KEY_EVALUATOR_TYPE,
-                                JSON.toString(),
-                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                                "true",
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
                                 RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
                                 "true",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret",
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080"));
-
-        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
-        }
+                                "https://my-namespace.servicebus.windows.net"));
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
+            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -326,7 +333,8 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema() {
+    public void
+            shouldGetKeyDeserializerWithConfluentSchemaRegistryAndValueDeserializerWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -340,8 +348,6 @@ public class JsonNodeDeserializerTest {
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE,
                                 SchemaRegistryConfigs.URL,
-                                "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
                                 "http://localhost:8080"));
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
@@ -354,7 +360,33 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() {
+    public void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        SCHEMA_FOLDER,
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                                TEST_SCHEMA_FILE,
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                SchemaRegistryConfigs.URL,
+                                "http://localhost:8080"));
+
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
+        }
+
+        try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deser.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -369,20 +401,26 @@ public class JsonNodeDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080"));
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "AZURE",
+                                SchemaRegistryConfigs.AZURE_TENANT_ID,
+                                "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                                SchemaRegistryConfigs.AZURE_CLIENT_ID,
+                                "client-id",
+                                SchemaRegistryConfigs.AZURE_CLIENT_SECRET,
+                                "client-secret"));
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.KeyDeserializer(config)) {
             assertThat(deser.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
         }
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(KafkaJsonSchemaDeserializer.class);
+            assertThat(deser.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
         }
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverSchemaRegistry()
+    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverConfluentSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -400,10 +438,48 @@ public class JsonNodeDeserializerTest {
                                 "true",
                                 SchemaRegistryConfigs.URL,
                                 "http://localhost:8080",
-                                SchemaRegistryConfigs.CONFLUENT_URL,
-                                "http://localhost:8080",
                                 RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
                                 TEST_SCHEMA_FILE));
+
+        try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
+        }
+
+        try (Deserializer<JsonNode> deserializer =
+                JsonNodeDeserializers.ValueDeserializer(config)) {
+            assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
+        }
+    }
+
+    @Test
+    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverAzureSchemaRegistry()
+            throws IOException {
+        Map<String, String> configs =
+                Map.of(
+                        RECORD_KEY_EVALUATOR_TYPE,
+                        JSON.toString(),
+                        RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        "true",
+                        RECORD_KEY_EVALUATOR_SCHEMA_PATH,
+                        TEST_SCHEMA_FILE,
+                        RECORD_VALUE_EVALUATOR_TYPE,
+                        JSON.toString(),
+                        RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                        "true",
+                        SchemaRegistryConfigs.URL,
+                        "http://localhost:8080",
+                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                        "AZURE",
+                        RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
+                        TEST_SCHEMA_FILE);
+        Map<String, String> configsWithAzureSettings = new HashMap<>(configs);
+        configsWithAzureSettings.put(
+                SchemaRegistryConfigs.AZURE_TENANT_ID, "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        configsWithAzureSettings.put(SchemaRegistryConfigs.AZURE_CLIENT_ID, "client-id");
+        configsWithAzureSettings.put(SchemaRegistryConfigs.AZURE_CLIENT_SECRET, "client-secret");
+
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(SCHEMA_FOLDER, configsWithAzureSettings);
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
             assertThat(deserializer.getClass()).isEqualTo(JsonNodeLocalSchemaDeserializer.class);
