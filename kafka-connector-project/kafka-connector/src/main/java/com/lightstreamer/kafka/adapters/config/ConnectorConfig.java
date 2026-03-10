@@ -52,7 +52,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -473,6 +472,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                     : RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
                     getText(messageTypeKey, true);
                 }
+                return;
+            }
+            if (EvaluatorType.PROTOBUF.equals(evaluatorType) && isAzureSchemaRegistryEnabled()) {
+                throw new ConfigException(
+                        "Schema registry provider [AZURE] does not support Protobuf schema evaluation for record %s"
+                                .formatted(isKey ? "key" : "value"));
             }
         }
     }
@@ -888,23 +893,31 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkConfluentSchemaRegistryEnabled() {
-        if (!ConfigTypes.SchemaRegistryProvider.CONFLUENT.equals(schemaRegistryProvider())) {
+        if (!isConfluentSchemaRegistryEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not set to [%s]"
                             .formatted(
                                     SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                    ConfigTypes.SchemaRegistryProvider.CONFLUENT));
+                                    SchemaRegistryProvider.CONFLUENT));
         }
     }
 
+    private boolean isConfluentSchemaRegistryEnabled() {
+        return SchemaRegistryProvider.CONFLUENT.equals(schemaRegistryProvider());
+    }
+
     private void checkAzureSchemaRegistryEnabled() {
-        if (!ConfigTypes.SchemaRegistryProvider.AZURE.equals(schemaRegistryProvider())) {
+        if (!isAzureSchemaRegistryEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not set to [%s]"
                             .formatted(
                                     SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                                    ConfigTypes.SchemaRegistryProvider.AZURE));
+                                    SchemaRegistryProvider.AZURE));
         }
+    }
+
+    private boolean isAzureSchemaRegistryEnabled() {
+        return SchemaRegistryProvider.AZURE.equals(schemaRegistryProvider());
     }
 
     public boolean isConfluentSchemaRegistryEncryptionEnabled() {
