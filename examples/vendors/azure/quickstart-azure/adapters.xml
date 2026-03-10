@@ -37,8 +37,8 @@
         <param name="record.value.evaluator.type">JSON</param>
 
 		<!-- ##### Azure Event Hubs specific settings ##### -->
-		<param name="consumer.max.poll.interval.ms">50000</param>
-		<param name="consumer.session.timeout.ms">30000</param>
+		<param name="record.consume.with.max.poll.interval.ms">50000</param>
+		<param name="record.consume.with.session.timeout.ms">30000</param>
 
         <!-- ##### Azure Schema Registry ##### -->
         <!-- AVRO or JSON Schema Example 

@@ -3,7 +3,7 @@ name: quickstart-kafka-connector-azure-event-hubs
 services:
   kafka-connector:
     container_name: kafka-connector
-    image: lightstreamer-kafka-connector-${version}
+    image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
       - producer
     ports:
@@ -13,15 +13,15 @@ services:
       - connection_string=${connection_string}
     volumes:
       - ./web:/lightstreamer/pages/QuickStart
-      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/adapters.xml
-      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector-${version}/log4j.properties
+      - ./adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml
+      - ./log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties
 
   producer:
     container_name: producer
     build:
       context: quickstart-producer
       args:
-        VERSION: ${version}
+        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties

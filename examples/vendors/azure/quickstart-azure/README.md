@@ -52,8 +52,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
       ```xml
 		    <!-- ##### Azure Event Hubs specific settings ##### -->
-		    <param name="consumer.max.poll.interval.ms">50000</param>
-		    <param name="consumer.session.timeout.ms">30000</param>
+		    <param name="record.consume.with.max.poll.interval.ms">50000</param>
+		    <param name="record.consume.with.session.timeout.ms">30000</param>
       ```
 
 - _producer_:
@@ -90,7 +90,7 @@ where:
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart); after a few moments, the user interface starts displaying the real-time stock data.
 
-   ![Demo](/pictures/quickstart.gif)
+![Demo](/pictures/quickstart.gif)
 
 To shutdown Docker Compose and clean up all temporary resources:
 
