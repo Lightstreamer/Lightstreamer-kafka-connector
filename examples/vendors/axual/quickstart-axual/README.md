@@ -92,7 +92,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 ## Run
 
-From this directory, run follow the command:
+From this directory, run the following command:
 
 ```sh
 $ bootstrap_server=<bootstrap_server> \

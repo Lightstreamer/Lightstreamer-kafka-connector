@@ -215,7 +215,7 @@ With respect to the [_SSL Quickstart_](../../../quickstart-ssl/README.md#quick-s
 
 ## Run
 
-From this directory, run follow the command:
+From this directory, run the following command:
 
 ```sh
 $ bootstrap_server=<bootstrap_server> \
