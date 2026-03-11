@@ -1,4 +1,4 @@
-# Quick Start with Azure Event Hubs
+# Azure Event Hubs Quickstart
 
 This folder contains a variant of the [_Quick Start SSL_](../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Azure Event Hubs_](https://azure.microsoft.com/en-us/products/event-hubs) as the target cluster. Using your Azure account, you may follow the [instructions](https://learn.microsoft.com/en-us/azure/event-hubs/event-hubs-create) to perform the following operations in the Azure portal:
 
