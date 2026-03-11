@@ -1762,35 +1762,35 @@ When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregist
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.registry.confluent.basic.authentication`.
 
-###### `schema.registry.confluent.basic.authentication.enable`
+- `schema.registry.confluent.basic.authentication.enable`
 
-_Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
-- `true`
-- `false`
+  _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
+  - `true`
+  - `false`
 
-Default value: `false`.
+  Default value: `false`.
 
-Example:
+  Example:
 
-```xml
-<param name="schema.registry.confluent.basic.authentication.enable">true</param>
-```
+  ```xml
+  <param name="schema.registry.confluent.basic.authentication.enable">true</param>
+  ```
 
-###### `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
+- `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
 
-_Mandatory if [Basic HTTP Authentication](#schemaregistryconfluentbasicauthenticationenable) is enabled_. The credentials.
+  _Mandatory if [Basic HTTP Authentication](#schemaregistryconfluentbasicauthenticationenable) is enabled_. The credentials.
 
-- `schema.registry.confluent.basic.authentication.username`: the username
-- `schema.registry.confluent.basic.authentication.password`: the password
+  - `schema.registry.confluent.basic.authentication.username`: the username
+  - `schema.registry.confluent.basic.authentication.password`: the password
 
-Example:
+  Example:
 
-```xml
-<param name="schema.registry.confluent.basic.authentication.username">authorized-schema-registry-user</param>
-<param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
-```
+  ```xml
+  <param name="schema.registry.confluent.basic.authentication.username">authorized-schema-registry-user</param>
+  <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
+  ```
 
-- Encryption Parameters
+##### Encryption Parameters
 
 To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
 
