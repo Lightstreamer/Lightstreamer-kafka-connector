@@ -73,7 +73,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$$ConnectionString" password="${connection_string}";
      ```  
 
-> **ℹ️ Schema Registry Support**: This quickstart works out-of-the-box without Schema Registry. If you need AVRO/JSON schema validation with Azure Schema Registry, see the [Advanced: Schema Registry Integration](#advanced-schema-registry-integration) section at the end of this document.
+> [**Schema Registry Support**]
+> This quickstart works out-of-the-box without Schema Registry. If you need AVRO/JSON schema validation with Azure Schema Registry, see the [Advanced: Schema Registry Integration](#advanced-schema-registry-integration) section at the end of this document.
 
 ## Run
 
@@ -86,7 +87,7 @@ $ bootstrap_server=<bootstrap_server> connection_string="<connection_string>" to
 where:
 - `<bootstrap_server>` - The bootstrap server address of the Event Hubs Namespace (something like this: `_my-namespace_.servicebus.windows.net:9093`)
 - `<connection_string>` - The primary connection string created in the shared access policies from the _Event Hubs console_ (something like this: `Endpoint=sb://_my-namespace_.servicebus.windows.net/;SharedAccessKeyName=client-consumer;SharedAccessKey=....`)
-- `<topic>` - The name of the topic (ie. Event Hub) created on  _Event Hubs Console_
+- `<topic>` - The name of Event Hub created on  _Event Hubs Console_
 
 Then, point your browser to [http://localhost:8080/QuickStart](http://localhost:8080/QuickStart); after a few moments, the user interface starts displaying the real-time stock data.
 
