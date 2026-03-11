@@ -1717,11 +1717,11 @@ Example for the Azure Schema Registry (the URL must point to the Azure Event Hub
 <param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 ```
 
-#### Azure Schema Registry Parameter
+#### Azure Schema Registry Parameters
 
 When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), the following parameters must be configured to enable authentication and integration with _Azure Event Hubs_.
 
-##### `schema.registry.azure.tenant.id`
+- `schema.registry.azure.tenant.id`
 
 _Mandatory if the Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
 
@@ -1731,7 +1731,7 @@ Example:
 <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
 ```
 
-##### `schema.registry.azure.client.id`
+- `schema.registry.azure.client.id`
 
 _Mandatory if the Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
 
@@ -1741,7 +1741,7 @@ Example:
 <param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
 ```
 
-##### `schema.registry.azure.client.secret`
+- `schema.registry.azure.client.secret`
 
 _Mandatory if the Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schemaregistryazureclientid). This secret is used to authenticate the application against Azure AD.
 
@@ -1792,7 +1792,7 @@ Example:
 <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
 ```
 
-##### Encryption Parameters
+- Encryption Parameters
 
 To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
 
