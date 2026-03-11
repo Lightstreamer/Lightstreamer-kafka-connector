@@ -432,13 +432,13 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
+Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
+
 Example:
 
 ```xml
 <data_provider name="BrokerConnection">
 ```
-
-Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
 
 #### `adapter_class`
 
