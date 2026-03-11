@@ -881,7 +881,7 @@ In particular, the Kafka Connector supports message validation for _Avro_, _JSON
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
-- Message validation against a Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
+- Message validation against a Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 **Support for Key Value Pairs (KVP)**
