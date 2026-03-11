@@ -2948,7 +2948,6 @@ public class ConnectorConfigTest {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
-        updatedConfig.put(SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER, "CONFLUENT");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("https://localhost:8080");
