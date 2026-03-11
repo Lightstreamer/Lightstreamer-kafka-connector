@@ -1777,7 +1777,7 @@ Example:
 
 ###### `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
 
-_Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
+_Mandatory if [Basic HTTP Authentication](#schemaregistryconfluentbasicauthenticationenable) is enabled_. The credentials.
 
 - `schema.registry.confluent.basic.authentication.username`: the username
 - `schema.registry.confluent.basic.authentication.password`: the password
