@@ -1073,10 +1073,10 @@ _Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueeval
 - `true`
 - `false`
 
+Default value: `false`.
+
 > [!IMPORTANT]
 > When using the Azure Schema Registry, setting the evaluator type to `PROTOBUF` is not supported.
-
-Default value: `false`.
 
 Examples:
 
