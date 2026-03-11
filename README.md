@@ -1517,7 +1517,7 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
   - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
   - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
-For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
 The parameter can be one of the following:
 - `true`
@@ -1747,7 +1747,7 @@ When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregist
 
 - `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
 
-  _Mandatory if [Basic HTTP Authentication](#schemaregistryconfluentbasicauthenticationenable) is enabled_. The credentials.
+  _Mandatory if [Basic HTTP Authentication](#basic-http-authentication-parameters) is enabled_. The credentials.
 
   - `schema.registry.confluent.basic.authentication.username`: the username
   - `schema.registry.confluent.basic.authentication.password`: the password
@@ -1804,21 +1804,11 @@ Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L
 
 ### Azure Schema Registry Parameters
 
-When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), the following parameters must be configured to enable authentication and integration with _Azure Event Hubs_.
-
-- `schema.registry.azure.tenant.id`
-
-   _Mandatory if the Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
-
-   Example:
-
-   ```xml
-   <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
-   ```
+When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), authentication must be configured through the following parameters:
 
 - `schema.registry.azure.client.id`
 
-  _Mandatory if the Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+  _Mandatory_. The Application (client) ID of the application registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry.
 
   Example:
 
@@ -1826,9 +1816,19 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
   ```
 
+- `schema.registry.azure.tenant.id`
+
+  _Mandatory_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+  ```
+
 - `schema.registry.azure.client.secret`
 
-  _Mandatory if the Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schemaregistryazureclientid). This secret is used to authenticate the application against Azure AD.
+  _Mandatory_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schema-regist). This secret is used to authenticate the application against Azure AD.
 
   Example:
 
@@ -1836,14 +1836,14 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
   ```
 
-See the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
+See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
 
 # Client Side Error Handling
 
 When a client sends a subscription to the Kafka Connector, several error conditions can occur:
 
 - Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
-- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopicto) configurations exist in the broker.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the broker.
 - Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
 
 In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
