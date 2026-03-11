@@ -932,7 +932,7 @@ _Optional_. The timeout used to detect client failures when using Kafka's group 
 
 The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
 
-Default value: 45000
+Default value: 45000.
 
 ```xml
 <param name="record.consume.with.session.timeout.ms">30000</param>
@@ -944,7 +944,7 @@ _Optional_. The maximum delay between invocations of poll() when using consumer 
 
 The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
 
-Default value: 30000
+Default value: 30000.
 
 ```xml
 <param name="record.consume.with.max.poll.interval.ms">50000</param>
