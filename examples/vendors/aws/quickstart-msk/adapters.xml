@@ -23,7 +23,7 @@
         <param name="authentication.mechanism">AWS_MSK_IAM</param>
         <param name="authentication.iam.credential.profile.name">msk_client</param>
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
