@@ -30,7 +30,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [General Parameters](#general-parameters)
     - [Encryption Parameters](#encryption-parameters)
     - [Broker Authentication Parameters](#broker-authentication-parameters)
-  - [Record Evaluation](#record-evaluation)
+  - [Record Processing](#record-processing)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
     - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
@@ -42,7 +42,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
       - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
       - [Encryption Parameters](#encryption-parameters-1)
-      - [Schema Registry QuickStart](#schema-registry-quickstart)
+      - [Schema Registry QuickStart](#confluent-schema-registry-quickstart)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -86,7 +86,7 @@ Connect millions of clients without compromising performance. Fanout real-time m
 
 ## Other Features
 
-The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
+The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record processing, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
 
 # Architecture
 
@@ -861,7 +861,7 @@ Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L
 
 Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Aiven for Apache QuickStart_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
 
-## Record Evaluation
+## Record Processing
 
 The Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -877,11 +877,11 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 In particular, the Kafka Connector supports message validation for _Avro_, _JSON_, and _Protobuf_ which can be specified through:
 
 - Local schema (or binary descriptor) files: Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
-- The _Confluent Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
+- A _Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
-- Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
+- Message validation against a Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 **Support for Key Value Pairs (KVP)**
@@ -966,15 +966,15 @@ Example:
 
 _Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
-- `ORDER_BY_PARTITION`: maintain the order of records within each partition.
+- `ORDER_BY_PARTITION`: Maintain the order of records within each partition.
 
    If you have multiple partitions, records from different partitions can be processed concurrently by different threads, but the order of records from a single partition will always be preserved. This is the default and generally a good balance between performance and order.
 
-- `ORDER_BY_KEY`: maintain the order among the records sharing the same key.
+- `ORDER_BY_KEY`: Maintain the order among the records sharing the same key.
 
   Different keys can be processed concurrently by different threads. So, while all records with key "A" are processed in order, and all records with key "B" are processed in order, the processing of "A" and "B" records can happen concurrently and interleaved in time. There's no guaranteed order between records of different keys.
 
-- `UNORDERED`: provide no ordering guarantees.
+- `UNORDERED`: Provide no ordering guarantees.
 
   Records from any partition and with any key can be processed by any thread at any time. This offers the highest throughput when an high number of subscriptions is involved, but the order in which records are delivered to Lightstreamer clients might not match the order they were written to Kafka. This is suitable for use cases where message order is not important.
 
@@ -1017,7 +1017,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
@@ -1041,21 +1041,6 @@ Examples:
 <param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
 ```
 
-#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
-- `true`
-- `false`
-
-Default value: `false`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
-```
-
 #### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
 
 _Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
@@ -1077,6 +1062,24 @@ Then the corresponding message type parameter should be:
 
 ```xml
 <param name="record.value.evaluator.protobuf.message.type">StockUpdate</param>
+```
+
+#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of a [Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+- `true`
+- `false`
+
+> [!IMPORTANT]
+> When using the Azure Schema Registry, setting the evaluator type to `PROTOBUF` is not supported.
+
+Default value: `false`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
@@ -1125,8 +1128,8 @@ Examples:
 
 _Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section)
+- `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section).
 
 Default value: `IGNORE_AND_CONTINUE`.
 
@@ -1161,8 +1164,8 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys
-  - **Headers**: Retrieve values from record headers
+  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys.
+  - **Headers**: Retrieve values from record headers.
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -1215,11 +1218,11 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions support **wildcards** to extract multiple values at once:
 
-  - **`#{VALUE.*}`**: Extract all fields from the record value
-  - **`#{KEY.*}`**: Extract all fields from the record key
-  - **`#{HEADERS.*}`**: Extract all headers
-  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps)
-  - **`#{VALUE.items.*}`**: Extract all elements from an array
+  - **`#{VALUE.*}`**: Extract all fields from the record value.
+  - **`#{KEY.*}`**: Extract all fields from the record key.
+  - **`#{HEADERS.*}`**: Extract all headers.
+  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps).
+  - **`#{VALUE.items.*}`**: Extract all elements from an array.
 
   Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
@@ -1335,9 +1338,9 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
 
-- The record schema changes frequently and you want automatic adaptation
-- You have many fields and don't want to list them individually
-- You're working with schema-less or variable-structure records
+- The record schema changes frequently and you want automatic adaptation.
+- You have many fields and don't want to list them individually.
+- You're working with schema-less or variable-structure records.
 
 To enable dynamic field discovery, use wildcard expressions in your field configuration:
 
@@ -1362,18 +1365,18 @@ will automatically create fields `symbol`, `price`, `volume`, and `exchange` wit
 
 Wildcards can be applied at any level to extract all fields from non-scalar structures:
 
-- `#{VALUE.*}` - Discover all fields from the root record value
-- `#{KEY.*}` - Discover all fields from the root record key
-- `#{HEADERS.*}` - Discover all headers
-- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map)
-- `#{VALUE.items.*}` - Discover all elements from an array
+- `#{VALUE.*}` - Discover all fields from the root record value.
+- `#{KEY.*}` - Discover all fields from the root record key.
+- `#{HEADERS.*}` - Discover all headers.
+- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map).
+- `#{VALUE.items.*}` - Discover all elements from an array.
 
 **How wildcards map to field names:**
 
 Wildcards can be applied at any level to any non-scalar part of the record. The resulting field names depend on the structure type:
 
-- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
-- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`)
+- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names.
+- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`).
 
 Dynamic field discovery automatically handles both scalar and non-scalar values. Non-scalar values (objects, arrays, nested structures) are serialized as generic text (e.g., JSON strings) and mapped to their corresponding field names.
 
@@ -1524,11 +1527,11 @@ _Optional_. Enables automatic _COMMAND_ mode support by generating appropriate c
 
 When enabled, the connector:
 
-- Automatically adds a Lightstreamer command field to each update
+- Automatically adds a Lightstreamer command field to each update.
 - Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed)
-  - **`UPDATE`**: For records with a mapped key that has been previously processed
-  - **`DELETE`**: For records with a null message payload (_tombstone records_)
+  - **`ADD`**: For records with a new mapped key (not previously processed).
+  - **`UPDATE`**: For records with a mapped key that has been previously processed.
+  - **`DELETE`**: For records with a null message payload (_tombstone records_).
 
 You only need to map the `key` field from your record structure. For example:
 
@@ -1681,29 +1684,11 @@ A _Schema Registry_ is a centralized repository that manages and validates schem
 
 The Kafka Connector supports integration with both the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) and the [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview) through the configuration of parameters with the prefix `schema.registry`.
 
-### `schema.registry.url`
+### `schema.registry.provider`
 
-_Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
-
-Example:
-
-```xml
-<param name="schema.registry.url">http//localhost:8081</param>
-```
-
-An encrypted connection is enabled by specifying the `https` protocol (see the [next section](#encryption-parameters-1)).
-
-Example:
-
-```xml
-<param name="schema.registry.url">https://localhost:8084</param>
-```
-
-#### `schema.registry.provider`
-
-_Optional_. Specifies the Schema Registry provider implementation to use. The Kafka Connector supports multiple Schema Registry providers to accommodate different cloud and on-premise environments. Can be one of the following:
-- `CONFLUENT`: Use the Confluent Schema Registry implementation
-- `AZURE`: Use the Azure Schema Registry implementation
+_Optional_. Specifies the Schema Registry provider to use. Can be one of the following:
+- `CONFLUENT`: Use the Confluent Schema Registry.
+- `AZURE`: Use the Azure Schema Registry.
 
 Default value: `CONFLUENT`.
 
@@ -1713,13 +1698,29 @@ Example:
 <param name="schema.registry.provider">AZURE</param>
 ```
 
-### Azure Schema Registry Parameters
+### `schema.registry.url`
 
-When using Azure Schema Registry (`schema.registry.provider` set to `AZURE`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
+_Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
+
+Example for the Confluent Schema Registry:
+
+```xml
+<param name="schema.registry.url">https://localhost:8081</param>
+```
+
+Example for the Azure Schema Registry (the URL must point to the Azure Event Hubs namespace):
+
+```xml
+<param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
+```
+
+#### Azure Schema Registry Parameter
+
+When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), the following parameters must be configured to enable authentication and integration with _Azure Event Hubs_.
 
 ##### `schema.registry.azure.tenant.id`
 
-_Mandatory if Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+_Mandatory if the Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
 
 Example:
 
@@ -1729,7 +1730,7 @@ Example:
 
 ##### `schema.registry.azure.client.id`
 
-_Mandatory if Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+_Mandatory if the Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
 
 Example:
 
@@ -1739,7 +1740,7 @@ Example:
 
 ##### `schema.registry.azure.client.secret`
 
-_Mandatory if Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by `schema.registry.azure.client.id`. This secret is used to authenticate the application against Azure AD.
+_Mandatory if the Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schemaregistryazureclientid). This secret is used to authenticate the application against Azure AD.
 
 Example:
 
@@ -1747,17 +1748,20 @@ Example:
 <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
 ```
 
+##### Azure Schema Registry QuickStart
+
+Check out the [_Quick Start with Azure Event Hubs_](/examples/vendors/azure/) example.
 > **ℹ️ Step-by-step setup**: For a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, see the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example.
 
-### Confluent Schema Registry Parameters
+#### Confluent Schema Registry
 
-When using Confluent Schema Registry (`schema.registry.provider` set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
+When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
-#### Basic HTTP Authentication Parameters
+##### Basic HTTP Authentication Parameters
 
-[Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
+[Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.registry.confluent.basic.authentication`.
 
-#### `schema.registry.basic.authentication.enable`
+###### `schema.registry.confluent.basic.authentication.enable`
 
 _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
 - `true`
@@ -1768,39 +1772,39 @@ Default value: `false`.
 Example:
 
 ```xml
-<param name="schema.registry.basic.authentication.enable">true</param>
+<param name="schema.registry.confluent.basic.authentication.enable">true</param>
 ```
 
-#### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+###### `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
 
 _Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
 
-- `schema.registry.basic.authentication.username`: the username
-- `schema.registry.basic.authentication.password`: the password
+- `schema.registry.confluent.basic.authentication.username`: the username
+- `schema.registry.confluent.basic.authentication.password`: the password
 
 Example:
 
 ```xml
-<param name="schema.registry.basic.authentication.username">authorized-schema-registry-user</param>
-<param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
+<param name="schema.registry.confluent.basic.authentication.username">authorized-schema-registry-user</param>
+<param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
 ```
 
-### Encryption Parameters
+##### Encryption Parameters
 
-A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
+To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
 
-- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
-- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
-- `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
-- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
-- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
-- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
-- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
-- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
-- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
-- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
-- `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
-- `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
+- `schema.registry.confluent.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
+- `schema.registry.confluent.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
+- `schema.registry.confluent.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
+- `schema.registry.confluent.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.confluent.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
+- `schema.registry.confluent.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
+- `schema.registry.confluent.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
+- `schema.registry.confluent.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
+- `schema.registry.confluent.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.confluent.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
+- `schema.registry.confluent.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
+- `schema.registry.confluent.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
 Example:
 
@@ -1809,22 +1813,22 @@ Example:
 <param name="schema.registry.url">https//localhost:8084</param>
 
 <!-- Set general encryption settings -->
-<param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
-<param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-<param name="schema.registry.encryption.hostname.verification.enable">true</param>
+<param name="schema.registry.confluent.encryption.enabled.protocols">TLSv1.3</param>
+<param name="schema.registry.confluent.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
-<param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
-<param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+<param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+<param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
-<param name="schema.registry.encryption.keystore.enable">true</param>
-<param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-<param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-<param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+<param name="schema.registry.confluent.encryption.keystore.enable">true</param>
+<param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+<param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-### Schema Registry QuickStart
+##### Confluent Schema Registry QuickStart
 
 Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
 
@@ -2214,9 +2218,9 @@ Example:
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
-- `TERMINATE_TASK`: terminate the task immediately
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORWARD_TO_DLQ`: forward the record to the dead letter queue
+- `TERMINATE_TASK`: Terminate the task immediately.
+- `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
+- `FORWARD_TO_DLQ`: Forward the record to the dead letter queue.
 
 In particular, the `FORWARD_TO_DLQ` value requires a [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/) to be configured; otherwise it will fallback to `TERMINATE_TASK`.
 
