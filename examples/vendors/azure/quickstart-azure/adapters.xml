@@ -31,7 +31,7 @@
         <param name="authentication.username">\$ConnectionString</param>
         <param name="authentication.password">$env.connection_string</param>
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
