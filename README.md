@@ -1836,7 +1836,7 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
   ```
 
-See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
+See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Azure Event Hubs Quickstart_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
 
 # Client Side Error Handling
 
