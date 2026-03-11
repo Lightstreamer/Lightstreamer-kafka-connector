@@ -22,7 +22,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Start](#start)
   - [Docker-based Deployment](#docker-based-deployment)
     - [Requirements](#requirements-1)
-    - [Build the Image](#build-the-image)
+    - [Get the Image](#get-the-image)
     - [Start](#start-1)
   - [End-to-End Streaming](#end-to-end-streaming)
     - [Connect a Kafka Producer](#connect-a-kafka-producer)
@@ -355,11 +355,11 @@ After starting the publisher, you can connect a client application to consume re
 
 #### Connect a Browser-based Consumer
 
-Download the provided [sample web client](web-client), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
+Download the provided [sample web client](/examples/compose-templates/web), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
 
 ![consumer_video](/pictures/end-to-end-streaming.gif)
 
-As shown in the [source code](web-client/index.html), consuming live data from the Kafka Connector involves just a few steps:
+As shown in the [source code](/examples/compose-templates/web/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
 1. **Establishing a Connection:**
    To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
@@ -1538,7 +1538,7 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
   - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
   - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
-For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
 The parameter can be one of the following:
 - `true`
@@ -1747,7 +1747,7 @@ Example:
 
 #### `schema.registry.confluent.basic.authentication.username` and `schema.registry.basic.authentication.password`
 
-_Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
+_Mandatory if [Basic HTTP Authentication](#schemaregistryconfluentbasicauthenticationenable) is enabled_. The credentials.
 
 - `schema.registry.confluent.basic.authentication.username`: the username
 - `schema.registry.confluent.basic.authentication.password`: the password
@@ -1807,7 +1807,7 @@ Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L
 When a client sends a subscription to the Kafka Connector, several error conditions can occur:
 
 - Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
-- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopicto) configurations exist in the broker.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the broker.
 - Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
 
 In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
@@ -1981,7 +1981,7 @@ To manually install the Kafka Connect Lightstreamer Sink Connector to a local Co
 
 3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
 
-   You may want to use the provided [`quickstart-lightstreamer-local.properties`](../../..kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties) or [`quickstart-lightstreamer-local.json`](../../../kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.json) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](../../../kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties) or [`quickstart-lightstreamer-local.json`](../../../kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.json) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#install) for the Lightstreamer Kafka Connector.
 
 4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
 
