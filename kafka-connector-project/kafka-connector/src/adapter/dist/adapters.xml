@@ -164,8 +164,7 @@
         <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
         -->
 
-        <!-- Optional. The type of the key store.
-             Can be one of the following:
+        <!-- Optional. The type of the key store. Can be one of the following:
              - JKS
              - PKCS12
 
@@ -213,11 +212,12 @@
 
              Default value: PLAIN.-->
         <!--
-        <param name="authentication.mechanism">PLAIN</param>
+        <param name="authentication.mechanism">SCRAM-SHA-256</param>
         -->
 
-        <!-- Mandatory if authentication.mechanism is one of "PLAIN", "SCRAM-SHA-256", "SCRAM-SHA-512". The credentials. -->
-        <!--
+        <!-- In the case of "PLAIN", "SCRAM-SHA-256", and "SCRAM-SHA-512" mechanisms, the credentials must be configured 
+             through the following mandatory parameters: 
+
         <param name="authentication.username">authorized-kafka-user</param>
         <param name="authentication.password">authorized-kafka-user-password</param>
         -->
@@ -227,8 +227,8 @@
         <!-- When this mechanism is specified, you can configure the following authentication parameters: -->
 
         <!-- Optional. Enable the use of a keytab. Can be one of the following:
-            - true
-            - false
+             - true
+             - false
 
              Default value: false. -->
         <!--
@@ -241,11 +241,11 @@
         <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
         -->
 
-        <!--  Optional. Enable storage of the principal key. Can be one of the following:
-            - true
-            - false
+        <!-- Optional. Enable storage of the principal key. Can be one of the following:
+             - true
+             - false
 
-            Default value: false- -->
+            Default value: false. -->
         <!--
         <param name="authentication.gssapi.store.key.enable">true</param>
         -->
@@ -305,7 +305,7 @@
         <param name="authentication.iam.sts.region">us-west-1</param>
         -->
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
 
         <!-- Optional. Specifies where to start consuming events from. Can be one of the following:
 
@@ -333,7 +333,7 @@
              The parameter sets the value of the "session.timeout.ms" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms for more details.
 
-             Default value: 45000 -->
+             Default value: 45000. -->
         <!--
         <param name="record.consume.with.session.timeout.ms">30000</param>
         -->
@@ -344,7 +344,7 @@
              The parameter sets the value of the "max.poll.interval.ms" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms for more details.
 
-             Default value: 30000 -->
+             Default value: 30000. -->
         <!--
         <param name="record.consume.with.max.poll.interval.ms">50000</param>
         -->        
@@ -362,9 +362,9 @@
              The order strategy to be used for concurrent processing of the incoming
              deserialized records. Can be one of the following:
 
-             - ORDER_BY_PARTITION: maintain the order of records within each partition
-             - ORDER_BY_KEY: maintain the order among the records sharing the same key
-             - UNORDERED: provide no ordering guarantees
+             - ORDER_BY_PARTITION: Maintain the order of records within each partition.
+             - ORDER_BY_KEY: Maintain the order among the records sharing the same key.
+             - UNORDERED: Provide no ordering guarantees.
 
              Default value: ORDER_BY_PARTITION. -->
         <!--
@@ -393,23 +393,12 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and the Confluent Schema Registry is disabled. The path of the local schema
+        <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and no Schema Registry is enabled. The path of the local schema
              (or binary descriptor) file, relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) or as an absolute path, for
              message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
-        -->
-
-        <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema paths are provided.
-             Enable the use of the Confluent Schema Registry for validation respectively of the key and value. Can be one of the following:
-             - true
-             - false
-
-             Default value: false. -->
-        <!--
-        <param name="record.key.evaluator.schema.registry.enable">true</param>
-        <param name="record.value.evaluator.schema.registry.enable">true</param>
         -->
 
         <!-- Mandatory when the evaluator type is set to "PROTOBUF" and a binary descriptor file is provided through the "record.key/value.evaluator.schema.path"
@@ -418,6 +407,18 @@
         <!--
         <param name="record.key.evaluator.protobuf.message.type">aMessageTypeForKey</param>
         <param name="record.value.evaluator.protobuf.message.type">aMessageTypeForValue</param>
+        -->        
+
+        <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema paths are provided.
+             Enable the use of a Schema Registry for validation respectively of the key and value.
+             Can be one of the following:
+             - true
+             - false
+
+             Default value: false. -->
+        <!--
+        <param name="record.key.evaluator.schema.registry.enable">true</param>
+        <param name="record.value.evaluator.schema.registry.enable">true</param>
         -->
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
@@ -443,9 +444,9 @@
         <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming
              deserialized records.
              Can be one of the following:
-             - IGNORE_AND_CONTINUE: ignore the error and continue to process the next record
-             - FORCE_UNSUBSCRIPTION: stop processing records and force unsubscription of the items
-                                     requested by all the Lightstreamer clients subscribed to this connection
+             - IGNORE_AND_CONTINUE: Ignore the error and continue to process the next record.
+             - FORCE_UNSUBSCRIPTION: Stop processing records and force unsubscription of the items
+                                     requested by all the Lightstreamer clients subscribed to this connection.
 
              Default: "IGNORE_AND_CONTINUE". -->
         <!--
@@ -610,39 +611,39 @@
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
 
-        <!-- Mandatory if the Confluent Schema Registry is enabled. The URL of the Confluent Schema Registry.
+        <!-- Optional. Specifies the Schema Registry provider to use. Can be one of the following:
+
+             - CONFLUENT: Use the Confluent Schema Registry.
+             - AZURE: Use the Azure Schema Registry.
+
+             Default value: CONFLUENT. -->
+        <!--
+        <param name="schema.registry.provider">CONFLUENT</param>
+        -->        
+
+        <!-- Mandatory if a Schema Registry is enabled. The URL of the Schema Registry endpoint (either Confluent 
+             Schema Registry or Azure Schema Registry).
+
              An encrypted connection is enabled by specifying the "https" protocol. -->
         <!--
         <param name="schema.registry.url">https://schema-registry:8084</param>
         -->
 
-        <!-- Optional. The Schema Registry provider. Can be one of the following:
-             - CONFLUENT: use the Confluent Schema Registry (default).
-             - AZURE: use the Azure Schema Registry, which is integrated into Azure Event Hubs namespaces.
-                      When set to AZURE, the schema.registry.url must point to the Azure Event Hubs namespace URL
-                      (e.g., https://<namespace>.servicebus.windows.net) and the three Azure AD credential
-                      parameters below become mandatory.
-
-             Default value: CONFLUENT. -->
-        <!--
-        <param name="schema.registry.provider">CONFLUENT</param>
-        -->
-
-        <!-- Mandatory if schema.registry.provider is AZURE. The Directory (tenant) ID of the Azure AD application
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Azure AD application
              used to authenticate with the Azure Schema Registry. Copy it from the application overview page in
              the Azure portal (Azure Active Directory > App registrations > <your app> > Directory (tenant) ID). -->
         <!--
         <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
         -->
 
-        <!-- Mandatory if schema.registry.provider is AZURE. The Application (client) ID of the Azure AD application
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID of the Azure AD application
              used to authenticate with the Azure Schema Registry. Copy it from the application overview page in
              the Azure portal (Azure Active Directory > App registrations > <your app> > Application (client) ID). -->
         <!--
         <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
         -->
 
-        <!-- Mandatory if schema.registry.provider is AZURE. The client secret value of the Azure AD application
+        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the Azure AD application
              used to authenticate with the Azure Schema Registry. Generate it under Certificates & secrets in the
              Azure portal and copy the value immediately (it won't be visible again). -->
         <!--
@@ -655,13 +656,13 @@
 
              Default value: false. -->
         <!--
-        <param name="schema.registry.basic.authentication.enable">true</param>
+        <param name="schema.registry.confluent.basic.authentication.enable">true</param>
         -->
 
         <!-- Mandatory if Basic HTTP authentication is enabled. The credentials. -->
         <!--
-        <param name="schema.registry.basic.authentication.username">authorized-schema-registry-user</param>
-        <param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
+        <param name="schema.registry.confluent.basic.authentication.username">authorized-schema-registry-user</param>
+        <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
         -->
 
         <!-- The following parameters have the same meaning as the homologous ones defined in
@@ -669,25 +670,25 @@
 
         <!-- Set general encryption settings -->
         <!--
-        <param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
-        <param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-        <param name="schema.registry.encryption.hostname.verification.enable">true</param>
+        <param name="schema.registry.confluent.encryption.enabled.protocols">TLSv1.3</param>
+        <param name="schema.registry.confluent.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+        <param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
         -->
 
         <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
         <!--
-        <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
-        <param name="schema.registry.encryption.truststore.type">JKS</param>
-        <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+        <param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="schema.registry.confluent.encryption.truststore.type">JKS</param>
+        <param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
         -->
 
         <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
         <!--
-        <param name="schema.registry.encryption.keystore.enable">true</param>
-        <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-        <param name="schema.registry.encryption.keystore.type">JKS</param>
-        <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-        <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+        <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
+        <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="schema.registry.confluent.encryption.keystore.type">JKS</param>
+        <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+        <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
         -->
     </data_provider>
 
