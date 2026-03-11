@@ -37,12 +37,13 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
     - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
   - [Schema Registry](#schema-registry)
+    - [`schema.registry.provider`](#schemaregistryprovider)
     - [`schema.registry.url`](#schemaregistryurl)
-    - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
     - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
       - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
       - [Encryption Parameters](#encryption-parameters-1)
-      - [Schema Registry Quickstart](#confluent-schema-registry-quickstart)
+      - [Confluent Schema Registry Quickstart](#confluent-schema-registry-quickstart)
+    - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -1722,47 +1723,11 @@ Example for the Azure Schema Registry (the URL must point to the Azure Event Hub
 <param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 ```
 
-#### Azure Schema Registry Parameters
-
-When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), the following parameters must be configured to enable authentication and integration with _Azure Event Hubs_.
-
-- `schema.registry.azure.tenant.id`
-
-   _Mandatory if the Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
-
-   Example:
-
-   ```xml
-   <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
-   ```
-
-- `schema.registry.azure.client.id`
-
-  _Mandatory if the Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
-
-  Example:
-
-  ```xml
-  <param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
-  ```
-
-- `schema.registry.azure.client.secret`
-
-  _Mandatory if the Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schemaregistryazureclientid). This secret is used to authenticate the application against Azure AD.
-
-  Example:
-
-  ```xml
-  <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
-  ```
-
-See the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, 
-
-#### Confluent Schema Registry
+### Confluent Schema Registry Parameters
 
 When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
-##### Basic HTTP Authentication Parameters
+#### Basic HTTP Authentication Parameters
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.registry.confluent.basic.authentication`.
 
@@ -1794,7 +1759,7 @@ When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
   ```
 
-##### Encryption Parameters
+#### Encryption Parameters
 
 To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
 
@@ -1833,9 +1798,45 @@ Example:
 <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-##### Confluent Schema Registry Quickstart
+#### Confluent Schema Registry Quickstart
 
 Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+
+### Azure Schema Registry Parameters
+
+When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), the following parameters must be configured to enable authentication and integration with _Azure Event Hubs_.
+
+- `schema.registry.azure.tenant.id`
+
+   _Mandatory if the Azure Schema Registry is enabled_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+
+   Example:
+
+   ```xml
+   <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+   ```
+
+- `schema.registry.azure.client.id`
+
+  _Mandatory if the Azure Schema Registry is enabled_. The client ID (also known as application ID) of the Azure AD application used to authenticate against the Azure Schema Registry. This should correspond to an application registered in Azure AD with appropriate permissions to access the Schema Registry.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
+  ```
+
+- `schema.registry.azure.client.secret`
+
+  _Mandatory if the Azure Schema Registry is enabled_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schemaregistryazureclientid). This secret is used to authenticate the application against Azure AD.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
+  ```
+
+See the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, 
 
 # Client Side Error Handling
 
