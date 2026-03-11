@@ -127,7 +127,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
- - [`Azure Events Hub`](/examples/vendors/azure/README.md)
+ - [`Azure Events Hub`](/examples/vendors/azure/quickstart-azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -1685,7 +1685,12 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-The Kafka Connector supports integration with both the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) and the [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview) through the configuration of parameters with the prefix `schema.registry`.
+The Kafka Connector supports integration with the following Schema Registry providers:
+
+- [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html)
+- [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview)
+
+Configuration is done through parameters with the prefix `schema.registry`. The required settings depend on the chosen provider.
 
 ### `schema.registry.provider`
 
@@ -1751,8 +1756,7 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
   ```
 
-Check out the [_Quick Start with Azure Event Hubs_](/examples/vendors/azure/) example.
-> **ℹ️ Step-by-step setup**: For a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, see the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example.
+See the [Advanced: Schema Registry Integration](/examples/vendors/azure/README.md#advanced-schema-registry-integration) section of the _Quick Start with Azure Event Hubs_ example a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above, 
 
 #### Confluent Schema Registry
 
