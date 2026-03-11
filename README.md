@@ -689,11 +689,11 @@ Example:
 
 _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
-- `PLAIN` (the default value)
-- `SCRAM-SHA-256`
-- `SCRAM-SHA-512`
-- `GSSAPI`
-- `AWS_MSK_IAM`
+- [`PLAIN`](#plain) (the default value)
+- [`SCRAM-SHA-256`](#scram-sha-256)
+- [`SCRAM-SHA-512`](#scram-sha-512)
+- [`GSSAPI`](#gssapi)
+- [`AWS_MSK_IAM`](#aws_msk_iam)
 
 In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
