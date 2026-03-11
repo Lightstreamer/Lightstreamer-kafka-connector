@@ -45,7 +45,7 @@
         <!-- The Kafka cluster address -->
         <param name="bootstrap.servers">localhost:9092</param>
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">STRING</param>
         <param name="record.value.evaluator.type">JSON</param>
