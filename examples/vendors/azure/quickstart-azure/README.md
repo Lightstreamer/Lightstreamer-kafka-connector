@@ -73,7 +73,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
      sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$$ConnectionString" password="${connection_string}";
      ```  
 
-> [**Schema Registry Support**]
+> [!NOTE]
 > This quickstart works out-of-the-box without Schema Registry. If you need AVRO/JSON schema validation with Azure Schema Registry, see the [Advanced: Schema Registry Integration](#advanced-schema-registry-integration) section at the end of this document.
 
 ## Run
