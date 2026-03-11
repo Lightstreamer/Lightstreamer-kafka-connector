@@ -1029,6 +1029,9 @@ $ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --inclu
 
 This command compiles the source file `record_value.proto` into the binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
+> [!NOTE]
+> Using a binary descriptor file also requires specifying the [Protobuf message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
+
 Examples:
 
 ```xml
