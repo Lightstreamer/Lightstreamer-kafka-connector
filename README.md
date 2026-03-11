@@ -1469,14 +1469,14 @@ In the following example:
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
 
-> [!NOTE]
-> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
-
 Can be one of the following:
 - `true`
 - `false`
 
 Default value: `false`.
+
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
 
 Example:
 
