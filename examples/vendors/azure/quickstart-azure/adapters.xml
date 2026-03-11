@@ -36,11 +36,11 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-		<!-- ##### Azure Event Hubs specific settings ##### -->
+		<!-- ##### Azure Event Hubs Specific Settings ##### -->
 		<param name="record.consume.with.max.poll.interval.ms">50000</param>
 		<param name="record.consume.with.session.timeout.ms">30000</param>
 
-        <!-- ##### Azure Schema Registry ##### -->
+        <!-- ##### Azure Schema Registry Settings ##### -->
         <!-- AVRO or JSON Schema Example 
 		<param name="record.value.evaluator.schema.registry.enable">true</param>
 		<param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
