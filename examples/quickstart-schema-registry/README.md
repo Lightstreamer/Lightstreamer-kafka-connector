@@ -31,17 +31,17 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
   - Configuration of the trust store to authenticate the Schema Registry:
 
     ```xml
-    <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
-    <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+    <param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+    <param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
   
   - Configuration of the key store for client authentication with the Schema Registry:
 
     ```xml
-    <param name="schema.registry.encryption.keystore.enable">true</param>
-    <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-    <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-    <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+    <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
+    <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+    <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+    <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
     ```
 
 - _producer_:
