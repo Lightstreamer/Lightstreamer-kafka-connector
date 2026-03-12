@@ -45,11 +45,10 @@ public class JsonNodeDeserializers {
 
     static class AzureSchemaRegistryDeserializer implements Deserializer<JsonNode> {
 
-        private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<Object>
+        private final com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<JsonNode>
                 delegate =
-                        new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<>();
-        private final ObjectMapper mapper = new ObjectMapper();
-
+                        new com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonDeserializer<JsonNode>();
+        
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
             String tenantId = (String) configs.get(SchemaRegistryConfigs.AZURE_TENANT_ID);
@@ -76,22 +75,12 @@ public class JsonNodeDeserializers {
 
         @Override
         public JsonNode deserialize(String topic, byte[] data) {
-            return toJsonNode(delegate.deserialize(topic, data));
+            return delegate.deserialize(topic, data);
         }
 
         @Override
         public JsonNode deserialize(String topic, Headers headers, byte[] data) {
-            return toJsonNode(delegate.deserialize(topic, headers, data));
-        }
-
-        private JsonNode toJsonNode(Object data) {
-            if (data == null) {
-                return null;
-            }
-            if (data instanceof JsonNode node) {
-                return node;
-            }
-            return mapper.valueToTree(data);
+            return delegate.deserialize(topic, headers, data);
         }
 
         @Override
