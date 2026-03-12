@@ -1808,7 +1808,7 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
 
 - `schema.registry.azure.client.id`
 
-  _Mandatory_. The Application (client) ID of the application registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry.
+  _Mandatory_. The Application (client) ID assigned to the application registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry.
 
   Example:
 
@@ -1818,7 +1818,7 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
 
 - `schema.registry.azure.tenant.id`
 
-  _Mandatory_. The Azure Active Directory (Azure AD) tenant ID used for authentication. This identifies the Azure AD tenant that owns the Azure Schema Registry resource.
+  _Mandatory_. The Directory (tenant) ID of the Microsoft Entra ID tenant where the application is registered.
 
   Example:
 
@@ -1828,7 +1828,7 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
 
 - `schema.registry.azure.client.secret`
 
-  _Mandatory_. The client secret associated with the Azure AD application specified by [`schema.registry.azure.client.id`](#schema-regist). This secret is used to authenticate the application against Azure AD.
+  _Mandatory_. The client secret value of the application registered in Microsoft Entra ID.
 
   Example:
 
