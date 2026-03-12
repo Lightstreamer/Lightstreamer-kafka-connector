@@ -218,10 +218,10 @@ With respect to the [_SSL Quickstart_](../../../quickstart-ssl/README.md#quick-s
 From this directory, run the following command:
 
 ```sh
-$ bootstrap_server=<bootstrap_server> \
-  role_arn=<role_arn> \
-  aws_access_key_id=<aws_access_key_id> \
-  aws_secret_access_key=<aws_secret_access_key> \
+$ bootstrap_server="<bootstrap_server>" \
+  role_arn="<role_arn>" \
+  aws_access_key_id="<aws_access_key_id>" \
+  aws_secret_access_key="<aws_secret_access_key>" \
   ./start.sh 
 ```
 
