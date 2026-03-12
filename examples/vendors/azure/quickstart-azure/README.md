@@ -120,9 +120,9 @@ Before enabling schema registry integration, ensure you have:
 
 #### Register an Azure AD Application
 
-The Lightstreamer Kafka Connector needs an Azure AD application identity to authenticate with Azure Schema Registry. Follow these steps:
+The Lightstreamer Kafka Connector needs a Microsoft Entra application to access Azure Schema Registry. Follow these steps:
 
-1. In the Azure portal, navigate to **Azure Active Directory** > **App registrations** > **New registration**.
+1. In the Azure portal, navigate to **Microsoft Entra ID** > **+ Add** > **App registration**.
 2. Provide a name for your application (e.g., `LightstreamerKafkaConnector`) and complete the registration.
 3. Once created, copy the **Application (client) ID** and the **Directory (tenant) ID** from the application overview page.
 4. Navigate to **Certificates & secrets** > **New client secret**, create a new secret, and copy its value immediately (it won't be visible again).
