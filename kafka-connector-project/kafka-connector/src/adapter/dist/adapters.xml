@@ -222,7 +222,7 @@
         <param name="authentication.password">authorized-kafka-user-password</param>
         -->
 
-        <!-- ##### GSSAPI AUTHENTICATION SETTINGS ##### -->
+        <!-- ##### GSSAPI Authentication settings ##### -->
 
         <!-- When this mechanism is specified, you can configure the following authentication parameters: -->
 
@@ -269,7 +269,7 @@
         <param name="authentication.gssapi.ticket.cache.enable">true</param>
         -->
 
-        <!-- ##### IAM AUTHENTICATION SETTINGS ##### -->
+        <!-- ##### IAM Authentication settings ##### -->
 
         <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming for Apache Kafka (MSK)
              clusters through IAM access control.
@@ -629,26 +629,7 @@
         <param name="schema.registry.url">https://schema-registry:8084</param>
         -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Azure AD application
-             used to authenticate with the Azure Schema Registry. Copy it from the application overview page in
-             the Azure portal (Azure Active Directory > App registrations > <your app> > Directory (tenant) ID). -->
-        <!--
-        <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
-        -->
-
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID of the Azure AD application
-             used to authenticate with the Azure Schema Registry. Copy it from the application overview page in
-             the Azure portal (Azure Active Directory > App registrations > <your app> > Application (client) ID). -->
-        <!--
-        <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
-        -->
-
-        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the Azure AD application
-             used to authenticate with the Azure Schema Registry. Generate it under Certificates & secrets in the
-             Azure portal and copy the value immediately (it won't be visible again). -->
-        <!--
-        <param name="schema.registry.azure.client.secret">your-azure-client-secret-value</param>
-        -->
+        <!-- ##### Confluent Schema Registry settings ##### -->
 
         <!-- Optional. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
              - true
@@ -689,7 +670,29 @@
         <param name="schema.registry.confluent.encryption.keystore.type">JKS</param>
         <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
         <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+        -->        
+
+        <!-- ##### Azure Schema Registry settings ##### -->
+
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID assigned to the application 
+             registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry. -->
+        <!--
+        <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
         -->
+
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Microsoft Entra ID tenant 
+             where the application is registered. -->
+        <!--
+        <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
+        -->
+
+        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the application registered 
+             in Microsoft Entra ID. -->
+        <!--
+        <param name="schema.registry.azure.client.secret">your-azure-client-secret-value</param>
+        -->
+
+
     </data_provider>
 
 </adapters_conf>
