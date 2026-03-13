@@ -49,6 +49,7 @@ public class ProducerTest {
                         DESERIALIZER,                                                                            TYPE,         MESSAGE_CLASS
                         io.confluent.kafka.serializers.KafkaJsonSerializer,                                      JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
                         io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer,                           JSON_SCHEMA,  com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
+                        com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer,                       JSON_SCHEMA,  com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
                         io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer,                         PROTOBUF,     com.lightstreamer.kafka.examples.quick_start.producer.protobuf.Stock
                         com.lightstreamer.kafka.examples.quick_start.producer.protobuf.CustomProtobufSerializer, PROTOBUF,     com.lightstreamer.kafka.examples.quick_start.producer.protobuf.Stock
                         <DEFAULT>,                                                                               JSON,         com.lightstreamer.kafka.examples.quick_start.producer.json.Stock
@@ -63,14 +64,22 @@ public class ProducerTest {
             properties.put("value.serializer", deserializerClass);
         }
 
-        producer.configure(properties);
-        assertThat(producer.getSerializerType().toString()).isEqualTo(serializerType);
+        // The Azure serializer requires credential properties; supply stubs for unit testing.
+        if (deserializerClass.equals(
+                "com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer")) {
+            properties.put("tenant.id", "test-tenant");
+            properties.put("client.id", "test-client");
+            properties.put("client.secret", "test-secret");
+        }
+
+        Producer.SerializerType resolvedType = producer.configure(properties);
+        assertThat(resolvedType.toString()).isEqualTo(serializerType);
 
         // Create test stock event
         Map<String, String> stockEvent = StockEvents.createEvent();
 
         // Invoke toRecord method
-        Object result = producer.toRecord(stockEvent);
+        Object result = producer.toRecord(stockEvent, resolvedType);
 
         // Verify the resulting class
         assertThat(result.getClass().getName()).isEqualTo(messageClass);
