@@ -17,10 +17,11 @@
 
 package com.lightstreamer.kafka.examples.quick_start.producer;
 
+import com.azure.core.credential.TokenCredential;
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.lightstreamer.kafka.examples.quick_start.producer.json.JsonStock;
 import com.lightstreamer.kafka.examples.quick_start.producer.protobuf.ProtobufStock;
-
-import io.confluent.kafka.serializers.KafkaJsonSerializer;
+import com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer;
 
 import org.apache.kafka.clients.producer.Callback;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -93,6 +94,8 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
                         PROTOBUF;
                 case "io.confluent.kafka.serializers.KafkaJsonSerializer" -> JSON;
                 case "io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer" -> JSON_SCHEMA;
+                case "com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer" ->
+                        JSON_SCHEMA;
                 default ->
                         throw new IllegalArgumentException(
                                 "Unknown serializer class: " + className);
@@ -116,6 +119,11 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
     private String configFile;
 
     /**
+     * The property key used by the Azure Schema Registry Kafka serializer to obtain credentials.
+     */
+    static final String AZURE_SCHEMA_REGISTRY_CREDENTIAL = "schema.registry.credential";
+
+    /**
      * The Kafka producer instance used to send messages to Kafka topics. This producer uses Integer
      * as the key type and Object as the value type.
      */
@@ -131,10 +139,6 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
         this.topic = topic;
     }
 
-    SerializerType getSerializerType() {
-        return serializerType;
-    }
-
     /**
      * Entrypoint for the producer application invoked by the {@code picocli} framework.
      *
@@ -146,10 +150,10 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
     public void run() {
         // Create producer configs
         Properties configs = loadProperties();
-        configure(configs);
+        this.serializerType = configure(configs);
 
         // Create the producer
-        producer = new KafkaProducer<>(configs);
+        this.producer = new KafkaProducer<>(configs);
 
         // Create and start the feed simulator
         FeedSimulator simulator = new FeedSimulator(this);
@@ -177,6 +181,14 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
             try (InputStream is = Files.newInputStream(Paths.get(configFile))) {
                 properties.load(is);
 
+                // com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer expects
+                // auto.register.schemas as a Boolean, not a String
+                if (properties.containsKey("auto.register.schemas")) {
+                    properties.put(
+                            "auto.register.schemas",
+                            Boolean.parseBoolean(properties.getProperty("auto.register.schemas")));
+                }
+
                 // Print loaded properties on standard output
                 System.out.println("Loaded the following properties from " + configFile + ":");
                 properties.forEach((key, value) -> System.out.println(key + "=" + value));
@@ -191,7 +203,31 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
     /**
      * Configures the Kafka Producer with necessary properties.
      *
-     * <p>This method sets up the essential configuration properties for a Kafka producer:
+     * <p>This method coordinates three focused configuration steps:
+     *
+     * <ol>
+     *   <li>Sets default Kafka producer properties (bootstrap servers, key/value serializers)
+     *   <li>Validates the value serializer and resolves the corresponding {@link SerializerType}
+     *   <li>Injects Azure Schema Registry credentials when the Azure JSON serializer is in use
+     * </ol>
+     *
+     * @param config the Properties object to be configured with Kafka producer settings
+     * @return the {@link SerializerType} resolved from the finalised configuration
+     * @throws IllegalArgumentException if the configured value serializer class is unknown or if
+     *     required Azure credential properties are missing
+     */
+    SerializerType configure(Properties config) {
+        setKafkaDefaults(config);
+        // Validate the value serializer early: throws IllegalArgumentException for unknown values.
+        SerializerType resolvedType =
+                SerializerType.fromString(
+                        config.getProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+        configureAzureCredential(config);
+        return resolvedType;
+    }
+
+    /**
+     * Sets the essential Kafka producer properties.
      *
      * <ul>
      *   <li>Bootstrap servers - the Kafka cluster address
@@ -199,22 +235,55 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
      *   <li>Value serializer - defaults to {@link KafkaJsonSerializer} if not explicitly set
      * </ul>
      *
-     * After configuration, it also determines and stores the serializer type based on the
-     * configured value serializer.
-     *
-     * @param config the Properties object to be configured with Kafka producer settings
+     * @param config the Properties object to populate
      */
-    void configure(Properties config) {
+    private void setKafkaDefaults(Properties config) {
         config.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         config.setProperty(
                 ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, IntegerSerializer.class.getName());
-        // Set the default serializer class
         config.putIfAbsent(
-                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, KafkaJsonSerializer.class.getName());
+                ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                "io.confluent.kafka.serializers.KafkaJsonSerializer");
+    }
 
-        serializerType =
-                SerializerType.fromString(
-                        config.getProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG));
+    /**
+     * Injects an Azure {@link TokenCredential} into the configuration when the Azure JSON
+     * serializer is the configured value serializer.
+     *
+     * <p>Reads {@code tenant.id}, {@code client.id}, and {@code client.secret} from the supplied
+     * configuration to build the credential.
+     *
+     * @param config the Properties object to inspect and, if applicable, enrich with the credential
+     */
+    private void configureAzureCredential(Properties config) {
+        if (!config.getProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG)
+                .equals(
+                        com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer.class
+                                .getName())) {
+            return;
+        }
+        String tenantId = config.getProperty("tenant.id");
+        String clientId = config.getProperty("client.id");
+        String clientSecret = config.getProperty("client.secret");
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Missing required Azure credential property: 'tenant.id'");
+        }
+        if (clientId == null || clientId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Missing required Azure credential property: 'client.id'");
+        }
+        if (clientSecret == null || clientSecret.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Missing required Azure credential property: 'client.secret'");
+        }
+        TokenCredential credential =
+                new ClientSecretCredentialBuilder()
+                        .tenantId(tenantId)
+                        .clientId(clientId)
+                        .clientSecret(clientSecret)
+                        .build();
+        config.put(AZURE_SCHEMA_REGISTRY_CREDENTIAL, credential);
     }
 
     @Override
@@ -223,7 +292,7 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
                 "Receiving event for stock %d on topic '%s': %s%n",
                 stockIndex, this.topic, stockEvent.toString());
         ProducerRecord<Integer, Object> record =
-                new ProducerRecord<>(this.topic, stockIndex, toRecord(stockEvent));
+                new ProducerRecord<>(this.topic, stockIndex, toRecord(stockEvent, serializerType));
         try {
             producer.send(
                     record,
@@ -236,17 +305,19 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
                             }
                             System.out.printf(
                                     """
-                                Sent record:
-                                [
-                                    KEY   => %d,
-                                    VALUE => {%s}
-                                ]%n
-                                """,
+                                            Sent record:
+                                            [
+                                                KEY   => %d,
+                                                VALUE => {%s}
+                                            ]%n
+                                            """,
                                     record.key(), record.value().toString());
                         }
                     });
         } catch (Exception e) {
+            e.printStackTrace();
             System.err.printf("Error sending records: %s%n", e.getMessage());
+            throw e;
         }
     }
 
@@ -258,7 +329,7 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
      * @return a serialization-specific object representation of the stock event: {@link JsonStock}
      *     for JSON/JSON_SCHEMA serializers or {@link ProtobufStock} for PROTOBUF serializer
      */
-    Object toRecord(Map<String, String> stockEvent) {
+    Object toRecord(Map<String, String> stockEvent, SerializerType serializerType) {
         return switch (serializerType) {
             case JSON, JSON_SCHEMA -> JsonStock.fromEvent(stockEvent);
             case PROTOBUF -> ProtobufStock.fromEvent(stockEvent);
