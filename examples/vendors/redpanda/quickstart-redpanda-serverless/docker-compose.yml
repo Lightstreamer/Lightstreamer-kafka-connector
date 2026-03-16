@@ -32,7 +32,9 @@ configs:
     content: |
       # Configure SASL/PLAIN mechanism
       sasl.mechanism=SCRAM-SHA-256
+
       # Enable SSL encryption
       security.protocol=SASL_SSL
+      
       # JAAS configuration
       sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
