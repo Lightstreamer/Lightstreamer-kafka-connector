@@ -205,7 +205,7 @@ public class FeedSimulator {
      * @param listener An implementation of the ExternalFeedListener interface that will receive
      *     simulated stock events. This parameter must not be null, and the listener implementation
      *     should be thread-safe as it will be invoked from multiple threads.
-     * @throws IllegalArgumentException if the listener is null
+     * @throws IllegalArgumentException if the listener is {@code null}
      */
     public FeedSimulator(ExternalFeedListener listener) {
         this.listener = listener;
@@ -323,7 +323,8 @@ public class FeedSimulator {
          * Constructs a StockProducer instance for the stock at the specified index.
          *
          * @param index the index of the stock in the predefined data arrays
-         * @throws IllegalArgumentException if the index is out of bounds for the predefined arrays
+         * @throws IllegalArgumentException if {@code index} is out of bounds for the predefined
+         *     arrays
          */
         StockProducer(int index) {
             if (index < 0 || index >= OPEN_PRICES.length) {
@@ -455,7 +456,7 @@ public class FeedSimulator {
          *
          * @param fld the field name to use as key in the target HashMap
          * @param val100 the integer value representing the decimal value multiplied by 100
-         * @param target the HashMap to which the field-value pair will be added
+         * @param target the {@code HashMap} to which the field-value pair will be added
          */
         private void addDecField(String fld, int val100, HashMap<String, String> target) {
             String formattedValue = String.format("%.2f", val100 / 100.0);
