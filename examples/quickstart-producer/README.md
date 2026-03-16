@@ -29,7 +29,8 @@ To then build the Docker image (done automatically by `docker compose up --build
 $ docker build -t quickstart-producer .
 ```
 
-> **Note:** The `Dockerfile` copies the pre-built jar from `build/libs/`, so `./build.sh` must be run first.
+> [!IMPORTANT]
+> The `Dockerfile` copies the pre-built jar from `build/libs/`, so `./build.sh` must be run first.
 
 ## Running Standalone
 
@@ -159,7 +160,8 @@ schema.registry.ssl.key.password=<key-password>
 
 #### Azure Schema Registry
 
-> **Note:** Azure Schema Registry does not support Protobuf serialization.
+> [!NOTE]
+> Azure Schema Registry does not support Protobuf serialization.
 
 ```properties
 # Choose one serializer:
