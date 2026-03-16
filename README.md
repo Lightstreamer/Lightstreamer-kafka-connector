@@ -666,7 +666,7 @@ Example:
 
 #### SSL Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+For an example of an encryption configuration, see the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app.
 
 ### Broker Authentication Parameters
 
@@ -712,6 +712,8 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
+For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud Quickstart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
+
 ##### `SCRAM-SHA-256`
 
 Example:
@@ -723,6 +725,9 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
+For examples of a SCRAM-SHA-256 authentication configuration, check out the `adapters.xml` files of the [_Redpanda Serverless Quickstart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) ([adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22)) and the [_Aiven Quickstart_](/examples/vendors/aiven/quickstart-aiven/) ([adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.xml#L24)) apps.
+
+
 ##### `SCRAM-SHA-512`
 
 Example:
@@ -733,6 +738,9 @@ Example:
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
+
+For an example of a SCRAM-SHA-512 authentication configuration, see the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Axual Quickstart_](/examples/vendors/axual/quickstart-axual/) app.
+
 
 ##### `GSSAPI`
 
@@ -846,21 +854,7 @@ When this mechanism is specified, you can configure the following authentication
 > [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
-#### Confluent Cloud Quickstart
-
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud Quickstart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
-
-#### Redpanda Serverless Quickstart
-
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless Quickstart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
-
-#### MSK Quickstart
-
-Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK Quickstart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
-
-#### Aiven for Apache Kafka Quickstart
-
-Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Aiven for Apache Quickstart_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
+For an example of an AWS_MSK_IAM authentication configuration, see the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK Quickstart_](/examples/vendors/aws/quickstart-msk/) app.
 
 ## Record Processing
 
@@ -1800,7 +1794,7 @@ Example:
 
 #### Confluent Schema Registry Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+For an example of Schema Registry settings, see the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app.
 
 ### Azure Schema Registry Parameters
 
