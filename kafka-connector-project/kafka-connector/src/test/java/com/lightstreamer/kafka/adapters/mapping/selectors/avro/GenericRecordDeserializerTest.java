@@ -110,6 +110,8 @@ public class GenericRecordDeserializerTest {
                 GenericRecordDeserializers.ValueDeserializer(config)) {
             GenericRecord deserializedRecord = deserializer.deserialize("topic", null);
             assertThat(deserializedRecord).isNull();
+            deserializedRecord = deserializer.deserialize("topic", new byte[0]);
+            assertThat(deserializedRecord).isNull();
         }
     }
 
