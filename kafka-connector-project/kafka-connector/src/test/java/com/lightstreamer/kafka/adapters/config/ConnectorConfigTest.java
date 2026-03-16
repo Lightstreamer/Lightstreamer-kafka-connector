@@ -1490,10 +1490,10 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetOverriddenGroupId() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(GROUP_ID, "group-id");
+        updatedConfig.put(GROUP_ID, "lightstreamer-kafka-consumer-group");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
-        assertThat(config.getText(GROUP_ID)).isEqualTo("group-id");
+        assertThat(config.getText(GROUP_ID)).isEqualTo("lightstreamer-kafka-consumer-group");
     }
 
     @Test
