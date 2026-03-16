@@ -23,8 +23,6 @@ services:
     container_name: producer
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties

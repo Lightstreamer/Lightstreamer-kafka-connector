@@ -23,8 +23,6 @@ services:
     container_name: producer
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     environment:
       - AWS_SHARED_CREDENTIALS_FILE=/usr/app/aws_credentials
     configs:
