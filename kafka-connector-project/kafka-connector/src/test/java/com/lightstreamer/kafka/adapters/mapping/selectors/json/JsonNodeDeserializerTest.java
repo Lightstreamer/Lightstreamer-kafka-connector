@@ -110,6 +110,8 @@ public class JsonNodeDeserializerTest {
                 JsonNodeDeserializers.ValueDeserializer(config)) {
             JsonNode node = deserializer.deserialize("topic", null);
             assertThat(node).isNull();
+            node = deserializer.deserialize("topic", new byte[0]);
+            assertThat(node).isNull();
         }
     }
 
