@@ -358,7 +358,7 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
                         .clientId(clientId)
                         .clientSecret(clientSecret)
                         .build();
-            config.put(AZURE_SCHEMA_REGISTRY_CREDENTIAL, credential);
+        config.put(AZURE_SCHEMA_REGISTRY_CREDENTIAL, credential);
     }
 
     public static void main(String[] args) {
