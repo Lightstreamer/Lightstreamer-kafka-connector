@@ -35,7 +35,7 @@
 		<param name="record.consume.with.session.timeout.ms">30000</param>
 
         <!-- ##### Azure Schema Registry settings ##### -->
-        <!-- AVRO or JSON Schema Example 
+        <!--
 		<param name="record.value.evaluator.schema.registry.enable">true</param>
 		<param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 		<param name="schema.registry.provider">AZURE</param>
