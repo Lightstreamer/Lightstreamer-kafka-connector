@@ -803,6 +803,8 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
+For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
+
 ##### `SCRAM-SHA-256`
 
 Example:
@@ -887,8 +889,6 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.kerberos.service.name">kafka</param>
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
-
-For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
 
 ## Record Processing
 
