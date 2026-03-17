@@ -31,7 +31,7 @@ import static org.junit.Assert.assertThrows;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.AzureSchemaRegistryDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeAzureSchemaRegistryDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers.JsonNodeLocalSchemaDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
@@ -246,7 +246,8 @@ public class JsonNodeDeserializerTest {
                                 "https://my-namespace.servicebus.windows.net"));
 
         try (Deserializer<JsonNode> deserializer = JsonNodeDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deserializer.getClass())
+                    .isEqualTo(JsonNodeAzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -272,7 +273,8 @@ public class JsonNodeDeserializerTest {
 
         try (Deserializer<JsonNode> deserializer =
                 JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deserializer.getClass())
+                    .isEqualTo(JsonNodeAzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -417,7 +419,7 @@ public class JsonNodeDeserializerTest {
         }
 
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deser.getClass()).isEqualTo(JsonNodeAzureSchemaRegistryDeserializer.class);
         }
     }
 
