@@ -14,11 +14,9 @@ source "${PROJECT_ROOT}/kafka-connector-project/version.sh"
 # Build the Quickstart producer jar, which will be packaged into the Docker image used in every example
 "$QUICKSTART_PRODUCER_DIR/build.sh"
 
-if [ $? == 0 ]; then
-    # Export the version env variable to be used by Compose
-    export VERSION
-    docker compose -f $(pwd)/docker-compose.yml up --build -d
-    sleep 4
-    echo "Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data."
-fi
+# Export the version env variable to be used by Compose
+export VERSION
+docker compose -f "$(pwd)/docker-compose.yml" up --build -d
+sleep 4
+echo "Services started. Now you can point your browser to http://localhost:8080/QuickStart to see real-time data."
  
