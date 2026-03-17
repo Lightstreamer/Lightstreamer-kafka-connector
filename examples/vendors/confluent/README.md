@@ -319,7 +319,7 @@ Once the Lightstreamer Kafka Connector is up and running—whether deployed manu
 
 ### Connect a Kafka Producer
 
-The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder contains a simple native Kafka producer designed to publish simulated market events for the *QuickStart* app.
+The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder contains a simple native Kafka producer designed to publish simulated market events for the *Quickstart* app.
 
 Before launching the producer, you first need to build it. Open a new shell from the folder and execute the following command:
 
@@ -328,7 +328,7 @@ $ cd examples/quickstart-producer
 $ ./gradlew build
 ```
 
-This command generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
+This command generates the `quickstart-producer-<version>-all.jar` file under the `build/libs` folder.
 
 Next, create a properties file that includes encryption and authentication settings as follows:
 
@@ -344,7 +344,7 @@ Replace `<API.key>` and `<API.secret>` with the API key and API secret linked to
 Now, launch the producer:
 
 ```sh
-$ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
+$ java -jar build/libs/quickstart-producer-<version>-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks --config-file <path/to/config/file>
 ```
 
 ![producer_video](/pictures/producer-confluent.gif)
