@@ -524,17 +524,17 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
+Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
+
 Example:
 
 ```xml
 <data_provider name="BrokerConnection">
 ```
 
-Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
-
 #### `adapter_class`
 
-_Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
+_Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. **DO NOT EDIT IT!**.
 
 Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter`.
 
@@ -755,9 +755,9 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### SSL QuickStart
+#### SSL Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+For an example of an encryption configuration, see the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app.
 
 ### Broker Authentication Parameters
 
@@ -781,10 +781,11 @@ Example:
 
 _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
-- `PLAIN` (the default value)
-- `SCRAM-SHA-256`
-- `SCRAM-SHA-512`
-- `GSSAPI`
+- [`PLAIN`](#plain) (the default value)
+- [`SCRAM-SHA-256`](#scram-sha-256)
+- [`SCRAM-SHA-512`](#scram-sha-512)
+- [`GSSAPI`](#gssapi)
+- [`AWS_MSK_IAM`](#aws_msk_iam)
 
 In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
@@ -887,7 +888,7 @@ Example of configuration with the use of a ticket cache:
 <param name="authentication.gssapi.ticket.cache.enable">true</param>
 ```
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
+For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
 
 ## Record Processing
 
@@ -1057,6 +1058,9 @@ $ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --inclu
 
 This command compiles the source file `record_value.proto` into the binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
+> [!NOTE]
+> Using a binary descriptor file also requires specifying the [Protobuf message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
+
 Examples:
 
 ```xml
@@ -1067,21 +1071,6 @@ Examples:
 ```xml
 <param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
-```
-
-#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
-- `true`
-- `false`
-
-Default value: `false`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
@@ -1105,6 +1094,21 @@ Then the corresponding message type parameter should be:
 
 ```xml
 <param name="record.value.evaluator.protobuf.message.type">StockUpdate</param>
+```
+
+#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
@@ -1200,9 +1204,9 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
  > [!IMPORTANT]
  > Currently, it is required that the top-level element of either a record key or record value is:
- > - An [**object**](https://www.json.org/json-en.html), in the case of JSON format
- > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
- > - A [**message**](https://protobuf.dev/programming-guides/proto3/), in the case of Protobuf format
+ > - An [**object**](https://www.json.org/json-en.html), for JSON
+ > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), for Avro
+ > - A [**message**](https://protobuf.dev/programming-guides/proto3/), for Protobuf
  >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
@@ -1491,14 +1495,14 @@ In the following example:
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
 
-> [!NOTE]
-> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
-
 Can be one of the following:
 - `true`
 - `false`
 
 Default value: `false`.
+
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
 
 Example:
 
@@ -1719,8 +1723,6 @@ Example:
 <param name="schema.registry.url">http//localhost:8081</param>
 ```
 
-An encrypted connection is enabled by specifying the `https` protocol (see the [next section](#encryption-parameters-1)).
-
 Example:
 
 ```xml
@@ -1800,7 +1802,7 @@ Example:
 
 ### Schema Registry Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+For an example of Schema Registry settings, see the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app.
 
 # Client Side Error Handling
 
