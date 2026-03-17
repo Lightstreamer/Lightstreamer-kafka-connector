@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.config;
 
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.CONFLUENT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
@@ -206,81 +207,71 @@ public class SchemaRegistryConfigs {
         SchemaRegistryProvider provider = cfg.schemaRegistryProvider();
         props.setProperty(SCHEMA_REGISTRY_PROVIDER, provider.toString());
 
-        switch (provider) {
-            case AZURE -> {
-                props.setProperty(AZURE_TENANT_ID, cfg.getText(AZURE_TENANT_ID));
-                props.setProperty(AZURE_CLIENT_ID, cfg.getText(AZURE_CLIENT_ID));
-                props.setProperty(AZURE_CLIENT_SECRET, cfg.getText(AZURE_CLIENT_SECRET));
+        if (provider == CONFLUENT) {
+            if (cfg.isConfluentSchemaRegistryEncryptionEnabled()) {
+                props.setProperty(
+                        ns(SslConfigs.SSL_PROTOCOL_CONFIG),
+                        cfg.confluentSchemaRegistrySslProtocol().toString());
+                props.setProperty(
+                        ns(SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG),
+                        cfg.confluentSchemaRegistryEnabledProtocolsAsStr());
+                props.setProperty(
+                        ns(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG),
+                        cfg.confluentSchemaRegistryTruststoreType().toString());
+                props.setProperty(
+                        ns(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
+                        cfg.confluentSchemaRegistryTruststorePath());
+                props.setProperty(
+                        ns(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
+                        cfg.confluentSchemaRegistryTruststorePassword());
+                if (!cfg.isConfluentSchemaRegistryHostNameVerificationEnabled()) {
+                    props.setProperty(
+                            ns(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG), "");
+                }
+                props.setProperty(
+                        ns(SslConfigs.SSL_CIPHER_SUITES_CONFIG),
+                        cfg.confluentSchemaRegistryCipherSuitesAsStr());
+                props.setProperty(
+                        ns(SslConfigs.SSL_PROVIDER_CONFIG),
+                        cfg.confluentSchemaRegistrySslProvider());
+                props.setProperty(
+                        ns(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG),
+                        cfg.getText(CONFLUENT_SSL_ENGINE_FACTORY_CLASS));
+                props.setProperty(
+                        ns(SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG),
+                        cfg.getText(CONFLUENT_SSL_SECURE_RANDOM_IMPLEMENTATION));
+                props.setProperty(
+                        ns(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG),
+                        cfg.getText(CONFLUENT_SSL_TRUSTMANAGER_ALGORITHM));
+                props.setProperty(
+                        ns(SecurityConfig.SECURITY_PROVIDERS_CONFIG),
+                        cfg.getText(CONFLUENT_SECURITY_PROVIDERS));
+
+                if (cfg.isConfluentSchemaRegistryKeystoreEnabled()) {
+                    props.setProperty(
+                            ns(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG),
+                            cfg.confluentSchemaRegistryKeystoreType().toString());
+                    props.setProperty(
+                            ns(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
+                            cfg.confluentSchemaRegistryKeystorePassword());
+                    props.setProperty(
+                            ns(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
+                            cfg.confluentSchemaRegistryKeystorePath());
+                    props.setProperty(
+                            ns(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
+                            cfg.schemaRegistryKeyPassword());
+                }
             }
 
-            case CONFLUENT -> {
-                if (cfg.isConfluentSchemaRegistryEncryptionEnabled()) {
-                    props.setProperty(
-                            ns(SslConfigs.SSL_PROTOCOL_CONFIG),
-                            cfg.confluentSchemaRegistrySslProtocol().toString());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_ENABLED_PROTOCOLS_CONFIG),
-                            cfg.confluentSchemaRegistryEnabledProtocolsAsStr());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG),
-                            cfg.confluentSchemaRegistryTruststoreType().toString());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG),
-                            cfg.confluentSchemaRegistryTruststorePath());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
-                            cfg.confluentSchemaRegistryTruststorePassword());
-                    if (!cfg.isConfluentSchemaRegistryHostNameVerificationEnabled()) {
-                        props.setProperty(
-                                ns(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG), "");
-                    }
-                    props.setProperty(
-                            ns(SslConfigs.SSL_CIPHER_SUITES_CONFIG),
-                            cfg.confluentSchemaRegistryCipherSuitesAsStr());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_PROVIDER_CONFIG),
-                            cfg.confluentSchemaRegistrySslProvider());
-                    props.setProperty(
-                            ns(SslConfigs.SSL_ENGINE_FACTORY_CLASS_CONFIG),
-                            cfg.getText(CONFLUENT_SSL_ENGINE_FACTORY_CLASS));
-                    props.setProperty(
-                            ns(SslConfigs.SSL_SECURE_RANDOM_IMPLEMENTATION_CONFIG),
-                            cfg.getText(CONFLUENT_SSL_SECURE_RANDOM_IMPLEMENTATION));
-                    props.setProperty(
-                            ns(SslConfigs.SSL_TRUSTMANAGER_ALGORITHM_CONFIG),
-                            cfg.getText(CONFLUENT_SSL_TRUSTMANAGER_ALGORITHM));
-                    props.setProperty(
-                            ns(SecurityConfig.SECURITY_PROVIDERS_CONFIG),
-                            cfg.getText(CONFLUENT_SECURITY_PROVIDERS));
-
-                    if (cfg.isConfluentSchemaRegistryKeystoreEnabled()) {
-                        props.setProperty(
-                                ns(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG),
-                                cfg.confluentSchemaRegistryKeystoreType().toString());
-                        props.setProperty(
-                                ns(SslConfigs.SSL_KEYSTORE_PASSWORD_CONFIG),
-                                cfg.confluentSchemaRegistryKeystorePassword());
-                        props.setProperty(
-                                ns(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG),
-                                cfg.confluentSchemaRegistryKeystorePath());
-                        props.setProperty(
-                                ns(SslConfigs.SSL_KEY_PASSWORD_CONFIG),
-                                cfg.schemaRegistryKeyPassword());
-                    }
-                }
-
-                if (cfg.isSchemaRegistryBasicAuthenticationEnabled()) {
-                    props.setProperty(
-                            SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE, "USER_INFO");
-                    props.setProperty(
-                            SchemaRegistryClientConfig.USER_INFO_CONFIG,
-                            "%s:%s"
-                                    .formatted(
-                                            cfg
-                                                    .confluentSchemaRegistryBasicAuthenticationUserName(),
-                                            cfg
-                                                    .confluentSchemaRegistryBasicAuthenticationPassword()));
-                }
+            if (cfg.isSchemaRegistryBasicAuthenticationEnabled()) {
+                props.setProperty(
+                        SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE, "USER_INFO");
+                props.setProperty(
+                        SchemaRegistryClientConfig.USER_INFO_CONFIG,
+                        "%s:%s"
+                                .formatted(
+                                        cfg.confluentSchemaRegistryBasicAuthenticationUserName(),
+                                        cfg.confluentSchemaRegistryBasicAuthenticationPassword()));
             }
         }
 
