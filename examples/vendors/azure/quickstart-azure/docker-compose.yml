@@ -36,4 +36,3 @@ configs:
 
       # JAAS configuration
       sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="$$ConnectionString" password="${connection_string}";
-
