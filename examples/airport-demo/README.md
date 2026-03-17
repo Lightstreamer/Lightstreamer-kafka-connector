@@ -146,13 +146,19 @@ For the sake of simplicity, only the Gradle case is detailed here.
 You can easily build the producer by running the following command from the [`producer`](producer/) folder:
 
 ```sh
-$ ./gradlew clean build
+$ ./gradlew build
 ```
 
-which generates the _uber_ jar. Then, you can start the simulator producer loop with this command:
+Alternatively, you can use the convenience script [`build.sh`](producer/build.sh) provided in the same folder:
 
 ```sh
-$ java -jar build/libs/example-kafka-connector-demo-publisher-all-1.0.0.jar localhost:9092 Flights 1000
+$ ./build.sh
+```
+
+Either way, the command generates the _uber_ jar. Then, you can start the simulator producer loop with this command:
+
+```sh
+$ java -jar build/libs/example-kafka-connector-demo-publisher-1.0.0-all.jar localhost:9092 Flights 1000
 ```
 
 where:
@@ -175,7 +181,7 @@ In order to install a web client for this demo pointing to your local Lightstrea
 
 ## Setting Up on Docker Compose
 
-To simplify the setup, we have also provided two different Docker Compose files to showcase the demo against  [_Apache Kafka_](https://hub.docker.com/r/apache/kafka) and [_Redpanda Self-Hosted_](https://docs.redpanda.com/current/get-started/quick-start/):
+To simplify the setup, we have also provided two different Docker Compose files to showcase the demo against  [_Apache Kafka_](https://hub.docker.com/r/apache/kafka) and [_Redpanda Self-Managed_](https://docs.redpanda.com/current/get-started/quick-start/):
 
 - [`docker-compose-kafka.yml`](./docker-compose-kafka.yml)
 - [`docker-compose-redpanda.yml`](./docker-compose-redpanda.yml)
@@ -227,7 +233,7 @@ To simplify the setup, we have also provided two different Docker Compose files 
       ✔ Network airport-demo-kafka_default  Removed
      ```
 
-   - For _Redpanda Self-Hosted_, execute:
+   - For _Redpanda Self-Managed_, execute:
      ```sh
      $ ./stop_demo_redpanda.sh
      ...
