@@ -727,7 +727,6 @@ Example:
 
 For examples of a SCRAM-SHA-256 authentication configuration, check out the `adapters.xml` files of the [_Redpanda Serverless Quickstart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) ([adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22)) and the [_Aiven Quickstart_](/examples/vendors/aiven/quickstart-aiven/) ([adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.xml#L24)) apps.
 
-
 ##### `SCRAM-SHA-512`
 
 Example:
@@ -740,7 +739,6 @@ Example:
 ```
 
 For an example of a SCRAM-SHA-512 authentication configuration, see the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Axual Quickstart_](/examples/vendors/axual/quickstart-axual/) app.
-
 
 ##### `GSSAPI`
 
