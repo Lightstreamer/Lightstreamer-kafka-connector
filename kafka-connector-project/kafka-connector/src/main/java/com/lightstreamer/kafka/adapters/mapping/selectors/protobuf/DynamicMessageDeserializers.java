@@ -43,24 +43,23 @@ public class DynamicMessageDeserializers {
     public static class DynamicMessageLocalDeserializer
             extends AbstractLocalSchemaDeserializer<DynamicMessage> {
 
-        private DynamicSchema dynamicSchema;
-        private String messageTypeName;
         private Descriptor messageDescriptor;
 
-        public void preConfigure(ConnectorConfig config, boolean isKey) {
-            super.preConfigure(config, isKey);
-            this.messageTypeName =
-                    isKey
-                            ? config.getProtobufKeyMessageType()
-                            : config.getProtobufValueMessageType();
+        DynamicMessageLocalDeserializer(ConnectorConfig config) {
+            super(config);
         }
 
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
             try {
+                String messageTypeName =
+                        isKey
+                                ? config.getProtobufKeyMessageType()
+                                : config.getProtobufValueMessageType();
                 File schemaFile = getSchemaFile(isKey);
-                dynamicSchema = DynamicSchema.parseFrom(Files.newInputStream(schemaFile.toPath()));
-                messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
+                DynamicSchema dynamicSchema =
+                        DynamicSchema.parseFrom(Files.newInputStream(schemaFile.toPath()));
+                this.messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
                 if (messageDescriptor == null) {
                     throw new IllegalArgumentException(
                             "Message type "
@@ -102,10 +101,7 @@ public class DynamicMessageDeserializers {
                 || (!isKey
                         && config.hasValueSchemaFile()
                         && config.getProtobufValueMessageType() != null)) {
-            DynamicMessageLocalDeserializer localDeserializer =
-                    new DynamicMessageLocalDeserializer();
-            localDeserializer.preConfigure(config, isKey);
-            return localDeserializer;
+            return new DynamicMessageLocalDeserializer(config);
         }
         return new KafkaProtobufDeserializer<>();
     }
