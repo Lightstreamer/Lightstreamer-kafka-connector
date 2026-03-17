@@ -28,7 +28,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.AzureSchemaRegistryDeserializer;
+import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordAzureSchemaRegistryDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.GenericRecordLocalSchemaDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordDeserializers.WrapperKafkaAvroDeserializer;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
@@ -200,7 +200,8 @@ public class GenericRecordDeserializerTest {
 
         try (Deserializer<GenericRecord> deserializer =
                 GenericRecordDeserializers.KeyDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deserializer.getClass())
+                    .isEqualTo(GenericRecordAzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -226,7 +227,8 @@ public class GenericRecordDeserializerTest {
 
         try (Deserializer<GenericRecord> deserializer =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
-            assertThat(deserializer.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deserializer.getClass())
+                    .isEqualTo(GenericRecordAzureSchemaRegistryDeserializer.class);
         }
     }
 
@@ -381,7 +383,8 @@ public class GenericRecordDeserializerTest {
 
         try (Deserializer<GenericRecord> deser =
                 GenericRecordDeserializers.ValueDeserializer(config)) {
-            assertThat(deser.getClass()).isEqualTo(AzureSchemaRegistryDeserializer.class);
+            assertThat(deser.getClass())
+                    .isEqualTo(GenericRecordAzureSchemaRegistryDeserializer.class);
         }
     }
 
