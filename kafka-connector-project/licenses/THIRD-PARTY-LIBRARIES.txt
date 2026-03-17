@@ -675,243 +675,6 @@ SOFTWARE.
 
 
 11. ########################################################################
-Library: Internet Time Utility
-Group: com.ethlo.time, Name: itu
-Version: 1.7.0
-
-** from the license contents available at https://github.com/ethlo/itu/blob/main/LICENSE
-----------------------------------------------------------------------------------------
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "{}"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright {yyyy} {name of copyright owner}
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
-
-12. ########################################################################
-Library: ClassMate
-Group: com.fasterxml, Name: classmate
-Version: 1.5.1
-
-** from the LICENSE file included in the distribution
------------------------------------------------------
-This copy of Java ClassMate library is licensed under Apache (Software) License,
-version 2.0 ("the License").
-See the License for details about distribution rights, and the specific rights regarding derivate works.
-
-You may obtain a copy of the License at:
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-
-** from the NOTICE file included in the distribution
-----------------------------------------------------
-Java ClassMate library was originally written by Tatu Saloranta (tatu.saloranta@iki.fi)
-
-Other developers who have contributed code are:
-
-* Brian Langel
-
-
-
-13. ########################################################################
 Library: Jackson-annotations
 Group: com.fasterxml.jackson.core, Name: jackson-annotations
 Version: 2.20
@@ -1147,7 +910,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-14. ########################################################################
+12. ########################################################################
 Library: Jackson-core
 Group: com.fasterxml.jackson.core, Name: jackson-core
 Version: 2.20.0
@@ -1394,7 +1157,7 @@ See FastDoubleParser-NOTICE for details of other source code included in FastDou
 and the licenses and copyrights that apply to that code.
 
 
-15. ########################################################################
+13. ########################################################################
 Library: jackson-databind
 Group: com.fasterxml.jackson.core, Name: jackson-databind
 Version: 2.20.0
@@ -1630,7 +1393,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-16. ########################################################################
+14. ########################################################################
 Library: Jackson-dataformat-CSV
 Group: com.fasterxml.jackson.dataformat, Name: jackson-dataformat-csv
 Version: 2.20.0
@@ -1672,7 +1435,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-17. ########################################################################
+15. ########################################################################
 Library: Jackson datatype: Guava
 Group: com.fasterxml.jackson.datatype, Name: jackson-datatype-guava
 Version: 2.20.0
@@ -1689,7 +1452,7 @@ You may obtain a copy of the License at:
 http://www.apache.org/licenses/LICENSE-2.0
 
 
-18. ########################################################################
+16. ########################################################################
 Library: Jackson datatype: jdk8
 Group: com.fasterxml.jackson.datatype, Name: jackson-datatype-jdk8
 Version: 2.20.0
@@ -1727,7 +1490,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-19. ########################################################################
+17. ########################################################################
 Library: Jackson datatype: Joda
 Group: com.fasterxml.jackson.datatype, Name: jackson-datatype-joda
 Version: 2.20.0
@@ -1744,7 +1507,7 @@ You may obtain a copy of the License at:
 http://www.apache.org/licenses/LICENSE-2.0
 
 
-20. ########################################################################
+18. ########################################################################
 Library: Jackson datatype: JSR310
 Group: com.fasterxml.jackson.datatype, Name: jackson-datatype-jsr310
 Version: 2.20.0
@@ -1782,7 +1545,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-21. ########################################################################
+19. ########################################################################
 Library: Jackson module: Blackbird
 Group: com.fasterxml.jackson.module, Name: jackson-module-blackbird
 Version: 2.20.0
@@ -1858,7 +1621,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-22. ########################################################################
+20. ########################################################################
 Library: Jackson-module-parameter-names
 Group: com.fasterxml.jackson.module, Name: jackson-module-parameter-names
 Version: 2.20.0
@@ -1896,7 +1659,7 @@ in some artifacts (usually source distributions); but is always available
 from the source code management (SCM) system project uses.
 
 
-23. ########################################################################
+21. ########################################################################
 Library: everit-json-schema
 Group: com.github.erosb, Name: everit-json-schema
 Version: 1.14.6
@@ -2114,7 +1877,7 @@ Copyright (C) 2011 Everit Kft. (http://www.everit.org)
 
 
 
-24. ########################################################################
+22. ########################################################################
 Library: json-sKema
 Group: com.github.erosb, Name: json-sKema
 Version: 0.24.0
@@ -2145,7 +1908,7 @@ SOFTWARE.
 
 
 
-25. ########################################################################
+23. ########################################################################
 Library: zstd-jni
 Group: com.github.luben, Name: zstd-jni
 Version: 1.5.6-10
@@ -2179,7 +1942,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-26. ########################################################################
+24. ########################################################################
 Library: JCIP Annotations under Apache License
 Group: com.github.stephenc.jcip, Name: jcip-annotations
 Version: 1.0-1
@@ -2391,218 +2154,7 @@ Version: 1.0-1
 
 
 
-27. ########################################################################
-Library: Java JSON Schema Generator
-Group: com.github.victools, Name: jsonschema-generator
-Version: 4.28.0
-
-** from the license contents available at https://github.com/victools/jsonschema-generator/blob/main/LICENSE
-------------------------------------------------------------------------------------------------------------
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
-
-28. ########################################################################
+25. ########################################################################
 Library: proto-google-common-protos
 Group: com.google.api.grpc, Name: proto-google-common-protos
 Version: 2.53.0
@@ -2813,7 +2365,7 @@ Version: 2.53.0
 
 
 
-29. ########################################################################
+26. ########################################################################
 Library: Gson
 Group: com.google.code.gson, Name: gson
 Version: 2.8.9
@@ -3025,7 +2577,7 @@ Version: 2.8.9
 
 
 
-30. ########################################################################
+27. ########################################################################
 Library: error-prone annotations
 Group: com.google.errorprone, Name: error_prone_annotations
 Version: 2.18.0
@@ -3237,7 +2789,7 @@ Version: 2.18.0
 
 
 
-31. ########################################################################
+28. ########################################################################
 Library: Guava InternalFutureFailureAccess and InternalFutures
 Group: com.google.guava, Name: failureaccess
 Version: 1.0.1
@@ -3449,7 +3001,7 @@ Version: 1.0.1
 
 
 
-32. ########################################################################
+29. ########################################################################
 Library: Guava: Google Core Libraries for Java
 Group: com.google.guava, Name: guava
 Version: 32.0.1-jre
@@ -3660,7 +3212,7 @@ Version: 32.0.1-jre
    limitations under the License.
 
 
-33. ########################################################################
+30. ########################################################################
 Library: Guava ListenableFuture only
 Group: com.google.guava, Name: listenablefuture
 Version: 9999.0-empty-to-avoid-conflict-with-guava
@@ -3872,7 +3424,7 @@ Version: 9999.0-empty-to-avoid-conflict-with-guava
 
 
 
-34. ########################################################################
+31. ########################################################################
 Library: J2ObjC Annotations
 Group: com.google.j2objc, Name: j2objc-annotations
 Version: 2.8
@@ -5331,7 +4883,7 @@ in any resulting litigation.
 
 
 
-35. ########################################################################
+32. ########################################################################
 Library: Protocol Buffers [Core]
 Group: com.google.protobuf, Name: protobuf-java
 Version: 4.31.1
@@ -5373,7 +4925,7 @@ support library is itself covered by the above license.
 
 
 
-36. ########################################################################
+33. ########################################################################
 Library: Protocol Buffers [Util]
 Group: com.google.protobuf, Name: protobuf-java-util
 Version: 4.31.1
@@ -5415,7 +4967,7 @@ support library is itself covered by the above license.
 
 
 
-37. ########################################################################
+34. ########################################################################
 Library: RE2/J
 Group: com.google.re2j, Name: re2j
 Version: 1.8
@@ -5457,69 +5009,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 
-38. ########################################################################
-Library: azure-schemaregistry-kafka-avro
-Group: com.microsoft.azure, Name: azure-schemaregistry-kafka-avro
-Version: 1.1.4
-
-** from the license contents available at https://github.com/Azure/azure-schema-registry-for-kafka/blob/master/LICENSE
-----------------------------------------------------------------------------------------------------------------------
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-
-
-
-39. ########################################################################
-Library: azure-schemaregistry-kafka-json
-Group: com.microsoft.azure, Name: azure-schemaregistry-kafka-json
-Version: 1.0.0-beta.5
-
-** from the license contents available at https://github.com/Azure/azure-schema-registry-for-kafka/blob/master/LICENSE
-----------------------------------------------------------------------------------------------------------------------
-    MIT License
-
-    Copyright (c) Microsoft Corporation.
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE
-
-
-
-40. ########################################################################
+35. ########################################################################
 Library: msal4j
 Group: com.microsoft.azure, Name: msal4j
 Version: 1.17.2
@@ -5550,7 +5040,7 @@ Version: 1.17.2
 
 
 
-41. ########################################################################
+36. ########################################################################
 Library: msal4j-persistence-extension
 Group: com.microsoft.azure, Name: msal4j-persistence-extension
 Version: 1.3.0
@@ -5581,236 +5071,7 @@ Version: 1.3.0
 
 
 
-42. ########################################################################
-Library: JsonSchemaValidator
-Group: com.networknt, Name: json-schema-validator
-Version: 1.0.76
-
-** from the license contents available at https://github.com/networknt/json-schema-validator/blob/master/LICENSE
-----------------------------------------------------------------------------------------------------------------
-
-                                 Apache License
-                           Version 2.0, January 2004
-                        http://www.apache.org/licenses/
-
-   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
-
-   1. Definitions.
-
-      "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 9 of this document.
-
-      "Licensor" shall mean the copyright owner or entity authorized by
-      the copyright owner that is granting the License.
-
-      "Legal Entity" shall mean the union of the acting entity and all
-      other entities that control, are controlled by, or are under common
-      control with that entity. For the purposes of this definition,
-      "control" means (i) the power, direct or indirect, to cause the
-      direction or management of such entity, whether by contract or
-      otherwise, or (ii) ownership of fifty percent (50%) or more of the
-      outstanding shares, or (iii) beneficial ownership of such entity.
-
-      "You" (or "Your") shall mean an individual or Legal Entity
-      exercising permissions granted by this License.
-
-      "Source" form shall mean the preferred form for making modifications,
-      including but not limited to software source code, documentation
-      source, and configuration files.
-
-      "Object" form shall mean any form resulting from mechanical
-      transformation or translation of a Source form, including but
-      not limited to compiled object code, generated documentation,
-      and conversions to other media types.
-
-      "Work" shall mean the work of authorship, whether in Source or
-      Object form, made available under the License, as indicated by a
-      copyright notice that is included in or attached to the work
-      (an example is provided in the Appendix below).
-
-      "Derivative Works" shall mean any work, whether in Source or Object
-      form, that is based on (or derived from) the Work and for which the
-      editorial revisions, annotations, elaborations, or other modifications
-      represent, as a whole, an original work of authorship. For the purposes
-      of this License, Derivative Works shall not include works that remain
-      separable from, or merely link (or bind by name) to the interfaces of,
-      the Work and Derivative Works thereof.
-
-      "Contribution" shall mean any work of authorship, including
-      the original version of the Work and any modifications or additions
-      to that Work or Derivative Works thereof, that is intentionally
-      submitted to Licensor for inclusion in the Work by the copyright owner
-      or by an individual or Legal Entity authorized to submit on behalf of
-      the copyright owner. For the purposes of this definition, "submitted"
-      means any form of electronic, verbal, or written communication sent
-      to the Licensor or its representatives, including but not limited to
-      communication on electronic mailing lists, source code control systems,
-      and issue tracking systems that are managed by, or on behalf of, the
-      Licensor for the purpose of discussing and improving the Work, but
-      excluding communication that is conspicuously marked or otherwise
-      designated in writing by the copyright owner as "Not a Contribution."
-
-      "Contributor" shall mean Licensor and any individual or Legal Entity
-      on behalf of whom a Contribution has been received by Licensor and
-      subsequently incorporated within the Work.
-
-   2. Grant of Copyright License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      copyright license to reproduce, prepare Derivative Works of,
-      publicly display, publicly perform, sublicense, and distribute the
-      Work and such Derivative Works in Source or Object form.
-
-   3. Grant of Patent License. Subject to the terms and conditions of
-      this License, each Contributor hereby grants to You a perpetual,
-      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
-      (except as stated in this section) patent license to make, have made,
-      use, offer to sell, sell, import, and otherwise transfer the Work,
-      where such license applies only to those patent claims licensable
-      by such Contributor that are necessarily infringed by their
-      Contribution(s) alone or by combination of their Contribution(s)
-      with the Work to which such Contribution(s) was submitted. If You
-      institute patent litigation against any entity (including a
-      cross-claim or counterclaim in a lawsuit) alleging that the Work
-      or a Contribution incorporated within the Work constitutes direct
-      or contributory patent infringement, then any patent licenses
-      granted to You under this License for that Work shall terminate
-      as of the date such litigation is filed.
-
-   4. Redistribution. You may reproduce and distribute copies of the
-      Work or Derivative Works thereof in any medium, with or without
-      modifications, and in Source or Object form, provided that You
-      meet the following conditions:
-
-      (a) You must give any other recipients of the Work or
-          Derivative Works a copy of this License; and
-
-      (b) You must cause any modified files to carry prominent notices
-          stating that You changed the files; and
-
-      (c) You must retain, in the Source form of any Derivative Works
-          that You distribute, all copyright, patent, trademark, and
-          attribution notices from the Source form of the Work,
-          excluding those notices that do not pertain to any part of
-          the Derivative Works; and
-
-      (d) If the Work includes a "NOTICE" text file as part of its
-          distribution, then any Derivative Works that You distribute must
-          include a readable copy of the attribution notices contained
-          within such NOTICE file, excluding those notices that do not
-          pertain to any part of the Derivative Works, in at least one
-          of the following places: within a NOTICE text file distributed
-          as part of the Derivative Works; within the Source form or
-          documentation, if provided along with the Derivative Works; or,
-          within a display generated by the Derivative Works, if and
-          wherever such third-party notices normally appear. The contents
-          of the NOTICE file are for informational purposes only and
-          do not modify the License. You may add Your own attribution
-          notices within Derivative Works that You distribute, alongside
-          or as an addendum to the NOTICE text from the Work, provided
-          that such additional attribution notices cannot be construed
-          as modifying the License.
-
-      You may add Your own copyright statement to Your modifications and
-      may provide additional or different license terms and conditions
-      for use, reproduction, or distribution of Your modifications, or
-      for any such Derivative Works as a whole, provided Your use,
-      reproduction, and distribution of the Work otherwise complies with
-      the conditions stated in this License.
-
-   5. Submission of Contributions. Unless You explicitly state otherwise,
-      any Contribution intentionally submitted for inclusion in the Work
-      by You to the Licensor shall be under the terms and conditions of
-      this License, without any additional terms or conditions.
-      Notwithstanding the above, nothing herein shall supersede or modify
-      the terms of any separate license agreement you may have executed
-      with Licensor regarding such Contributions.
-
-   6. Trademarks. This License does not grant permission to use the trade
-      names, trademarks, service marks, or product names of the Licensor,
-      except as required for reasonable and customary use in describing the
-      origin of the Work and reproducing the content of the NOTICE file.
-
-   7. Disclaimer of Warranty. Unless required by applicable law or
-      agreed to in writing, Licensor provides the Work (and each
-      Contributor provides its Contributions) on an "AS IS" BASIS,
-      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
-      implied, including, without limitation, any warranties or conditions
-      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
-      PARTICULAR PURPOSE. You are solely responsible for determining the
-      appropriateness of using or redistributing the Work and assume any
-      risks associated with Your exercise of permissions under this License.
-
-   8. Limitation of Liability. In no event and under no legal theory,
-      whether in tort (including negligence), contract, or otherwise,
-      unless required by applicable law (such as deliberate and grossly
-      negligent acts) or agreed to in writing, shall any Contributor be
-      liable to You for damages, including any direct, indirect, special,
-      incidental, or consequential damages of any character arising as a
-      result of this License or out of the use or inability to use the
-      Work (including but not limited to damages for loss of goodwill,
-      work stoppage, computer failure or malfunction, or any and all
-      other commercial damages or losses), even if such Contributor
-      has been advised of the possibility of such damages.
-
-   9. Accepting Warranty or Additional Liability. While redistributing
-      the Work or Derivative Works thereof, You may choose to offer,
-      and charge a fee for, acceptance of support, warranty, indemnity,
-      or other liability obligations and/or rights consistent with this
-      License. However, in accepting such obligations, You may act only
-      on Your own behalf and on Your sole responsibility, not on behalf
-      of any other Contributor, and only if You agree to indemnify,
-      defend, and hold each Contributor harmless for any liability
-      incurred by, or claims asserted against, such Contributor by reason
-      of your accepting any such warranty or additional liability.
-
-   END OF TERMS AND CONDITIONS
-
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
-** from the license contents available at https://github.com/networknt/json-schema-validator/blob/master/NOTICE
----------------------------------------------------------------------------------------------------------------
-JSON Schema Validator
-Copyright (c) 2016 and onwards Network New Technologies Inc.
-
-// ------------------------------------------------------------------
-// NOTICE file corresponding to the section 4d of The Apache License,
-// Version 2.0, in this case for
-// ------------------------------------------------------------------
-
-Apache Commons Validator
-Copyright 2001-2023 The Apache Software Foundation
-
-This product includes software developed at
-The Apache Software Foundation (http://www.apache.org/).
-
-
-
-43. ########################################################################
+37. ########################################################################
 Library: Nimbus Content Type
 Group: com.nimbusds, Name: content-type
 Version: 2.3
@@ -6022,7 +5283,7 @@ Version: 2.3
 
 
 
-44. ########################################################################
+38. ########################################################################
 Library: Nimbus LangTag
 Group: com.nimbusds, Name: lang-tag
 Version: 1.7
@@ -6234,7 +5495,7 @@ Version: 1.7
 
 
 
-45. ########################################################################
+39. ########################################################################
 Library: Nimbus JOSE+JWT
 Group: com.nimbusds, Name: nimbus-jose-jwt
 Version: 9.40
@@ -6446,7 +5707,7 @@ Version: 9.40
 
 
 
-46. ########################################################################
+40. ########################################################################
 Library: OAuth 2.0 SDK with OpenID Connect extensions
 Group: com.nimbusds, Name: oauth2-oidc-sdk
 Version: 11.18
@@ -6658,7 +5919,7 @@ Version: 11.18
 
 
 
-47. ########################################################################
+41. ########################################################################
 Library: javapoet
 Group: com.palantir.javapoet, Name: javapoet
 Version: 0.7.0
@@ -6870,7 +6131,7 @@ Version: 0.7.0
 
 
 
-48. ########################################################################
+42. ########################################################################
 Library: jmail
 Group: com.sanctionco.jmail, Name: jmail
 Version: 2.0.1
@@ -6901,7 +6162,7 @@ SOFTWARE.
 
 
 
-49. ########################################################################
+43. ########################################################################
 Library: KotlinPoet
 Group: com.squareup, Name: kotlinpoet-jvm
 Version: 2.0.0
@@ -7113,7 +6374,7 @@ Version: 2.0.0
 
 
 
-50. ########################################################################
+44. ########################################################################
 Library: okio
 Group: com.squareup.okio, Name: okio-jvm
 Version: 3.9.1
@@ -7325,7 +6586,7 @@ Version: 3.9.1
 
 
 
-51. ########################################################################
+45. ########################################################################
 Library: wire-runtime
 Group: com.squareup.wire, Name: wire-runtime-jvm
 Version: 5.4.0
@@ -7537,7 +6798,7 @@ Version: 5.4.0
 
 
 
-52. ########################################################################
+46. ########################################################################
 Library: wire-schema
 Group: com.squareup.wire, Name: wire-schema-jvm
 Version: 5.4.0
@@ -7749,7 +7010,7 @@ Version: 5.4.0
 
 
 
-53. ########################################################################
+47. ########################################################################
 Library: Apache Commons Codec
 Group: commons-codec, Name: commons-codec
 Version: 1.19.0
@@ -7969,7 +7230,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-54. ########################################################################
+48. ########################################################################
 Library: Apache Commons Collections
 Group: commons-collections, Name: commons-collections
 Version: 3.2.2
@@ -8189,7 +7450,7 @@ This product includes software developed by
 The Apache Software Foundation (http://www.apache.org/).
 
 
-55. ########################################################################
+49. ########################################################################
 Library: Commons Digester
 Group: commons-digester, Name: commons-digester
 Version: 2.1
@@ -8409,7 +7670,7 @@ This product includes software developed by
 The Apache Software Foundation (http://www.apache.org/).
 
 
-56. ########################################################################
+50. ########################################################################
 Library: Apache Commons IO
 Group: commons-io, Name: commons-io
 Version: 2.20.0
@@ -8630,7 +7891,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-57. ########################################################################
+51. ########################################################################
 Library: Apache Commons Logging
 Group: commons-logging, Name: commons-logging
 Version: 1.3.2
@@ -8850,7 +8111,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-58. ########################################################################
+52. ########################################################################
 Library: Apache Commons Validator
 Group: commons-validator, Name: commons-validator
 Version: 1.9.0
@@ -9070,7 +8331,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-59. ########################################################################
+53. ########################################################################
 Library: config
 Group: io.confluent, Name: common-config
 Version: 8.1.1
@@ -9282,7 +8543,7 @@ Version: 8.1.1
 
 
 
-60. ########################################################################
+54. ########################################################################
 Library: utils
 Group: io.confluent, Name: common-utils
 Version: 8.1.1
@@ -9494,7 +8755,7 @@ Version: 8.1.1
 
 
 
-61. ########################################################################
+55. ########################################################################
 Library: kafka-avro-serializer
 Group: io.confluent, Name: kafka-avro-serializer
 Version: 8.1.1
@@ -9825,7 +9086,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-62. ########################################################################
+56. ########################################################################
 Library: kafka-json-schema-provider
 Group: io.confluent, Name: kafka-json-schema-provider
 Version: 8.1.1
@@ -10156,7 +9417,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-63. ########################################################################
+57. ########################################################################
 Library: kafka-json-schema-serializer
 Group: io.confluent, Name: kafka-json-schema-serializer
 Version: 8.1.1
@@ -10487,7 +9748,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-64. ########################################################################
+58. ########################################################################
 Library: kafka-json-serializer
 Group: io.confluent, Name: kafka-json-serializer
 Version: 8.1.1
@@ -10818,7 +10079,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-65. ########################################################################
+59. ########################################################################
 Library: kafka-protobuf-provider
 Group: io.confluent, Name: kafka-protobuf-provider
 Version: 8.1.1
@@ -11149,7 +10410,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-66. ########################################################################
+60. ########################################################################
 Library: kafka-protobuf-serializer
 Group: io.confluent, Name: kafka-protobuf-serializer
 Version: 8.1.1
@@ -11480,7 +10741,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-67. ########################################################################
+61. ########################################################################
 Library: kafka-protobuf-types
 Group: io.confluent, Name: kafka-protobuf-types
 Version: 8.1.1
@@ -11811,7 +11072,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-68. ########################################################################
+62. ########################################################################
 Library: kafka-schema-registry-client
 Group: io.confluent, Name: kafka-schema-registry-client
 Version: 8.1.1
@@ -12142,7 +11403,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-69. ########################################################################
+63. ########################################################################
 Library: kafka-schema-serializer
 Group: io.confluent, Name: kafka-schema-serializer
 Version: 8.1.1
@@ -12473,7 +11734,7 @@ the entity on whose behalf you are receiving the Software.
 
 
 
-70. ########################################################################
+64. ########################################################################
 Library: Log Redactor
 Group: io.confluent, Name: logredactor
 Version: 1.0.13
@@ -12685,7 +11946,7 @@ Version: 1.0.13
 
 
 
-71. ########################################################################
+65. ########################################################################
 Library: Log Redactor Metrics
 Group: io.confluent, Name: logredactor-metrics
 Version: 1.0.13
@@ -12897,7 +12158,7 @@ Version: 1.0.13
 
 
 
-72. ########################################################################
+66. ########################################################################
 Library: ClassGraph
 Group: io.github.classgraph, Name: classgraph
 Version: 4.8.138
@@ -12928,7 +12189,7 @@ SOFTWARE.
 
 
 
-73. ########################################################################
+67. ########################################################################
 Library: Netty/Buffer
 Group: io.netty, Name: netty-buffer
 Version: 4.1.126.Final
@@ -13140,7 +12401,7 @@ Version: 4.1.126.Final
 
 
 
-74. ########################################################################
+68. ########################################################################
 Library: Netty/Codec
 Group: io.netty, Name: netty-codec
 Version: 4.1.126.Final
@@ -13352,7 +12613,7 @@ Version: 4.1.126.Final
 
 
 
-75. ########################################################################
+69. ########################################################################
 Library: Netty/Codec/DNS
 Group: io.netty, Name: netty-codec-dns
 Version: 4.1.112.Final
@@ -13564,7 +12825,7 @@ Version: 4.1.112.Final
 
 
 
-76. ########################################################################
+70. ########################################################################
 Library: Netty/Codec/HTTP
 Group: io.netty, Name: netty-codec-http
 Version: 4.1.126.Final
@@ -13776,7 +13037,7 @@ Version: 4.1.126.Final
 
 
 
-77. ########################################################################
+71. ########################################################################
 Library: Netty/Codec/HTTP2
 Group: io.netty, Name: netty-codec-http2
 Version: 4.1.126.Final
@@ -13988,7 +13249,7 @@ Version: 4.1.126.Final
 
 
 
-78. ########################################################################
+72. ########################################################################
 Library: Netty/Codec/Socks
 Group: io.netty, Name: netty-codec-socks
 Version: 4.1.115.Final
@@ -14200,7 +13461,7 @@ Version: 4.1.115.Final
 
 
 
-79. ########################################################################
+73. ########################################################################
 Library: Netty/Common
 Group: io.netty, Name: netty-common
 Version: 4.1.126.Final
@@ -14412,7 +13673,7 @@ Version: 4.1.126.Final
 
 
 
-80. ########################################################################
+74. ########################################################################
 Library: Netty/Handler
 Group: io.netty, Name: netty-handler
 Version: 4.1.126.Final
@@ -14624,7 +13885,7 @@ Version: 4.1.126.Final
 
 
 
-81. ########################################################################
+75. ########################################################################
 Library: Netty/Handler/Proxy
 Group: io.netty, Name: netty-handler-proxy
 Version: 4.1.115.Final
@@ -14836,7 +14097,7 @@ Version: 4.1.115.Final
 
 
 
-82. ########################################################################
+76. ########################################################################
 Library: Netty/Resolver
 Group: io.netty, Name: netty-resolver
 Version: 4.1.126.Final
@@ -15048,7 +14309,7 @@ Version: 4.1.126.Final
 
 
 
-83. ########################################################################
+77. ########################################################################
 Library: Netty/Resolver/DNS
 Group: io.netty, Name: netty-resolver-dns
 Version: 4.1.112.Final
@@ -15260,7 +14521,7 @@ Version: 4.1.112.Final
 
 
 
-84. ########################################################################
+78. ########################################################################
 Library: Netty/Resolver/DNS/Classes/MacOS
 Group: io.netty, Name: netty-resolver-dns-classes-macos
 Version: 4.1.112.Final
@@ -15472,7 +14733,7 @@ Version: 4.1.112.Final
 
 
 
-85. ########################################################################
+79. ########################################################################
 Library: Netty/Resolver/DNS/Native/MacOS
 Group: io.netty, Name: netty-resolver-dns-native-macos
 Version: 4.1.112.Final
@@ -15684,7 +14945,7 @@ Version: 4.1.112.Final
 
 
 
-86. ########################################################################
+80. ########################################################################
 Library: Netty/TomcatNative [BoringSSL - Static]
 Group: io.netty, Name: netty-tcnative-boringssl-static
 Version: 2.0.69.Final
@@ -15896,7 +15157,7 @@ Version: 2.0.69.Final
 
 
 
-87. ########################################################################
+81. ########################################################################
 Library: Netty/TomcatNative [OpenSSL - Classes]
 Group: io.netty, Name: netty-tcnative-classes
 Version: 2.0.69.Final
@@ -16108,7 +15369,7 @@ Version: 2.0.69.Final
 
 
 
-88. ########################################################################
+82. ########################################################################
 Library: Netty/Transport
 Group: io.netty, Name: netty-transport
 Version: 4.1.126.Final
@@ -16320,7 +15581,7 @@ Version: 4.1.126.Final
 
 
 
-89. ########################################################################
+83. ########################################################################
 Library: Netty/Transport/Classes/Epoll
 Group: io.netty, Name: netty-transport-classes-epoll
 Version: 4.1.126.Final
@@ -16532,7 +15793,7 @@ Version: 4.1.126.Final
 
 
 
-90. ########################################################################
+84. ########################################################################
 Library: Netty/Transport/Classes/KQueue
 Group: io.netty, Name: netty-transport-classes-kqueue
 Version: 4.1.115.Final
@@ -16744,7 +16005,7 @@ Version: 4.1.115.Final
 
 
 
-91. ########################################################################
+85. ########################################################################
 Library: Netty/Transport/Native/Epoll
 Group: io.netty, Name: netty-transport-native-epoll
 Version: 4.1.115.Final
@@ -16956,7 +16217,7 @@ Version: 4.1.115.Final
 
 
 
-92. ########################################################################
+86. ########################################################################
 Library: Netty/Transport/Native/KQueue
 Group: io.netty, Name: netty-transport-native-kqueue
 Version: 4.1.115.Final
@@ -17168,7 +16429,7 @@ Version: 4.1.115.Final
 
 
 
-93. ########################################################################
+87. ########################################################################
 Library: Netty/Transport/Native/Unix/Common
 Group: io.netty, Name: netty-transport-native-unix-common
 Version: 4.1.126.Final
@@ -17380,7 +16641,7 @@ Version: 4.1.126.Final
 
 
 
-94. ########################################################################
+88. ########################################################################
 Library: Non-Blocking Reactive Foundation for the JVM
 Group: io.projectreactor, Name: reactor-core
 Version: 3.4.41
@@ -17592,7 +16853,7 @@ Version: 3.4.41
 
 
 
-95. ########################################################################
+89. ########################################################################
 Library: Core functionality for the Reactor Netty library
 Group: io.projectreactor.netty, Name: reactor-netty-core
 Version: 1.0.48
@@ -17804,7 +17065,7 @@ Version: 1.0.48
 
 
 
-96. ########################################################################
+90. ########################################################################
 Library: HTTP functionality for the Reactor Netty library
 Group: io.projectreactor.netty, Name: reactor-netty-http
 Version: 1.0.48
@@ -18016,7 +17277,7 @@ Version: 1.0.48
 
 
 
-97. ########################################################################
+91. ########################################################################
 Library: swagger-annotations
 Group: io.swagger.core.v3, Name: swagger-annotations
 Version: 2.2.29
@@ -18235,7 +17496,7 @@ Swagger Core - swagger-annotations  is licensed under Apache 2.0 license.
 Copy of the Apache 2.0 license can be found in `LICENSE` file.
 
 
-98. ########################################################################
+92. ########################################################################
 Library: mbknor-jackson-jsonSchema
 Group: io.yokota, Name: mbknor-jackson-jsonschema-java8
 Version: 1.0.39.3
@@ -18265,7 +17526,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
-99. ########################################################################
+93. ########################################################################
 Library: Jakarta RESTful WS API
 Group: jakarta.ws.rs, Name: jakarta.ws.rs-api
 Version: 3.1.0
@@ -18976,7 +18237,7 @@ permitted.
 
 
 
-100. ########################################################################
+94. ########################################################################
 Library: Bean Validation API
 Group: javax.validation, Name: validation-api
 Version: 2.0.1.Final
@@ -18989,7 +18250,7 @@ License: Apache License, Version 2.0
 See the license.txt file in the root directory or <http://www.apache.org/licenses/LICENSE-2.0>.
 
 
-101. ########################################################################
+95. ########################################################################
 Library: Joda-Time
 Group: joda-time, Name: joda-time
 Version: 2.12.7
@@ -19209,7 +18470,7 @@ This product includes software developed by
 Joda.org (https://www.joda.org/).
 
 
-102. ########################################################################
+96. ########################################################################
 Library: Java Native Access
 Group: net.java.dev.jna, Name: jna
 Version: 5.13.0
@@ -19244,7 +18505,7 @@ Commercial support may be available, please e-mail
 twall[at]users[dot]sf[dot]net.
 
 
-103. ########################################################################
+97. ########################################################################
 Library: Java Native Access Platform
 Group: net.java.dev.jna, Name: jna-platform
 Version: 5.13.0
@@ -19279,7 +18540,7 @@ Commercial support may be available, please e-mail
 twall[at]users[dot]sf[dot]net.
 
 
-104. ########################################################################
+98. ########################################################################
 Library: ASM based accessors helper used by json-smart
 Group: net.minidev, Name: accessors-smart
 Version: 2.5.1
@@ -19491,7 +18752,7 @@ Version: 2.5.1
 
 
 
-105. ########################################################################
+99. ########################################################################
 Library: JSON Small and Fast Parser
 Group: net.minidev, Name: json-smart
 Version: 2.5.1
@@ -19703,7 +18964,7 @@ Version: 2.5.1
 
 
 
-106. ########################################################################
+100. ########################################################################
 Library: Apache Avro
 Group: org.apache.avro, Name: avro
 Version: 1.12.1
@@ -19931,7 +19192,7 @@ This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 
-107. ########################################################################
+101. ########################################################################
 Library: Apache Commons Compress
 Group: org.apache.commons, Name: commons-compress
 Version: 1.28.0
@@ -20150,7 +19411,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-108. ########################################################################
+102. ########################################################################
 Library: Apache Commons Lang
 Group: org.apache.commons, Name: commons-lang3
 Version: 3.18.0
@@ -20370,7 +19631,7 @@ This product includes software developed at
 The Apache Software Foundation (https://www.apache.org/).
 
 
-109. ########################################################################
+103. ########################################################################
 Library: Apache HttpClient
 Group: org.apache.httpcomponents, Name: httpclient
 Version: 4.5.13
@@ -20593,7 +19854,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-110. ########################################################################
+104. ########################################################################
 Library: Apache HttpCore
 Group: org.apache.httpcomponents, Name: httpcore
 Version: 4.4.16
@@ -20816,7 +20077,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-111. ########################################################################
+105. ########################################################################
 Library: Apache HttpClient
 Group: org.apache.httpcomponents.client5, Name: httpclient5
 Version: 5.5
@@ -21039,7 +20300,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-112. ########################################################################
+106. ########################################################################
 Library: Apache HttpComponents Core HTTP/1.1
 Group: org.apache.httpcomponents.core5, Name: httpcore5
 Version: 5.3.4
@@ -21262,7 +20523,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-113. ########################################################################
+107. ########################################################################
 Library: Apache HttpComponents Core HTTP/2
 Group: org.apache.httpcomponents.core5, Name: httpcore5-h2
 Version: 5.3.4
@@ -21485,7 +20746,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 
-114. ########################################################################
+108. ########################################################################
 Library: Apache Kafka
 Group: org.apache.kafka, Name: kafka-clients
 Version: 8.1.1-ccs
@@ -21719,7 +20980,7 @@ This project contains the following code copied from Apache Hive:
 streams/src/main/java/org/apache/kafka/streams/state/internals/Murmur3.java
 
 
-115. ########################################################################
+109. ########################################################################
 Library: Checker Qual
 Group: org.checkerframework, Name: checker-qual
 Version: 3.33.0
@@ -21750,7 +21011,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
-116. ########################################################################
+110. ########################################################################
 Library: IntelliJ IDEA Annotations
 Group: org.jetbrains, Name: annotations
 Version: 13.0
@@ -21962,7 +21223,7 @@ Version: 13.0
 
 
 
-117. ########################################################################
+111. ########################################################################
 Library: Kotlin Reflect
 Group: org.jetbrains.kotlin, Name: kotlin-reflect
 Version: 2.0.10
@@ -22174,7 +21435,7 @@ Version: 2.0.10
 
 
 
-118. ########################################################################
+112. ########################################################################
 Library: Kotlin Script Runtime
 Group: org.jetbrains.kotlin, Name: kotlin-script-runtime
 Version: 1.9.10
@@ -22386,7 +21647,7 @@ Version: 1.9.10
 
 
 
-119. ########################################################################
+113. ########################################################################
 Library: Kotlin Scripting Common
 Group: org.jetbrains.kotlin, Name: kotlin-scripting-common
 Version: 1.9.10
@@ -22598,7 +21859,7 @@ Version: 1.9.10
 
 
 
-120. ########################################################################
+114. ########################################################################
 Library: Kotlin Scripting Compiler Embeddable
 Group: org.jetbrains.kotlin, Name: kotlin-scripting-compiler-embeddable
 Version: 1.9.10
@@ -22810,7 +22071,7 @@ Version: 1.9.10
 
 
 
-121. ########################################################################
+115. ########################################################################
 Library: Kotlin Scripting Compiler Impl Embeddable
 Group: org.jetbrains.kotlin, Name: kotlin-scripting-compiler-impl-embeddable
 Version: 1.9.10
@@ -23022,7 +22283,7 @@ Version: 1.9.10
 
 
 
-122. ########################################################################
+116. ########################################################################
 Library: Kotlin Scripting Jvm
 Group: org.jetbrains.kotlin, Name: kotlin-scripting-jvm
 Version: 1.9.10
@@ -23234,7 +22495,7 @@ Version: 1.9.10
 
 
 
-123. ########################################################################
+117. ########################################################################
 Library: Kotlin Stdlib
 Group: org.jetbrains.kotlin, Name: kotlin-stdlib
 Version: 2.1.20
@@ -23446,7 +22707,7 @@ Version: 2.1.20
 
 
 
-124. ########################################################################
+118. ########################################################################
 Library: JSON in Java
 Group: org.json, Name: json
 Version: 20250107
@@ -23458,7 +22719,7 @@ Public Domain.
 
 
 
-125. ########################################################################
+119. ########################################################################
 Library: LZ4 and xxHash
 Group: org.lz4, Name: lz4-java
 Version: 1.8.0
@@ -23670,7 +22931,7 @@ Version: 1.8.0
 
 
 
-126. ########################################################################
+120. ########################################################################
 Library: asm
 Group: org.ow2.asm, Name: asm
 Version: 9.6
@@ -23708,7 +22969,7 @@ Version: 9.6
 
 
 
-127. ########################################################################
+121. ########################################################################
 Library: reactive-streams
 Group: org.reactivestreams, Name: reactive-streams
 Version: 1.0.4
@@ -23725,7 +22986,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 
 
-128. ########################################################################
+122. ########################################################################
 Library: SLF4J API Module
 Group: org.slf4j, Name: slf4j-api
 Version: 2.0.17
@@ -23758,7 +23019,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-129. ########################################################################
+123. ########################################################################
 Library: SLF4J Reload4j Provider
 Group: org.slf4j, Name: slf4j-reload4j
 Version: 2.0.17
@@ -23791,7 +23052,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 
-130. ########################################################################
+124. ########################################################################
 Library: snappy-java
 Group: org.xerial.snappy, Name: snappy-java
 Version: 1.1.10.7
@@ -24030,7 +23291,7 @@ Third-Party Notices and Licenses:
 
 
 
-131. ########################################################################
+125. ########################################################################
 Library: SnakeYAML
 Group: org.yaml, Name: snakeyaml
 Version: 2.4
@@ -24242,7 +23503,7 @@ Version: 2.4
 
 
 
-132. ########################################################################
+126. ########################################################################
 Library: AWS Java SDK :: Annotations
 Group: software.amazon.awssdk, Name: annotations
 Version: 2.36.3
@@ -24486,7 +23747,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-133. ########################################################################
+127. ########################################################################
 Library: AWS Java SDK :: HTTP Clients :: Apache
 Group: software.amazon.awssdk, Name: apache-client
 Version: 2.36.3
@@ -24730,7 +23991,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-134. ########################################################################
+128. ########################################################################
 Library: AWS Java SDK :: Auth
 Group: software.amazon.awssdk, Name: auth
 Version: 2.36.3
@@ -24974,7 +24235,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-135. ########################################################################
+129. ########################################################################
 Library: AWS Java SDK :: AWS Core
 Group: software.amazon.awssdk, Name: aws-core
 Version: 2.36.3
@@ -25218,7 +24479,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-136. ########################################################################
+130. ########################################################################
 Library: AWS Java SDK :: Core :: Protocols :: AWS Json Protocol
 Group: software.amazon.awssdk, Name: aws-json-protocol
 Version: 2.36.3
@@ -25462,7 +24723,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-137. ########################################################################
+131. ########################################################################
 Library: AWS Java SDK :: Core :: Protocols :: AWS Query Protocol
 Group: software.amazon.awssdk, Name: aws-query-protocol
 Version: 2.36.3
@@ -25706,7 +24967,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-138. ########################################################################
+132. ########################################################################
 Library: AWS Java SDK :: Checksums 
 Group: software.amazon.awssdk, Name: checksums
 Version: 2.36.3
@@ -25950,7 +25211,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-139. ########################################################################
+133. ########################################################################
 Library: AWS Java SDK :: Checksums SPI 
 Group: software.amazon.awssdk, Name: checksums-spi
 Version: 2.36.3
@@ -26194,7 +25455,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-140. ########################################################################
+134. ########################################################################
 Library: AWS Java SDK :: Endpoints SPI
 Group: software.amazon.awssdk, Name: endpoints-spi
 Version: 2.36.3
@@ -26438,7 +25699,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-141. ########################################################################
+135. ########################################################################
 Library: AWS Java SDK :: HTTP Auth
 Group: software.amazon.awssdk, Name: http-auth
 Version: 2.36.3
@@ -26682,7 +25943,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-142. ########################################################################
+136. ########################################################################
 Library: AWS Java SDK :: HTTP Auth AWS
 Group: software.amazon.awssdk, Name: http-auth-aws
 Version: 2.36.3
@@ -26926,7 +26187,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-143. ########################################################################
+137. ########################################################################
 Library: AWS Java SDK :: HTTP Auth Event Stream
 Group: software.amazon.awssdk, Name: http-auth-aws-eventstream
 Version: 2.36.3
@@ -27170,7 +26431,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-144. ########################################################################
+138. ########################################################################
 Library: AWS Java SDK :: HTTP Auth SPI
 Group: software.amazon.awssdk, Name: http-auth-spi
 Version: 2.36.3
@@ -27414,7 +26675,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-145. ########################################################################
+139. ########################################################################
 Library: AWS Java SDK :: HTTP Client Interface
 Group: software.amazon.awssdk, Name: http-client-spi
 Version: 2.36.3
@@ -27658,7 +26919,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-146. ########################################################################
+140. ########################################################################
 Library: AWS Java SDK :: Identity SPI
 Group: software.amazon.awssdk, Name: identity-spi
 Version: 2.36.3
@@ -27902,7 +27163,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-147. ########################################################################
+141. ########################################################################
 Library: AWS Java SDK :: Core :: Protocols :: Json Utils
 Group: software.amazon.awssdk, Name: json-utils
 Version: 2.36.3
@@ -28146,7 +27407,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-148. ########################################################################
+142. ########################################################################
 Library: AWS Java SDK :: Metrics SPI
 Group: software.amazon.awssdk, Name: metrics-spi
 Version: 2.36.3
@@ -28390,7 +27651,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-149. ########################################################################
+143. ########################################################################
 Library: AWS Java SDK :: HTTP Clients :: Netty Non-Blocking I/O
 Group: software.amazon.awssdk, Name: netty-nio-client
 Version: 2.36.3
@@ -28634,7 +27895,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-150. ########################################################################
+144. ########################################################################
 Library: AWS Java SDK :: Profiles
 Group: software.amazon.awssdk, Name: profiles
 Version: 2.36.3
@@ -28878,7 +28139,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-151. ########################################################################
+145. ########################################################################
 Library: AWS Java SDK :: Core :: Protocols :: Protocol Core
 Group: software.amazon.awssdk, Name: protocol-core
 Version: 2.36.3
@@ -29122,7 +28383,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-152. ########################################################################
+146. ########################################################################
 Library: AWS Java SDK :: Regions
 Group: software.amazon.awssdk, Name: regions
 Version: 2.36.3
@@ -29366,7 +28627,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-153. ########################################################################
+147. ########################################################################
 Library: AWS Java SDK :: Retries
 Group: software.amazon.awssdk, Name: retries
 Version: 2.36.3
@@ -29610,7 +28871,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-154. ########################################################################
+148. ########################################################################
 Library: AWS Java SDK :: Retries API
 Group: software.amazon.awssdk, Name: retries-spi
 Version: 2.36.3
@@ -29854,7 +29115,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-155. ########################################################################
+149. ########################################################################
 Library: AWS Java SDK :: SDK Core
 Group: software.amazon.awssdk, Name: sdk-core
 Version: 2.36.3
@@ -30098,7 +29359,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-156. ########################################################################
+150. ########################################################################
 Library: AWS Java SDK :: Services :: SSO
 Group: software.amazon.awssdk, Name: sso
 Version: 2.36.3
@@ -30342,7 +29603,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-157. ########################################################################
+151. ########################################################################
 Library: AWS Java SDK :: Services :: SSO OIDC
 Group: software.amazon.awssdk, Name: ssooidc
 Version: 2.36.3
@@ -30586,7 +29847,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-158. ########################################################################
+152. ########################################################################
 Library: AWS Java SDK :: Services :: AWS STS
 Group: software.amazon.awssdk, Name: sts
 Version: 2.36.3
@@ -30830,7 +30091,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-159. ########################################################################
+153. ########################################################################
 Library: AWS Java SDK :: Third Party :: Jackson-core
 Group: software.amazon.awssdk, Name: third-party-jackson-core
 Version: 2.36.3
@@ -31316,7 +30577,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-160. ########################################################################
+154. ########################################################################
 Library: AWS Java SDK :: Utilities
 Group: software.amazon.awssdk, Name: utils
 Version: 2.36.3
@@ -31560,7 +30821,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-161. ########################################################################
+155. ########################################################################
 Library: AWS Java SDK :: Utils Lite
 Group: software.amazon.awssdk, Name: utils-lite
 Version: 2.36.3
@@ -31804,7 +31065,7 @@ The licenses for these third party components are included in LICENSE.txt
   The Apache Software Foundation (https://www.apache.org/).
 
 
-162. ########################################################################
+156. ########################################################################
 Library: AWS Event Stream
 Group: software.amazon.eventstream, Name: eventstream
 Version: 1.0.1
@@ -32023,7 +31284,7 @@ Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 
 
 
-163. ########################################################################
+157. ########################################################################
 Library: Amazon MSK Library for AWS Identity and Access Management
 Group: software.amazon.msk, Name: aws-msk-iam-auth
 Version: 2.3.5
