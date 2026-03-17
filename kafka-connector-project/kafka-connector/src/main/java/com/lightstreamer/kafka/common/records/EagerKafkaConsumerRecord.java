@@ -40,6 +40,8 @@ public final class EagerKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K,
      * @param record the raw Kafka consumer record with byte array key and value
      * @param deserializerPair the pair of deserializers for key and value
      * @param batch the batch this record belongs to
+     * @throws org.apache.kafka.common.errors.SerializationException if either the key or value
+     *     cannot be deserialized
      */
     EagerKafkaConsumerRecord(
             ConsumerRecord<byte[], byte[]> record,
