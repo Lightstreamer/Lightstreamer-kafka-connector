@@ -116,9 +116,9 @@ With the current setup, AVRO and JSON schema validation share the same configura
 Before enabling schema registry integration, ensure you have:
 
 1. **Created an Azure Schema Registry group** in your Event Hubs namespace through the Azure portal.
-2. **Registered your schemas** (AVRO or JSON) in the Schema Registry group via the Azure portal or SDK.
+2. **Registered your schemas** (AVRO or JSON) in the Schema Registry group via the Azure portal or SDK — this step is optional if you set `auto.register.schemas=true` in the producer configuration (see [Configure the Producer in docker-compose.yml](#configure-the-producer-in-docker-composeyml)).
 
-#### Register an Azure AD Application
+#### Register a Microsoft Entra Application
 
 The Lightstreamer Kafka Connector needs a Microsoft Entra application to access Azure Schema Registry. Follow these steps:
 
@@ -133,7 +133,9 @@ The registered application must have permission to access the Schema Registry:
 
 1. In the Azure portal, navigate to your **Event Hubs namespace**.
 2. Go to **Access Control (IAM)** > **Add role assignment**.
-3. Select the **Schema Registry Reader** role (sufficient for consuming and validating messages).
+3. Select the appropriate role:
+   - **Schema Registry Reader** — sufficient for the connector (consuming and validating messages only).
+   - **Schema Registry Contributor** — required for the producer if `auto.register.schemas=true`, as it needs to register new schemas on first use.
 4. Assign access to the application you registered in the previous step.
 
 #### Enable Schema Registry in adapters.xml
@@ -158,3 +160,37 @@ Where:
 - `schema.registry.azure.client.secret` — The **client secret value** generated under _Certificates & secrets_.
 
 The connector uses these three parameters to build a `ClientSecretCredential` at startup, so no environment variables or external credential sources are required.
+
+Also ensure `record.value.evaluator.type` in [`adapters.xml`](./adapters.xml) matches the schema format used by the producer:
+
+- Set to `AVRO` for AVRO schemas
+- Set to `JSON` for JSON schemas
+
+#### Configure the Producer in docker-compose.yml
+
+The producer must also be configured to serialize records using Azure Schema Registry. Update the `producer.properties` config block in [`docker-compose.yml`](./docker-compose.yml) with your schema registry credentials and settings:
+
+```yaml
+configs:
+  producer.properties:
+    content: |
+      ...
+      # Schema Registry configuration
+      # For AVRO (must match record.value.evaluator.type=AVRO in adapters.xml):
+      value.serializer=com.microsoft.azure.schemaregistry.kafka.avro.KafkaAvroSerializer
+      # For JSON (must match record.value.evaluator.type=JSON in adapters.xml):
+      # value.serializer=com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer
+      auto.register.schemas=true
+      schema.registry.url=https://<namespace>.servicebus.windows.net
+      schema.group=<your-schema-group>
+      client.id=<application-client-id>
+      tenant.id=<directory-tenant-id>
+      client.secret=<client-secret-value>
+```
+
+Where:
+- `value.serializer` — Use `KafkaAvroSerializer` for AVRO or `KafkaJsonSerializer` for JSON. Must match `record.value.evaluator.type` in `adapters.xml`.
+- `auto.register.schemas` — When `true`, the producer automatically registers new schemas in the Schema Registry group on first use (requires the **Schema Registry Contributor** role). When `false`, schemas must be pre-registered manually in the Azure portal (the **Schema Registry Reader** role is then sufficient).
+- `schema.registry.url` — The same namespace URL configured in `adapters.xml`.
+- `schema.group` — The name of the Schema Registry group created in the Azure portal.
+- `client.id`, `tenant.id`, `client.secret` — The same Microsoft Entra application credentials configured in `adapters.xml`.
