@@ -411,7 +411,7 @@ public class ConnectorConfigTest {
         assertThat(recordExtractionErrorHandling.type()).isEqualTo(ConfType.ERROR_STRATEGY);
 
         ConfParameter recordConsumeAtConnectorStartUp =
-                configSpec.getParameter(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
+                configSpec.findParameter(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
         assertThat(recordConsumeAtConnectorStartUp.name())
                 .isEqualTo(RECORD_CONSUME_AT_CONNECTOR_STARTUP_ENABLE);
         assertThat(recordConsumeAtConnectorStartUp.required()).isFalse();
