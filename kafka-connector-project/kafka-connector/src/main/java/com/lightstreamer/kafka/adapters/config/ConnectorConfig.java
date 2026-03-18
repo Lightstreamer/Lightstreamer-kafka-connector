@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.config;
 
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BLANKABLE_TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CHAR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
@@ -24,6 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
@@ -57,6 +59,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFr
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -149,10 +152,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_CONSUME_WITH_NUM_THREADS = "record.consume.with.num.threads";
 
-    public static final String ITEM_INFO_NAME = "info.item";
-
-    public static final String ITEM_INFO_FIELD = "info.field";
-
     public static final String ENCRYPTION_ENABLE = "encryption.enable";
 
     public static final String AUTHENTICATION_ENABLE = "authentication.enable";
@@ -160,8 +159,14 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
 
     // Kafka consumer specific settings
-    public static final String RECORD_CONSUME_MAX_POLL_RECORDS =
-            "record.consume." + MAX_POLL_RECORDS_CONFIG;
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =
+            "record.consume.with." + MAX_POLL_RECORDS_CONFIG;
+
+    public static final String RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS =
+            "record.consume.with." + SESSION_TIMEOUT_MS_CONFIG;
+
+    public static final String RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS =
+            "record.consume.with." + MAX_POLL_INTERVAL_MS_CONFIG;
 
     // Prefix for all hidden consumer configs
     private static final String CONNECTOR_PREFIX = "consumer.";
@@ -181,10 +186,6 @@ public final class ConnectorConfig extends AbstractConfig {
             CONNECTOR_PREFIX + RECONNECT_BACKOFF_MAX_MS_CONFIG;
     public static final String CONSUMER_HEARTBEAT_INTERVAL_MS =
             CONNECTOR_PREFIX + HEARTBEAT_INTERVAL_MS_CONFIG;
-    public static final String CONSUMER_SESSION_TIMEOUT_MS =
-            CONNECTOR_PREFIX + SESSION_TIMEOUT_MS_CONFIG;
-    public static final String CONSUMER_MAX_POLL_INTERVAL_MS =
-            CONNECTOR_PREFIX + MAX_POLL_INTERVAL_MS_CONFIG;
     public static final String CONSUMER_METADATA_MAX_AGE_CONFIG =
             CONNECTOR_PREFIX + METADATA_MAX_AGE_CONFIG;
     public static final String CONSUMER_REQUEST_TIMEOUT_MS_CONFIG =
@@ -302,8 +303,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue("="))
                         .add(RECORD_KEY_EVALUATOR_PROTOBUF_MESSAGE_TYPE, false, false, TEXT)
                         .add(RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, false, false, TEXT)
-                        .add(ITEM_INFO_NAME, false, false, TEXT, defaultValue("INFO"))
-                        .add(ITEM_INFO_FIELD, false, false, TEXT, defaultValue("MSG"))
                         .add(
                                 RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY,
                                 false,
@@ -332,9 +331,9 @@ public final class ConnectorConfig extends AbstractConfig {
                                 defaultValue(RecordConsumeFrom.LATEST.toString()))
                         .add(
                                 CONSUMER_CLIENT_ID,
+                                true,
                                 false,
-                                false,
-                                TEXT,
+                                BLANKABLE_TEXT,
                                 false,
                                 defaultValue(
                                         params -> {
@@ -353,50 +352,60 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(
                                 CONSUMER_ENABLE_AUTO_COMMIT_CONFIG,
-                                false,
+                                true,
                                 false,
                                 BOOL,
                                 false,
                                 defaultValue("false"))
-                        .add(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG, false, false, INT)
-                        .add(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, false, false, INT)
-                        .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, INT)
-                        .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, INT)
-                        .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, INT)
                         .add(
-                                RECORD_CONSUME_MAX_POLL_RECORDS,
+                                CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG,
+                                false,
+                                false,
+                                NON_NEGATIVE_INT)
+                        .add(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG, false, false, NON_NEGATIVE_INT)
+                        .add(CONSUMER_FETCH_MIN_BYTES_CONFIG, false, false, NON_NEGATIVE_INT)
+                        .add(CONSUMER_FETCH_MAX_BYTES_CONFIG, false, false, NON_NEGATIVE_INT)
+                        .add(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG, false, false, NON_NEGATIVE_INT)
+                        .add(
+                                RECORD_CONSUME_WITH_MAX_POLL_RECORDS,
                                 false,
                                 false,
                                 POSITIVE_INT,
                                 true,
                                 defaultValue("500"))
                         .add(CONSUMER_HEARTBEAT_INTERVAL_MS, false, false, INT)
-                        .add(CONSUMER_SESSION_TIMEOUT_MS, false, false, INT)
                         .add(
-                                CONSUMER_MAX_POLL_INTERVAL_MS,
+                                RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS,
                                 false,
                                 false,
                                 INT,
+                                true,
+                                defaultValue("45000"))
+                        .add(
+                                RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS,
                                 false,
-                                defaultValue("5000"))
+                                false,
+                                POSITIVE_INT,
+                                true,
+                                defaultValue("30000"))
                         .add(
                                 CONSUMER_METADATA_MAX_AGE_CONFIG,
-                                false,
+                                true,
                                 false,
                                 INT,
                                 false,
                                 defaultValue("250"))
                         .add(
                                 CONSUMER_REQUEST_TIMEOUT_MS_CONFIG,
-                                false,
+                                true,
                                 false,
                                 INT,
                                 false,
                                 defaultValue("30000"))
-                        .add(CONSUMER_RETRIES, false, false, INT, false, defaultValue("0"))
+                        .add(CONSUMER_RETRIES, true, false, INT, false, defaultValue("0"))
                         .add(
                                 CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG,
-                                false,
+                                true,
                                 false,
                                 INT,
                                 false,
@@ -463,6 +472,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                     : RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE;
                     getText(messageTypeKey, true);
                 }
+                return;
+            }
+            if (EvaluatorType.PROTOBUF.equals(evaluatorType) && isAzureSchemaRegistryEnabled()) {
+                throw new ConfigException(
+                        "Schema registry provider [AZURE] does not support Protobuf schema evaluation for record %s"
+                                .formatted(isKey ? "key" : "value"));
             }
         }
     }
@@ -519,24 +534,32 @@ public final class ConnectorConfig extends AbstractConfig {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
         properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
-        properties.setProperty(CLIENT_ID_CONFIG, getText(CONSUMER_CLIENT_ID));
+        properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
         properties.setProperty(
                 ENABLE_AUTO_COMMIT_CONFIG, getBooleanStr(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
-        properties.setProperty(FETCH_MIN_BYTES_CONFIG, getInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
-        properties.setProperty(FETCH_MAX_BYTES_CONFIG, getInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
-        properties.setProperty(FETCH_MAX_WAIT_MS_CONFIG, getInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
+        properties.setProperty(
+                FETCH_MIN_BYTES_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
+        properties.setProperty(
+                FETCH_MAX_BYTES_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
+        properties.setProperty(
+                FETCH_MAX_WAIT_MS_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
         properties.setProperty(
                 HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
         properties.setProperty(
-                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_MAX_POLL_RECORDS));
+                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_RECORDS));
         properties.setProperty(
-                RECONNECT_BACKOFF_MAX_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
+                RECONNECT_BACKOFF_MAX_MS_CONFIG,
+                getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
-                RECONNECT_BACKOFF_MS_CONFIG, getInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
-        properties.setProperty(SESSION_TIMEOUT_MS_CONFIG, getInt(CONSUMER_SESSION_TIMEOUT_MS));
-        properties.setProperty(MAX_POLL_INTERVAL_MS_CONFIG, getInt(CONSUMER_MAX_POLL_INTERVAL_MS));
+                RECONNECT_BACKOFF_MS_CONFIG,
+                getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
+        properties.setProperty(
+                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS));
+        properties.setProperty(
+                MAX_POLL_INTERVAL_MS_CONFIG,
+                getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
                 REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
@@ -652,14 +675,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public boolean isEnabled() {
         return getBoolean(ENABLE);
-    }
-
-    public String getItemInfoName() {
-        return getText(ITEM_INFO_NAME);
-    }
-
-    public String getItemInfoField() {
-        return getText(ITEM_INFO_FIELD);
     }
 
     public boolean isEncryptionEnabled() {
@@ -877,127 +892,186 @@ public final class ConnectorConfig extends AbstractConfig {
         return getUrl(SchemaRegistryConfigs.URL);
     }
 
-    public boolean isSchemaRegistryEncryptionEnabled() {
-        checkSchemaRegistryEnabled();
+    private void checkConfluentSchemaRegistryEnabled() {
+        if (!isConfluentSchemaRegistryEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not set to [%s]"
+                            .formatted(
+                                    SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                    SchemaRegistryProvider.CONFLUENT));
+        }
+    }
+
+    private boolean isConfluentSchemaRegistryEnabled() {
+        return SchemaRegistryProvider.CONFLUENT.equals(schemaRegistryProvider());
+    }
+
+    private void checkAzureSchemaRegistryEnabled() {
+        if (!isAzureSchemaRegistryEnabled()) {
+            throw new ConfigException(
+                    "Parameter [%s] is not set to [%s]"
+                            .formatted(
+                                    SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                    SchemaRegistryProvider.AZURE));
+        }
+    }
+
+    private boolean isAzureSchemaRegistryEnabled() {
+        return SchemaRegistryProvider.AZURE.equals(schemaRegistryProvider());
+    }
+
+    public boolean isConfluentSchemaRegistryEncryptionEnabled() {
+        checkConfluentSchemaRegistryEnabled();
         return schemaRegistryUrl().startsWith("https");
     }
 
-    private void checkSchemaRegistryEncryptionEnabled() {
-        if (!isSchemaRegistryEncryptionEnabled()) {
+    private void checkConfluentSchemaRegistryEncryptionEnabled() {
+        checkConfluentSchemaRegistryEnabled();
+        if (!isConfluentSchemaRegistryEncryptionEnabled()) {
             throw new ConfigException(
-                    "Parameter [%s] is not set with https protocol"
+                    "Parameter [%s] is not set to https protocol"
                             .formatted(SchemaRegistryConfigs.URL));
         }
     }
 
-    public List<SslProtocol> schemaRegistryEnabledProtocols() {
-        return SslProtocol.fromValueStr(schemaRegistryEnabledProtocolsAsStr());
+    public List<SslProtocol> confluentSchemaRegistryEnabledProtocols() {
+        return SslProtocol.fromValueStr(confluentSchemaRegistryEnabledProtocolsAsStr());
     }
 
-    public String schemaRegistryEnabledProtocolsAsStr() {
-        checkSchemaRegistryEncryptionEnabled();
+    public String confluentSchemaRegistryEnabledProtocolsAsStr() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
         return get(
-                SchemaRegistryConfigs.SSL_ENABLED_PROTOCOLS, ConfType.SSL_ENABLED_PROTOCOLS, false);
+                SchemaRegistryConfigs.CONFLUENT_SSL_ENABLED_PROTOCOLS,
+                ConfType.SSL_ENABLED_PROTOCOLS,
+                false);
     }
 
-    public SslProtocol schemaRegistrySslProtocol() {
-        checkSchemaRegistryEncryptionEnabled();
+    public SslProtocol confluentSchemaRegistrySslProtocol() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
         return SslProtocol.fromName(
-                get(SchemaRegistryConfigs.SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false));
+                get(SchemaRegistryConfigs.CONFLUENT_SSL_PROTOCOL, ConfType.SSL_PROTOCOL, false));
     }
 
-    public KeystoreType schemaRegistryTruststoreType() {
-        checkSchemaRegistryEncryptionEnabled();
+    public KeystoreType confluentSchemaRegistryTruststoreType() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
         return KeystoreType.valueOf(
-                get(SchemaRegistryConfigs.TRUSTSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+                get(
+                        SchemaRegistryConfigs.CONFLUENT_TRUSTSTORE_TYPE,
+                        ConfType.KEYSTORE_TYPE,
+                        false));
     }
 
-    public String schemaRegistryTruststorePath() {
-        checkSchemaRegistryEncryptionEnabled();
-        return getFile(SchemaRegistryConfigs.TRUSTSTORE_PATH);
+    public String confluentSchemaRegistryTruststorePath() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return getFile(SchemaRegistryConfigs.CONFLUENT_TRUSTSTORE_PATH);
     }
 
-    public String schemaRegistryTruststorePassword() {
+    public String confluentSchemaRegistryTruststorePassword() {
         checkSchemaRegistryEnabled();
-        boolean isRequired = schemaRegistryTruststorePath() != null;
-        return getText(SchemaRegistryConfigs.TRUSTSTORE_PASSWORD, isRequired);
+        boolean isRequired = confluentSchemaRegistryTruststorePath() != null;
+        return getText(SchemaRegistryConfigs.CONFLUENT_TRUSTSTORE_PASSWORD, isRequired);
     }
 
-    public List<String> schemaRegistryCipherSuites() {
-        checkSchemaRegistryEncryptionEnabled();
-        return getTextList(SchemaRegistryConfigs.SSL_CIPHER_SUITES);
+    public List<String> confluentSchemaRegistryCipherSuites() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return getTextList(SchemaRegistryConfigs.CONFLUENT_SSL_CIPHER_SUITES);
     }
 
-    public String schemaRegistryCipherSuitesAsStr() {
-        checkSchemaRegistryEncryptionEnabled();
-        return get(SchemaRegistryConfigs.SSL_CIPHER_SUITES, ConfType.TEXT_LIST, false);
+    public String confluentSchemaRegistryCipherSuitesAsStr() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return get(SchemaRegistryConfigs.CONFLUENT_SSL_CIPHER_SUITES, ConfType.TEXT_LIST, false);
     }
 
-    public String schemaRegistrySslProvider() {
-        checkSchemaRegistryEncryptionEnabled();
-        return getText(SchemaRegistryConfigs.SSL_PROVIDER);
+    public String confluentSchemaRegistrySslProvider() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return getText(SchemaRegistryConfigs.CONFLUENT_SSL_PROVIDER);
     }
 
-    public boolean isSchemaRegistryHostNameVerificationEnabled() {
-        checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.HOSTNAME_VERIFICATION_ENABLE);
+    public boolean isConfluentSchemaRegistryHostNameVerificationEnabled() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return getBoolean(SchemaRegistryConfigs.CONFLUENT_HOSTNAME_VERIFICATION_ENABLE);
     }
 
     public String schemaRegistryKeyPassword() {
-        checkSchemaRegistryKeystoreEnabled();
-        return getText(SchemaRegistryConfigs.KEY_PASSWORD);
+        checkConfluentSchemaRegistryKeystoreEnabled();
+        return getText(SchemaRegistryConfigs.CONFLUENT_KEY_PASSWORD);
     }
 
-    public boolean isSchemaRegistryKeystoreEnabled() {
-        checkSchemaRegistryEncryptionEnabled();
-        return getBoolean(SchemaRegistryConfigs.KEYSTORE_ENABLE);
+    public boolean isConfluentSchemaRegistryKeystoreEnabled() {
+        checkConfluentSchemaRegistryEncryptionEnabled();
+        return getBoolean(SchemaRegistryConfigs.CONFLUENT_KEYSTORE_ENABLE);
     }
 
-    private void checkSchemaRegistryKeystoreEnabled() {
-        if (!isSchemaRegistryKeystoreEnabled()) {
+    private void checkConfluentSchemaRegistryKeystoreEnabled() {
+        if (!isConfluentSchemaRegistryKeystoreEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not enabled"
-                            .formatted(SchemaRegistryConfigs.KEYSTORE_ENABLE));
+                            .formatted(SchemaRegistryConfigs.CONFLUENT_KEYSTORE_ENABLE));
         }
     }
 
-    public KeystoreType schemaRegistryKeystoreType() {
-        checkSchemaRegistryKeystoreEnabled();
+    public KeystoreType confluentSchemaRegistryKeystoreType() {
+        checkConfluentSchemaRegistryKeystoreEnabled();
         return KeystoreType.valueOf(
-                get(SchemaRegistryConfigs.KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
+                get(SchemaRegistryConfigs.CONFLUENT_KEYSTORE_TYPE, ConfType.KEYSTORE_TYPE, false));
     }
 
-    public String schemaRegistryKeystorePath() {
-        checkSchemaRegistryKeystoreEnabled();
-        return getFile(SchemaRegistryConfigs.KEYSTORE_PATH);
+    public String confluentSchemaRegistryKeystorePath() {
+        checkConfluentSchemaRegistryKeystoreEnabled();
+        return getFile(SchemaRegistryConfigs.CONFLUENT_KEYSTORE_PATH);
     }
 
-    public String schemaRegistryKeystorePassword() {
-        checkSchemaRegistryKeystoreEnabled();
-        return getText(SchemaRegistryConfigs.KEYSTORE_PASSWORD);
+    public String confluentSchemaRegistryKeystorePassword() {
+        checkConfluentSchemaRegistryKeystoreEnabled();
+        return getText(SchemaRegistryConfigs.CONFLUENT_KEYSTORE_PASSWORD);
     }
 
     public boolean isSchemaRegistryBasicAuthenticationEnabled() {
-        checkSchemaRegistryEnabled();
-        return getBoolean(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION);
+        checkConfluentSchemaRegistryEnabled();
+        return getBoolean(SchemaRegistryConfigs.CONFLUENT_ENABLE_BASIC_AUTHENTICATION);
     }
 
-    private void checkSchemaRegistryBasicAuthentication() {
+    private void checkConfluentSchemaRegistryBasicAuthentication() {
         if (!isSchemaRegistryBasicAuthenticationEnabled()) {
             throw new ConfigException(
                     "Parameter [%s] is not enabled"
-                            .formatted(SchemaRegistryConfigs.ENABLE_BASIC_AUTHENTICATION));
+                            .formatted(
+                                    SchemaRegistryConfigs.CONFLUENT_ENABLE_BASIC_AUTHENTICATION));
         }
     }
 
-    public String schemaRegistryBasicAuthenticationUserName() {
-        checkSchemaRegistryBasicAuthentication();
-        return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_NAME);
+    public String confluentSchemaRegistryBasicAuthenticationUserName() {
+        checkConfluentSchemaRegistryBasicAuthentication();
+        return getText(SchemaRegistryConfigs.CONFLUENT_BASIC_AUTHENTICATION_USER_NAME);
     }
 
-    public String schemaRegistryBasicAuthenticationPassword() {
-        checkSchemaRegistryBasicAuthentication();
-        return getText(SchemaRegistryConfigs.BASIC_AUTHENTICATION_USER_PASSWORD);
+    public String confluentSchemaRegistryBasicAuthenticationPassword() {
+        checkConfluentSchemaRegistryBasicAuthentication();
+        return getText(SchemaRegistryConfigs.CONFLUENT_BASIC_AUTHENTICATION_USER_PASSWORD);
+    }
+
+    public SchemaRegistryProvider schemaRegistryProvider() {
+        checkSchemaRegistryEnabled();
+        return SchemaRegistryProvider.valueOf(
+                get(
+                        SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                        ConfType.SCHEMA_REGISTRY_PROVIDER,
+                        false));
+    }
+
+    public String azureTenantId() {
+        checkAzureSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_TENANT_ID);
+    }
+
+    public String azureClientId() {
+        checkAzureSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_ID);
+    }
+
+    public String azureClientSecret() {
+        checkAzureSchemaRegistryEnabled();
+        return getText(SchemaRegistryConfigs.AZURE_CLIENT_SECRET);
     }
 
     public ItemTemplateConfigs getItemTemplateConfigs() {

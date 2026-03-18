@@ -25,7 +25,7 @@
         <param name="encryption.keystore.password">kafka-connector-password</param>
         <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>

@@ -62,8 +62,8 @@ public class ConfigSpecTest {
 
         ConfigsSpec sub = source.newSpecWithNameSpace("sub");
 
-        ConfParameter origin = source.getParameter("prop1");
-        ConfParameter nameSpaced = sub.getParameter("sub.prop1");
+        ConfParameter origin = source.findParameter("prop1");
+        ConfParameter nameSpaced = sub.findParameter("sub.prop1");
 
         assertThat(nameSpaced).isNotNull();
         assertParams("sub", nameSpaced, origin);
@@ -81,8 +81,8 @@ public class ConfigSpecTest {
 
         ConfigsSpec sub = source.newSpecWithNameSpace("sub");
 
-        ConfParameter origin = source.getParameter("nested.prop1");
-        ConfParameter nameSpaced = sub.getParameter("sub.nested.prop1");
+        ConfParameter origin = source.findParameter("nested.prop1");
+        ConfParameter nameSpaced = sub.findParameter("sub.nested.prop1");
 
         assertThat(nameSpaced).isNotNull();
         assertParams("sub", nameSpaced, origin);
@@ -154,13 +154,13 @@ public class ConfigSpecTest {
                 item-template |        | item-template.template | my-template
                 item-template |        | item-template..        | my-template
                     """)
-    public void shouldPopulateMultipleParam(
+    public void shouldFillMultipleParam(
             String config, String suffix, String key, String expectedValue) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, expectedValue);
         Map<String, String> dest = new HashMap<>();
-        param.populate(source, dest);
+        param.fill(source, dest);
         assertThat(dest).containsExactly(key, expectedValue);
     }
 
@@ -179,13 +179,13 @@ public class ConfigSpecTest {
                 item-template |        | item-template
                 item-template |        | item-template.
                     """)
-    public void shouldNotPopulateMultipleParamDueToMissingInfix(
+    public void shouldNotFillMultipleParamDueToMissingInfix(
             String config, String suffix, String key) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, "value");
         Map<String, String> dest = new HashMap<>();
-        assertThrows(ConfigException.class, () -> param.populate(source, dest));
+        assertThrows(ConfigException.class, () -> param.fill(source, dest));
     }
 
     @Test

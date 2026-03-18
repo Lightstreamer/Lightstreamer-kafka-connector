@@ -19,6 +19,20 @@ package com.lightstreamer.kafka.examples.quick_start.producer.protobuf;
 
 import org.apache.kafka.common.serialization.Serializer;
 
+/**
+ * A Kafka {@link Serializer} for Protocol Buffer {@link Stock} messages.
+ *
+ * <p>This serializer does not require a Schema Registry: it serializes {@link Stock} messages
+ * directly to their raw binary wire format using Protocol Buffers' built-in {@link
+ * com.google.protobuf.MessageLite#toByteArray()} method. This makes it a lightweight alternative to
+ * {@code io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer} for environments where a
+ * Schema Registry is not available or not desired.
+ *
+ * <p>A {@code null} value is serialized as {@code null}, consistent with the Kafka serializer
+ * contract.
+ *
+ * @see Stock
+ */
 public class CustomProtobufSerializer implements Serializer<Stock> {
 
     @Override

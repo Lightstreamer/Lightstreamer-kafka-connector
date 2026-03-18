@@ -182,7 +182,7 @@
 
 **Improvements**
 
-- Updated the [Producer for the QuickStart App](examples/quickstart-producer/) example project to produce a Docker image which supports versioned JAR files. ([#52](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/52))
+- Updated the [Producer for the Quickstart App](examples/quickstart-producer/) example project to produce a Docker image which supports versioned JAR files. ([#52](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/52))
 
 **Bug Fixes**
 

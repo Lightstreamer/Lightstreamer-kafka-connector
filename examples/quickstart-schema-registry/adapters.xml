@@ -25,7 +25,7 @@
         <param name="encryption.keystore.password">kafka-connector-password</param>
         <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 
-        <!-- ##### RECORD EVALUATION SETTINGS ##### -->
+        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
         <param name="record.consume.from">EARLIEST</param>
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">PROTOBUF</param>
@@ -57,12 +57,12 @@
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
         <param name="schema.registry.url">https://schema-registry:8084</param>
-        <param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
-        <param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
-        <param name="schema.registry.encryption.keystore.enable">true</param>
-        <param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-        <param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-        <param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+        <param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+        <param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
+        <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
+        <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+        <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+        <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 
     </data_provider>
 

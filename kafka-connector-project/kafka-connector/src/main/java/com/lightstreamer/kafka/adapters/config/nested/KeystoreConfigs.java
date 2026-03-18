@@ -37,13 +37,13 @@ public class KeystoreConfigs {
     static {
         CONFIG_SPEC =
                 new ConfigsSpec("KEYSTORE")
+                        .add(KEYSTORE_PATH, true, false, FILE)
                         .add(
                                 KEYSTORE_TYPE,
                                 false,
                                 false,
                                 ConfType.KEYSTORE_TYPE,
                                 defaultValue(KeystoreType.JKS.toString()))
-                        .add(KEYSTORE_PATH, true, false, FILE)
                         .add(KEYSTORE_PASSWORD, false, false, TEXT)
                         .add(KEY_PASSWORD, false, false, TEXT);
     }

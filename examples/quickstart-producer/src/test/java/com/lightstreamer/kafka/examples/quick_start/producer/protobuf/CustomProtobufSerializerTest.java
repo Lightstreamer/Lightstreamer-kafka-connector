@@ -22,6 +22,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.lightstreamer.kafka.examples.quick_start.producer.StockValueFactory;
 import com.lightstreamer.kafka.examples.quick_start.producer.test_utils.StockEvents;
 
 import org.junit.jupiter.api.Test;
@@ -35,7 +36,7 @@ public class CustomProtobufSerializerTest {
         // Create test stock event
         Map<String, String> stockEvent = StockEvents.createEvent();
 
-        Stock stock = ProtobufStock.fromEvent(stockEvent);
+        Stock stock = StockValueFactory.protobuf(stockEvent);
         assertNotNull(stock);
 
         // Serialize the stock object to bytes

@@ -18,8 +18,16 @@
 package com.lightstreamer.kafka.adapters.mapping.selectors.avro;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.AVRO;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider.AZURE;
 
+import com.azure.core.models.MessageContent;
+import com.azure.core.util.BinaryData;
+import com.azure.core.util.serializer.TypeReference;
+import com.azure.data.schemaregistry.SchemaRegistryClientBuilder;
+import com.azure.data.schemaregistry.apacheavro.SchemaRegistryApacheAvroSerializer;
+import com.azure.data.schemaregistry.apacheavro.SchemaRegistryApacheAvroSerializerBuilder;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractAzureSchemaRegistryDeserializer;
 import com.lightstreamer.kafka.adapters.mapping.selectors.AbstractLocalSchemaDeserializer;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
@@ -31,10 +39,13 @@ import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.utils.Utils;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Map;
 
 public class GenericRecordDeserializers {
@@ -56,12 +67,21 @@ public class GenericRecordDeserializers {
         public GenericRecord deserialize(String topic, byte[] data) {
             return (GenericRecord) innerDeserializer.deserialize(topic, data);
         }
+
+        @Override
+        public void close() {
+            innerDeserializer.close();
+        }
     }
 
     static class GenericRecordLocalSchemaDeserializer
             extends AbstractLocalSchemaDeserializer<GenericRecord> {
 
         private Schema schema;
+
+        GenericRecordLocalSchemaDeserializer(ConnectorConfig config) {
+            super(config);
+        }
 
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
@@ -91,6 +111,52 @@ public class GenericRecordDeserializers {
         }
     }
 
+    static class GenericRecordAzureSchemaRegistryDeserializer
+            extends AbstractAzureSchemaRegistryDeserializer<GenericRecord> {
+
+        private SchemaRegistryApacheAvroSerializer serializer;
+
+        GenericRecordAzureSchemaRegistryDeserializer(ConnectorConfig config) {
+            super(config);
+        }
+
+        @Override
+        public void configure(Map<String, ?> configs, boolean isKey) {
+            this.serializer =
+                    new SchemaRegistryApacheAvroSerializerBuilder()
+                            .schemaRegistryClient(
+                                    new SchemaRegistryClientBuilder()
+                                            .fullyQualifiedNamespace(
+                                                    getConfig().schemaRegistryUrl())
+                                            .credential(getTokenCredential())
+                                            .buildAsyncClient())
+                            .buildSerializer();
+        }
+
+        @Override
+        public GenericRecord deserialize(String topic, Headers headers, byte[] data) {
+            if (data == null || data.length == 0) {
+                return null;
+            }
+            Header contentTypeHeader = headers.lastHeader("content-type");
+            MessageContent message =
+                    new MessageContent()
+                            .setBodyAsBinaryData(BinaryData.fromBytes(data))
+                            .setContentType(
+                                    contentTypeHeader != null
+                                            ? new String(contentTypeHeader.value())
+                                            : "");
+            // SchemaRegistryApacheAvroSerializer.deserialize() calls block() with no timeout,
+            // which can hang indefinitely when the schema registry URL is wrong or unreachable.
+            // Using deserializeAsync() with a Reactor timeout() before block() guarantees the
+            // call is always bounded, regardless of transport state.
+            return serializer
+                    .deserializeAsync(message, TypeReference.createInstance(GenericRecord.class))
+                    .timeout(Duration.ofSeconds(2))
+                    .block();
+        }
+    }
+
     static Deserializer<GenericRecord> ValueDeserializer(ConnectorConfig config) {
         return configuredDeserializer(config, false);
     }
@@ -110,10 +176,14 @@ public class GenericRecordDeserializers {
     private static Deserializer<GenericRecord> newDeserializer(
             ConnectorConfig config, boolean isKey) {
         if ((isKey && config.hasKeySchemaFile()) || (!isKey && config.hasValueSchemaFile())) {
-            GenericRecordLocalSchemaDeserializer localSchemaDeser =
-                    new GenericRecordLocalSchemaDeserializer();
-            localSchemaDeser.preConfigure(config, isKey);
-            return localSchemaDeser;
+            return new GenericRecordLocalSchemaDeserializer(config);
+        }
+
+        if ((isKey && config.isSchemaRegistryEnabledForKey())
+                || (!isKey && config.isSchemaRegistryEnabledForValue())) {
+            if (AZURE.equals(config.schemaRegistryProvider())) {
+                return new GenericRecordAzureSchemaRegistryDeserializer(config);
+            }
         }
 
         return new WrapperKafkaAvroDeserializer();

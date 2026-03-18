@@ -23,8 +23,6 @@ services:
     container_name: producer
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     environment:
       - AWS_SHARED_CREDENTIALS_FILE=/usr/app/aws_credentials
     configs:
@@ -39,8 +37,10 @@ configs:
     content: |
       # Configure AWS_MSK_IAM mechanism
       sasl.mechanism=AWS_MSK_IAM
+
       # Enable SSL encryption
       security.protocol=SASL_SSL
+      
       # JAAS configuration
       sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required awsDebugCreds=true awsProfileName="msk_client";
       sasl.client.callback.handler.class = software.amazon.msk.auth.iam.IAMClientCallbackHandler

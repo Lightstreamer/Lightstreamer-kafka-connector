@@ -23,8 +23,6 @@ services:
     container_name: producer
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
@@ -37,10 +35,13 @@ configs:
     content: |
       # Configure SASL/SCRAM mechanism
       sasl.mechanism=SCRAM-SHA-256
+
       # Enable SSL encryption
       security.protocol=SASL_SSL
+
       # JAAS configuration
       sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="${username}" password="${password}";
+      
       # Trust store configuration to authenticate the broker
       ssl.endpoint.identification.algorithm=
       ssl.truststore.location=/usr/app/secrets/client.truststore.jks

@@ -11,4 +11,4 @@ COMPOSE_FILE="docker-compose-${WHICH}.yml"
 
 # Export the version env variable to be used by Compose
 export VERSION
-docker compose -f ${COMPOSE_FILE} down
+docker compose -f "${COMPOSE_FILE}" down

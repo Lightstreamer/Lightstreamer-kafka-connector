@@ -1,0 +1,21 @@
+{
+  "type": "record",
+  "name": "Stock",
+  "namespace": "com.lightstreamer.kafka.examples.quick_start.producer.avro",
+  "fields": [
+    { "name": "name",         "type": "string" },
+    { "name": "time",         "type": "string" },
+    { "name": "timestamp",    "type": "string" },
+    { "name": "last_price",   "type": "string" },
+    { "name": "ask",          "type": "string" },
+    { "name": "bid",          "type": "string" },
+    { "name": "bid_quantity", "type": "string" },
+    { "name": "ask_quantity", "type": "string" },
+    { "name": "pct_change",   "type": "string" },
+    { "name": "min",          "type": "string" },
+    { "name": "max",          "type": "string" },
+    { "name": "ref_price",    "type": "string" },
+    { "name": "open_price",   "type": "string" },
+    { "name": "item_status",  "type": "string" }
+  ]
+}

@@ -155,6 +155,8 @@ public interface RecordBatch<K, V> {
      * @param consumerRecords the consumer records batch to convert
      * @param deserializerPair the pair of deserializers for keys and values
      * @return a non-joinable {@code RecordBatch} with eagerly deserialized keys and values
+     * @throws org.apache.kafka.common.errors.SerializationException if any record's key or value
+     *     cannot be deserialized
      * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean)
      * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
      */
@@ -179,6 +181,8 @@ public interface RecordBatch<K, V> {
      * @param joinable if {@code true}, the returned batch supports {@link #join()}; if {@code
      *     false}, {@link #join()} returns immediately
      * @return a {@code RecordBatch} with eagerly deserialized keys and values
+     * @throws org.apache.kafka.common.errors.SerializationException if any record's key or value
+     *     cannot be deserialized
      * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
      */
     static <K, V> RecordBatch<K, V> batchFromEager(
