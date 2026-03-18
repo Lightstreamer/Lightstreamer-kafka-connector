@@ -1,10 +1,43 @@
 # Changelog
 
-## [Unreleased]
+## [1.5.0] (2026-03-18)
+
+**Breaking Changes**
+
+- **Schema Registry Parameter Namespace**: Confluent Schema Registry-specific parameters previously under the `schema.registry` prefix have been moved to the `schema.registry.confluent` prefix. Update any existing configuration accordingly. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- **Renamed Parameter**: `record.consume.max.poll.records` has been renamed to [`record.consume.with.max.poll.records`](README.md#recordconsumewithmaxpollrecords) for consistency with other `record.consume.with.*` parameters. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+**Improvements**
+
+- **Azure Schema Registry Support**: Added native support for [_Azure Schema Registry_](README.md#azure-schema-registry-parameters) as a schema provider for both JSON and Avro message deserialization. Introduced the new [`schema.registry.provider`](README.md#schemaregistryprovider) parameter to select between `CONFLUENT` and `AZURE` as the Schema Registry provider. A dedicated [_Azure Event Hubs Quickstart_](examples/vendors/azure/quickstart-azure/) is also provided, including an advanced section covering [Azure Schema Registry integration](examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration). ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- **Configurable Session Timeout**: Exposed the [`record.consume.with.session.timeout.ms`](README.md#recordconsumewithsessiontimeoutms) parameter to configure the timeout used to detect client failures when using Kafka's group management facility. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- **Configurable Max Poll Interval**: Exposed the [`record.consume.with.max.poll.interval.ms`](README.md#recordconsumewithmaxpollintervalms) parameter to configure the maximum delay between invocations of `poll()` when using consumer group management. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+**Examples and Documentation**
+
+- Updated the [Quickstart Producer](examples/quickstart-producer/) to add support for Avro serialization and Azure Schema Registry serialization formats. Overhauled the build process. Significantly expanded the [README](examples/quickstart-producer/README.md) documentation. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- Overhauled the build process of the [Airport Demo](examples/airport-demo/) producer. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- Updated all quickstart examples, including changes to `adapters.xml` files to reflect the renamed Confluent Schema Registry parameters (`schema.registry.*` → `schema.registry.confluent.*`), `docker-compose.yml` files, and `README.md` files. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+- Updated the main [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) files with general restyling and fixed broker links. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+**Third-Party Library Updates**
+
+- Upgraded the _Spotless Plugin for Gradle_ dependency to version 8.3.0. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+
+
+## [1.4.1] (2026-02-27)
 
 **Improvements**
 
 - **Official Docker Image**: Introduced official Docker images published to GitHub Container Registry (`ghcr.io/lightstreamer/lightstreamer-kafka-connector`), with automated builds via GitHub Actions on each release. Moved Docker resources from `examples/docker` to the new `/docker` folder with production-ready build scripts and Dockerfile. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+
+- **Absolute Path Support**: Extended file path configuration parameters (such as `logging.configuration.path`, `encryption.truststore.path`, `encryption.keystore.path`, `authentication.gssapi.key.tab.path`, and `record.*.evaluator.schema.path`) to also accept absolute paths, in addition to paths relative to the deployment folder. Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) and [`README.md`](README.md) files accordingly. ([#79](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/79))
 
 **Examples and Documentation**
 
@@ -180,7 +213,7 @@
 
 **Improvements**
 
-- Updated the [Producer for the QuickStart App](examples/quickstart-producer/) example project to produce a Docker image which supports versioned JAR files. ([#52](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/52))
+- Updated the [Producer for the Quickstart App](examples/quickstart-producer/) example project to produce a Docker image which supports versioned JAR files. ([#52](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/52))
 
 **Bug Fixes**
 

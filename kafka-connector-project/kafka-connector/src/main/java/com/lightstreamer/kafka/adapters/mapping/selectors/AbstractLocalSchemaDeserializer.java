@@ -32,13 +32,17 @@ import java.util.function.Supplier;
 
 public abstract class AbstractLocalSchemaDeserializer<T> implements Deserializer<T> {
 
-    private String keySchemaFileName;
-    private String valueSchemaFileName;
+    private final String keySchemaFileName;
+    private final String valueSchemaFileName;
+    protected final ConnectorConfig config;
 
-    public void preConfigure(ConnectorConfig config, boolean isKey) {
+    public AbstractLocalSchemaDeserializer(ConnectorConfig config) {
+        this.config = config;
         keySchemaFileName = config.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH);
         valueSchemaFileName = config.getFile(RECORD_VALUE_EVALUATOR_SCHEMA_PATH);
     }
+
+    public void preConfigure(ConnectorConfig config, boolean isKey) {}
 
     public final File getSchemaFile(boolean isKey) {
         if (isKey) {

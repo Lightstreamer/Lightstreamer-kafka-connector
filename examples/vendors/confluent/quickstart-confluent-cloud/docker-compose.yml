@@ -21,8 +21,6 @@ services:
     container_name: producer
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
@@ -33,8 +31,10 @@ configs:
     content: |
       # Configure SASL/PLAIN mechanism
       sasl.mechanism=PLAIN
+
       # Enable SSL encryption
       security.protocol=SASL_SSL
+      
       # JAAS configuration
       sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username="${api_key}" password="${api_secret}";
 

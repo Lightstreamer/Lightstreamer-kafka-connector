@@ -21,8 +21,6 @@ services:
       - broker
     build:
       context: quickstart-producer
-      args:
-        VERSION: ${VERSION}
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
     networks:
       - automq_net

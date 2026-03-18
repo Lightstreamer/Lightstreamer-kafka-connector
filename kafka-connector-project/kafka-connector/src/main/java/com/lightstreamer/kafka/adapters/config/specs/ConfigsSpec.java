@@ -26,7 +26,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.common.config.ConfigException;
-import com.lightstreamer.kafka.common.utils.Either;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import java.io.File;
@@ -44,13 +43,19 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 public class ConfigsSpec {
 
     public interface Type {
+
+        default boolean validate(String param) {
+            if (param != null) {
+                return isValid(param);
+            }
+            return false;
+        }
 
         boolean isValid(String param);
 
@@ -59,7 +64,8 @@ public class ConfigsSpec {
         }
 
         default String formatErrorMessage(String param, String paramValue) {
-            return String.format("Specify a valid value for parameter [%s]", param);
+            return String.format(
+                    "Specify a valid value for parameter [%s]", Objects.toString(param, "null"));
         }
     }
 
@@ -67,14 +73,21 @@ public class ConfigsSpec {
         CHAR {
             @Override
             public boolean checkValidity(String param) {
-                return param.length() == 1;
+                return param != null && param.length() == 1;
             }
         },
 
         TEXT {
             @Override
             public boolean checkValidity(String param) {
-                return !param.isBlank();
+                return param != null && !param.isBlank();
+            }
+        },
+
+        BLANKABLE_TEXT {
+            @Override
+            public boolean checkValidity(String param) {
+                return param != null;
             }
         },
 
@@ -104,6 +117,18 @@ public class ConfigsSpec {
             }
         },
 
+        NON_NEGATIVE_INT {
+            @Override
+            public boolean checkValidity(String param) {
+                try {
+                    Integer value = Integer.valueOf(param);
+                    return value >= 0;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
         THREADS {
             @Override
             public boolean checkValidity(String param) {
@@ -121,7 +146,7 @@ public class ConfigsSpec {
 
             @Override
             public boolean checkValidity(String param) {
-                return HOST.matcher(param).matches();
+                return param != null && HOST.matcher(param).matches();
             }
         },
 
@@ -134,6 +159,8 @@ public class ConfigsSpec {
         ERROR_STRATEGY(Options.errorStrategies()),
 
         ORDER_STRATEGY(Options.orderStrategies()),
+
+        SCHEMA_REGISTRY_PROVIDER(Options.schemaRegistryProviders()),
 
         URL {
             @Override
@@ -152,7 +179,7 @@ public class ConfigsSpec {
         FILE {
             @Override
             public boolean checkValidity(String param) {
-                return Files.isRegularFile(Paths.get(param));
+                return param != null && Files.isRegularFile(Paths.get(param));
             }
 
             @Override
@@ -172,7 +199,7 @@ public class ConfigsSpec {
         DIRECTORY {
             @Override
             public boolean checkValidity(String param) {
-                return Files.isDirectory(Paths.get(param));
+                return param != null && Files.isDirectory(Paths.get(param));
             }
 
             @Override
@@ -227,49 +254,42 @@ public class ConfigsSpec {
             return new DefaultHolder<>(value);
         }
 
-        public static <T> DefaultHolder<T> defaultValue(Supplier<T> supplier) {
-            return new DefaultHolder<>(supplier);
-        }
-
         public static <T> DefaultHolder<T> defaultValue(Function<Map<String, String>, T> function) {
             return new DefaultHolder<>(function);
         }
 
+        @SuppressWarnings("unchecked")
         public static <T> DefaultHolder<T> defaultNull() {
-            return new DefaultHolder<>(() -> null);
+            return (DefaultHolder<T>) DefaultHolder.NULL;
         }
 
-        Either<Supplier<T>, Function<Map<String, String>, T>> either;
+        @SuppressWarnings({"rawtypes"})
+        private static final DefaultHolder NULL = new DefaultHolder<>(config -> null);
 
-        private DefaultHolder(Supplier<T> supplier) {
-            this.either = Either.left(supplier);
-        }
+        Function<Map<String, String>, T> factory;
 
         private DefaultHolder(T value) {
-            this(() -> value);
+            this(config -> value);
         }
 
         private DefaultHolder(Function<Map<String, String>, T> function) {
-            this.either = Either.right(function);
+            this.factory = function;
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(either);
+            return Objects.hash(factory);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
 
-            return obj instanceof DefaultHolder other && Objects.equals(either, other.either);
+            return obj instanceof DefaultHolder other && Objects.equals(factory, other.factory);
         }
 
         public T value(Map<String, String> config) {
-            if (either.isLeft()) {
-                return either.getLeft().get();
-            }
-            return either.getRight().apply(config);
+            return factory.apply(config);
         }
 
         public T value() {
@@ -297,6 +317,10 @@ public class ConfigsSpec {
             return new EnablingKey(key().map(k -> ns + "." + k).toList());
         }
 
+        public String toString() {
+            return keys.toString();
+        }
+
         Stream<String> key() {
             return keys.stream();
         }
@@ -310,6 +334,46 @@ public class ConfigsSpec {
             Type type,
             boolean mutable,
             DefaultHolder<String> defaultHolder) {
+        public ConfParameter {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Parameter name can't be null or blank");
+            }
+
+            if (type == null) {
+                throw new IllegalArgumentException(
+                        "Parameter type of [%s] can't be null".formatted(name));
+            }
+
+            if (multiple) {
+                if (suffix != null && suffix.isBlank()) {
+                    throw new IllegalArgumentException(
+                            "Multiple parameter [%s] have a blank suffix".formatted(name));
+                }
+
+                if (defaultHolder != DefaultHolder.NULL) {
+                    throw new IllegalArgumentException(
+                            "Multiple parameters [%s] can't have a default value".formatted(name));
+                }
+
+                if (!mutable) {
+                    throw new IllegalArgumentException(
+                            "Multiple parameters [%s] must be mutable".formatted(name));
+                }
+            }
+
+            if (!mutable) {
+                if (!required) {
+                    throw new IllegalArgumentException(
+                            "Not mutable parameters [%s] must be required".formatted(name));
+                }
+
+                if (defaultHolder == DefaultHolder.NULL) {
+                    throw new IllegalArgumentException(
+                            "Not mutable parameter [%s] must have a non-null default value"
+                                    .formatted(name));
+                }
+            }
+        }
 
         public String defaultValue() {
             return defaultHolder().value();
@@ -324,49 +388,77 @@ public class ConfigsSpec {
             return name();
         }
 
-        void populate(Map<String, String> source, Map<String, String> destination)
+        void fill(Map<String, String> source, Map<String, String> destination)
                 throws ConfigException {
-            List<String> keys = Collections.singletonList(name());
+            if (mutable()) {
+                fillIfMutable(source, destination);
+            } else {
+                fillIfNotMutable(source, destination);
+            }
+        }
+
+        private void fillIfNotMutable(Map<String, String> source, Map<String, String> destination) {
+            String value = defaultHolder().value(source);
+            if (value == null) {
+                throw new ConfigException(
+                        "Not mutable parameter [%s] must have a non-null default value"
+                                .formatted(name()));
+            }
+            destination.put(name(), type.getValue(value));
+        }
+
+        private void fillIfMutable(Map<String, String> source, Map<String, String> destination)
+                throws ConfigException {
             if (multiple()) {
-                keys =
-                        source.keySet().stream()
-                                .filter(
-                                        key -> {
-                                            String[] components = key.split("\\.");
-                                            return components[0].equals(name())
-                                                    && (suffix != null
-                                                            ? components[components.length - 1]
-                                                                    .equals(suffix)
-                                                            : true);
-                                        })
-                                .toList();
-                if (keys.isEmpty() && required()) {
+                List<String> matchingKeys =
+                        source.keySet().stream().filter(k -> isValidMultipleKey(k)).toList();
+                if (matchingKeys.isEmpty() && required()) {
                     throw new ConfigException(
                             "Specify at least one parameter [%s]".formatted(fullName()));
                 }
+
+                for (String key : matchingKeys) {
+                    Optional<String> infix = extractInfix(this, key);
+                    if (infix.isPresent()) {
+                        String paramValue = source.get(key);
+                        validate(key, paramValue);
+                        destination.put(key, type.getValue(paramValue));
+                    } else {
+                        throw new ConfigException(
+                                "Specify a valid parameter [%s]".formatted(fullName()));
+                    }
+                }
+                return;
             }
 
-            for (String key : keys) {
-                if (source.containsKey(key)) {
-                    if (multiple()) {
-                        extractInfix(this, key)
-                                .orElseThrow(
-                                        () ->
-                                                new ConfigException(
-                                                        "Specify a valid parameter [%s]"
-                                                                .formatted(fullName())));
+            final String paramValue;
+            if (source.containsKey(name())) {
+                paramValue = source.get(name());
+            } else {
+                // If the parameter is not present in the source, we try to get a default value,
+                // possibly computed from the source itself.
+                String defaultValue = defaultHolder().value(source);
+                if (defaultValue == null) {
+                    if (required()) {
+                        throw new ConfigException(
+                                "Missing required parameter [%s]".formatted(name()));
                     }
-                    String paramValue = source.get(key);
-                    if ((paramValue != null && !type.isValid(paramValue))
-                            || paramValue == null
-                            || paramValue.isBlank()) {
-                        throw new ConfigException(type().formatErrorMessage(key, paramValue));
-                    }
-                    destination.put(key, type.getValue(paramValue));
-                } else if (required()) {
-                    throw new ConfigException(
-                            String.format("Missing required parameter [%s]", key));
+                    return;
                 }
+                paramValue = defaultValue;
+            }
+            validate(name(), paramValue);
+            destination.put(name(), type.getValue(paramValue));
+        }
+
+        private boolean isValidMultipleKey(String key) {
+            return (key.equals(name()) || key.startsWith(name() + "."))
+                    && (suffix == null || key.endsWith("." + suffix));
+        }
+
+        private void validate(String key, String paramValue) {
+            if (!type.validate(paramValue)) {
+                throw new ConfigException(type().formatErrorMessage(key, paramValue));
             }
         }
     }
@@ -407,6 +499,10 @@ public class ConfigsSpec {
 
         static Options saslMechanisms() {
             return new Options(SaslMechanism.names());
+        }
+
+        static Options schemaRegistryProviders() {
+            return new Options(ConfigTypes.SchemaRegistryProvider.names());
         }
 
         private Set<String> choices;
@@ -529,7 +625,7 @@ public class ConfigsSpec {
                     paramSpec.put(name, p);
                 });
         for (ChildSpec childSpec : from.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
     }
 
@@ -546,14 +642,14 @@ public class ConfigsSpec {
                             cp.defaultHolder()));
         }
         for (ChildSpec childSpec : childConfigSpec.specChildren) {
-            addChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
+            withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
         }
 
         return this;
     }
 
     public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
-        ConfigsSpec newSpec = new ConfigsSpec();
+        ConfigsSpec newSpec = new ConfigsSpec(this.name);
         for (ConfParameter cp : paramSpec.values()) {
             newSpec.add(
                     new ConfParameter(
@@ -567,7 +663,7 @@ public class ConfigsSpec {
         }
         for (ChildSpec childSpec : specChildren) {
             ConfigsSpec spec = childSpec.spec();
-            newSpec.addChildConfigs(
+            newSpec.withChildConfigs(
                     spec.newSpecWithNameSpace(nameSpace),
                     childSpec.evalStrategy(),
                     childSpec.enablingKey().newNameSpaced(nameSpace));
@@ -654,7 +750,7 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec withEnabledChildConfigs(ConfigsSpec spec, EnablingKey enablingKey) {
-        return addChildConfigs(
+        return withChildConfigs(
                 spec, (map, key) -> map.getOrDefault(key, "false").equals("true"), enablingKey);
     }
 
@@ -662,16 +758,16 @@ public class ConfigsSpec {
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             String enablingKey) {
-        return addChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
+        return withChildConfigs(spec, evalStrategy, new EnablingKey(enablingKey));
     }
 
-    public ConfigsSpec addChildConfigs(
+    private ConfigsSpec withChildConfigs(
             ConfigsSpec spec,
             BiFunction<Map<String, String>, String, Boolean> evalStrategy,
             EnablingKey enablingKey) {
         enablingKey
                 .key()
-                .map(s -> getParameter(s))
+                .map(s -> lookUpParameter(s))
                 .filter(Objects::nonNull)
                 .findAny()
                 .orElseThrow(
@@ -683,14 +779,14 @@ public class ConfigsSpec {
         return this;
     }
 
-    public ConfParameter getParameter(String name) {
-        ConfParameter parameter = paramSpec.get(name);
+    public ConfParameter findParameter(String name) {
+        ConfParameter parameter = lookUpParameter(name);
         if (parameter != null) {
             return parameter;
         }
 
         for (ChildSpec trigger : specChildren) {
-            parameter = trigger.spec().getParameter(name);
+            parameter = trigger.spec().findParameter(name);
             if (parameter != null) {
                 return parameter;
             }
@@ -700,6 +796,10 @@ public class ConfigsSpec {
         return null;
     }
 
+    private ConfParameter lookUpParameter(String name) {
+        return paramSpec.get(name);
+    }
+
     public List<ConfParameter> getByType(Type type) {
         return Stream.concat(
                         paramSpec.values().stream().filter(p -> p.type().equals(type)),
@@ -707,45 +807,23 @@ public class ConfigsSpec {
                 .toList();
     }
 
-    // public static Optional<String> extractPrefix(ConfParameter param, String value) {
-    //     if (!param.multiple()) {
-    //         return Optional.empty();
-    //     }
-
-    //     String prefix = param.name() + ".";
-    //     boolean startsWith = value.startsWith(prefix);
-    //     if (!startsWith) {
-    //         return Optional.empty();
-    //     }
-
-    //     infix = value.substring(prefix.length());
-    //     if (param.suffix() != null) {
-    //         String suffix = "." + param.suffix();
-    //         if (!infix.endsWith(suffix)) {
-    //             return Optional.empty();
-    //         }
-    //         infix = infix.substring(0, infix.lastIndexOf(suffix));
-    //     }
-    //     return Optional.of(infix);
-    // }
-
     public Map<String, String> parse(Map<String, String> originals) throws ConfigException {
         // Final map containing all parsed values.
-        Map<String, String> parsedValues = new HashMap<>();
+        Map<String, String> configurations = new HashMap<>();
 
-        paramSpec.values().stream()
-                .filter(c -> c.mutable())
-                .forEach(c -> c.populate(originals, parsedValues));
+        for (ConfParameter param : paramSpec.values()) {
+            param.fill(originals, configurations);
+        }
 
         // Populate the map iterating over the children specs.
         for (ChildSpec trigger : specChildren) {
             Stream<String> key = trigger.enablingKey.key();
-            boolean enabled = key.anyMatch(k -> trigger.evalStrategy().apply(parsedValues, k));
+            boolean enabled = key.anyMatch(k -> trigger.evalStrategy().apply(configurations, k));
             if (enabled) {
-                parsedValues.putAll(trigger.spec().parse(originals));
+                configurations.putAll(trigger.spec().parse(originals));
             }
         }
-        return parsedValues;
+        return configurations;
     }
 
     ConfigsSpec add(ConfParameter confParameter) {

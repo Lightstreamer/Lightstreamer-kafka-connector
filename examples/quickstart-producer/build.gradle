@@ -1,8 +1,10 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'com.github.davidmc24.gradle.plugin.avro' version '1.9.1'
     id 'com.google.protobuf' version '0.9.5'
     id 'com.diffplug.spotless' version '7.0.3'
+    id 'com.gradleup.shadow' version '8.3.6'
 }
 
 repositories {
@@ -15,18 +17,21 @@ repositories {
 dependencies {
     implementation("info.picocli:picocli:4.7.5")
 
-    implementation("org.slf4j:slf4j-reload4j:2.0.10")
-    implementation("org.apache.kafka:kafka-clients:7.7.0-ccs")
-    implementation("io.confluent:kafka-json-serializer:7.7.0")
-    implementation("io.confluent:kafka-json-schema-serializer:7.7.0")
-    implementation("io.confluent:kafka-protobuf-serializer:7.7.0")
+    implementation("org.slf4j:slf4j-reload4j:2.0.17")
+    implementation("org.apache.kafka:kafka-clients:8.1.1-ccs")
+    implementation("io.confluent:kafka-avro-serializer:8.1.1")
+    implementation("io.confluent:kafka-json-serializer:8.1.1")
+    implementation("io.confluent:kafka-json-schema-serializer:8.1.1")
+    implementation("io.confluent:kafka-protobuf-serializer:8.1.1")
+    implementation("org.apache.avro:avro:1.11.4")
     implementation("com.google.protobuf:protobuf-java:3.24.0")
-    implementation("software.amazon.msk:aws-msk-iam-auth:2.3.2")
+    implementation("com.microsoft.azure:azure-schemaregistry-kafka-json:1.0.0-beta.5")
+    implementation("com.microsoft.azure:azure-schemaregistry-kafka-avro:1.1.2")
 
     testImplementation(platform("org.junit:junit-bom:6.0.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("com.google.truth:truth:1.4.5")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 spotless {
@@ -83,19 +88,11 @@ protobuf {
 }
 
 group = 'com.lightstreamer.kafka'
-version = '1.1.0'
+version = '1.2.0'
 
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
-sourceSets {
-    test {
-        proto {
-            srcDir 'src/main/proto'
-        }
     }
 }
 
@@ -107,18 +104,32 @@ tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'
 }
 
-jar {
+shadowJar {
     manifest {
         attributes 'Main-Class': "com.lightstreamer.kafka.examples.quick_start.producer.Producer"
     }
-    archiveAppendix = appendix
-
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.named('assemble') {
+    dependsOn shadowJar
+}
+
+tasks.register('listJars') {
+    dependsOn configurations.runtimeClasspath
+    doLast {
+        configurations.runtimeClasspath.resolvedConfiguration.resolvedArtifacts
+                .collect { it.file }
+                .sort()
+                .each { println it }
+    }
 }
 
 publishing {
@@ -136,7 +147,7 @@ publishing {
         gpr(MavenPublication) {
             artifactId = project.name + '-' + appendix
             version = version
-            artifact jar
+            artifact shadowJar
         }
     }
 }

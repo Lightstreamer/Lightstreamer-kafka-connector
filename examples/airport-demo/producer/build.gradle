@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'maven-publish'
+    id 'com.gradleup.shadow' version '8.3.6'
 }
 
 repositories {
@@ -23,10 +24,6 @@ dependencies {
 
 }
 
-ext {
-    appendix = 'all'
-}
-
 group = 'com.lightstreamer.examples'
 version = '1.0.0'
 java.sourceCompatibility = JavaVersion.VERSION_1_8
@@ -39,13 +36,19 @@ tasks.withType(Javadoc) {
     options.encoding = 'UTF-8'
 }
 
-jar {
+shadowJar {
     manifest {
-        attributes 'Main-Class': "com.lightstreamer.examples.kafkademo.producer.DemoPublisher"
+        attributes 'Main-Class': 'com.lightstreamer.examples.kafkademo.producer.DemoPublisher'
     }
-    archiveAppendix = appendix
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    archiveClassifier = 'all'
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.named('assemble') {
+    dependsOn shadowJar
 }
 
 publishing {
@@ -61,8 +64,8 @@ publishing {
     }
     publications {
         gpr(MavenPublication) {
-            artifactId = project.name + '-' + appendix
-            artifact jar
+            artifactId = project.name + '-all'
+            artifact shadowJar
         }
     }
 }

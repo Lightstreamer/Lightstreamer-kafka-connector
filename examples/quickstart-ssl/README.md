@@ -1,6 +1,6 @@
-# SSL QuickStart
+# SSL Quickstart
 
-This folder contains a variant of the [_QuickStart_](../../README.md#quick-start-set-up-in-5-minutes) app configured to establish a secure connection with the Kafka broker.
+This folder contains a variant of the [_Quickstart_](../../README.md#quick-start-set-up-in-5-minutes) app configured to establish a secure connection with the Kafka broker.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to enable support for SSL, as follows:
 
@@ -101,4 +101,4 @@ $ ./generate-secrets.sh
 
 ## Run
 
-From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#run) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#quick-start-set-up-in-5-minutes) section of the main README file.

@@ -432,6 +432,8 @@ public class KafkaConsumerWrapper<K, V> {
             logger.atDebug().log("Kafka Consumer woke up during poll");
             throw we;
         } catch (KafkaException ke) {
+            // Includes SerializationException (a KafkaException subclass) thrown during eager
+            // deserialization: treated as fatal, causing connector shutdown
             logger.atError().setCause(ke).log("Unrecoverable exception");
             metadataListener.forceUnsubscriptionAll();
             throw ke;

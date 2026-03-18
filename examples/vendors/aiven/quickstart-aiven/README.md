@@ -1,6 +1,6 @@
-# Aiven for Apache Kafka QuickStart
+# Aiven for Apache Kafka Quickstart
 
-This folder contains a variant of the [_SSL QuickStart_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target Kafka cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started) on the Aiven site to perform the following operations:
+This folder contains a variant of the [_SSL Quickstart_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Aiven for Apache Kafka_](https://aiven.io/docs/products/kafka) as the target Kafka cluster. You may follow the [_Getting started_](https://aiven.io/docs/products/kafka/get-started) on the Aiven site to perform the following operations:
 
 - Create a new _Apache Kafka_ service.
 - Enable the SASL authentication mechanism.
@@ -90,7 +90,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
 
 ## Run
 
-From this directory, run follow the command:
+From this directory, run the following command:
 
 ```sh
 $ bootstrap_server=<bootstrap_server> \

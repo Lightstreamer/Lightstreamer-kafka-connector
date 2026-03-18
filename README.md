@@ -30,17 +30,20 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [General Parameters](#general-parameters)
     - [Encryption Parameters](#encryption-parameters)
     - [Broker Authentication Parameters](#broker-authentication-parameters)
-  - [Record Evaluation](#record-evaluation)
+  - [Record Processing](#record-processing)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
     - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
     - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
     - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
   - [Schema Registry](#schema-registry)
+    - [`schema.registry.provider`](#schemaregistryprovider)
     - [`schema.registry.url`](#schemaregistryurl)
-    - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
-    - [Encryption Parameters](#encryption-parameters-1)
-    - [Schema Registry QuickStart](#schema-registry-quickstart)
+    - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
+      - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
+      - [Encryption Parameters](#encryption-parameters-1)
+      - [Confluent Schema Registry Quickstart](#confluent-schema-registry-quickstart)
+    - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -84,7 +87,7 @@ Connect millions of clients without compromising performance. Fanout real-time m
 
 ## Other Features
 
-The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record evaluation, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
+The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record processing, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
 
 # Architecture
 
@@ -108,9 +111,9 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quick start application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![QuickStart Diagram](/pictures/quickstart-diagram.png)
+![Quickstart Diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 
@@ -125,6 +128,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
+ - [`Azure Events Hub`](/examples/vendors/azure/quickstart-azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -205,7 +209,7 @@ LS_HOME/
 
 ## Configure
 
-Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_QuickStart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
+Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quickstart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
 To quickly complete the installation and verify the successful integration with Kafka, edit the _data_provider_ block `QuickStart` in the file as follows:
 
@@ -306,7 +310,7 @@ You can get more details about all possible settings in the [Configuration](#con
 
 ### 3. Publish the Events
 
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _QuickStart_ app.
+   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quickstart_ app.
 
    Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
 
@@ -429,17 +433,17 @@ Furthermore, the name is also used to group all logging messages belonging to th
 > log4j.appender.QuickStartMonitorFile.File=../../logs/quickstart-monitor.log
 > ```
 
+Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
+
 Example:
 
 ```xml
 <data_provider name="BrokerConnection">
 ```
 
-Default value: `DEFAULT`, but only one `DEFAULT` configuration is permitted.
-
 #### `adapter_class`
 
-_Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. DO NOT EDIT IT!.
+_Mandatory_. The `adapter_class` tag defines the Java class name of the Data Adapter. **DO NOT EDIT IT!**.
 
 Factory value: `com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter`.
 
@@ -660,9 +664,9 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### SSL QuickStart
+#### SSL Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL QuickStart_](/examples/quickstart-ssl/) app, where you can find an example of encryption configuration.
+For an example of an encryption configuration, see the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app.
 
 ### Broker Authentication Parameters
 
@@ -686,11 +690,11 @@ Example:
 
 _Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
-- `PLAIN` (the default value)
-- `SCRAM-SHA-256`
-- `SCRAM-SHA-512`
-- `GSSAPI`
-- `AWS_MSK_IAM`
+- [`PLAIN`](#plain) (the default value)
+- [`SCRAM-SHA-256`](#scram-sha-256)
+- [`SCRAM-SHA-512`](#scram-sha-512)
+- [`GSSAPI`](#gssapi)
+- [`AWS_MSK_IAM`](#aws_msk_iam)
 
 In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
@@ -708,6 +712,8 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
+For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud Quickstart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
+
 ##### `SCRAM-SHA-256`
 
 Example:
@@ -719,6 +725,8 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
+For examples of a SCRAM-SHA-256 authentication configuration, check out the `adapters.xml` files of the [_Redpanda Serverless Quickstart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) ([adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22)) and the [_Aiven Quickstart_](/examples/vendors/aiven/quickstart-aiven/) ([adapters.xml](/examples/vendors/aiven/quickstart-aiven/adapters.xml#L24)) apps.
+
 ##### `SCRAM-SHA-512`
 
 Example:
@@ -729,6 +737,8 @@ Example:
 <param name="authentication.username">authorized-kafka-username</param>
 <param name="authentication.password">authorized-kafka-username-password</param>
 ```
+
+For an example of a SCRAM-SHA-512 authentication configuration, see the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Axual Quickstart_](/examples/vendors/axual/quickstart-axual/) app.
 
 ##### `GSSAPI`
 
@@ -842,23 +852,9 @@ When this mechanism is specified, you can configure the following authentication
 > [!NOTE]
 > **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
-#### Confluent Cloud QuickStart
+For an example of an AWS_MSK_IAM authentication configuration, see the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK Quickstart_](/examples/vendors/aws/quickstart-msk/) app.
 
-Check out the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app, where you can find an example of an authentication configuration that uses SASL/PLAIN.
-
-#### Redpanda Serverless QuickStart
-
-Check out the [adapters.xml](/examples/vendors/redpanda/quickstart-redpanda-serverless/adapters.xml#L22) file of the [_Redpanda Serverless QuickStart_](/examples/vendors/redpanda/quickstart-redpanda-serverless/) app, where you can find an example of an authentication configuration that uses SASL/SCRAM.
-
-#### MSK QuickStart
-
-Check out the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK QuickStart_](/examples/vendors/aws/quickstart-msk/) app, where you can find an example of an authentication configuration that uses AWS_MSK_IAM.
-
-#### Aiven for Apache Kafka QuickStart
-
-Check out the [adapters.xml](/examples/vendors/axual/quickstart-axual/adapters.xml#L22) file of the [_Aiven for Apache QuickStart_](/examples/vendors/axual/quickstart-axual/) app, where you can find an example of an authentication configuration that uses SCRAM-SHA-256.
-
-## Record Evaluation
+## Record Processing
 
 The Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -874,11 +870,11 @@ and other scalar types (see [the complete list](#recordkeyevaluatortype-and-reco
 In particular, the Kafka Connector supports message validation for _Avro_, _JSON_, and _Protobuf_ which can be specified through:
 
 - Local schema (or binary descriptor) files: Use this option when you have predefined schemas stored locally and do not require a centralized schema management system.
-- The _Confluent Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
+- A _Schema Registry_: Opt for this when you need a centralized repository to manage and validate schemas across multiple applications and environments.
 
 The Kafka Connector enables the independent deserialization of keys and values, allowing them to have different formats. Additionally:
 
-- Message validation against the Confluent Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable))
+- Message validation against a Schema Registry can be enabled separately for the key and value (through [`record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable)).
 - Message validation against local schema (or binary descriptor) files must be specified separately for the key and the value (through [`record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath)). In addition, using Protobuf also requires the specification of the [message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
 
 **Support for Key Value Pairs (KVP)**
@@ -925,7 +921,7 @@ Example:
 <param name="record.consume.at.connector.startup.enable">true</param>
 ```
 
-#### `record.consume.max.poll.records`
+#### `record.consume.with.max.poll.records`
 
 _Optional_. The maximum number of records fetched in each polling cycle.
 
@@ -936,7 +932,31 @@ Default value: `500`.
 Example:
 
 ```xml
-<param name="record.consume.max.poll.records">200</param>
+<param name="record.consume.with.max.poll.records">200</param>
+```
+
+#### `record.consume.with.session.timeout.ms`
+
+_Optional_. The timeout used to detect client failures when using Kafka's group management facility.
+
+The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
+
+Default value: 45000.
+
+```xml
+<param name="record.consume.with.session.timeout.ms">30000</param>
+```
+
+#### `record.consume.with.max.poll.interval.ms`
+
+_Optional_. The maximum delay between invocations of poll() when using consumer group management. This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+
+The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
+
+Default value: 30000.
+
+```xml
+<param name="record.consume.with.max.poll.interval.ms">50000</param>
 ```
 
 #### `record.consume.with.num.threads`
@@ -955,15 +975,15 @@ Example:
 
 _Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
-- `ORDER_BY_PARTITION`: maintain the order of records within each partition.
+- `ORDER_BY_PARTITION`: Maintain the order of records within each partition.
 
    If you have multiple partitions, records from different partitions can be processed concurrently by different threads, but the order of records from a single partition will always be preserved. This is the default and generally a good balance between performance and order.
 
-- `ORDER_BY_KEY`: maintain the order among the records sharing the same key.
+- `ORDER_BY_KEY`: Maintain the order among the records sharing the same key.
 
   Different keys can be processed concurrently by different threads. So, while all records with key "A" are processed in order, and all records with key "B" are processed in order, the processing of "A" and "B" records can happen concurrently and interleaved in time. There's no guaranteed order between records of different keys.
 
-- `UNORDERED`: provide no ordering guarantees.
+- `UNORDERED`: Provide no ordering guarantees.
 
   Records from any partition and with any key can be processed by any thread at any time. This offers the highest throughput when an high number of subscriptions is involved, but the order in which records are delivered to Lightstreamer clients might not match the order they were written to Kafka. This is suitable for use cases where message order is not important.
 
@@ -1006,7 +1026,7 @@ Examples:
 
 #### `record.key.evaluator.schema.path` and `record.value.evaluator.schema.path`
 
-_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
+_Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
@@ -1018,6 +1038,9 @@ $ protoc --descriptor_set_out=record_value.proto.desc record_value.proto --inclu
 
 This command compiles the source file `record_value.proto` into the binary descriptor file `record_value.proto.desc`, which includes all imported proto definitions (via the `--include_imports` flag) required for proper message validation.
 
+> [!NOTE]
+> Using a binary descriptor file also requires specifying the [Protobuf message type](#recordkeyevaluatorprotobufmessagetype-and-recordvalueevaluatorprotobufmessagetype).
+
 Examples:
 
 ```xml
@@ -1028,21 +1051,6 @@ Examples:
 ```xml
 <param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
-```
-
-#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
-
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
-- `true`
-- `false`
-
-Default value: `false`.
-
-Examples:
-
-```xml
-<param name="record.key.evaluator.schema.registry.enable">true</param>
-<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
@@ -1066,6 +1074,24 @@ Then the corresponding message type parameter should be:
 
 ```xml
 <param name="record.value.evaluator.protobuf.message.type">StockUpdate</param>
+```
+
+#### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
+
+_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of a [Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+- `true`
+- `false`
+
+Default value: `false`.
+
+> [!IMPORTANT]
+> When using the Azure Schema Registry, setting the evaluator type to `PROTOBUF` is not supported.
+
+Examples:
+
+```xml
+<param name="record.key.evaluator.schema.registry.enable">true</param>
+<param name="record.value.evaluator.schema.registry.enable">true</param>
 ```
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
@@ -1114,8 +1140,8 @@ Examples:
 
 _Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORCE_UNSUBSCRIPTION`: stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section)
+- `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
+- `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section).
 
 Default value: `IGNORE_AND_CONTINUE`.
 
@@ -1150,8 +1176,8 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions use the _dot notation_ to access nested data structures:
 
-  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys
-  - **Headers**: Retrieve values from record headers
+  - **Record data**: Navigate through attributes or fields in JSON, Avro, and Protobuf record values and keys.
+  - **Headers**: Retrieve values from record headers.
 
   ```js
   KEY.attribute1Name.attribute2Name...
@@ -1161,9 +1187,9 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
  > [!IMPORTANT]
  > Currently, it is required that the top-level element of either a record key or record value is:
- > - An [**object**](https://www.json.org/json-en.html), in the case of JSON format
- > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), in the case of Avro format
- > - A [**message**](https://protobuf.dev/programming-guides/proto3/), in the case of Protobuf format
+ > - An [**object**](https://www.json.org/json-en.html), for JSON
+ > - A [**Record**](https://avro.apache.org/docs/1.11.1/specification/#schema-record), for Avro
+ > - A [**message**](https://protobuf.dev/programming-guides/proto3/), for Protobuf
  >
  > Such a constraint may be removed in a future version of the Kafka Connector.
 
@@ -1204,11 +1230,11 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
 - Expressions support **wildcards** to extract multiple values at once:
 
-  - **`#{VALUE.*}`**: Extract all fields from the record value
-  - **`#{KEY.*}`**: Extract all fields from the record key
-  - **`#{HEADERS.*}`**: Extract all headers
-  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps)
-  - **`#{VALUE.items.*}`**: Extract all elements from an array
+  - **`#{VALUE.*}`**: Extract all fields from the record value.
+  - **`#{KEY.*}`**: Extract all fields from the record key.
+  - **`#{HEADERS.*}`**: Extract all headers.
+  - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps).
+  - **`#{VALUE.items.*}`**: Extract all elements from an array.
 
   Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
 
@@ -1299,7 +1325,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L495) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L517) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1324,9 +1350,9 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
 
-- The record schema changes frequently and you want automatic adaptation
-- You have many fields and don't want to list them individually
-- You're working with schema-less or variable-structure records
+- The record schema changes frequently and you want automatic adaptation.
+- You have many fields and don't want to list them individually.
+- You're working with schema-less or variable-structure records.
 
 To enable dynamic field discovery, use wildcard expressions in your field configuration:
 
@@ -1351,18 +1377,18 @@ will automatically create fields `symbol`, `price`, `volume`, and `exchange` wit
 
 Wildcards can be applied at any level to extract all fields from non-scalar structures:
 
-- `#{VALUE.*}` - Discover all fields from the root record value
-- `#{KEY.*}` - Discover all fields from the root record key
-- `#{HEADERS.*}` - Discover all headers
-- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map)
-- `#{VALUE.items.*}` - Discover all elements from an array
+- `#{VALUE.*}` - Discover all fields from the root record value.
+- `#{KEY.*}` - Discover all fields from the root record key.
+- `#{HEADERS.*}` - Discover all headers.
+- `#{VALUE.nested.*}` - Discover all fields from a nested non-scalar structure (object or map).
+- `#{VALUE.items.*}` - Discover all elements from an array.
 
 **How wildcards map to field names:**
 
 Wildcards can be applied at any level to any non-scalar part of the record. The resulting field names depend on the structure type:
 
-- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names
-- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`)
+- **Objects and maps**: Extract all fields/entries, using object property names or map keys as field names.
+- **Arrays**: Extract all elements with indexed field names (e.g., `array_name[0]`, `array_name[1]`).
 
 Dynamic field discovery automatically handles both scalar and non-scalar values. Non-scalar values (objects, arrays, nested structures) are serialized as generic text (e.g., JSON strings) and mapped to their corresponding field names.
 
@@ -1452,14 +1478,14 @@ In the following example:
 
 the value of `complexAttribute` will be mapped as generic text (e.g. JSON string) to the `structured` Lightstreamer field, preserving its structure and allowing clients to parse and use the data as needed.
 
-> [!NOTE]
-> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
-
 Can be one of the following:
 - `true`
 - `false`
 
 Default value: `false`.
+
+> [!NOTE]
+> This parameter applies only to static field mappings (`field.fieldName`). When using [dynamic field discovery](#dynamic-field-discovery-field) (`field.*`), non-scalar values are always mapped automatically.
 
 Example:
 
@@ -1499,7 +1525,7 @@ Additionally, the Lightstreamer Kafka Connector supports specialized snapshot ma
   - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
   - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
 
-For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](examples/airport-demo/) folder.
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
 The parameter can be one of the following:
 - `true`
@@ -1513,11 +1539,11 @@ _Optional_. Enables automatic _COMMAND_ mode support by generating appropriate c
 
 When enabled, the connector:
 
-- Automatically adds a Lightstreamer command field to each update
+- Automatically adds a Lightstreamer command field to each update.
 - Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed)
-  - **`UPDATE`**: For records with a mapped key that has been previously processed
-  - **`DELETE`**: For records with a null message payload (_tombstone records_)
+  - **`ADD`**: For records with a new mapped key (not previously processed).
+  - **`UPDATE`**: For records with a mapped key that has been previously processed.
+  - **`DELETE`**: For records with a null message payload (_tombstone records_).
 
 You only need to map the `key` field from your record structure. For example:
 
@@ -1668,74 +1694,95 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
 
 A _Schema Registry_ is a centralized repository that manages and validates schemas, which define the structure of valid messages.
 
-The Kafka Connector supports integration with the [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html) through the configuration of parameters with the prefix `schema.registry`.
+The Kafka Connector supports integration with the following Schema Registry providers:
+
+- [_Confluent Schema Registry_](https://docs.confluent.io/platform/current/schema-registry/index.html)
+- [_Azure Schema Registry_](https://learn.microsoft.com/en-us/azure/event-hubs/schema-registry-overview)
+
+Configuration is done through parameters with the prefix `schema.registry`. The required settings depend on the chosen provider.
+
+### `schema.registry.provider`
+
+_Optional_. Specifies the Schema Registry provider to use. Can be one of the following:
+- `CONFLUENT`: Use the Confluent Schema Registry.
+- `AZURE`: Use the Azure Schema Registry.
+
+Default value: `CONFLUENT`.
+
+Example:
+
+```xml
+<param name="schema.registry.provider">AZURE</param>
+```
 
 ### `schema.registry.url`
 
-_Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Confluent Schema Registry.
+_Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The URL of the Schema Registry endpoint (either Confluent Schema Registry or Azure Schema Registry).
 
-Example:
-
-```xml
-<param name="schema.registry.url">http//localhost:8081</param>
-```
-
-An encrypted connection is enabled by specifying the `https` protocol (see the [next section](#encryption-parameters-1)).
-
-Example:
+Example for the Confluent Schema Registry:
 
 ```xml
-<param name="schema.registry.url">https://localhost:8084</param>
+<param name="schema.registry.url">https://localhost:8081</param>
 ```
 
-### Basic HTTP Authentication Parameters
-
-[Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.basic.authentication`.
-
-#### `schema.registry.basic.authentication.enable`
-
-_Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
-- `true`
-- `false`
-
-Default value: `false`.
-
-Example:
+Example for the Azure Schema Registry (the URL must point to the Azure Event Hubs namespace):
 
 ```xml
-<param name="schema.registry.basic.authentication.enable">true</param>
+<param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 ```
 
-#### `schema.registry.basic.authentication.username` and `schema.registry.basic.authentication.password`
+### Confluent Schema Registry Parameters
 
-_Mandatory if [Basic HTTP Authentication](#schemaregistrybasicauthenticationenable) is enabled_. The credentials.
+When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
-- `schema.registry.basic.authentication.username`: the username
-- `schema.registry.basic.authentication.password`: the password
+#### Basic HTTP Authentication Parameters
 
-Example:
+[Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.registry.confluent.basic.authentication`.
 
-```xml
-<param name="schema.registry.basic.authentication.username">authorized-schema-registry-user</param>
-<param name="schema.registry.basic.authentication.password">authorized-schema-registry-user-password</param>
-```
+- `schema.registry.confluent.basic.authentication.enable`
 
-### Encryption Parameters
+  _Optional_. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
+  - `true`
+  - `false`
 
-A secure connection to the Confluent Schema Registry can be configured through parameters with the prefix `schema.registry.encryption`, each one having the same meaning as the homologous parameters defined in the [Encryption Parameters](#encryption-parameters) section:
+  Default value: `false`.
 
-- `schema.registry.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
-- `schema.registry.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
-- `schema.registry.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
-- `schema.registry.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
-- `schema.registry.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
-- `schema.registry.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
-- `schema.registry.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
-- `schema.registry.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
-- `schema.registry.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
-- `schema.registry.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
-- `schema.registry.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
-- `schema.registry.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
+  Example:
+
+  ```xml
+  <param name="schema.registry.confluent.basic.authentication.enable">true</param>
+  ```
+
+- `schema.registry.confluent.basic.authentication.username` and `schema.registry.confluent.basic.authentication.password`
+
+  _Mandatory if [Basic HTTP Authentication](#basic-http-authentication-parameters) is enabled_. The credentials.
+
+  - `schema.registry.confluent.basic.authentication.username`: the username
+  - `schema.registry.confluent.basic.authentication.password`: the password
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.confluent.basic.authentication.username">authorized-schema-registry-user</param>
+  <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
+  ```
+
+#### Encryption Parameters
+
+To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
+
+- `schema.registry.confluent.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
+- `schema.registry.confluent.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
+- `schema.registry.confluent.encryption.cipher.suites` (see [encryption.cipher.suites](#encryptionciphersuites))
+- `schema.registry.confluent.encryption.truststore.path` (see [encryption.truststore.path](#encryptiontruststorepath))
+- `schema.registry.confluent.encryption.truststore.type` (see [encryption.truststore.type](#encryptiontruststoretype))
+- `schema.registry.confluent.encryption.truststore.password` (see [encryption.truststore.password](#encryptiontruststorepassword))
+- `schema.registry.confluent.encryption.hostname.verification.enable` (see [encryption.hostname.verification.enable](#encryptionhostnameverificationenable))
+- `schema.registry.confluent.encryption.keystore.enable` (see [encryption.keystore.enable](#encryptionkeystoreenable))
+- `schema.registry.confluent.encryption.keystore.path` (see [encryption.keystore.path](#encryptionkeystorepath))
+- `schema.registry.confluent.encryption.keystore.type` (see [encryption.keystore.type](#encryptionkeystoretype))
+- `schema.registry.confluent.encryption.keystore.password` (see [encryption.keystore.password](#encryptionkeystorepassword))
+- `schema.registry.confluent.encryption.keystore.key.password` (see [encryption.keystore.key.password](#encryptionkeystorekeypassword))
 
 Example:
 
@@ -1744,31 +1791,67 @@ Example:
 <param name="schema.registry.url">https//localhost:8084</param>
 
 <!-- Set general encryption settings -->
-<param name="schema.registry.encryption.enabled.protocols">TLSv1.3</param>
-<param name="schema.registry.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
-<param name="schema.registry.encryption.hostname.verification.enable">true</param>
+<param name="schema.registry.confluent.encryption.enabled.protocols">TLSv1.3</param>
+<param name="schema.registry.confluent.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
+<param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
-<param name="schema.registry.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
-<param name="schema.registry.encryption.truststore.password">kafka-connector-truststore-password</param>
+<param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+<param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
-<param name="schema.registry.encryption.keystore.enable">true</param>
-<param name="schema.registry.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-<param name="schema.registry.encryption.keystore.password">kafka-connector-password</param>
-<param name="schema.registry.encryption.keystore.key.password">kafka-connector-private-key-password</param>
+<param name="schema.registry.confluent.encryption.keystore.enable">true</param>
+<param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+<param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-### Schema Registry QuickStart
+#### Confluent Schema Registry Quickstart
 
-Check out the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry QuickStart_](/examples/quickstart-schema-registry/) app, where you can find an example of Schema Registry settings.
+For an example of Schema Registry settings, see the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app.
+
+### Azure Schema Registry Parameters
+
+When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), authentication must be configured through the following parameters:
+
+- `schema.registry.azure.client.id`
+
+  _Mandatory_. The Application (client) ID assigned to the application registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.client.id">87654321-4321-4321-4321-cba987654321</param>
+  ```
+
+- `schema.registry.azure.tenant.id`
+
+  _Mandatory_. The Directory (tenant) ID of the Microsoft Entra ID tenant where the application is registered.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.tenant.id">12345678-1234-1234-1234-123456789abc</param>
+  ```
+
+- `schema.registry.azure.client.secret`
+
+  _Mandatory_. The client secret value of the application registered in Microsoft Entra ID.
+
+  Example:
+
+  ```xml
+  <param name="schema.registry.azure.client.secret">your-azure-client-secret</param>
+  ```
+
+See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Azure Event Hubs Quickstart_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
 
 # Client Side Error Handling
 
 When a client sends a subscription to the Kafka Connector, several error conditions can occur:
 
 - Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
-- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopicto) configurations exist in the broker.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the broker.
 - Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
 
 In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
@@ -1985,7 +2068,7 @@ To verify that an events stream actually flows from Kafka to a Lightstreamer con
 
 If you want to build a local Docker image based on Kafka Connect with the connector plugin, check out the [examples/docker-kafka-connect](/examples/docker-kafka-connect/) folder.
 
-In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _QuickStart_ app.
+In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quickstart_ app.
 
 ## Supported Converters
 
@@ -2149,9 +2232,9 @@ Example:
 
 The (optional) error handling strategy to be used if an error occurs while extracting data from incoming deserialized records. Can be one of the following:
 
-- `TERMINATE_TASK`: terminate the task immediately
-- `IGNORE_AND_CONTINUE`: ignore the error and continue to process the next record
-- `FORWARD_TO_DLQ`: forward the record to the dead letter queue
+- `TERMINATE_TASK`: Terminate the task immediately.
+- `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
+- `FORWARD_TO_DLQ`: Forward the record to the dead letter queue.
 
 In particular, the `FORWARD_TO_DLQ` value requires a [_dead letter queue_](https://www.confluent.io/blog/kafka-connect-deep-dive-error-handling-dead-letter-queues/) to be configured; otherwise it will fallback to `TERMINATE_TASK`.
 

@@ -82,7 +82,7 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
     public K key() {
         K key = cachedKey;
         if (key == UNINITIALIZED) {
-            key = keyDeserializer.deserialize(record.topic(), rawKey);
+            key = keyDeserializer.deserialize(record.topic(), record.headers(), rawKey);
             cachedKey = key;
         }
         return key;
@@ -100,7 +100,7 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
     public V value() {
         V value = cachedValue;
         if (value == UNINITIALIZED) {
-            value = valueDeserializer.deserialize(record.topic(), rawValue);
+            value = valueDeserializer.deserialize(record.topic(), record.headers(), rawValue);
             cachedValue = value;
         }
         return value;

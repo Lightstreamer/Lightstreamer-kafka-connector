@@ -6,7 +6,7 @@ _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter 
 
 ### Requirements
 
-- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.2 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
+- [Lightstreamer Server](https://lightstreamer.com/download/) version 7.4.6 or later (check the `LS_HOME/GETTING_STARTED.TXT` file for the instructions)
 - A running Kafka broker or Kafka Cluster
 
 ### Deploy
@@ -65,7 +65,7 @@ LS_HOME/
    14.Mar.24 17:55:12,877 < INFO> Created selector thread: NIO CHECK SELECTOR 19.
    14.Mar.24 17:55:12,877 < INFO> Created selector thread: NIO CHECK SELECTOR 20.
    14.Mar.24 17:55:12,880 < INFO> Lightstreamer Server initialized.
-   14.Mar.24 17:55:12,880 < INFO> Lightstreamer Server 7.4.0 build 2326 starting...
+   14.Mar.24 17:55:12,880 < INFO> Lightstreamer Server 7.4.6 build 3451 starting...
    14.Mar.24 17:55:12,887 < INFO> Session creation on socket 'Lightstreamer HTTP Server' will be bound to any queue limits for SERVER pool.
    14.Mar.24 17:55:12,888 < INFO> Server 'Lightstreamer HTTP Server' listening to *:8080 ...
    ```

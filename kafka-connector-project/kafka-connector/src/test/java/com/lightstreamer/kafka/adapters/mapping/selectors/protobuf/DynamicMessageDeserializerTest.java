@@ -91,6 +91,8 @@ public class DynamicMessageDeserializerTest {
                 DynamicMessageDeserializers.ValueDeserializer(config)) {
             DynamicMessage message = deserializer.deserialize("topic", null);
             assertThat(message).isNull();
+            message = deserializer.deserialize("topic", new byte[0]);
+            assertThat(message).isNull();
         }
     }
 

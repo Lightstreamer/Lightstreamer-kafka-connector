@@ -70,6 +70,8 @@ public class DynamicMessageSelectorSuppliersTest {
                     Map.of(
                             SchemaRegistryConfigs.URL,
                             "https://localhost:8081",
+                            SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                            "CONFLUENT",
                             RECORD_KEY_EVALUATOR_TYPE,
                             PROTOBUF.toString(),
                             RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
