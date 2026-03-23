@@ -651,6 +651,7 @@
 
         <!-- Set general encryption settings -->
         <!--
+        <param name="schema.registry.confluent.encryption.protocol">TLSv1.2</param>
         <param name="schema.registry.confluent.encryption.enabled.protocols">TLSv1.3</param>
         <param name="schema.registry.confluent.encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
         <param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
