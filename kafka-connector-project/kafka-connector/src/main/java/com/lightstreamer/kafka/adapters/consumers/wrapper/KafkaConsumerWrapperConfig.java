@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers.wrapper;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -36,7 +37,13 @@ public interface KafkaConsumerWrapperConfig {
             KeyValueSelectorSuppliers<K, V> suppliers,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             CommandModeStrategy commandModeStrategy,
-            Concurrency concurrency) {}
+            Concurrency concurrency,
+            ConsumerGroupMode consumerGroupMode) {
+
+        public boolean isStandalone() {
+            return consumerGroupMode == ConsumerGroupMode.STANDALONE;
+        }
+    }
 
     record Concurrency(RecordConsumeWithOrderStrategy orderStrategy, int threads) {
 

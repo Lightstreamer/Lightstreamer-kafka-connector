@@ -23,6 +23,7 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
@@ -176,7 +177,8 @@ public class KafkaConsumerWrapperTest {
                     suppliers,
                     errorHandlingStrategy,
                     commandModeStrategy,
-                    new Concurrency(orderStrategy, threads));
+                    new Concurrency(orderStrategy, threads),
+                    ConsumerGroupMode.GROUP);
         } catch (ExtractionException e) {
             throw new RuntimeException(e);
         }

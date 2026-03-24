@@ -456,6 +456,7 @@ public final class ConnectorConfig extends AbstractConfig {
         checkSchemaConfig(false);
         checkTopicMappingRegex();
         checkCommandMode();
+        checkStandaloneMode();
     }
 
     private void checkSchemaConfig(boolean isKey) {
@@ -538,6 +539,15 @@ public final class ConnectorConfig extends AbstractConfig {
             throw new ConfigException(
                     "Command mode requires a key field. Parameter [%s] must be set"
                             .formatted("field.key"));
+        }
+    }
+
+    private void checkStandaloneMode() {
+        if (isStandalone() && isMapRegExEnabled()) {
+            throw new ConfigException(
+                    "Standalone consumer group mode does not support regex topic matching."
+                            + " Parameter [%s] must be set to [false] when [%s] is set to [STANDALONE]"
+                                    .formatted(MAP_REG_EX_ENABLE, CONSUMER_GROUP_MODE));
         }
     }
 

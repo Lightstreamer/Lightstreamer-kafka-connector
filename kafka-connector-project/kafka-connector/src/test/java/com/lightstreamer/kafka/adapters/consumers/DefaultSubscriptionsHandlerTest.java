@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
@@ -72,7 +73,8 @@ public class DefaultSubscriptionsHandlerTest {
                         OthersSelectorSuppliers.String(),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         CommandModeStrategy.NONE,
-                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1),
+                        ConsumerGroupMode.GROUP);
 
         MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
         for (String topic : topics) {

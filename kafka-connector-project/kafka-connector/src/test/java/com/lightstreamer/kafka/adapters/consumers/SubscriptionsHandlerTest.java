@@ -20,6 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DefaultSubscriptionsHandler;
@@ -51,7 +52,8 @@ public class SubscriptionsHandlerTest {
                         OthersSelectorSuppliers.String(),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         CommandModeStrategy.NONE,
-                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1),
+                        ConsumerGroupMode.GROUP);
     }
 
     @Test

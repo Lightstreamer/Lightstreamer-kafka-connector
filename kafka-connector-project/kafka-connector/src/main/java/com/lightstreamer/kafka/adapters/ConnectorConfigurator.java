@@ -102,7 +102,8 @@ public class ConnectorConfigurator {
                         config.isAutoCommandModeEnabled(), config.isCommandEnforceEnabled()),
                 new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
-                        config.getRecordConsumeWithNumThreads()));
+                        config.getRecordConsumeWithNumThreads()),
+                config.getConsumerGroupMode());
     }
 
     static KeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(ConnectorConfig config) {

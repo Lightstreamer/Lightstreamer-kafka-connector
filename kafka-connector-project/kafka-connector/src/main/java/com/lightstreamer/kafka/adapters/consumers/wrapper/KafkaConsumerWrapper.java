@@ -44,6 +44,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 
@@ -366,6 +367,13 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     boolean subscribed() {
+        if (this.config.isStandalone()) {
+            return assignedStandalone();
+        }
+        return subscribedWithGroup();
+    }
+
+    private boolean subscribedWithGroup() {
         ItemTemplates<K, V> templates = this.config.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
@@ -405,6 +413,55 @@ public class KafkaConsumerWrapper<K, V> {
                                 loggableTopics);
             }
             consumer.subscribe(topics, offsetService);
+            return true;
+        } catch (Exception e) {
+            logger.atError().setCause(e).log();
+            return false;
+        }
+    }
+
+    /**
+     * Assigns partitions directly without joining a consumer group. All partitions for the
+     * requested topics are manually assigned to this consumer.
+     *
+     * <p>Regex-based topic matching is not supported in standalone mode.
+     */
+    private boolean assignedStandalone() {
+        ItemTemplates<K, V> templates = this.config.itemTemplates();
+        Set<String> topics = new HashSet<>(templates.topics());
+        logger.atInfo().log(
+                "Standalone mode: assigning partitions for requested topics [{}]", topics);
+
+        try {
+            List<TopicPartition> partitions =
+                    topics.stream()
+                            .flatMap(
+                                    topic -> {
+                                        List<PartitionInfo> infos =
+                                                consumer.partitionsFor(
+                                                        topic, Duration.ofMillis(30000));
+                                        if (infos == null) {
+                                            logger.atWarn().log(
+                                                    "No partition info found for topic [{}]",
+                                                    topic);
+                                            return java.util.stream.Stream.empty();
+                                        }
+                                        return infos.stream()
+                                                .map(
+                                                        pi ->
+                                                                new TopicPartition(
+                                                                        pi.topic(),
+                                                                        pi.partition()));
+                                    })
+                            .toList();
+
+            if (partitions.isEmpty()) {
+                logger.atWarn().log("No partitions found for requested topics");
+                return false;
+            }
+
+            consumer.assign(partitions);
+            logger.atInfo().log("Standalone mode: assigned partitions {}", partitions);
             return true;
         } catch (Exception e) {
             logger.atError().setCause(e).log();
