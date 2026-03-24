@@ -225,6 +225,8 @@ public class ConfigsSpec {
 
         SSL_ENABLED_PROTOCOLS(new ListType(new Options(ConfigTypes.SslProtocol.names()))),
 
+        GROUP_MODE(Options.consumerGroupModes()),
+
         SASL_MECHANISM(Options.saslMechanisms());
 
         Type embeddedType;
@@ -499,6 +501,10 @@ public class ConfigsSpec {
 
         static Options saslMechanisms() {
             return new Options(SaslMechanism.names());
+        }
+
+        static Options consumerGroupModes() {
+            return new Options(ConfigTypes.ConsumerGroupMode.names());
         }
 
         static Options schemaRegistryProviders() {

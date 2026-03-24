@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.GROUP_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
@@ -53,6 +54,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -157,6 +159,8 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String AUTHENTICATION_ENABLE = "authentication.enable";
 
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
+
+    public static final String CONSUMER_GROUP_MODE = "consumer.group.mode";
 
     // Kafka consumer specific settings
     public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =
@@ -329,6 +333,13 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 CONSUME_FROM,
                                 defaultValue(RecordConsumeFrom.LATEST.toString()))
+                        .add(
+                                CONSUMER_GROUP_MODE,
+                                false,
+                                false,
+                                GROUP_MODE,
+                                defaultValue(
+                                        ConsumerGroupMode.GROUP.toString()))
                         .add(
                                 CONSUMER_CLIENT_ID,
                                 true,
@@ -635,6 +646,15 @@ public final class ConnectorConfig extends AbstractConfig {
     public final RecordConsumeWithOrderStrategy getRecordConsumeWithOrderStrategy() {
         return RecordConsumeWithOrderStrategy.valueOf(
                 get(RECORD_CONSUME_WITH_ORDER_STRATEGY, ORDER_STRATEGY, false));
+    }
+
+    public final ConsumerGroupMode getConsumerGroupMode() {
+        return ConsumerGroupMode.valueOf(
+                get(CONSUMER_GROUP_MODE, ConfType.GROUP_MODE, false));
+    }
+
+    public final boolean isStandalone() {
+        return getConsumerGroupMode() == ConsumerGroupMode.STANDALONE;
     }
 
     public final int getRecordConsumeWithNumThreads() {
