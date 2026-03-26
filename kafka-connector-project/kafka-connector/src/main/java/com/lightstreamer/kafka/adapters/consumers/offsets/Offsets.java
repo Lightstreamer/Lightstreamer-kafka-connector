@@ -43,6 +43,10 @@ public class Offsets {
         return new OffsetServiceImpl(consumer, log);
     }
 
+    public static OffsetService StandaloneOffsetService(Consumer<?, ?> consumer, Logger log) {
+        return new StandaloneOffsetServiceImpl(consumer, log);
+    }
+
     public static OffsetStore OffsetStore(Map<TopicPartition, OffsetAndMetadata> committed) {
         return new OffsetStoreImpl(committed, LoggerFactory.getLogger(OffsetStore.class));
     }
@@ -422,6 +426,94 @@ public class Offsets {
             for (TopicPartition partition : partitions) {
                 offsets.remove(partition);
             }
+        }
+    }
+
+    static class StandaloneOffsetServiceImpl implements OffsetService {
+
+        private volatile Throwable firstFailure;
+        private final Consumer<?, ?> consumer;
+        private final Logger logger;
+
+        // Initialize the OffsetStore with a NOP implementation
+        private OffsetStore offsetStore = record -> {};
+
+        StandaloneOffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
+            this.consumer = consumer;
+            this.logger = logger;
+        }
+
+        @Override
+        public void initStore(boolean fromLatest, OffsetStoreSupplier storeSupplier)
+                throws KafkaException {
+            Set<TopicPartition> partitions = consumer.assignment();
+            Map<TopicPartition, Long> startOffsets =
+                    fromLatest
+                            ? consumer.endOffsets(partitions)
+                            : consumer.beginningOffsets(partitions);
+            // No committed offsets in standalone mode (no group coordination)
+            initStore(storeSupplier, startOffsets, Collections.emptyMap());
+        }
+
+        @Override
+        public void initStore(
+                OffsetStoreSupplier storeSupplier,
+                Map<TopicPartition, Long> startOffsets,
+                Map<TopicPartition, OffsetAndMetadata> committed) {
+            Map<TopicPartition, OffsetAndMetadata> offsetRepo = new HashMap<>(committed);
+            logger.atTrace().log("Start offsets: {}", startOffsets);
+            for (TopicPartition partition : startOffsets.keySet()) {
+                offsetRepo.computeIfAbsent(
+                        partition, p -> new OffsetAndMetadata(startOffsets.get(p)));
+            }
+            this.offsetStore = storeSupplier.newOffsetStore(offsetRepo, logger);
+        }
+
+        @Override
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+            logger.atInfo().log("Assigned partitions {}", partitions);
+        }
+
+        @Override
+        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+            logger.atInfo().log("Revoked partitions {}", partitions);
+        }
+
+        @Override
+        public void onPartitionsLost(Collection<TopicPartition> partitions) {
+            logger.atInfo().log("Lost partitions {}", partitions);
+        }
+
+        @Override
+        public void onConsumerShutdown() {
+            logger.atInfo().log("Standalone consumer shutdown (no offsets to commit)");
+        }
+
+        @Override
+        public void maybeCommit() {
+            // No offset commits in standalone mode
+        }
+
+        @Override
+        public void updateOffsets(KafkaRecord<?, ?> record) {
+            offsetStore.save(record);
+        }
+
+        @Override
+        public void onAsyncFailure(Throwable th) {
+            if (firstFailure == null) {
+                firstFailure = th;
+            }
+        }
+
+        @Override
+        public Throwable getFirstFailure() {
+            return firstFailure;
+        }
+
+        @Override
+        public Optional<OffsetStore> offsetStore() {
+            return Optional.of(offsetStore);
         }
     }
 

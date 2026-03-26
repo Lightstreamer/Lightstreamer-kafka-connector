@@ -554,7 +554,11 @@ public final class ConnectorConfig extends AbstractConfig {
     private Properties initProps() {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
+        // In standalone mode, skip group.id: no consumer group coordination
+        // and no offset commits.
+        if (!isStandalone()) {
+            properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
+        }
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());

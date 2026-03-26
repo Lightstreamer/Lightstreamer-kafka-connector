@@ -250,7 +250,10 @@ public class KafkaConsumerWrapper<K, V> {
         this.consumer = consumerSupplier.get();
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.status = FutureStatus.connected();
-        this.offsetService = Offsets.OffsetService(consumer, logger);
+        this.offsetService =
+                config.isStandalone()
+                        ? Offsets.StandaloneOffsetService(consumer, logger)
+                        : Offsets.OffsetService(consumer, logger);
 
         // Initialize the monitor for this consumer wrapper instance.
         this.monitor = newMonitor();
