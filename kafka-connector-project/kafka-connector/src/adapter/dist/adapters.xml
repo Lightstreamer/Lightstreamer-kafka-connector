@@ -68,7 +68,7 @@
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
-        param name="group.id">kafka-connector-group</param>
+        <param name="group.id">kafka-connector-group</param>
         -->
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
@@ -693,7 +693,7 @@
         <param name="schema.registry.azure.client.secret">your-azure-client-secret-value</param>
         -->
 
-
+     
     </data_provider>
 
 </adapters_conf>
