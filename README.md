@@ -481,10 +481,24 @@ _Optional_. The name of the consumer group this connection belongs to.
 
 The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
+> **Note:** This parameter is only relevant when [`consumer.group.mode`](#consumergroupmode) is set to `GROUP`. When using `STANDALONE` mode, this parameter is ignored.
+
 Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
 ```xml
 <param name="group.id">kafka-connector-group</param>
+```
+
+#### `consumer.group.mode`
+
+_Optional_. The consumer group mode for this connection. Can be one of the following:
+- `GROUP` — the internal Kafka Consumer joins a consumer group and uses the group coordination protocol (partition assignment, offset commits via `__consumer_offsets`). The consumer group is identified by the [`group.id`](#groupid) parameter.
+- `STANDALONE` — the internal Kafka Consumer operates independently, using manual partition assignment (`assign()`) without joining any consumer group and without persisting offsets to Kafka. The [`group.id`](#groupid) parameter is ignored.
+
+Default value: `GROUP`.
+
+```xml
+<param name="consumer.group.mode">STANDALONE</param>
 ```
 
 ### Encryption Parameters
