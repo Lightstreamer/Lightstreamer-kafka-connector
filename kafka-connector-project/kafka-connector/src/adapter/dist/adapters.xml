@@ -66,9 +66,25 @@
              The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id for more details.
 
+             This parameter is only relevant when "consumer.group.mode" is set to "GROUP". When using "STANDALONE" mode,
+             this parameter is ignored.
+
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
-        param name="group.id">kafka-connector-group</param>
+        <param name="group.id">kafka-connector-group</param>
+        -->
+
+        <!-- Optional. The consumer group mode for this connection. Can be one of the following:
+             - GROUP:      The internal Kafka Consumer joins a consumer group and uses the group coordination protocol
+                           (partition assignment, offset commits via __consumer_offsets). The consumer group is
+                           identified by the "group.id" parameter.
+             - STANDALONE: The internal Kafka Consumer operates independently, using manual partition assignment
+                           without joining any consumer group and without persisting offsets to Kafka.
+                           The "group.id" parameter is ignored.
+
+             Default value: GROUP. -->
+        <!--
+        <param name="consumer.group.mode">STANDALONE</param>
         -->
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
