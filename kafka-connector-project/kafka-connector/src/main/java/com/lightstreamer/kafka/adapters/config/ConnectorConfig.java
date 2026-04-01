@@ -160,7 +160,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
 
-    public static final String CONSUMER_GROUP_MODE = "consumer.group.mode";
+    public static final String CONSUMER_GROUP_MODE = "group.mode";
 
     // Kafka consumer specific settings
     public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =

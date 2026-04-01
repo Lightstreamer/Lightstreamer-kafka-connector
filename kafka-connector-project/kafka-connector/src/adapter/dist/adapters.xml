@@ -66,7 +66,7 @@
              The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id for more details.
 
-             This parameter is only relevant when "consumer.group.mode" is set to "GROUP". When using "STANDALONE" mode,
+             This parameter is only relevant when "group.mode" is set to "GROUP". When using "STANDALONE" mode,
              this parameter is ignored.
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
@@ -84,7 +84,7 @@
 
              Default value: GROUP. -->
         <!--
-        <param name="consumer.group.mode">STANDALONE</param>
+        <param name="group.mode">STANDALONE</param>
         -->
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
