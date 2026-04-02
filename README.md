@@ -1706,7 +1706,7 @@ _Mandatory if a [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-re
 Example for the Confluent Schema Registry:
 
 ```xml
-<param name="schema.registry.url">https://localhost:8081</param>
+<param name="schema.registry.url">https://schema-registry:8084</param>
 ```
 
 Example for the Azure Schema Registry (the URL must point to the Azure Event Hubs namespace):
