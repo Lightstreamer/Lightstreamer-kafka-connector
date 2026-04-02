@@ -1720,13 +1720,7 @@ _Mandatory if the [Confluent Schema Registry](#recordkeyevaluatorschemaregistrye
 Example:
 
 ```xml
-<param name="schema.registry.url">http//localhost:8081</param>
-```
-
-Example:
-
-```xml
-<param name="schema.registry.url">https://localhost:8084</param>
+<param name="schema.registry.url">https://schema-registry:8084</param>
 ```
 
 ### Basic HTTP Authentication Parameters

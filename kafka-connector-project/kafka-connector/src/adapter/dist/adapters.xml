@@ -215,8 +215,8 @@
         <param name="authentication.mechanism">SCRAM-SHA-256</param>
         -->
 
-        <!-- In the case of "PLAIN", "SCRAM-SHA-256", and "SCRAM-SHA-512" mechanisms, the credentials must be configured 
-             through the following mandatory parameters: 
+        <!-- In the case of "PLAIN", "SCRAM-SHA-256", and "SCRAM-SHA-512" mechanisms, the credentials must be configured
+             through the following mandatory parameters:
 
         <param name="authentication.username">authorized-kafka-user</param>
         <param name="authentication.password">authorized-kafka-user-password</param>
@@ -338,7 +338,7 @@
         <param name="record.consume.with.session.timeout.ms">30000</param>
         -->
 
-        <!-- Optional. The maximum delay between invocations of poll() when using consumer group management. 
+        <!-- Optional. The maximum delay between invocations of poll() when using consumer group management.
              This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
 
              The parameter sets the value of the "max.poll.interval.ms" key to configure the internal Kafka Consumer.
@@ -347,7 +347,7 @@
              Default value: 30000. -->
         <!--
         <param name="record.consume.with.max.poll.interval.ms">50000</param>
-        -->        
+        -->
 
         <!-- Optional. The number of threads to be used for concurrent processing of the
              incoming deserialized records. If set to -1, the number of threads will be automatically
@@ -407,7 +407,7 @@
         <!--
         <param name="record.key.evaluator.protobuf.message.type">aMessageTypeForKey</param>
         <param name="record.value.evaluator.protobuf.message.type">aMessageTypeForValue</param>
-        -->        
+        -->
 
         <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema paths are provided.
              Enable the use of a Schema Registry for validation respectively of the key and value.
@@ -619,14 +619,17 @@
              Default value: CONFLUENT. -->
         <!--
         <param name="schema.registry.provider">CONFLUENT</param>
-        -->        
+        -->
 
-        <!-- Mandatory if a Schema Registry is enabled. The URL of the Schema Registry endpoint (either Confluent 
+        <!-- Mandatory if a Schema Registry is enabled. The URL of the Schema Registry endpoint (either Confluent
              Schema Registry or Azure Schema Registry).
 
              An encrypted connection is enabled by specifying the "https" protocol. -->
-        <!--
+        <!-- Example for the Confluent Schema Registry:
         <param name="schema.registry.url">https://schema-registry:8084</param>
+        -->
+        <!-- Example for the Azure Schema Registry:
+        <param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
         -->
 
         <!-- ##### Confluent Schema Registry settings ##### -->
@@ -671,29 +674,29 @@
         <param name="schema.registry.confluent.encryption.keystore.type">JKS</param>
         <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
         <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
-        -->        
+        -->
 
         <!-- ##### Azure Schema Registry settings ##### -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID assigned to the application 
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID assigned to the application
              registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry. -->
         <!--
         <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
         -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Microsoft Entra ID tenant 
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Microsoft Entra ID tenant
              where the application is registered. -->
         <!--
         <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
         -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the application registered 
+        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the application registered
              in Microsoft Entra ID. -->
         <!--
         <param name="schema.registry.azure.client.secret">your-azure-client-secret-value</param>
         -->
 
-     
+
     </data_provider>
 
 </adapters_conf>
