@@ -278,14 +278,6 @@ public class KafkaConsumerWrapper<K, V> {
                         config.suppliers().keySelectorSupplier().deserializer(),
                         config.suppliers().valueSelectorSupplier().deserializer());
         this.deserializationMode = new EagerDeserializationMode<>(deserializers);
-        // this.deserializationMode = new DeferredDeserializationMode<>(deserializers);
-        // this.deserializationMode =
-        //         recordConsumer.isParallel()
-        //                 ? new DeferredDeserializationMode<>(deserializers)
-        //                 : new EagerDeserializationMode<>(deserializers);
-
-        // ((AbstractRecordConsumer<K, V>) this.recordConsumer)
-        //         .setDeserializationMode(deserializationMode);
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
 
@@ -300,7 +292,7 @@ public class KafkaConsumerWrapper<K, V> {
         return this.config.consumerProperties().getProperty(key);
     }
 
-    public FutureStatus startLoop(ExecutorService pool, boolean waitForInit) {
+    public FutureStatus startLoop(ExecutorService pool) {
         statusLock.lock();
         try {
             if (!status.isConnected()) {
@@ -309,21 +301,16 @@ public class KafkaConsumerWrapper<K, V> {
                 return status;
             }
 
-            CompletableFuture<FutureStatus.State> initStage =
-                    CompletableFuture.supplyAsync(this::init, pool);
-            if (waitForInit) {
-                logger.atDebug().log("Blocking until initialization completes");
-                State state = initStage.join();
-                logger.atDebug().log("Initialization completed");
-                if (state.initFailed()) {
-                    // In case of failure, immediately return a failed status.
-                    // This is mandatory for use cases where the initialization must be
-                    // completed before starting the loop.
-                    return updateStatus(initStage);
-                }
+            logger.atDebug().log("Starting initialization");
+            State state = this.init();
+            logger.atDebug().log("Initialization completed with state: {}", state);
+
+            if (state.initFailed()) {
+                // In case of failure, immediately return a failed status.
+                return updateStatus(CompletableFuture.completedFuture(state));
             }
 
-            return updateStatus(initStage.thenApplyAsync(this::runLoop, pool));
+            return updateStatus(CompletableFuture.supplyAsync(this::runLoop, pool));
         } finally {
             statusLock.unlock();
         }
@@ -334,25 +321,36 @@ public class KafkaConsumerWrapper<K, V> {
         return status;
     }
 
-    private FutureStatus.State init() {
-        if (!subscribed()) {
-            logger.atWarn().log("Initialization failed because no topics are subscribed");
-            closeConsumer();
-            metadataListener.forceUnsubscriptionAll();
-            return FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
-        }
-
-        this.monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
+    private State init() {
+        State state;
 
         try {
-            pollOnce(this::initStoreAndConsume);
+            if (subscribed()) {
+                this.monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
+                pollOnce(this::initStoreAndConsume);
+                state = State.INITIALIZED;
+            } else {
+                logger.atWarn().log("Initialization failed because no topics are subscribed");
+                state = State.INIT_FAILED_BY_SUBSCRIPTION;
+            }
         } catch (KafkaException e) {
-            logger.atWarn().log("Initialization failed because of an exception");
-            closeConsumer();
-            metadataListener.forceUnsubscriptionAll();
-            return FutureStatus.State.INIT_FAILED_BY_EXCEPTION;
+            logger.atWarn().setCause(e).log("Initialization failed because of an exception");
+            state = State.INIT_FAILED_BY_EXCEPTION;
+        } catch (RuntimeException e) {
+            logger.atWarn()
+                    .setCause(e)
+                    .log("Initialization failed because of an unexpected exception");
+            state = State.INIT_FAILED_BY_EXCEPTION;
         }
-        return FutureStatus.State.INITIALIZED;
+
+        if (state.initFailed()) {
+            closeConsumer();
+            // forceUnsubscriptionAll is idempotent, so calling it here is safe even if already
+            // invoked in the doPoll catch blocks.
+            metadataListener.forceUnsubscriptionAll();
+        }
+
+        return state;
     }
 
     private void installShutdownHook() {
@@ -379,37 +377,32 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
-        try {
-            Map<String, List<PartitionInfo>> listTopics =
-                    consumer.listTopics(Duration.ofMillis(30000));
+        Map<String, List<PartitionInfo>> listTopics = consumer.listTopics(Duration.ofMillis(30000));
 
-            // Retain from the original requests topics the available ones.
-            Set<String> existingTopics = listTopics.keySet();
-            boolean notAllPresent = topics.retainAll(existingTopics);
+        // Retain from the original requests topics the available ones.
+        Set<String> existingTopics = listTopics.keySet();
+        logger.atDebug().log("Existing topics on Kafka: [{}]", existingTopics);
+        boolean notAllPresent = topics.retainAll(existingTopics);
 
-            // Can't subscribe at all. Force unsubscription and exit the loop.
-            if (topics.isEmpty()) {
-                logger.atWarn().log("Requested topics not found");
-                return false;
-            }
-
-            // Just warn that not all requested topics can be subscribed.
-            if (notAllPresent) {
-                String loggableTopics =
-                        topics.stream()
-                                .map(s -> "\"%s\"".formatted(s))
-                                .collect(Collectors.joining(","));
-                logger.atWarn()
-                        .log(
-                                "Actually subscribing to the following existing topics [{}]",
-                                loggableTopics);
-            }
-            consumer.subscribe(topics, offsetService);
-            return true;
-        } catch (Exception e) {
-            logger.atError().setCause(e).log();
+        // Can't subscribe at all. Force unsubscription and exit the loop.
+        if (topics.isEmpty()) {
+            logger.atWarn().log("Requested topics not found");
             return false;
         }
+
+        // Just warn that not all requested topics can be subscribed.
+        if (notAllPresent) {
+            String loggableTopics =
+                    topics.stream()
+                            .map(s -> "\"%s\"".formatted(s))
+                            .collect(Collectors.joining(","));
+            logger.atWarn()
+                    .log(
+                            "Actually subscribing to the following existing topics [{}]",
+                            loggableTopics);
+        }
+        consumer.subscribe(topics, offsetService);
+        return true;
     }
 
     void pollOnce(java.util.function.Consumer<RecordBatch<K, V>> batchConsumer)
@@ -434,7 +427,7 @@ public class KafkaConsumerWrapper<K, V> {
         } catch (KafkaException ke) {
             // Includes SerializationException (a KafkaException subclass) thrown during eager
             // deserialization: treated as fatal, causing connector shutdown
-            logger.atError().setCause(ke).log("Unrecoverable exception");
+            logger.atError().setCause(ke).log("Unrecoverable exception during poll");
             metadataListener.forceUnsubscriptionAll();
             throw ke;
         } catch (Exception e) {
@@ -456,12 +449,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Kafka Consumer closed");
     }
 
-    private FutureStatus.State runLoop(State previousState) {
-        if (previousState.initFailed()) {
-            logger.atError().log("Failed state, no records will be consumed");
-            return previousState;
-        }
-
+    private State runLoop() {
         // Install the shutdown hook
         installShutdownHook();
         logger.atDebug().log("Shutdown hook set");
@@ -471,11 +459,11 @@ public class KafkaConsumerWrapper<K, V> {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
             logger.atError().setCause(e).log("Unrecoverable exception during polling");
-            return FutureStatus.State.LOOP_CLOSED_BY_EXCEPTION;
+            return State.LOOP_CLOSED_BY_EXCEPTION;
         } finally {
             closeConsumer();
         }
-        return FutureStatus.State.LOOP_CLOSED_BY_WAKEUP;
+        return State.LOOP_CLOSED_BY_WAKEUP;
     }
 
     void runPollingLoop(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
@@ -512,7 +500,7 @@ public class KafkaConsumerWrapper<K, V> {
                 Runtime.getRuntime().removeShutdownHook(this.hook);
                 this.hook = null;
             }
-            return updateStatus(CompletableFuture.completedFuture(FutureStatus.State.SHUTDOWN));
+            return updateStatus(CompletableFuture.completedFuture(State.SHUTDOWN));
         } finally {
             statusLock.unlock();
         }
