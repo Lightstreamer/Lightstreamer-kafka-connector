@@ -661,7 +661,7 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.scheduleNopPollTask();
 
         // Run the consumer for at least 1 second
-        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor());
         assertThat(awaitClose.isStateAvailable()).isFalse();
         TimeUnit.SECONDS.sleep(1);
         assertThat(awaitClose.isStateAvailable()).isFalse();
@@ -713,12 +713,12 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.scheduleNopPollTask();
 
         // Run the consumer for at least 1 second
-        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor());
         assertThat(awaitClose.isStateAvailable()).isFalse();
         TimeUnit.SECONDS.sleep(1);
 
         // Try to start the loop again and verify that the status has not changed
-        FutureStatus awaitClose2 = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        FutureStatus awaitClose2 = wrapper.startLoop(Executors.newSingleThreadExecutor());
         assertThat(awaitClose2).isSameInstanceAs(awaitClose);
 
         // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
@@ -727,7 +727,7 @@ public class KafkaConsumerWrapperTest {
         assertThat(finalStatus.isShutdown()).isTrue();
 
         // Try to start the loop again and verify that the status is still SHUTDOWN
-        FutureStatus currentStatus = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        FutureStatus currentStatus = wrapper.startLoop(Executors.newSingleThreadExecutor());
         assertThat(currentStatus).isSameInstanceAs(finalStatus);
 
         assertThat(wrapper.shutdown()).isSameInstanceAs(finalStatus);
@@ -762,19 +762,16 @@ public class KafkaConsumerWrapperTest {
         assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldNotStartLoopDueToNotExistingTopic(boolean waitForInit) {
+    @Test
+    public void shouldNotStartLoopDueToNotExistingTopic() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         // Create a wrapper for a non-existing topic
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(Collections.singleton("anotherTopic"), false);
 
-        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
-        if (waitForInit) {
-            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_SUBSCRIPTION
-            assertThat(status.initFailed()).isTrue();
-        }
+        FutureStatus status = wrapper.startLoop(executorService);
+        // The status is immediately set to INIT_FAILED_BY_SUBSCRIPTION
+        assertThat(status.initFailed()).isTrue();
         assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_SUBSCRIPTION);
         assertThat(mockConsumer.subscription()).isEmpty();
         assertThat(mockConsumer.closed()).isTrue();
@@ -783,21 +780,19 @@ public class KafkaConsumerWrapperTest {
         assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldNotStartLoopDueToExceptionWhileCheckingExistingTopic(boolean waitForInit) {
+    @Test
+    public void shouldNotStartLoopDueToExceptionWhileCheckingExistingTopic() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         // Create a wrapper for a topic that exists but cannot be subscribed due to
         // an exception thrown while checking the topic's existence
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(Collections.singleton("topic"), true);
 
-        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
-        if (waitForInit) {
-            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_SUBSCRIPTION
-            assertThat(status.initFailed()).isTrue();
-        }
-        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_SUBSCRIPTION);
+        FutureStatus status = wrapper.startLoop(executorService);
+
+        // The status is immediately set to INIT_FAILED_BY_EXCEPTION
+        assertThat(status.initFailed()).isTrue();
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_EXCEPTION);
         assertThat(mockConsumer.subscription()).isEmpty();
         assertThat(mockConsumer.closed()).isTrue();
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
@@ -805,19 +800,17 @@ public class KafkaConsumerWrapperTest {
         assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldNotStartLoopDueToPollExceptionWhileInitPolling(boolean waitForInit) {
+    @Test
+    public void shouldNotStartLoopDueToPollExceptionWhileInitPolling() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(Collections.singleton("topic"), false);
 
         mockConsumer.setPollException(new KafkaException("Fake Exception"));
-        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
-        if (waitForInit) {
-            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_EXCEPTION
-            assertThat(status.initFailed()).isTrue();
-        }
+        FutureStatus status = wrapper.startLoop(executorService);
+
+        // The status is immediately set to INIT_FAILED_BY_EXCEPTION
+        assertThat(status.initFailed()).isTrue();
         assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_EXCEPTION);
         // Verify that the consumer has subscribed
         assertThat(mockConsumer.subscription()).containsExactly("topic");
@@ -828,19 +821,17 @@ public class KafkaConsumerWrapperTest {
         assertThat(wrapper.getMonitor().isRunning()).isFalse();
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    public void shouldNotStartLoopDueToOffsetExceptionWhileInitPolling(boolean waitForInit) {
+    @Test
+    public void shouldNotStartLoopDueToOffsetExceptionWhileInitPolling() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapper(Collections.singleton("topic"), false);
 
         mockConsumer.setOffsetsException(new KafkaException("Fake Exception"));
-        FutureStatus status = wrapper.startLoop(executorService, waitForInit);
-        if (waitForInit) {
-            // If waitForInit is true, the status is immediately set to INIT_FAILED_BY_EXCEPTION
-            assertThat(status.initFailed()).isTrue();
-        }
+        FutureStatus status = wrapper.startLoop(executorService);
+
+        // The status is immediately set to INIT_FAILED_BY_EXCEPTION
+        assertThat(status.initFailed()).isTrue();
         assertThat(status.join()).isEqualTo(State.INIT_FAILED_BY_EXCEPTION);
         // Verify that the consumer has subscribed
         assertThat(mockConsumer.subscription()).containsExactly("topic");
@@ -881,7 +872,7 @@ public class KafkaConsumerWrapperTest {
         mockConsumer.scheduleNopPollTask();
 
         // Run the consumer for at least 1 second
-        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor(), false);
+        FutureStatus awaitClose = wrapper.startLoop(Executors.newSingleThreadExecutor());
         TimeUnit.SECONDS.sleep(1);
         assertThat(awaitClose.isStateAvailable()).isFalse();
         assertThat(wrapper.getMonitor().isRunning()).isTrue();
@@ -918,7 +909,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("deserializationModes")
-    void shouldConvertConsumerRecordsToKafkaRecords(
+    public void shouldConvertConsumerRecordsToKafkaRecords(
             String modeName,
             KafkaConsumerWrapper.RecordDeserializationMode<String, String> mode,
             DeserializationTiming expectedTiming) {
