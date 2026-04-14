@@ -1,5 +1,22 @@
 # Changelog
 
+## [2026-04-14]
+
+**Documentation**
+
+- **CHANGELOG style**: Minor formatting improvements for consistency.
+
+- **Schema Registry encryption protocol parameter**: Added the missing example for the Schema Registry encryption protocol parameter to the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#81](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/81))
+
+- **Schema Registry URL in examples**: Fixed incorrect Schema Registry URL examples in the [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) files. ([#83](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/83))
+
+**Bug Fixes**
+
+- **XML syntax in `adapters.xml`**: Fixed malformed XML syntax for the commented-out `group.id` parameter example in the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#82](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/82))
+
+- **Subscribe/unsubscribe/subscribe race condition**: Fixed a race condition that could leave the connector in an inconsistent state when a client subscribed to an item, immediately unsubscribed, and then re-subscribed in quick succession. The Kafka consumer initialization is now completed synchronously and fully validated before any new subscription requests can trigger a new consumer creation. Additionally, cleanup on connection failure is now always executed correctly and in the right order, regardless of where the failure occurred. ([#84](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/84))
+
+
 ## [1.5.0] (2026-03-18)
 
 **Breaking Changes**
