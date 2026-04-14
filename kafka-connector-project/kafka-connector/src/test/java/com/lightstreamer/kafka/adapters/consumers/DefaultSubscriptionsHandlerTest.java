@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Timeout;
 import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -58,10 +59,15 @@ public class DefaultSubscriptionsHandlerTest {
     private MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
     private DefaultSubscriptionsHandler<String, String> mkSubscriptionsHandler(
-            boolean exceptionOnConnection, String... topics) {
+            boolean exceptionOnConnection,
+            boolean exceptionOnListTopics,
+            boolean exceptionOnPoll,
+            String... topics) {
 
         Properties properties = new Properties();
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, "earliest");
+        properties.setProperty("bootstrap.servers", "localhost:9092");
+
         Config<String, String> config =
                 new Config<>(
                         "TestConnection",
@@ -74,16 +80,24 @@ public class DefaultSubscriptionsHandlerTest {
                         CommandModeStrategy.NONE,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
-        MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
-        for (String topic : topics) {
-            consumer.updatePartitions(
-                    topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
-        }
-
         Supplier<Consumer<byte[], byte[]>> supplier =
                 () -> {
                     if (exceptionOnConnection) {
                         throw new KafkaException("Simulated Exception");
+                    }
+
+                    MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
+                    if (exceptionOnListTopics) {
+                        consumer.setListTopicException(new KafkaException("Simulated Exception"));
+                    }
+
+                    if (exceptionOnPoll) {
+                        consumer.setPollException(new KafkaException("Simulated Exception"));
+                    }
+
+                    for (String topic : topics) {
+                        consumer.updatePartitions(
+                                topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
                     }
                     return consumer;
                 };
@@ -101,11 +115,17 @@ public class DefaultSubscriptionsHandlerTest {
     private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
-        init(false, topics);
+        init(false, false, false, topics);
     }
 
-    void init(boolean exceptionOnConnection, String... topics) {
-        this.subscriptionHandler = mkSubscriptionsHandler(exceptionOnConnection, topics);
+    void init(
+            boolean exceptionOnConnection,
+            boolean exceptionOnListTopics,
+            boolean exceptionOnPoll,
+            String... topics) {
+        this.subscriptionHandler =
+                mkSubscriptionsHandler(
+                        exceptionOnConnection, exceptionOnListTopics, exceptionOnPoll, topics);
         this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
@@ -121,7 +141,7 @@ public class DefaultSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException {
+    public void shouldSubscribe() throws SubscriptionException, InterruptedException {
         init("aTopic");
 
         Object itemHandle1 = new Object();
@@ -179,10 +199,41 @@ public class DefaultSubscriptionsHandlerTest {
     }
 
     @Test
-    @Timeout(value = 1, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
+    public void shouldForceUnsubscriptionDueToExceptionWhileGettingTopicList()
+            throws SubscriptionException {
+        init(false, true, false, "aTopic");
+        Object itemHandle = new Object();
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+
+        // Removal of subscribed item actual happens in the unsubscribe method
+        // invoked by the Kernel following the forced unsubscription
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+    }
+
+    @Test
     public void shouldForceUnsubscriptionDueToExceptionWhileConnecting()
             throws SubscriptionException {
-        init(true);
+        init(true, false, false);
+        Object itemHandle = new Object();
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+
+        // Removal of subscribed item actual happens in the unsubscribe method
+        // invoked by the Kernel following the forced unsubscription
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+
+        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+    }
+
+    @Test
+    public void shouldForceUnsubscriptionDueToExceptionWhileFirstPoll()
+            throws SubscriptionException {
+        init(false, false, true, "aTopic");
         Object itemHandle = new Object();
         subscriptionHandler.subscribe("anItemTemplate", itemHandle);
 
@@ -212,15 +263,17 @@ public class DefaultSubscriptionsHandlerTest {
 
     @Test
     public void shouldUnsubscribe() throws SubscriptionException {
-        init();
+        init("aTopic");
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
 
         subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
         SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
         SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
 
         Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
@@ -242,5 +295,29 @@ public class DefaultSubscriptionsHandlerTest {
 
         Optional<SubscribedItem> unsubscribed = subscriptionHandler.unsubscribe("anItemTemplate");
         assertThat(unsubscribed).isEmpty();
+    }
+
+    @Test
+    public void shouldHandleSubscriptionBeforeShutdownCompletes()
+            throws SubscriptionException, InterruptedException {
+        init("aTopic");
+
+        Object itemHandle = new Object();
+        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        TimeUnit.MILLISECONDS.sleep(50);
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
+
+        subscriptionHandler.unsubscribe("anItemTemplate");
+        CompletableFuture<Void> thread =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                subscriptionHandler.subscribe("anotherItemTemplate", itemHandle);
+                            } catch (SubscriptionException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+        thread.join();
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
     }
 }
