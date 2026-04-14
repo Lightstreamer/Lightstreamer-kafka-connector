@@ -291,6 +291,27 @@ public interface RecordMapper<K, V> {
     }
 
     /**
+     * Creates a {@code RecordMapper} from the given {@link Items.ItemTemplates} and {@link
+     * FieldsExtractor}. This is a convenience factory method for the common construction path where
+     * the mapper is built from a complete set of item templates and a field extractor.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     * @param templates the {@code ItemTemplates} providing canonical item extractors and regex
+     *     configuration
+     * @param fieldsExtractor the {@code FieldsExtractor} for generating structured data updates
+     * @return a new {@code RecordMapper} instance
+     */
+    static <K, V> RecordMapper<K, V> from(
+            Items.ItemTemplates<K, V> templates, FieldsExtractor<K, V> fieldsExtractor) {
+        return RecordMapper.<K, V>builder()
+                .withCanonicalItemExtractors(templates.groupExtractors())
+                .enableRegex(templates.isRegexEnabled())
+                .withFieldExtractor(fieldsExtractor)
+                .build();
+    }
+
+    /**
      * A no-operation data extractor that produces empty results for all extraction operations. This
      * extractor serves as the default field extractor when no specific field extraction
      * configuration is provided, ensuring that {@link MappedRecord#fieldsMap()} operations complete
