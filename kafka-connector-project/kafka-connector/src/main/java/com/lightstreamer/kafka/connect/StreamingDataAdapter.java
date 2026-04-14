@@ -112,12 +112,7 @@ public final class StreamingDataAdapter implements RecordSender {
 
     StreamingDataAdapter(DataAdapterConfig config, DownstreamUpdater nopUpdater) {
         this.itemTemplates = config.itemTemplates();
-        this.recordMapper =
-                RecordMapper.builder()
-                        .withCanonicalItemExtractors(itemTemplates.groupExtractors())
-                        .enableRegex(itemTemplates.isRegexEnabled())
-                        .withFieldExtractor(config.fieldsExtractor())
-                        .build();
+        this.recordMapper = RecordMapper.from(itemTemplates, config.fieldsExtractor());
 
         this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
         this.reporter = errantRecordReporter(config.context());
