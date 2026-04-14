@@ -73,16 +73,27 @@ public class ItemTemplatesTest {
         String template3 = "template3";
 
         // TEST_TOPIC_1 mapped to template "template1" and "template2"
+        /*
+         * <param name="map.topic.to">item-template.template1,item-template.template2</param>
+         */
         TopicMappingConfig testTopic1Mapping =
                 TopicMappingConfig.fromDelimitedMappings(
                         TEST_TOPIC_1, getFullTemplateNames(template1, template2));
 
         // TEST_TOPIC_2 mapped to template "template1","template2", and "template3"
+        /*
+         * <param name="map.anotherTopic.to">item-template.template1,item-template.template2,item-template.template3</param>
+         */
         TopicMappingConfig testTopic2Mapping =
                 TopicMappingConfig.fromDelimitedMappings(
                         TEST_TOPIC_2, getFullTemplateNames(template1, template2, template3));
 
         // Create the three templates, sharing the same template definition
+        /*
+         * <param name="item-template.template1">stock-#{index=KEY.attrib}</param>
+         * <param name="item-template.template2">stock-#{index=KEY.attrib}</param>
+         * <param name="item-template.template3">stock-#{index=KEY.attrib}</param>
+         */
         String templateDefinition = "stock-#{index=KEY.attrib}";
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
@@ -129,23 +140,37 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
+        SubscribedItem item1 = Items.subscribedFrom("stock-[index=1]");
         assertWithMessage("The item matches at least a template")
-                .that(templates.matches(Items.subscribedFrom("stock-[index=1]")))
+                .that(templates.matches(item1))
                 .isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
+
+        SubscribedItem item2 = Items.subscribedFrom("stock-[index=2]");
         assertWithMessage("The item matches at least a template")
-                .that(templates.matches(Items.subscribedFrom("stock-[index=2]")))
+                .that(templates.matches(item2))
                 .isTrue();
+        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
+
+        SubscribedItem item3 = Items.subscribedFrom("anItem");
         assertWithMessage("The item does not match any defined template")
-                .that(templates.matches(Items.subscribedFrom("anItem")))
+                .that(templates.matches(item3))
                 .isFalse();
+        assertThat(templates.topicsFor(item3)).isEmpty();
     }
 
     @Test
     public void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
+        /*
+         * <param name="map.topic.to">item-template.template1,simple-item-1</param>
+         */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
                         TEST_TOPIC_1, "item-template.template1,simple-item-1");
 
+        /*
+         * <param name="item-template.template1">stock-#{index=KEY.attrib}</param>
+         */
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "stock-#{index=KEY.attrib}"));
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
@@ -159,18 +184,36 @@ public class ItemTemplatesTest {
                         Schema.from("stock", Set.of("index")),
                         Schema.from("simple-item-1", emptySet()));
 
-        assertThat(templates.matches(Items.subscribedFrom("simple-item-1"))).isTrue();
-        assertThat(templates.matches(Items.subscribedFrom("stock-[index=1]"))).isTrue();
-        assertThat(templates.matches(Items.subscribedFrom("stock-[index=2]"))).isTrue();
-        assertThat(templates.matches(Items.subscribedFrom("simple-item-2"))).isFalse();
-        assertThat(templates.matches(Items.subscribedFrom("stock-[key=1]"))).isFalse();
+        SubscribedItem item1 = Items.subscribedFrom("simple-item-1");
+        assertThat(templates.matches(item1)).isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
+
+        SubscribedItem item2 = Items.subscribedFrom("stock-[index=1]");
+        assertThat(templates.matches(item2)).isTrue();
+        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
+
+        SubscribedItem item3 = Items.subscribedFrom("stock-[index=2]");
+        assertThat(templates.matches(item3)).isTrue();
+        assertThat(templates.topicsFor(item3)).containsExactly(TEST_TOPIC_1);
+
+        SubscribedItem item4 = Items.subscribedFrom("simple-item-2");
+        assertThat(templates.matches(item4)).isFalse();
+        assertThat(templates.topicsFor(item4)).isEmpty();
+
+        SubscribedItem item5 = Items.subscribedFrom("stock-[key=1]");
+        assertThat(templates.matches(item5)).isFalse();
+        assertThat(templates.topicsFor(item5)).isEmpty();
     }
 
     @Test
-    public void shouldCreateOneToOneItemTemplateFromSimpleItem() throws ExtractionException {
+    public void shouldCreateOneToOneFromSimpleItem() throws ExtractionException {
         // One topic mapping one item
+        /*
+         * <param name="map.topic.to">simple-item-1</param>
+         */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC_1, "simple-item-1");
+
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
@@ -182,13 +225,24 @@ public class ItemTemplatesTest {
                 .containsExactly(canonicalItemExtractor(Object(), EmptyTemplate("simple-item-1")));
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
+
+        SubscribedItem item1 = Items.subscribedFrom("simple-item-1");
+        assertThat(templates.matches(item1)).isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
     }
 
     @Test
-    public void shouldCreateOneToOneItemTemplate() throws ExtractionException {
+    public void shouldCreateOneToOneFromItemTemplate() throws ExtractionException {
         // One topic mapping one item template
+        /*
+         * <param name="map.stocks.to">item-template.template</param>
+         */
         TopicMappingConfig topicMapping =
                 TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.template");
+
+        /*
+         * <param name="item-template.template">stock-#{index=KEY.attrib}</param>
+         */
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template", "stock-#{index=KEY.attrib}"));
         TopicConfigurations topicsConfig =
@@ -201,13 +255,21 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        assertThat(templates.matches(Items.subscribedFrom("stock-[index=1]"))).isTrue();
-        assertThat(templates.matches(Items.subscribedFrom("stock-[key=1]"))).isFalse();
+        SubscribedItem item1 = Items.subscribedFrom("stock-[index=1]");
+        assertThat(templates.matches(item1)).isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly("stocks");
+
+        SubscribedItem item2 = Items.subscribedFrom("stock-[key=1]");
+        assertThat(templates.matches(item2)).isFalse();
+        assertThat(templates.topicsFor(item2)).isEmpty();
     }
 
     @Test
-    public void shouldCreateOneToManyItemTemplateFromSimpleItem() throws ExtractionException {
-        // One topic mapping two items.
+    public void shouldCreateOneToManyFromSimpleItems() throws ExtractionException {
+        // One topic mapping two simple items.
+        /*
+         * <param name="map.topic.to">simple-item-1,simple-item-2</param>
+         */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
                         TEST_TOPIC_1, "simple-item-1,simple-item-2");
@@ -225,20 +287,30 @@ public class ItemTemplatesTest {
 
         SubscribedItem item1 = Items.subscribedFrom("simple-item-1", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
 
         SubscribedItem item2 = Items.subscribedFrom("simple-item-2", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
+        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
 
         SubscribedItem item3 = Items.subscribedFrom("simple-item-3", "itemHandle2");
         assertThat(templates.matches(item3)).isFalse();
+        assertThat(templates.topicsFor(item3)).isEmpty();
     }
 
     @Test
-    public void shouldCreateOneToManyItemTemplate() throws ExtractionException {
+    public void shouldCreateOneToManyFromItemTemplates() throws ExtractionException {
         // One topic mapping two item templates.
+        /*
+         * <param name="map.topic.to">item-template.family,item-template.relatives</param>
+         */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
                         TEST_TOPIC_1, "item-template.family,item-template.relatives");
+        /*
+         * <param name="item-template.family">template-family-#{topic=TOPIC,info=PARTITION}</param>
+         * <param name="item-template.relatives">template-relatives-#{topic=TOPIC,info1=TIMESTAMP}</param>
+         */
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of(
@@ -262,15 +334,17 @@ public class ItemTemplatesTest {
                 Items.subscribedFrom(
                         "template-family-[topic=" + TEST_TOPIC_1 + ",info=150]", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
+        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
 
         SubscribedItem item2 =
                 Items.subscribedFrom(
                         "template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
+        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
     }
 
     @Test
-    public void shouldCreateManyToOneItemTemplateFromSimpleItem() throws ExtractionException {
+    public void shouldCreateManyToOneFromSimpleItem() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One item.
@@ -279,8 +353,16 @@ public class ItemTemplatesTest {
         // Two topics mapping the item.
         String newOrdersTopic = "new_orders";
         String pastOrderTopic = "past_orders";
+
+        /*
+         * <param name="map.new_orders.to">orders</param>
+         */
         TopicMappingConfig orderMapping =
                 TopicMappingConfig.fromDelimitedMappings(newOrdersTopic, item);
+        /*
+         * <param name="map.past_orders.to">orders</param>
+         */
+
         TopicMappingConfig pastOrderMapping =
                 TopicMappingConfig.fromDelimitedMappings(pastOrderTopic, item);
         TopicConfigurations topicsConfig =
@@ -295,13 +377,18 @@ public class ItemTemplatesTest {
 
         SubscribedItem subscribingItem = Items.subscribedFrom("orders", "");
         assertThat(templates.matches(subscribingItem)).isTrue();
+        assertThat(templates.topicsFor(subscribingItem))
+                .containsExactly(newOrdersTopic, pastOrderTopic);
     }
 
     @Test
-    public void shouldManyToOne() throws ExtractionException {
+    public void shouldCreateManyToOneFromItemTemplate() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One template.
+        /*
+         * <param name="item-template.template-order">template-orders-#{topic=TOPIC}</param>
+         */
         ItemTemplateConfigs templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of("template-order", "template-orders-#{topic=TOPIC}"));
@@ -309,6 +396,10 @@ public class ItemTemplatesTest {
         // Two topics mapping the template.
         String newOrdersTopic = "new_orders";
         String pastOrderTopic = "past_orders";
+        /*
+         * <param name="map.new_orders.to">item-template.template-order</param>
+         * <param name="map.past_orders.to">item-template.template-order</param>
+         */
         TopicMappingConfig orderMapping =
                 TopicMappingConfig.fromDelimitedMappings(
                         newOrdersTopic, "item-template.template-order");
@@ -327,10 +418,14 @@ public class ItemTemplatesTest {
         SubscribedItem itemFilteringTopic1 =
                 Items.subscribedFrom("template-orders-[topic=new_orders]", "");
         assertThat(templates.matches(itemFilteringTopic1)).isTrue();
+        assertThat(templates.topicsFor(itemFilteringTopic1))
+                .containsExactly(newOrdersTopic, pastOrderTopic);
 
         SubscribedItem itemFilteringTopic2 =
                 Items.subscribedFrom("template-orders-[topic=past_orders]", "");
         assertThat(templates.matches(itemFilteringTopic2)).isTrue();
+        assertThat(templates.topicsFor(itemFilteringTopic2))
+                .containsExactly(newOrdersTopic, pastOrderTopic);
     }
 
     @Test
@@ -383,5 +478,34 @@ public class ItemTemplatesTest {
         Matcher matcher = pattern.matcher("topicA_123");
         assertThat(matcher.matches());
         assertThat(matcher.groupCount()).isEqualTo(0);
+    }
+
+    @Test
+    public void shouldReturnOnlyMatchingTopicFromMultiple() throws ExtractionException {
+        // Two topics with different schemas
+        /*
+         * <param name="item-template.stock">stock-#{symbol=KEY.symbol}</param>
+         * <param name="item-template.user">user-#{id=KEY.id}</param
+         * <param name="map.stocks.to">item-template.stock</param>
+         * <param name="map.users.to">item-template.user</param>
+         */
+        ItemTemplateConfigs templateConfigs =
+                ItemTemplateConfigs.from(
+                        Map.of(
+                                "stock", "stock-#{symbol=KEY.symbol}",
+                                "user", "user-#{id=KEY.id}"));
+        TopicMappingConfig stockMapping =
+                TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.stock");
+        TopicMappingConfig userMapping =
+                TopicMappingConfig.fromDelimitedMappings("users", "item-template.user");
+        TopicConfigurations topicsConfig =
+                TopicConfigurations.of(templateConfigs, List.of(stockMapping, userMapping));
+
+        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
+
+        SubscribedItem stockItem = Items.subscribedFrom("stock-[symbol=AAPL]");
+        assertThat(templates.topicsFor(stockItem)).containsExactly("stocks");
+        SubscribedItem userItem = Items.subscribedFrom("user-[id=42]");
+        assertThat(templates.topicsFor(userItem)).containsExactly("users");
     }
 }
