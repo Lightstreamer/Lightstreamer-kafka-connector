@@ -39,12 +39,14 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
@@ -159,6 +161,24 @@ public class RecordMapperTest {
         assertThat(mapper).isNotNull();
         assertThat(mapper.hasCanonicalItemExtractors()).isFalse();
         assertThat(mapper.hasFieldExtractor()).isTrue();
+    }
+
+    @Test
+    public void shouldBuildMapperFromItemTemplatesAndFieldsExtractor() throws ExtractionException {
+        ItemTemplates<String, String> templates =
+                ItemTemplatesUtils.ItemTemplates(
+                        String(), List.of(TEST_TOPIC_1), List.of("prefix-#{aKey=KEY}"));
+        FieldsExtractor<String, String> fieldsExtractor =
+                namedFieldsExtractor(
+                        String(), Map.of("aKey", Wrapped("#{PARTITION}")), false, false);
+
+        RecordMapper<String, String> mapper = RecordMapper.from(templates, fieldsExtractor);
+
+        assertThat(mapper).isNotNull();
+        assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
+        assertThat(mapper.hasFieldExtractor()).isTrue();
+        assertThat(mapper.isRegexEnabled()).isFalse();
+        assertThat(mapper.getExtractorsByTopicSubscription(TEST_TOPIC_1)).hasSize(1);
     }
 
     @Test
