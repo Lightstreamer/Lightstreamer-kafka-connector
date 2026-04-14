@@ -254,6 +254,15 @@ public class Items {
 
         Set<String> topics();
 
+        /**
+         * Returns the set of topics that have at least one template matching the given item's
+         * schema.
+         *
+         * @param item the {@link SubscribedItem} to match against configured templates
+         * @return the set of topic names whose templates match the item
+         */
+        Set<String> topicsFor(SubscribedItem item);
+
         default boolean isRegexEnabled() {
             return false;
         }
@@ -465,6 +474,14 @@ public class Items {
         @Override
         public Set<String> topics() {
             return templates.stream().map(ItemTemplate::topic).collect(toSet());
+        }
+
+        @Override
+        public Set<String> topicsFor(SubscribedItem item) {
+            return templates.stream()
+                    .filter(t -> t.matches(item))
+                    .map(ItemTemplate::topic)
+                    .collect(toSet());
         }
 
         @Override
