@@ -43,6 +43,7 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
@@ -157,8 +158,16 @@ public class KafkaConsumerWrapperTest {
         // Create the SubscribedItems
         SubscribedItems subscribedItems = SubscribedItems.create();
 
+        RecordMapper<String, String> recordMapper =
+                RecordMapper.from(config.itemTemplates(), config.fieldsExtractor());
+
         return new KafkaConsumerWrapper<String, String>(
-                config, metadataListener, eventListener, subscribedItems, () -> this.mockConsumer);
+                config,
+                metadataListener,
+                eventListener,
+                subscribedItems,
+                recordMapper,
+                () -> this.mockConsumer);
     }
 
     private Config<String, String> makeConfig(
