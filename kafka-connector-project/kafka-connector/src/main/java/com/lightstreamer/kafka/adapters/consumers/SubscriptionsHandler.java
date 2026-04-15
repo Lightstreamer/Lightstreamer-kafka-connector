@@ -111,43 +111,19 @@ public interface SubscriptionsHandler<K, V> {
         }
     }
 
-    abstract static class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
+    static class DefaultSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
-        /** Listener for metadata-level notifications such as forced unsubscriptions. */
-        protected final MetadataListener metadataListener;
-
-        /** Logger scoped to the connection name of this handler's configuration. */
-        protected final Logger logger;
-
-        /** Maps raw Kafka records to canonical item names and field maps. */
-        protected final RecordMapper<K, V> recordMapper;
-
-        /** Deserializers for record keys and values. */
-        protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
-
-        /** Registry of currently active subscribed items. */
-        protected final SubscribedItems subscribedItems;
-
-        /** The active main Kafka consumer, or {@code null} if not yet started. */
-        protected volatile KafkaConsumerWrapper<K, V> consumer;
-
-        /** Listener for dispatching events to Lightstreamer clients. */
-        protected EventListener eventListener;
-
-        /**
-         * Consumer configuration including topic mappings, field extractors, and Kafka properties.
-         */
         private final Config<K, V> config;
-
-        /** Supplier for creating Kafka consumers (main and snapshot). */
+        private final MetadataListener metadataListener;
         private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
-        /** Guards concurrent access to the main {@link #consumer} lifecycle. */
-        private final ReentrantLock consumerLock = new ReentrantLock();
+        private final Logger logger;
+        private final RecordMapper<K, V> recordMapper;
+        private final KafkaRecord.DeserializerPair<K, V> deserializerPair;
+        private final ExecutorService pool;
 
-        /** Single-thread executor running the main consumer's polling loop. */
-        private final ExecutorService pool =
-                Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
+        private final SubscribedItems subscribedItems;
+        private final ReentrantLock consumerLock = new ReentrantLock();
 
         /** Active snapshot consumers keyed by topic. */
         private final Map<String, TopicSnapshotConsumer<K, V>> snapshotConsumers =
@@ -169,35 +145,42 @@ public interface SubscriptionsHandler<K, V> {
                             return t;
                         });
 
-        /**
-         * The future status of the main consumer's polling loop, or {@code null} if not started.
-         */
-        private volatile FutureStatus futureStatus;
+        private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
+        private FutureStatus futureStatus; // guarded by consumerLock
+        private int itemsCount; // guarded by consumerLock
 
-        AbstractSubscriptionsHandler(Builder<K, V> builder) {
-            this.metadataListener = builder.metadataListener;
+        private EventListener eventListener;
+
+        // Only for testing purposes: hook invoked before acquiring lock in
+        // decrementAndMaybeStopConsuming()
+        Runnable stopConsumingHook = () -> {};
+
+        DefaultSubscriptionsHandler(Builder<K, V> builder) {
             this.config = builder.consumerConfig;
+            this.metadataListener = builder.metadataListener;
+            this.consumerSupplier = builder.consumerSupplier;
             this.logger = LogFactory.getLogger(config.connectionName());
-            this.recordMapper = RecordMapper.from(config.itemTemplates(), config.fieldsExtractor());
+            this.recordMapper =
+                    RecordMapper.from(config.itemTemplates(), config.fieldsExtractor());
             this.deserializerPair =
                     new KafkaRecord.DeserializerPair<>(
                             config.suppliers().keySelectorSupplier().deserializer(),
                             config.suppliers().valueSelectorSupplier().deserializer());
+            this.pool =
+                    Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems = SubscribedItems.create();
-            this.consumerSupplier = builder.consumerSupplier;
         }
 
         @Override
-        public final void setListener(ItemEventListener listener) {
+        public void setListener(ItemEventListener listener) {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
             this.eventListener = EventListener.smartEventListener(listener);
-            onItemEventListenerSet();
         }
 
         @Override
-        public final void subscribe(String item, Object itemHandle) throws SubscriptionException {
+        public void subscribe(String item, Object itemHandle) throws SubscriptionException {
             try {
                 SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
                 if (!config.itemTemplates().matches(newItem)) {
@@ -208,20 +191,36 @@ public interface SubscriptionsHandler<K, V> {
                 }
 
                 logger.atInfo().log("Subscribed to item [{}]", item);
+
                 subscribedItems.addItem(newItem);
-                onItemSubscribed(newItem);
+
+                incrementAndMaybeStartConsuming();
+                // TODO: temporarily always enabled; gate on a snapshot.enable configuration
+                // property. When disabled, call item.enableRealtimeEvents(eventListener) instead.
+                enqueueForSnapshot(newItem);
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
             }
         }
 
-        final FutureStatus startConsuming() throws KafkaException {
+        @Override
+        public Optional<SubscribedItem> unsubscribe(String item) {
+            Optional<SubscribedItem> removedItem = subscribedItems.removeItem(item);
+            if (removedItem.isPresent()) {
+                decrementAndMaybeStopConsuming();
+            }
+
+            return removedItem;
+        }
+
+        private void incrementAndMaybeStartConsuming() {
             logger.atTrace().log("Acquiring consumer lock to start consuming events...");
             consumerLock.lock();
-            logger.atTrace().log("Consumer lock acquired...");
+            logger.atTrace().log("Consumer lock acquired");
             try {
-                if (consumer == null) {
+                itemsCount++;
+                if (itemsCount == 1) {
                     logger.atInfo().log("Consumer not yet initialized, creating a new one...");
                     consumer = newConsumer(); // May throw KafkaException
                     logger.atInfo().log("New consumer connecting and subscribing...");
@@ -237,33 +236,28 @@ public interface SubscriptionsHandler<K, V> {
                 consumerLock.unlock();
                 logger.atTrace().log("Consumer lock released");
             }
-            return futureStatus;
         }
 
-        @Override
-        public final Optional<SubscribedItem> unsubscribe(String item) {
-            Optional<SubscribedItem> removedItem = subscribedItems.removeItem(item);
-            if (removedItem.isPresent()) {
-                onItemUnsubscribed(removedItem.get());
-            }
-
-            return removedItem;
-        }
-
-        final void stopConsuming() {
+        private void decrementAndMaybeStopConsuming() {
+            stopConsumingHook.run();
             logger.atTrace().log("Acquiring consumer lock to stop consuming...");
             consumerLock.lock();
-            logger.atTrace().log("Consumer lock acquired to stop consuming...");
+            logger.atTrace().log("Consumer lock acquired to stop consuming");
             try {
-                shutdownSnapshotConsumers();
-                if (consumer != null) {
-                    logger.atInfo().log("Stopping consumer...");
-                    consumer.shutdown();
-                    consumer = null;
-                    futureStatus = null;
-                    logger.atInfo().log("Consumer stopped");
+                itemsCount--;
+                if (itemsCount == 0) {
+                    shutdownSnapshotConsumers();
+                    if (consumer != null) {
+                        logger.atInfo().log("Stopping consumer...");
+                        consumer.shutdown();
+                        consumer = null;
+                        futureStatus = null;
+                        logger.atInfo().log("Consumer stopped");
+                    } else {
+                        logger.atDebug().log("Consumer was not initialized, nothing to do");
+                    }
                 } else {
-                    logger.atDebug().log("Consumer is not initialized yet, nothing to do");
+                    logger.atDebug().log("Consumer still has active subscriptions, nothing to do");
                 }
             } finally {
                 logger.atTrace().log("Releasing consumer lock...");
@@ -282,20 +276,11 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        final void clearItems() {
-            subscribedItems.clear();
-        }
-
-        void onItemEventListenerSet() {}
-
-        void onItemSubscribed(SubscribedItem item) {}
-
-        KafkaConsumerWrapper<K, V> newConsumer() throws KafkaException {
+        private KafkaConsumerWrapper<K, V> newConsumer() throws KafkaException {
             if (eventListener == null) {
                 throw new RuntimeException(
                         "EventListener must be set before starting the consumer");
             }
-
             return new KafkaConsumerWrapper<>(
                     config,
                     metadataListener,
@@ -305,8 +290,6 @@ public interface SubscriptionsHandler<K, V> {
                     consumerSupplier);
         }
 
-        void onItemUnsubscribed(SubscribedItem item) {}
-
         /**
          * Enqueues an item for snapshot delivery. For each configured topic, gets or creates a
          * {@link TopicSnapshotConsumer} and enqueues the item. The consumer is launched on first
@@ -315,7 +298,7 @@ public interface SubscriptionsHandler<K, V> {
          * <p>Falls back to immediate real-time mode when regex topic subscriptions are active,
          * since snapshot requires literal topic names to resolve partitions.
          */
-        void enqueueForSnapshot(SubscribedItem item) {
+        private void enqueueForSnapshot(SubscribedItem item) {
             // TODO: validate at config time when snapshot.enable is gated by configuration
             if (config.itemTemplates().isRegexEnabled()) {
                 logger.atWarn()
@@ -407,7 +390,7 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        void shutdownSnapshotConsumers() {
+        private void shutdownSnapshotConsumers() {
             snapshotConsumers.values().forEach(TopicSnapshotConsumer::shutdown);
             snapshotConsumers.clear();
         }
@@ -421,36 +404,15 @@ public interface SubscriptionsHandler<K, V> {
         FutureStatus getFutureStatus() {
             return futureStatus;
         }
-    }
-
-    static class DefaultSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
-
-        private final AtomicInteger itemsCounter = new AtomicInteger(0);
-
-        DefaultSubscriptionsHandler(Builder<K, V> builder) {
-            super(builder);
-        }
-
-        @Override
-        void onItemSubscribed(SubscribedItem item) {
-            if (itemsCounter.incrementAndGet() == 1) {
-                startConsuming();
-            }
-            // TODO: temporarily always enabled; gate on a snapshot.enable configuration
-            // property. When disabled, call item.enableRealtimeEvents(eventListener) instead.
-            enqueueForSnapshot(item);
-        }
-
-        @Override
-        void onItemUnsubscribed(SubscribedItem item) {
-            if (itemsCounter.decrementAndGet() == 0) {
-                stopConsuming();
-            }
-        }
 
         // Only for testing purposes
         int getItemsCounter() {
-            return itemsCounter.get();
+            consumerLock.lock();
+            try {
+                return itemsCount;
+            } finally {
+                consumerLock.unlock();
+            }
         }
     }
 }
