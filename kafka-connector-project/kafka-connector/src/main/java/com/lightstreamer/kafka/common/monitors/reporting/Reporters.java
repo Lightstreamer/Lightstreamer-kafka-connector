@@ -29,9 +29,9 @@ import java.util.List;
  * <p>Provides ready-to-use reporter implementations for common destinations (logs, console) and a
  * default metric formatter with SI unit scaling.
  *
- * <p><b>Thread Safety:</b> All reporter implementations and formatters provided by this factory are
- * thread-safe and can be safely shared across multiple threads. The {@link #DEFAULT_FORMATTER} is a
- * stateless singleton safe for concurrent use.
+ * <p><strong>Thread Safety:</strong> All reporter implementations and formatters provided by this
+ * factory are thread-safe and can be safely shared across multiple threads. The {@link
+ * #DEFAULT_FORMATTER} is a stateless singleton safe for concurrent use.
  *
  * <p>Example usage:
  *
@@ -94,8 +94,8 @@ public class Reporters {
      * special cases like NaN values. Subclasses can override formatting behavior for custom
      * presentation needs.
      *
-     * <p><b>Thread Safety:</b> This class is stateless and thread-safe. The singleton instance can
-     * be safely shared across multiple threads.
+     * <p><strong>Thread Safety:</strong> This class is stateless and thread-safe. The singleton
+     * instance can be safely shared across multiple threads.
      */
     public static class DefaultMetricValueFormatter implements Reporter.MetricValueFormatter {
 
@@ -176,9 +176,9 @@ public class Reporters {
      *   <li>{@link #formatSingleMetric(MetricValue)} - individual metric formatting
      * </ul>
      *
-     * <p><b>Thread Safety:</b> This base class maintains no mutable state and is thread-safe.
-     * Subclasses must ensure their {@link #reportMessage(String)} implementation is also
-     * thread-safe if the reporter will be used concurrently.
+     * <p><strong>Thread Safety:</strong> This base class maintains no mutable state and is
+     * thread-safe. Subclasses must ensure their {@link #reportMessage(String)} implementation is
+     * also thread-safe if the reporter will be used concurrently.
      */
     abstract static class AbstractReporter implements Reporter {
 
@@ -318,8 +318,8 @@ public class Reporters {
      *
      * <p>Messages are logged at INFO level using the configured logger instance.
      *
-     * <p><b>Thread Safety:</b> This implementation is thread-safe as SLF4J loggers are inherently
-     * thread-safe.
+     * <p><strong>Thread Safety:</strong> This implementation is thread-safe as SLF4J loggers are
+     * inherently thread-safe.
      */
     public static class LogReporter extends AbstractReporter {
 
@@ -349,8 +349,8 @@ public class Reporters {
      *
      * <p>Messages are printed to {@code System.out}.
      *
-     * <p><b>Thread Safety:</b> This implementation is thread-safe as {@code System.out} is
-     * synchronized. However, messages from concurrent threads may be interleaved.
+     * <p><strong>Thread Safety:</strong> This implementation is thread-safe as {@code System.out}
+     * is synchronized. However, messages from concurrent threads may be interleaved.
      */
     public static class ConsoleReporter extends AbstractReporter {
 
