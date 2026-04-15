@@ -19,6 +19,9 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.CommandMode;
+import com.lightstreamer.kafka.adapters.consumers.CommandMode.Command;
+import com.lightstreamer.kafka.adapters.consumers.CommandMode.Key;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
@@ -30,8 +33,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithL
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Command;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandMode.Key;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -51,7 +52,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,9 +63,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class RecordConsumerSupport {
 
@@ -350,66 +347,6 @@ public class RecordConsumerSupport {
         @Override
         public ProcessUpdatesType type() {
             return ProcessUpdatesType.AUTO_COMMAND_MODE;
-        }
-    }
-
-    static interface CommandMode {
-
-        static final String SNAPSHOT = "snapshot";
-
-        static Map<String, String> decorate(Map<String, String> event, Command command) {
-            event.put(Key.COMMAND.key(), command.toString());
-            return event;
-        }
-
-        static Map<String, String> deleteEvent(Map<String, String> event) {
-            // Creates a new event with only the key field: all other fields are discarded because
-            // they are not relevant for the deletion operation.
-            Map<String, String> deleteEvent = new HashMap<>();
-            deleteEvent.put(Key.KEY.key(), Key.KEY.lookUp(event));
-
-            // Decorate the event with DELETE command
-            return decorate(deleteEvent, Command.DELETE);
-        }
-
-        enum Command {
-            ADD,
-            DELETE,
-            UPDATE,
-            CS,
-            EOS;
-
-            static Map<String, Command> CACHE =
-                    Stream.of(values())
-                            .collect(Collectors.toMap(Command::toString, Function.identity()));
-
-            static Optional<Command> lookUp(Map<String, String> input) {
-                String command = input.get(Key.COMMAND.key());
-                return Optional.ofNullable(CACHE.get(command));
-            }
-
-            boolean isSnapshot() {
-                return this.equals(CS) || this.equals(EOS);
-            }
-        }
-
-        enum Key {
-            KEY("key"),
-            COMMAND("command");
-
-            private final String key;
-
-            Key(String key) {
-                this.key = key;
-            }
-
-            String lookUp(Map<String, String> input) {
-                return input.get(key);
-            }
-
-            String key() {
-                return key;
-            }
         }
     }
 
