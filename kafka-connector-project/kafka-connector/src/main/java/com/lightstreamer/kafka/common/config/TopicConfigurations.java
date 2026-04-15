@@ -31,8 +31,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Resolves and holds the fully assembled topic-to-template configuration for the connector.
+ *
+ * <p>Combines {@link ItemTemplateConfigs} (named template definitions) with {@link
+ * TopicMappingConfig} entries (topic-to-template bindings) into a set of {@link TopicConfiguration}
+ * records, each pairing a topic with its resolved {@link TemplateExpression} list.
+ *
+ * <p>Example configuration:
+ *
+ * <pre>{@code
+ * <param name="item-template.stock">stock-#{symbol=KEY.symbol}</param>
+ * <param name="map.stocks.to">item-template.stock,simple-item-1</param>
+ * <param name="map.users.to">item-template.user</param>
+ * }</pre>
+ *
+ * @see TopicMappingConfig
+ * @see ItemTemplateConfigs
+ * @see TopicConfiguration
+ */
 public class TopicConfigurations {
 
+    /**
+     * Associates a Kafka topic name with a set of item template references or simple item names.
+     *
+     * <p>Each instance binds a single topic (literal or regex pattern) to one or more mappings,
+     * where each mapping is either a reference to a named item template (e.g., {@code
+     * "item-template.stock"}) or a plain item name (e.g., {@code "simple-item-1"}).
+     *
+     * <p>Example configuration:
+     *
+     * <pre>{@code
+     * <param name="map.stocks.to">item-template.stock,simple-item-1</param>
+     * }</pre>
+     *
+     * @see ItemTemplateConfigs
+     * @see TopicConfiguration
+     */
     public static class TopicMappingConfig {
 
         private final String topic;
@@ -85,6 +120,25 @@ public class TopicConfigurations {
         }
     }
 
+    /**
+     * Holds named item template definitions, each mapping a template name to a {@link
+     * TemplateExpression} that defines a schema prefix and extraction expressions.
+     *
+     * <p>A template expression uses the syntax {@code PREFIX-#{param1=EXPR1,param2=EXPR2}}, where
+     * each parameter key becomes part of the item's {@link
+     * com.lightstreamer.kafka.common.mapping.selectors.Schema} and each expression is evaluated
+     * against incoming Kafka records to build canonical item names.
+     *
+     * <p>Example configuration:
+     *
+     * <pre>{@code
+     * <param name="item-template.stock">stock-#{symbol=KEY.symbol}</param>
+     * <param name="item-template.user">user-#{userId=VALUE.id,accountId=VALUE.accountId}</param>
+     * }</pre>
+     *
+     * @see TopicMappingConfig
+     * @see TemplateExpression
+     */
     public static final class ItemTemplateConfigs {
 
         private static final ItemTemplateConfigs EMPTY = new ItemTemplateConfigs();
