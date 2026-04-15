@@ -75,7 +75,8 @@ public final class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
-        return connectorConfig.getCommandModeStrategy().manageSnapshot();
+        // TODO: temporarily always enabled; gate on a snapshot.enable configuration property
+        return true;
     }
 
     @Override
