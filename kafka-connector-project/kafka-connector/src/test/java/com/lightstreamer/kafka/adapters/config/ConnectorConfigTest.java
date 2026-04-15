@@ -1497,6 +1497,63 @@ public class ConnectorConfigTest {
     }
 
     @Test
+    public void shouldDefaultToGroupMode() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getConsumerGroupMode())
+                .isEqualTo(
+                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
+                                .ConsumerGroupMode.GROUP);
+        assertThat(config.isStandalone()).isFalse();
+    }
+
+    @Test
+    public void shouldAcceptStandaloneGroupMode() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        Map.of(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE"));
+        assertThat(config.getConsumerGroupMode())
+                .isEqualTo(
+                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
+                                .ConsumerGroupMode.STANDALONE);
+        assertThat(config.isStandalone()).isTrue();
+    }
+
+    @Test
+    public void shouldExcludeGroupIdInStandaloneMode() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        Properties baseConsumerProps = config.baseConsumerProps();
+        assertThat(baseConsumerProps.containsKey(ConsumerConfig.GROUP_ID_CONFIG)).isFalse();
+    }
+
+    @Test
+    public void shouldIncludeGroupIdInGroupMode() {
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "GROUP");
+        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+
+        Properties baseConsumerProps = config.baseConsumerProps();
+        assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
+                .startsWith("KAFKA-CONNECTOR-");
+    }
+
+    @Test
+    public void shouldRejectRegexWithStandaloneMode() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
+        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce)
+                .hasMessageThat()
+                .contains("Standalone consumer group mode does not support regex topic matching");
+    }
+
+    @Test
     void shouldGetTopicMappingWithOneReference() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1");

@@ -955,4 +955,80 @@ public class KafkaConsumerWrapperTest {
         return new ConsumerRecords<>(
                 Collections.singletonMap(new TopicPartition("test-topic", 0), recordList));
     }
+
+    // --- Standalone mode tests ---
+
+    private Config<String, String> makeStandaloneConfig() {
+        try {
+            return new Config<>(
+                    "TestConnection",
+                    makeProperties(),
+                    Items.templatesFrom(makeTopicsConfig(false), String()),
+                    ItemTemplatesUtils.fieldsExtractor(),
+                    suppliers,
+                    RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                    CommandModeStrategy.NONE,
+                    new Concurrency(RecordConsumeWithOrderStrategy.UNORDERED, 2),
+                    ConsumerGroupMode.STANDALONE);
+        } catch (ExtractionException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private KafkaConsumerWrapper<String, String> makeStandaloneWrapper(
+            Set<String> availableTopics) {
+        for (String topic : availableTopics) {
+            this.mockConsumer.updatePartitions(
+                    topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
+        }
+
+        Config<String, String> config = makeStandaloneConfig();
+        SubscribedItems subscribedItems = SubscribedItems.create();
+
+        return new KafkaConsumerWrapper<String, String>(
+                config, metadataListener, eventListener, subscribedItems, () -> this.mockConsumer);
+    }
+
+    @Test
+    public void shouldAssignPartitionsInStandaloneMode() {
+        String topic = "topic";
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeStandaloneWrapper(Collections.singleton(topic));
+
+        boolean result = wrapper.subscribed();
+        assertThat(result).isTrue();
+
+        // Verify partitions were assigned (not subscribed)
+        assertThat(mockConsumer.assignment())
+                .containsExactly(new TopicPartition(topic, 0));
+    }
+
+    @Test
+    public void shouldFailAssignWhenNoPartitionsFound() {
+        // Don't register any partitions for the topic
+        Config<String, String> config = makeStandaloneConfig();
+        SubscribedItems subscribedItems = SubscribedItems.create();
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                new KafkaConsumerWrapper<>(
+                        config,
+                        metadataListener,
+                        eventListener,
+                        subscribedItems,
+                        () -> this.mockConsumer);
+
+        boolean result = wrapper.subscribed();
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    public void shouldUseStandaloneOffsetService() {
+        String topic = "topic";
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeStandaloneWrapper(Collections.singleton(topic));
+
+        OffsetService offsetService = wrapper.getOffsetService();
+        assertThat(offsetService.getClass().getSimpleName())
+                .isEqualTo("StandaloneOffsetServiceImpl");
+    }
 }
