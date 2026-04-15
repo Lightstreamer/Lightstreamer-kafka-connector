@@ -212,7 +212,6 @@ public class KafkaConsumerWrapper<K, V> {
     private final Config<K, V> config;
     private final MetadataListener metadataListener;
     private final Logger logger;
-    private final RecordMapper<K, V> recordMapper;
     private final Consumer<byte[], byte[]> consumer;
     private final OffsetService offsetService;
     private final RecordConsumer<K, V> recordConsumer;
@@ -229,17 +228,12 @@ public class KafkaConsumerWrapper<K, V> {
             MetadataListener metadataListener,
             EventListener eventListener,
             SubscribedItems subscribedItems,
+            RecordMapper<K, V> recordMapper,
             Supplier<Consumer<byte[], byte[]>> consumerSupplier)
             throws KafkaException {
         this.config = config;
         this.metadataListener = metadataListener;
         this.logger = LogFactory.getLogger(this.config.connectionName());
-        this.recordMapper =
-                RecordMapper.<K, V>builder()
-                        .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
-                        .enableRegex(config.itemTemplates().isRegexEnabled())
-                        .withFieldExtractor(config.fieldsExtractor())
-                        .build();
         this.pollDuration = MAX_POLL_DURATION;
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
