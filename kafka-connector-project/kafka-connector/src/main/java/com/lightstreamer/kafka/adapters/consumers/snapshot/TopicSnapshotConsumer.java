@@ -17,6 +17,9 @@
 
 package com.lightstreamer.kafka.adapters.consumers.snapshot;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.consumers.CommandMode;
+import com.lightstreamer.kafka.adapters.consumers.CommandMode.Command;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -72,10 +75,28 @@ import java.util.function.Supplier;
 public class TopicSnapshotConsumer<K, V> implements Runnable {
 
     /**
-     * Callback interface notified when the consumer has finished all passes and is shutting down.
+     * Listener for snapshot consumer lifecycle events. Consolidates topic-level completion and
+     * per-item finalization into a single callback interface.
      */
-    public interface CompletionCallback {
+    public interface SnapshotListener {
+
+        /**
+         * Invoked when the consumer has finished all passes and is shutting down. The caller
+         * typically removes the consumer entry from its map.
+         *
+         * @param topic the topic whose snapshot consumer has completed
+         */
         void onSnapshotConsumerCompleted(String topic);
+
+        /**
+         * Invoked when this consumer has finished processing a single item (either after delivering
+         * its snapshot data or as a fallback on error/shutdown). In a multi-topic scenario, the
+         * caller uses this to coordinate finalization across all topics before signalling end of
+         * snapshot to the client.
+         *
+         * @param item the item that has been processed
+         */
+        void onItemComplete(SubscribedItem item);
     }
 
     private static final Duration POLL_TIMEOUT = Duration.ofMillis(5000);
@@ -86,11 +107,18 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
     private final EventListener eventListener;
     private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
     private final DeserializerPair<K, V> deserializerPair;
+    private final CommandModeStrategy commandModeStrategy;
     private final Duration snapshotTimeout;
-    private final CompletionCallback completionCallback;
+    private final SnapshotListener snapshotListener;
 
     private final ConcurrentLinkedQueue<SubscribedItem> pendingItems =
             new ConcurrentLinkedQueue<>();
+
+    /**
+     * Tracks items currently being served in an active pass. When an exception (e.g. {@link
+     * WakeupException}) interrupts a pass, these items must still be finalized.
+     */
+    private volatile Set<SubscribedItem> inFlightItems = Set.of();
 
     /** Holds the active consumer reference for wakeup-based shutdown. */
     private volatile Consumer<byte[], byte[]> activeConsumer;
@@ -104,9 +132,11 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
      * @param eventListener the listener for dispatching snapshot events to Lightstreamer
      * @param consumerSupplier supplier for creating a Kafka consumer (no group.id, auto.commit off)
      * @param deserializerPair the {@link DeserializerPair} for record keys and values
+     * @param commandModeStrategy the active {@link CommandModeStrategy}; when {@code AUTO},
+     *     snapshot events are decorated with {@code command=ADD} and tombstones are skipped
      * @param snapshotTimeout maximum duration for a single snapshot pass; {@link Duration#ZERO}
      *     means no limit
-     * @param completionCallback callback invoked when this consumer finishes all passes
+     * @param snapshotListener listener for topic-level completion and per-item finalization events
      */
     public TopicSnapshotConsumer(
             String topic,
@@ -115,16 +145,18 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
             EventListener eventListener,
             Supplier<Consumer<byte[], byte[]>> consumerSupplier,
             DeserializerPair<K, V> deserializerPair,
+            CommandModeStrategy commandModeStrategy,
             Duration snapshotTimeout,
-            CompletionCallback completionCallback) {
+            SnapshotListener snapshotListener) {
         this.topic = topic;
         this.logger = logger;
         this.recordMapper = recordMapper;
         this.eventListener = eventListener;
         this.consumerSupplier = consumerSupplier;
         this.deserializerPair = deserializerPair;
+        this.commandModeStrategy = commandModeStrategy;
         this.snapshotTimeout = snapshotTimeout;
-        this.completionCallback = completionCallback;
+        this.snapshotListener = snapshotListener;
     }
 
     /**
@@ -160,12 +192,16 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
                     break;
                 }
 
+                inFlightItems = passItems;
+
                 logger.atInfo().log(
                         "Starting snapshot pass for topic [{}] with {} items",
                         topic,
                         passItems.size());
 
                 runPass(consumer, partitions, passItems);
+
+                inFlightItems = Set.of();
 
                 logger.atInfo().log(
                         "Snapshot pass complete for topic [{}], finalized {} items",
@@ -188,7 +224,7 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
         } finally {
             this.activeConsumer = null;
             closeConsumer(consumer);
-            completionCallback.onSnapshotConsumerCompleted(topic);
+            snapshotListener.onSnapshotConsumerCompleted(topic);
         }
     }
 
@@ -229,11 +265,22 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
             ConsumerRecords<byte[], byte[]> records = doPoll(consumer);
             for (ConsumerRecord<byte[], byte[]> raw : records) {
                 try {
+                    // Skip tombstones: a null value means the key was deleted from the
+                    // compacted topic — there is nothing to snapshot for this key.
+                    if (raw.value() == null) {
+                        TopicPartition tp = new TopicPartition(raw.topic(), raw.partition());
+                        currentOffsets.merge(tp, raw.offset() + 1, Long::max);
+                        continue;
+                    }
+
                     KafkaRecord<K, V> kafkaRecord = deserialize(raw);
                     MappedRecord mapped = recordMapper.map(kafkaRecord);
                     Set<SubscribedItem> routed = mapped.route(snapshotScope);
                     if (!routed.isEmpty()) {
                         Map<String, String> fields = mapped.fieldsMap();
+                        if (commandModeStrategy == CommandModeStrategy.AUTO) {
+                            CommandMode.decorate(fields, Command.ADD);
+                        }
                         for (SubscribedItem item : routed) {
                             item.sendSnapshotEvent(fields, eventListener);
                         }
@@ -395,10 +442,19 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
     }
 
     /**
-     * Drains all remaining pending items and finalizes them with an empty snapshot. Used as a
-     * fallback when an error occurs — ensures items transition to real-time mode.
+     * Drains all remaining pending items and finalizes them — together with any in-flight items
+     * from an interrupted pass — with an empty snapshot. Used as a fallback when an error occurs,
+     * ensuring items transition to real-time mode.
      */
     private void drainAndFinalizeAll() {
+        // Finalize items that were being served in an active pass
+        Set<SubscribedItem> inflight = inFlightItems;
+        inFlightItems = Set.of();
+        for (SubscribedItem item : inflight) {
+            finalizeItem(item);
+        }
+
+        // Finalize any items still in the pending queue
         Set<SubscribedItem> remaining = drainPendingItems();
         for (SubscribedItem item : remaining) {
             finalizeItem(item);
@@ -406,27 +462,11 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
     }
 
     /**
-     * Completes snapshot delivery for a single item: signals end of snapshot and enables real-time
-     * event dispatch.
+     * Notifies the caller that this consumer has finished processing the given item. The caller
+     * coordinates finalization across all topic consumers before signalling end of snapshot.
      */
     private void finalizeItem(SubscribedItem item) {
-        try {
-            item.endOfSnapshot(eventListener);
-            item.enableRealtimeEvents(eventListener);
-            logger.atDebug().log("Snapshot finalized for item [{}]", item.name());
-        } catch (Exception e) {
-            logger.atError()
-                    .setCause(e)
-                    .log("Error finalizing snapshot for item [{}]", item.name());
-            // Enable real-time anyway to avoid permanently stuck items
-            try {
-                item.enableRealtimeEvents(eventListener);
-            } catch (Exception inner) {
-                logger.atError()
-                        .setCause(inner)
-                        .log("Failed to enable real-time events for item [{}]", item.name());
-            }
-        }
+        snapshotListener.onItemComplete(item);
     }
 
     /**
