@@ -26,7 +26,7 @@ import java.util.concurrent.CountDownLatch;
  * enable synchronous waiting via the {@link #join()} method. It is used when processing must be
  * coordinated between threads, such as when batching offset commits.
  *
- * <p><b>Use case:</b> Scenarios requiring synchronous coordination, such as:
+ * <p><strong>Use case:</strong> Scenarios requiring synchronous coordination, such as:
  *
  * <ul>
  *   <li>Committing offsets only after all records in a batch are processed
@@ -34,12 +34,12 @@ import java.util.concurrent.CountDownLatch;
  *   <li>Enforcing ordering between poll cycles
  * </ul>
  *
- * <p><b>Thread Safety:</b> Safe for concurrent calls from multiple worker threads. The {@link
- * #join()} method blocks until all records have been processed.
+ * <p><strong>Thread Safety:</strong> Safe for concurrent calls from multiple worker threads. The
+ * {@link #join()} method blocks until all records have been processed.
  *
- * <p><b>Performance:</b> Higher synchronization overhead than {@link NotifyingRecordBatch} due to
- * the additional {@link CountDownLatch} and coordination. Use {@link NotifyingRecordBatch} with
- * callbacks for maximum throughput scenarios.
+ * <p><strong>Performance:</strong> Higher synchronization overhead than {@link
+ * NotifyingRecordBatch} due to the additional {@link CountDownLatch} and coordination. Use {@link
+ * NotifyingRecordBatch} with callbacks for maximum throughput scenarios.
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
