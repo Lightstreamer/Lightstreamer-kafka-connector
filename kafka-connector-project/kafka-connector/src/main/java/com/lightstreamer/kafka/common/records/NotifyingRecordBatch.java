@@ -30,11 +30,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * a completion listener when all records have been processed. It does not support synchronous
  * waiting via {@link #join()}.
  *
- * <p><b>Use case:</b> High-throughput asynchronous processing where completion is signaled via
- * listener notification rather than blocking waits. Lower synchronization overhead than {@link
- * JoinableRecordBatch}.
+ * <p><strong>Use case:</strong> High-throughput asynchronous processing where completion is
+ * signaled via listener notification rather than blocking waits. Lower synchronization overhead
+ * than {@link JoinableRecordBatch}.
  *
- * <p><b>Thread Safety:</b> Safe for concurrent calls to {@link
+ * <p><strong>Thread Safety:</strong> Safe for concurrent calls to {@link
  * #recordProcessed(RecordBatch.RecordBatchListener)} from multiple worker threads.
  *
  * @param <K> the type of the record key
