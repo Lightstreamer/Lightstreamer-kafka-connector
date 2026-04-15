@@ -511,9 +511,9 @@ public class DataExtractors {
      * <p><strong>Example:</strong> An expression {@code "VALUE.*"} might dynamically extract all
      * fields from a JSON value: {@code {"symbol": "AAPL", "price": "150.25", "volume": "1000000"}}
      *
-     * <p><b>Note:</b> Dynamic extraction always maps non-scalar values (arrays, objects) as the
-     * field structure itself may contain complex types. The {@link #mappedFields()} method returns
-     * an empty set since field names are not statically known.
+     * <p><strong>Note:</strong> Dynamic extraction always maps non-scalar values (arrays, objects)
+     * as the field structure itself may contain complex types. The {@link #mappedFields()} method
+     * returns an empty set since field names are not statically known.
      *
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value
@@ -597,12 +597,12 @@ public class DataExtractors {
      * order they are provided, and each extractor writes its extracted fields into the same target
      * map.
      *
-     * <p><b>Field Override Behavior:</b> When multiple extractors produce values for the same field
-     * name, later extractors will override values set by earlier ones.
+     * <p><strong>Field Override Behavior:</strong> When multiple extractors produce values for the
+     * same field name, later extractors will override values set by earlier ones.
      *
-     * <p><b>Error Handling:</b> The {@link #skipOnFailure()} behavior is determined by evaluating
-     * all composed extractors. The composite extractor will skip on failure only if all individual
-     * extractors indicate they should skip on failure.
+     * <p><strong>Error Handling:</strong> The {@link #skipOnFailure()} behavior is determined by
+     * evaluating all composed extractors. The composite extractor will skip on failure only if all
+     * individual extractors indicate they should skip on failure.
      *
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value
