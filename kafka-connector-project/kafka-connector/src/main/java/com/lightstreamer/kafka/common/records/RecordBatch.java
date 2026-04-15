@@ -32,14 +32,15 @@ import java.util.List;
  * both eager and deferred deserialization strategies through factory methods:
  *
  * <ul>
- *   <li><b>Eager deserialization:</b> Key/value decoding is performed immediately during batch
- *       creation via {@link #batchFromEager}. Allows early error detection but requires more
+ *   <li><strong>Eager deserialization:</strong> Key/value decoding is performed immediately during
+ *       batch creation via {@link #batchFromEager}. Allows early error detection but requires more
  *       upfront processing.
- *   <li><b>Deferred deserialization:</b> Key/value decoding is delayed until individual records are
- *       accessed via {@link #batchFromDeferred}. Reduces upfront cost but extends object lifetimes.
+ *   <li><strong>Deferred deserialization:</strong> Key/value decoding is delayed until individual
+ *       records are accessed via {@link #batchFromDeferred}. Reduces upfront cost but extends
+ *       object lifetimes.
  * </ul>
  *
- * <p><b>Lifecycle:</b>
+ * <p><strong>Lifecycle:</strong>
  *
  * <ol>
  *   <li>Create batch via factory method ({@code batchFromEager} or {@code batchFromDeferred})
@@ -49,8 +50,8 @@ import java.util.List;
  *   <li>Optionally call {@link #join()} to block until completion
  * </ol>
  *
- * <p><b>Thread Safety:</b> Batches are created in the consumer thread and distributed to worker
- * threads for processing. The {@link #recordProcessed(RecordBatchListener)} method must be
+ * <p><strong>Thread Safety:</strong> Batches are created in the consumer thread and distributed to
+ * worker threads for processing. The {@link #recordProcessed(RecordBatchListener)} method must be
  * thread-safe for concurrent calls from multiple workers.
  *
  * @param <K> the type of the record key
@@ -67,8 +68,9 @@ public interface RecordBatch<K, V> {
      * <p>Implementations receive a callback when all records in a batch have been processed,
      * enabling tracking of batch completion rates, processing throughput, and other metrics.
      *
-     * <p><b>Thread Safety:</b> Implementations must be thread-safe as {@link #onBatchComplete} may
-     * be called concurrently from multiple worker threads processing different batches.
+     * <p><strong>Thread Safety:</strong> Implementations must be thread-safe as {@link
+     * #onBatchComplete} may be called concurrently from multiple worker threads processing
+     * different batches.
      *
      * @see RecordBatch#recordProcessed(RecordBatchListener)
      */
