@@ -320,7 +320,7 @@ Then, point your browser to [http://localhost:8080](http://localhost:8080) and s
 
 ## Kubernetes Deployment
 
-To deploy the Lightstreamer Kafka Connector to a Kubernetes cluster, use the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts), which provides built-in support for the Kafka Connector through the `connectors.kafkaConnector` values section.
+To deploy the Lightstreamer Kafka Connector to a Kubernetes or OpenShift cluster, use the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts), which provides built-in support for the Kafka Connector through the `connectors.kafkaConnector` values section.
 
 The Helm Chart handles provisioning, connection setup, topic routing, field mapping, schema registry integration, and logging — all configured declaratively through Helm values. Multiple provisioning methods are available, including the official [Lightstreamer Kafka Connector container image](https://github.com/orgs/Lightstreamer/packages/container/package/lightstreamer-kafka-connector).
 
