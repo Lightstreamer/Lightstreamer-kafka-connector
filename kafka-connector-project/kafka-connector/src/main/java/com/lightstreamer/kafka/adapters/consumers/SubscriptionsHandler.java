@@ -194,9 +194,9 @@ public interface SubscriptionsHandler<K, V> {
 
                 subscribedItems.addItem(newItem);
 
-                incrementAndMaybeStartConsuming();
                 // TODO: temporarily always enabled; gate on a snapshot.enable configuration
                 // property. When disabled, call item.enableRealtimeEvents(eventListener) instead.
+                incrementAndMaybeStartConsuming();
                 enqueueForSnapshot(newItem);
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
