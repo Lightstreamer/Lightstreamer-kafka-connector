@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -319,5 +320,69 @@ public class DefaultSubscriptionsHandlerTest {
                         });
         thread.join();
         assertThat(subscriptionHandler.isConsuming()).isTrue();
+    }
+
+    @Test
+    @Timeout(value = 5, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
+    public void shouldNotLoseConsumerOnConcurrentUnsubscribeAndSubscribe() throws Exception {
+        init("aTopic");
+
+        // Step 0: Subscribe item1 -> counter=1, consumer starts
+        subscriptionHandler.subscribe("anItemTemplate", new Object());
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.isConsuming()).isTrue();
+
+        // Latches to orchestrate the exact interleaving:
+        //   Thread A: unsubscribe item1 -> counter=0 -> stopConsuming() starts
+        //   Thread B: subscribe item2  -> counter=1 -> startConsuming() sees consumer!=null -> nop
+        //   Thread A: stopConsuming() finishes -> consumer=null
+        //   Result: counter=1, consumer=null (dead consumer)
+        CountDownLatch stopEntered = new CountDownLatch(1);
+        CountDownLatch allowStopToFinish = new CountDownLatch(1);
+
+        // Hook runs BEFORE stopConsuming() acquires the lock:
+        // it signals that the unsubscribe path has committed to stopping,
+        // then waits for Thread B to complete its subscribe + startConsuming(nop).
+        subscriptionHandler.stopConsumingHook =
+                () -> {
+                    stopEntered.countDown();
+                    try {
+                        allowStopToFinish.await();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                };
+
+        // Thread A: unsubscribe item1 -> counter becomes 0 -> enters stopConsuming() -> pauses
+        CompletableFuture<Void> threadA =
+                CompletableFuture.runAsync(
+                        () -> {
+                            subscriptionHandler.unsubscribe("anItemTemplate");
+                        });
+
+        // Wait until Thread A has entered stopConsuming() (but hasn't acquired the lock yet)
+        stopEntered.await();
+
+        // Thread B: subscribe item2 -> counter becomes 1 -> startConsuming() acquires lock,
+        // sees consumer != null -> "already consuming, nop" -> releases lock
+        CompletableFuture<Void> threadB =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                subscriptionHandler.subscribe("anotherItemTemplate", new Object());
+                            } catch (SubscriptionException e) {
+                                throw new RuntimeException(e);
+                            }
+                        });
+        threadB.join();
+
+        // Now let Thread A finish: it acquires the lock, shuts down consumer, sets consumer=null
+        allowStopToFinish.countDown();
+        threadA.join();
+
+        // At this point: counter=1, but consumer has been shut down.
+        // The handler SHOULD still be consuming (counter > 0), but the bug leaves it dead.
+        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionHandler.isConsuming()).isTrue(); // FAILS before fix
     }
 }
