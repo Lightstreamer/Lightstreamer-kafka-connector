@@ -1,14 +1,14 @@
 # Snapshot Cache — Detailed Design
 
 > **Status:** Future iteration — not included in v1.
-> **Prerequisite:** Base snapshot support (`TopicSnapshotConsumer` with partition pruning and timeout).
-> **Parent document:** [SNAPSHOT_DESIGN.md](SNAPSHOT_DESIGN.md), Section 7.3 Mitigation D.
+> **Prerequisite:** Base snapshot configuration (`snapshot.enable`, `snapshot.timeout.ms`) and `SubscriptionsHandler` snapshot infrastructure. Replaces `TopicSnapshotConsumer` entirely.
+> **Parent document:** [SNAPSHOT_DESIGN.md](SNAPSHOT_DESIGN.md), Section 11.2.
 
 ---
 
 ## 1. Motivation
 
-The `TopicSnapshotConsumer` reads the topic from beginning on every subscription (or batch of subscriptions). For large compacted topics this is expensive. The Snapshot Cache eliminates repeated reads by maintaining an **in-memory materialized view** of the compacted topic, making snapshot delivery an instant lookup.
+The v1 `TopicSnapshotConsumer` reads the topic from beginning on every subscription batch. For large compacted topics this is expensive (see [SNAPSHOT_CONSUMER_DESIGN.md](SNAPSHOT_CONSUMER_DESIGN.md), Pass Efficiency Analysis). The Snapshot Cache **replaces** `TopicSnapshotConsumer` with an **in-memory materialized view** of the compacted topic, making snapshot delivery an instant lookup and eliminating the multi-pass design along with its associated complexity (drain-exit race, `pendingItems` queue, per-topic consumer map, snapshot thread pool).
 
 ### Before (TopicSnapshotConsumer only)
 
@@ -50,9 +50,9 @@ Kafka Compacted Topic                    Snapshot Cache (in-memory)
 └──────────────────────┘                 └──────────────────────────────────┘
 ```
 
-Key distinction from the base `TopicSnapshotConsumer`:
-- **TopicSnapshotConsumer**: Reads the topic on-demand, per subscription batch. Ephemeral.
-- **Snapshot Cache**: Reads the topic once at startup, then stays in sync via continuous consumption. Long-lived.
+Key distinction from the v1 `TopicSnapshotConsumer` (which it replaces):
+- **TopicSnapshotConsumer** (v1): Reads the topic on-demand, per subscription batch. Ephemeral. Multi-pass loop with drain-exit race.
+- **Snapshot Cache**: Reads the topic once at startup, then stays in sync. Long-lived. Synchronous lookup on subscribe thread.
 
 ---
 
@@ -70,9 +70,10 @@ Key distinction from the base `TopicSnapshotConsumer`:
                         │                          │   ┌─yes──┴──no─┐
                         │                          │   │            │
                         │                          │   ▼            ▼
-                        │                          │ instant    fallback to
-                        │                          │ snapshot   TopicSnapshot
-                        │                          │ delivery   Consumer
+                        │                          │ instant     empty
+                        │                          │ snapshot    snapshot
+                        │                          │ delivery    (client catches
+                        │                          │             up via realtime)
                         └──────────────────────────┘
                                     ▲
                                     │ cache ready notification
@@ -93,7 +94,7 @@ Key distinction from the base `TopicSnapshotConsumer`:
                         │  │    fieldsMap        │  │
                         │  └────────────────────┘  │
                         │                          │
-                        │  State: LOADING │ READY  │
+                        │  State: READY            │
                         └──────────────────────────┘
 ```
 
@@ -102,50 +103,50 @@ Key distinction from the base `TopicSnapshotConsumer`:
 ```java
 class SnapshotCache<K, V> {
 
-    enum State { LOADING, READY, FAILED, CLOSED }
+    enum State { READY, FAILED, CLOSED }
 
     private final String topic;
     private final ConcurrentHashMap<String, Map<String, String>> cache;
     // canonicalItemName → latest fieldsMap
 
-    private volatile State state = State.LOADING;
-    private final CountDownLatch readyLatch = new CountDownLatch(1);
+    private volatile State state;
 
     private final Consumer<byte[], byte[]> consumer;
     private final RecordMapper<K, V> recordMapper;
-    private final Thread cacheThread;
+
+    /**
+     * Loads the full compacted state from Kafka. Called synchronously during
+     * adapter init() — blocks until all partitions are consumed up to their
+     * end offsets. On success, state = READY. On failure, throws.
+     */
+    void load() { ... }
 
     /**
      * Lookup a snapshot for a subscribed item.
-     * Returns Optional.empty() if cache is not ready or item not found.
+     * Returns Optional.empty() if item not found in cache.
+     * Always succeeds when state == READY (guaranteed after init).
      */
     Optional<Map<String, String>> lookup(SubscribedItem item) {
-        if (state != State.READY) {
-            return Optional.empty();
-        }
         return Optional.ofNullable(cache.get(item.asCanonicalItemName()));
     }
 
-    /**
-     * Block until the initial load is complete (or timeout).
-     */
-    boolean awaitReady(Duration timeout) throws InterruptedException {
-        return readyLatch.await(timeout.toMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    /** Start the cache consumer thread. */
-    void start() { ... }
+    /** Start the tailing thread to keep the cache in sync. */
+    void startSync() { ... }
 
     /** Shutdown the cache consumer and release resources. */
     void close() { ... }
 }
 ```
 
+No `LOADING` state, no `CountDownLatch`, no `awaitReady()`. By the time any `subscribe()` call arrives, `load()` has already completed successfully during `init()`.
+
 ### 3.3 CacheConsumer — Lifecycle
 
-The cache consumer always starts with Phase 1 (initial load). After that, two **sync strategies** determine how the cache stays current.
+The cache consumer has two phases: Phase 1 (initial load, synchronous during `init()`) and Phase 2 (continuous tailing, background thread).
 
-#### Phase 1: Initial Load (catch-up) — common to both strategies
+#### Phase 1: Initial Load (catch-up) — synchronous during `init()`
+
+Phase 1 runs **synchronously** in `SnapshotCache.load()`, called from the adapter's `init()` method. Lightstreamer guarantees that no `subscribe()` calls arrive until `init()` returns, so the cache is fully populated before any snapshot lookup.
 
 ```
 assign(allPartitions)
@@ -164,18 +165,17 @@ while (!allPartitionsConsumed(endOffsets)):
         trackOffset(record)
 
 state = READY
-readyLatch.countDown()
 lastRefreshOffset = currentPositions()   // remember where we stopped
 lastRefreshTime = now()
 ```
 
-After this phase, the cache holds the **complete compacted state** at the time `endOffsets` was captured.
+After this phase, the cache holds the **complete compacted state** at the time `endOffsets` was captured. If Phase 1 fails (Kafka unreachable, authentication error, deserialization failure), `load()` throws → `init()` propagates the exception → adapter fails to start → Lightstreamer logs the error. **No degraded runtime state to manage.**
 
 ---
 
-#### Sync Strategy A: Continuous Tailing
+#### Phase 2: Continuous Tailing
 
-A dedicated consumer thread keeps polling after Phase 1 to stay in sync with Kafka in real time.
+After Phase 1 completes, a dedicated background thread continues polling from where `load()` left off to keep the cache in sync with Kafka in real time.
 
 ```
 // Continue polling from where Phase 1 left off — no seek needed
@@ -198,65 +198,11 @@ while (!closed):
 | Broker I/O | Continuous tailing read; near-zero when topic is idle |
 | Resource usage | 1 dedicated thread + 1 TCP connection per topic, permanently |
 | Snapshot delivery | Always sub-millisecond lookup — cache is always current |
-| Best for | High-write-throughput topics; many subscriptions over time |
+| Implementation | Simple poll loop (~10 lines) |
 
----
+#### Why Continuous Tailing Is Necessary
 
-#### Sync Strategy B: On-Demand Refresh
-
-No continuous thread. The cache consumer is **dormant** after Phase 1. When a subscription arrives, the cache checks its freshness and performs an incremental catch-up **only if needed**.
-
-```
-lookup(item):
-    age = now() - lastRefreshTime
-
-    if age < freshnessThreshold:
-        // Cache is fresh enough — serve directly
-        return cache.get(item.asCanonicalItemName())
-
-    // Cache is stale — incremental catch-up before serving
-    synchronized (refreshLock):
-        // Double-check: another thread may have already refreshed
-        if (now() - lastRefreshTime < freshnessThreshold):
-            return cache.get(item.asCanonicalItemName())
-
-        // Resume from last known offset → current end offsets
-        newEndOffsets = consumer.endOffsets(allPartitions)
-        while (!allPartitionsConsumed(newEndOffsets)):
-            records = consumer.poll(timeout)
-            for record in records:
-                // same update logic as Phase 1
-                ...
-        lastRefreshTime = now()
-
-    return cache.get(item.asCanonicalItemName())
-```
-
-**Properties:**
-
-| Aspect | Value |
-|---|---|
-| Staleness | Up to `freshnessThreshold`; zero after refresh |
-| Broker I/O | Zero when idle; incremental read on subscribe (only new records since last refresh) |
-| Resource usage | No dedicated thread; consumer kept open but idle |
-| Snapshot delivery | Sub-millisecond if fresh; milliseconds–seconds if refresh needed |
-| Best for | Low-subscription-rate topics; resource-constrained environments |
-
-**Incremental cost depends on write rate:**
-
-| Topic write rate | Records since last refresh (30s threshold) | Refresh time |
-|---|---|---|
-| 1 msg/s | ~30 records | < 1ms |
-| 100 msg/s | ~3,000 records | ~10ms |
-| 10,000 msg/s | ~300,000 records | ~seconds |
-
-For high-throughput topics the incremental catch-up approaches the cost of a full read, making continuous tailing the better choice. For quiet topics, on-demand refresh avoids the idle resource cost entirely.
-
----
-
-#### Why the cache needs one of these strategies
-
-Without any sync strategy, the cache freezes at startup time and becomes increasingly stale:
+Without tailing, the cache freezes at startup time and becomes increasingly stale:
 
 ```
 t0:   Cache loads. AAPL={price:150}. Consumer closed.
@@ -271,24 +217,7 @@ t100: Client subscribes to stock-[symbol=AAPL]
       another update after t100.
 ```
 
-Both strategies close this gap — tailing prevents it entirely, on-demand refresh closes it at lookup time.
-
----
-
-#### Strategy Comparison
-
-| Dimension | Continuous Tailing | On-Demand Refresh |
-|---|---|---|
-| **Thread usage** | 1 permanent thread per topic | 0 (refresh on calling thread) |
-| **TCP connections** | 1 permanent per topic | 1 kept open but idle |
-| **Staleness window** | ~poll interval (100ms–5s) | 0 at lookup time (blocks to catch up) |
-| **Lookup latency** | Always sub-millisecond | Sub-millisecond if fresh; variable if stale |
-| **Broker I/O when idle** | Periodic empty polls | Zero |
-| **Broker I/O on subscribe** | Zero | Incremental catch-up |
-| **Implementation complexity** | Low (poll loop) | Medium (synchronization, incremental seek) |
-| **Risk** | Idle resource waste on quiet topics | Slow lookup on high-throughput topics |
-
-> **Recommendation:** Default to **on-demand refresh** for simplicity and lower resource usage. Switch to **continuous tailing** (via configuration) for high-write-throughput topics where lookup latency must be guaranteed sub-millisecond.
+Continuous tailing prevents this entirely — the cache sees the t50 record before any subscription arrives, so the lookup at t100 returns the current value.
 
 ---
 
@@ -296,25 +225,22 @@ Both strategies close this gap — tailing prevents it entirely, on-demand refre
 
 ### 4.1 Flow
 
+Since the cache is guaranteed READY after `init()`, the subscribe path has no state checks or fallback logic:
+
 ```
 subscribe(item):
     │
-    ├── cache.state == READY?
+    ├── cached = cache.lookup(item)
     │       │
-    │      yes ──► cached = cache.lookup(item)
-    │       │          │
-    │       │     found?
-    │       │    ┌─yes──┴──no─┐
-    │       │    │            │
-    │       │    ▼            ▼
-    │       │  sendSnapshot   endOfSnapshot()
-    │       │  Event(cached)  (empty snapshot)
-    │       │  endOfSnapshot  enableRealtime
-    │       │  enableRealtime Events()
-    │       │  Events()
-    │       │
-    │      no ──► fallback to TopicSnapshotConsumer
-    │              (base v1 behavior)
+    │  found?
+    │  ┌─yes──┴──no─┐
+    │  │            │
+    │  ▼            ▼
+    │  sendSnapshot   (skip)
+    │  Event(cached)
+    │  │
+    ├── endOfSnapshot()
+    ├── enableRealtimeEvents()
     │
     ▼
  real-time events flow
@@ -323,7 +249,7 @@ subscribe(item):
 ### 4.2 Delivery Code
 
 ```java
-void deliverSnapshotFromCache(SubscribedItem item, EventListener listener) {
+void deliverSnapshot(SubscribedItem item, EventListener listener) {
     Optional<Map<String, String>> cached = snapshotCache.lookup(item);
     if (cached.isPresent()) {
         item.sendSnapshotEvent(cached.get(), listener);
@@ -334,19 +260,7 @@ void deliverSnapshotFromCache(SubscribedItem item, EventListener listener) {
 }
 ```
 
-**Key property:** This runs **synchronously** on the subscribe thread — no background consumer, no waiting. Sub-millisecond delivery.
-
-### 4.3 Race Condition: Subscribe During Phase 1 (LOADING)
-
-If a client subscribes before the cache finishes its initial load:
-
-| Strategy | Behavior |
-|---|---|
-| **Block** | `awaitReady(timeout)` — subscribe thread blocks until cache is ready or timeout |
-| **Fallback** | Use `TopicSnapshotConsumer` for items that arrive during LOADING |
-| **Hybrid** | Block for a short window (e.g., 5s); if not ready, fallback |
-
-> Recommendation: **Hybrid** — brief blocking with fallback. Avoids complexity of running both paths permanently while being responsive.
+**Key property:** This runs **synchronously** on the subscribe thread — no background consumer, no waiting, no state checks. Sub-millisecond delivery.
 
 ---
 
@@ -385,7 +299,7 @@ When the cache exceeds its limit, entries must be evicted. Options:
 | **Random** | Evict random entry | Simplest | May evict hot data |
 | **None (reject)** | Stop caching new entries; existing entries stay | Predictable | Cache becomes stale for new keys |
 
-> Recommendation: **None (reject)** for simplicity — if the topic exceeds the entry limit, new keys are not cached but existing ones remain valid. Items not in cache fall back to `TopicSnapshotConsumer`.
+> Recommendation: **None (reject)** for simplicity — if the topic exceeds the entry limit, new keys are not cached but existing ones remain valid. Items not in cache receive an empty snapshot and catch up via real-time updates.
 
 ### 5.3 Tombstone Handling
 
@@ -407,48 +321,27 @@ This ensures the cache accurately reflects deletions. A `lookup()` for a deleted
 
 ### 6.1 Staleness Window
 
-The staleness depends on the chosen sync strategy:
+The cache staleness is bounded by the tailing consumer's poll interval (~100ms–5s). Between a Kafka write and the next poll, the cache may serve a slightly older value.
 
-| Strategy | Staleness | When stale data is possible |
-|---|---|---|
-| **Continuous tailing** | Consumer poll interval (~100ms–5s) | Between Kafka write and next poll |
-| **On-demand refresh** | Zero at lookup time | Never — refresh blocks until caught up |
-
-In both cases, staleness is **acceptable** because:
+This is **acceptable** because:
 
 1. The real-time main consumer will immediately push the latest update after snapshot completes.
 2. Compacted topics are inherently "eventually consistent" — the snapshot represents a recent-enough state.
 
 ### 6.2 Consistency Between Cache and Real-time Stream
 
-**With continuous tailing** (slight staleness possible):
-
 ```
 Timeline:
   t0: Cache has stock-[symbol=AAPL] → {price: 150}
   t1: New Kafka record: AAPL → {price: 155}
   t2: Client subscribes to stock-[symbol=AAPL]
-  t3: Cache delivers snapshot: {price: 150}   ← slightly stale
+  t3: Cache delivers snapshot: {price: 150}   ← slightly stale (tailing hasn't polled t1 yet)
   t4: endOfSnapshot()
   t5: enableRealtimeEvents() → drains queue
   t6: Main consumer delivers: {price: 155}    ← client catches up
 ```
 
-**With on-demand refresh** (no staleness):
-
-```
-Timeline:
-  t0: Cache has stock-[symbol=AAPL] → {price: 150}  (from initial load)
-  t1: New Kafka record: AAPL → {price: 155}
-  t2: Client subscribes to stock-[symbol=AAPL]
-  t3: On-demand refresh: reads records since last refresh → cache updated to {price: 155}
-  t4: Cache delivers snapshot: {price: 155}   ← current
-  t5: endOfSnapshot()
-  t6: enableRealtimeEvents() → drains queue
-  t7: Direct real-time dispatch
-```
-
-In both cases, the client always converges to the latest value.
+The client always converges to the latest value.
 
 ### 6.3 Multi-Item Consistency
 
@@ -467,20 +360,23 @@ Adapter init()
    │      │
    │     yes ──► Create SnapshotCache per topic
    │      │        │
-   │      │        ├── Start CacheConsumer thread
-   │      │        ├── Phase 1: initial load (seekToBeginning → endOffsets)
-   │      │        ├── State = READY
-   │      │        └── snapshot.cache.sync.strategy?
+   │      │        ├── snapshotCache.load()   [SYNCHRONOUS]
+   │      │        │    seekToBeginning → endOffsets → poll all records
+   │      │        │    On failure: throws → init() fails → adapter does not start
+   │      │        │
+   │      │        ├── State = READY (cache fully populated)
+   │      │        │
+   │      │        └── snapshotCache.startSync()
    │      │              │
-   │      │           tailing ──► Phase 2: continuous tailing (dedicated thread)
-   │      │              │
-   │      │          on-demand ──► Consumer idle, refresh triggered by lookup()
+   │      │              └─► dedicated thread starts tailing from current position
    │      │
    │     no ──► Use TopicSnapshotConsumer (v1 behavior)
    │
    ▼
- Adapter ready for subscriptions
+ Adapter ready for subscriptions (cache guaranteed READY)
 ```
+
+**Startup latency:** Phase 1 adds to `init()` time. For a 1M-key topic (~80s), this is a one-time cost before any client connects. The adapter operator expects startup to involve Kafka connectivity, and Lightstreamer logs adapter init progress. This single read serves every subsequent subscription instantly, forever.
 
 ### 7.2 Shutdown
 
@@ -501,17 +397,18 @@ Adapter shutdown / unsubscribe all
 
 ### 7.3 Failure Recovery
 
-If the cache consumer encounters an unrecoverable error during Phase 1 or sync:
+**Phase 1 failure (during `init()`):** `load()` throws → `init()` propagates the exception → adapter fails to start. Clean failure — no degraded runtime state. The operator sees the error in Lightstreamer logs and fixes the Kafka connectivity issue before retrying.
+
+**Sync failure (after `init()`, during tailing):**
 
 ```
-CacheConsumer thread (tailing) / lookup() thread (on-demand):
+CacheConsumer tailing thread:
   catch (KafkaException e):
       state = FAILED
-      readyLatch.countDown()  // unblock any awaitReady() callers
-      log.error("Snapshot cache failed, falling back to TopicSnapshotConsumer", e)
+      log.error("Snapshot cache tailing failed, snapshots will be stale", e)
 ```
 
-When `state == FAILED`, all `lookup()` calls return `Optional.empty()`, causing the `SubscriptionsHandler` to fall back to the `TopicSnapshotConsumer` path transparently. **No subscription is lost or blocked.**
+When `state == FAILED` during sync, the cache still contains valid data from Phase 1 (and any successful sync updates). `lookup()` continues to return cached entries — they may be stale, but the client converges to the correct value via real-time updates from the main consumer. **No subscription is lost or blocked.**
 
 ---
 
@@ -519,37 +416,56 @@ When `state == FAILED`, all `lookup()` calls return `Optional.empty()`, causing 
 
 ### 8.1 Integration Point: `SubscriptionsHandler`
 
-```java
-// In SubscriptionsHandler.onSubscribedItem(item):
+`SubscriptionsHandler` was refactored into a flat `DefaultSubscriptionsHandler implements SubscriptionsHandler` (see [SNAPSHOT_CONSUMER_DESIGN.md](SNAPSHOT_CONSUMER_DESIGN.md), Section 5). The cache **replaces** the `TopicSnapshotConsumer` infrastructure entirely. The `enqueueForSnapshot()` method is replaced by a synchronous cache lookup:
 
-if (snapshotEnabled) {
-    if (snapshotCache != null && snapshotCache.isReady()) {
-        // Fast path: deliver from cache
-        deliverSnapshotFromCache(item, eventListener);
-    } else {
-        // Slow path: use TopicSnapshotConsumer
-        topicSnapshotConsumer.enqueue(item);
+```java
+// In DefaultSubscriptionsHandler — replaces enqueueForSnapshot():
+
+void deliverSnapshot(SubscribedItem item) {
+    Optional<Map<String, String>> cached = snapshotCache.lookup(item);
+    if (cached.isPresent()) {
+        item.sendSnapshotEvent(cached.get(), eventListener);
     }
+    // Always finalize — empty snapshot is valid
+    item.endOfSnapshot(eventListener);
+    item.enableRealtimeEvents(eventListener);
 }
 ```
 
-The cache is an **optional accelerator** layered on top of the `TopicSnapshotConsumer`. The two paths are interchangeable from the client's perspective.
+No state checks, no blocking, no fallback. The cache is guaranteed READY by the time any `subscribe()` call arrives (Phase 1 completed synchronously during `init()`).
+
+**What this eliminates from `SubscriptionsHandler`:**
+
+- `snapshotConsumers` (`ConcurrentHashMap<String, TopicSnapshotConsumer>`) — no per-topic consumer map
+- `pendingSnapshotTopics` (`ConcurrentHashMap<SubscribedItem, AtomicInteger>`) — no per-item topic countdown
+- `snapshotPool` (`ExecutorService`) — no snapshot thread pool
+- `onItemSnapshotComplete()` callback — no multi-topic finalization coordination
+- `shutdownSnapshotConsumers()` — no wakeup-based shutdown
+- The drain-exit race documented in [SNAPSHOT_CONSUMER_DESIGN.md](SNAPSHOT_CONSUMER_DESIGN.md), Section 7 — no `pendingItems` queue, no multi-pass loop, no `computeIfAbsent`
+
+The entire snapshot path becomes a synchronous `HashMap` lookup on the subscribe thread.
 
 ### 8.2 Interaction with Main Consumer
 
 The cache consumer and the main consumer are **completely independent**:
 
-| Aspect | Main Consumer | Cache Consumer (tailing) | Cache Consumer (on-demand) |
-|---|---|---|---|
-| Consumer group | Configured `group.id` | None (`assign()`) | None (`assign()`) |
-| Offset management | Managed (committed) | Internal tracking only | Internal tracking only |
-| Purpose | Real-time updates | Snapshot state maintenance | Snapshot state maintenance |
-| Lifecycle | Starts/stops with subscriptions | Starts with adapter, runs continuously | Starts with adapter, refreshes on demand |
-| Thread | Shared poll thread | Dedicated thread | Calling thread (subscribe path) |
+| Aspect | Main Consumer | Cache Consumer |
+|---|---|---|
+| Consumer group | Configured `group.id` | None (`assign()`) |
+| Offset management | Managed (committed) | Internal tracking only |
+| Purpose | Real-time updates | Snapshot state maintenance |
+| Lifecycle | Starts/stops with subscriptions | Starts with adapter, runs continuously |
+| Thread | Shared poll thread | Dedicated tailing thread |
 
-### 8.3 Interaction with TopicSnapshotConsumer
+### 8.3 Relationship to `TopicSnapshotConsumer`
 
-When the cache is active and ready, `TopicSnapshotConsumer` is not used at all. When the cache is loading, failed, or disabled, `TopicSnapshotConsumer` handles snapshot delivery. The selection is per-subscription at lookup time.
+The cache is a **standalone replacement** for `TopicSnapshotConsumer`, not a layer on top of it. When the cache is enabled:
+
+- `TopicSnapshotConsumer` is not instantiated
+- No `snapshotConsumers` map, no `snapshotPool`, no `pendingSnapshotTopics`
+- The entire multi-pass coordination model is removed
+
+The v1 `TopicSnapshotConsumer` remains available as the snapshot delivery mechanism when the cache is **not enabled** (i.e., `snapshot.cache.enable=false`, which is the default). The two approaches are mutually exclusive at configuration time, not runtime fallback alternatives.
 
 ---
 
@@ -557,34 +473,38 @@ When the cache is active and ready, `TopicSnapshotConsumer` is not used at all. 
 
 | Parameter | Key | Type | Default | Description |
 |---|---|---|---|---|
-| Cache Enable | `snapshot.cache.enable` | `BOOL` | `false` | Enable the in-memory snapshot cache |
-| Sync Strategy | `snapshot.cache.sync.strategy` | `TEXT` | `on-demand` | `tailing` (continuous poll thread) or `on-demand` (incremental refresh at lookup) |
+| Cache Enable | `snapshot.cache.enable` | `BOOL` | `false` | Enable the in-memory snapshot cache (replaces `TopicSnapshotConsumer`) |
 | Max Entries | `snapshot.cache.max.entries` | `NON_NEGATIVE_INT` | `0` (unlimited) | Maximum number of entries in the cache. `0` means no limit |
-| Initial Load Timeout | `snapshot.cache.init.timeout.ms` | `POSITIVE_INT` | `60000` | Max time to wait for Phase 1 completion before accepting subscriptions |
-| Freshness Threshold | `snapshot.cache.freshness.ms` | `POSITIVE_INT` | `30000` | On-demand strategy only: max age before a refresh is triggered on lookup |
 
 ---
 
 ## 10. Trade-off Summary
 
-| Dimension | TopicSnapshotConsumer (v1) | Cache + Tailing | Cache + On-Demand Refresh |
-|---|---|---|---|
-| **Snapshot latency** | Seconds to minutes | Sub-millisecond (always) | Sub-millisecond if fresh; variable if stale |
-| **Broker I/O per snapshot** | Full topic read per pass | Zero | Zero if fresh; incremental if stale |
-| **Memory usage** | Minimal | Proportional to topic size | Proportional to topic size |
-| **Continuous broker I/O** | None | Tailing polls (~0 when idle) | None |
-| **Dedicated threads** | 1 per topic (ephemeral) | 1 per topic (permanent) | 0 |
-| **TCP connections** | Ephemeral | 1 permanent per topic | 1 kept open but idle |
-| **Staleness** | None | Poll interval (~100ms–5s) | None at lookup time |
-| **Complexity** | Low–Medium | High | High |
-| **Failure mode** | Per-subscription fallback | Global fallback | Global fallback |
+| Dimension | TopicSnapshotConsumer (v1) | Snapshot Cache |
+|---|---|---|
+| **Snapshot latency** | Seconds to minutes | Sub-millisecond (always) |
+| **Broker I/O per snapshot** | Full topic read per pass | Zero |
+| **Memory usage** | Minimal | Proportional to topic size |
+| **Continuous broker I/O** | None | Tailing polls (~0 when idle) |
+| **Dedicated threads** | 1 per topic (ephemeral) | 1 per topic (permanent) |
+| **TCP connections** | Ephemeral | 1 permanent per topic |
+| **Staleness** | None | Poll interval (~100ms–5s) |
+| **Complexity** | Low–Medium | Low (simpler than v1) |
+| **Failure mode** | Per-subscription (each pass independent) | Stale cache (still serves data from Phase 1) |
+| **Drain-exit race** | Present (see [SNAPSHOT_CONSUMER_DESIGN.md](SNAPSHOT_CONSUMER_DESIGN.md#7-known-limitation-drain-exit-race)) | Eliminated |
+| **Subscribe-path concurrency** | Multi-threaded (snapshot pool) | Synchronous on subscribe thread |
+| **Startup cost** | None (on-demand) | Phase 1 in `init()`: full topic read (blocking) |
+| **LOADING state handling** | N/A | None needed — `init()` guarantees READY |
 
 ### When to Use
 
+The v1 `TopicSnapshotConsumer` multi-pass design has a self-regulating property (see [SNAPSHOT_CONSUMER_DESIGN.md](SNAPSHOT_CONSUMER_DESIGN.md), Pass Efficiency Analysis): large topics absorb bursts naturally (few passes), and small topics are fast enough that many passes are negligible. The **medium-topic regime** (10K–100K keys, pass duration ≈ inter-arrival time) is where the cache provides the most value — it eliminates repeated reads entirely.
+
+The choice between `TopicSnapshotConsumer` (v1) and the cache is made at **configuration time** via `snapshot.cache.enable`. They are mutually exclusive, not runtime fallback alternatives.
+
 | Scenario | Recommended Approach |
 |---|---|
-| Small compacted topics (< 100K keys) | `TopicSnapshotConsumer` with partition pruning — simple and fast enough |
-| Large topics (100K–1M keys), frequent subscriptions, high write rate | Cache + **tailing** — always current, instant lookups |
-| Large topics (100K–1M keys), infrequent subscriptions, low write rate | Cache + **on-demand refresh** — saves resources, catches up only when needed |
-| Very large topics (> 1M keys) with limited memory | `TopicSnapshotConsumer` with timeout — cache would consume too much memory |
-| Mixed workload or uncertain | Cache + **on-demand refresh** (default) — adapts to usage patterns with no wasted resources |
+| Small compacted topics (< 10K keys) | `TopicSnapshotConsumer` (v1) — passes are sub-millisecond, many passes are negligible; no memory overhead |
+| Medium topics (10K–100K keys), subscription bursts | Snapshot Cache — eliminates the problematic regime where pass duration ≈ inter-arrival time; also eliminates the drain-exit race |
+| Large topics (100K–1M keys), frequent subscriptions | Snapshot Cache — always current, instant lookups |
+| Very large topics (> 1M keys) with limited memory | `TopicSnapshotConsumer` (v1) with timeout — cache would consume too much memory |
