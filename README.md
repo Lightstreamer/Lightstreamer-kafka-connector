@@ -15,15 +15,23 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Lightstreamer Kafka Connector as a Kafka Connect Sink Connector](#lightstreamer-kafka-connector-as-a-kafka-connect-sink-connector)
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
-- [Installation](#installation)
-  - [Requirements](#requirements)
-  - [Deploy](#deploy)
-  - [Configure](#configure)
-  - [Start](#start)
-    - [1. Launch Lightstreamer Server](#1-launch-lightstreamer-server)
-    - [2. Attach a Lightstreamer Consumer](#2-attach-a-lightstreamer-consumer)
-    - [3. Publish the Events](#3-publish-the-events)
-    - [4. Check the Consumed Events](#4-check-the-consumed-events)
+- [Deployment](#deployment)
+  - [Manual Deployment](#manual-deployment)
+    - [Requirements](#requirements)
+    - [Install](#install)
+    - [Configure](#configure)
+    - [Start](#start)
+  - [Docker-based Deployment](#docker-based-deployment)
+    - [Requirements](#requirements-1)
+    - [Get the Image](#get-the-image)
+    - [Configure](#configure-1)
+    - [Start](#start-1)
+  - [Kubernetes Deployment](#kubernetes-deployment)
+  - [End-to-End Streaming](#end-to-end-streaming)
+    - [Connect a Kafka Producer](#connect-a-kafka-producer)
+    - [Connect a Lightstreamer Consumer](#connect-a-lightstreamer-consumer)
+      - [Connect a Browser-based Consumer](#connect-a-browser-based-consumer)
+      - [Connect a Java Consumer](#connect-a-java-consumer)
 - [Configuration](#configuration)
   - [Global Settings](#global-settings)
   - [Connection Settings](#connection-settings)
@@ -95,7 +103,7 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with any Kafka broker. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customizing-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
 
-Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
+Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises. For Kubernetes environments, the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md) provides a streamlined deployment experience.
 
 ## Kafka Client vs. Kafka Connect
 
@@ -161,17 +169,30 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
    $ ./stop.sh
    ```
 
-# Installation
+# Deployment
 
-This section will guide you through the installation of the Kafka Connector to get it up and running in a very short time.
+This section will guide you through deploying the Kafka Connector quickly and easily.
 
-## Requirements
+Deployment options:
+
+- **Manual Deployment:**
+  Download and configure the Lightstreamer Broker and Kafka Connector from their respective archives.
+
+- **Docker-based Deployment:**
+  Pull or build a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
+
+- **Kubernetes Deployment:**
+  Deploy the Kafka Connector to a Kubernetes cluster using the Lightstreamer Helm Chart.
+
+## Manual Deployment
+
+### Requirements
 
 - JDK (Java Development Kit) v17 or newer
 - [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 - A running Kafka broker or Kafka cluster
 
-## Deploy
+### Install
 
 Download the deployment archive `lightstreamer-kafka-connector-<version>.zip` from the [Releases](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/releases/) page. Alternatively, check out this repository and execute the following command from the [`kafka-connector-project`](/kafka-connector-project/) folder:
 
@@ -207,7 +228,7 @@ LS_HOME/
 ...
 ```
 
-## Configure
+### Configure
 
 Before starting the Kafka Connector, you need to properly configure the `LS_HOME/adapters/lightstreamer-kafka-connector-<version>/adapters.xml` file. For convenience, the package comes with a predefined configuration (the same used in the [_Quickstart_](#quick-start-set-up-in-5-minutes) app), which can be customized in all its aspects as per your requirements. Of course, you may add as many different connection configurations as desired to fit your needs.
 
@@ -269,71 +290,171 @@ To quickly complete the installation and verify the successful integration with 
 
 You can get more details about all possible settings in the [Configuration](#configuration) section.
 
-## Start
+### Start
 
-### 1. Launch Lightstreamer Server
-
-   From the `LS_HOME/bin/unix-like` directory, run the following:
+To start the Kafka Connector, run the following from the `LS_HOME/bin/unix-like` directory:
 
    ```sh
    $ ./background_start.sh
    ```
 
-### 2. Attach a Lightstreamer Consumer
+Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-   The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
+## Docker-based Deployment
 
-   Before launching the consumer, you first need to build it from the [`kafka-connector-project`](/kafka-connector-project/) folder with the command:
+### Requirements
 
-   ```sh
-   $ ./gradlew kafka-connector-utils:build
+- Docker
+
+### Get the Image
+
+Images are published to GitHub Container Registry on each release. You can pull an image from the registry or build it locally.
+
+**Pull from GitHub Container Registry:**
+
+```sh
+# Pull the latest image
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
+
+# Or pull a specific version
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.5.1
+```
+
+**Alternatively, build locally from source:**
+
+See [/docker](/docker/) for build instructions.
+
+### Configure
+
+Prepare your `adapters.xml` configuration file. You can start from the factory [adapters.xml](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file and customize it following the guidelines in the [Configure](#configure) section above.
+
+You can also optionally prepare a `log4j.properties` file for custom logging configuration.
+
+### Start
+
+Launch the container with your configuration files mounted as Docker volumes:
+
+```sh
+$ docker run --name kafka-connector -d -p 8080:8080 \
+  -v $(pwd)/adapters.xml:/lightstreamer/adapters/lightstreamer-kafka-connector/adapters.xml \
+  -v $(pwd)/log4j.properties:/lightstreamer/adapters/lightstreamer-kafka-connector/log4j.properties \
+  ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
+```
+
+Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
+
+## Kubernetes Deployment
+
+To deploy the Lightstreamer Kafka Connector to a Kubernetes or OpenShift cluster, use the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts), which provides built-in support for the Kafka Connector through the `connectors.kafkaConnector` values section.
+
+The Helm Chart handles provisioning, connection setup, topic routing, field mapping, schema registry integration, and logging — all configured declaratively through Helm values. Multiple provisioning methods are available, including the official [Lightstreamer Kafka Connector container image](https://github.com/orgs/Lightstreamer/packages/container/package/lightstreamer-kafka-connector).
+
+For the full deployment guide, see [Deploying Lightstreamer Broker to Kubernetes](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md), and in particular the [Kafka Connector](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md#kafka-connector) section for connector-specific configuration.
+
+## End-to-End Streaming
+
+Once the Lightstreamer Kafka Connector is up and running—whether deployed manually, using Docker, or on Kubernetes—it's time to publish events and connect a Lightstreamer consumer to experience a basic *end-to-end* streaming flow in action.
+
+### Connect a Kafka Producer
+
+The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder contains a simple native Kafka producer designed to publish simulated market events for the *Quickstart* app.
+
+Before launching the producer, you first need to build it. Open a new shell from the folder and execute the following command:
+
+```sh
+$ cd examples/quickstart-producer
+$ ./gradlew build
+```
+
+This command generates the `quickstart-producer-<version>-all.jar` file under the `build/libs` folder.
+
+Then, launch it with:
+
+```sh
+$ java -jar build/libs/quickstart-producer-<version>-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
+```
+
+![producer_video](/pictures/producer.gif)
+
+### Connect a Lightstreamer Consumer
+
+After starting the publisher, you can connect a client application to consume real-time data and display it in its frontend. Below, we'll demonstrate a browser-based example using **HTML and JavaScript**, and a **Java** example. However, you are encouraged to explore any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments and languages, including **iOS, Android, Python, and more**.
+
+#### Connect a Browser-based Consumer
+
+Download the provided [sample web client](/examples/compose-templates/web), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
+
+![consumer_video](/pictures/end-to-end-streaming.gif)
+
+As shown in the [source code](/examples/compose-templates/web/index.html), consuming live data from the Kafka Connector involves just a few steps:
+
+1. **Establishing a Connection:**
+   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
+
+   ```js
+   var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
+   ...
+   lsClient.connect();
    ```
 
-   which generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-project/kafka-connector-utils/build/libs` folder.
+2. **Setting up the Data Grid:**
+   To visualize real-time updates, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows. This is a simple widget provided by the Lightstreamer client library for demonstration purposes. You are free to use any existing JavaScript framework or library to display the data.
 
-   Then, launch it with:
-
-   ```sh
-   $ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+   ```js
+   var stocksGrid = new StaticGrid("stocks", true);
+   stocksGrid.setAutoCleanBehavior(true, false);
+   stocksGrid.addListener({
+       onVisualUpdate: function (key, info, pos) {
+           ...
+           var stockIndex = key.substring(13, key.indexOf(']'));
+           var color = (stockIndex % 2 == 1) ? "#fff" : "#e9fbf2";
+           info.setAttribute("#fff7d5", color, "backgroundColor");
+       }
+   });
    ```
 
-   As you can see, you have to specify a few parameters:
+3. **Subscribing to Live Data:**
+   To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
-   - `--address`: the Lightstreamer Server address
-   - `--adapter-set`: the name of the requested Adapter Set, which triggers Lightstreamer to activate the Kafka Connector deployed into the `adapters` folder
-   - `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
-   - `--items`: the list of items to subscribe to
-   - `--fields`: the list of requested fields for the items
+   The subscription references the `QuickStart` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
 
-  > [!NOTE]
-  > While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
-
-### 3. Publish the Events
-
-   The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder hosts a simple Kafka producer to publish simulated market events for the _Quickstart_ app.
-
-   Before launching the producer, you first need to build it. Open a new shell from the folder and execute the command:
-
-   ```sh
-   $ cd examples/quickstart-producer
-   $ ./gradlew build
+   ```js
+   var stockSubscription = new Subscription("MERGE", stocksGrid.extractItemList(), stocksGrid.extractFieldList());
+   stockSubscription.setDataAdapter("QuickStart");
+   stockSubscription.addListener(stocksGrid);
+   lsClient.subscribe(stockSubscription);
    ```
 
-   which generates the `quickstart-producer-all.jar` file under the `build/libs` folder.
+#### Connect a Java Consumer
 
-   Then, launch it with:
+In addition to the browser-based consumer above, you can set up a Java consumer. The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
-   ```sh
-   $ java -jar build/libs/quickstart-producer-all.jar --bootstrap-servers <kafka.connection.string> --topic stocks
-   ```
+Before launching the consumer, you first need to build it from the [`kafka-connector-project`](/kafka-connector-project/) folder with the command:
 
-   ![producer_video](/pictures/producer.gif)
+```sh
+$ ./gradlew kafka-connector-utils:build
+```
 
-### 4. Check the Consumed Events
+This command generates the `lightstreamer-kafka-connector-utils-consumer-all-<version>.jar` file under the `kafka-connector-project/kafka-connector-utils/build/libs` folder.
 
-   After starting the publisher, you should immediately see the real-time updates flowing from the consumer shell:
+Then, launch it with:
 
-   ![consumer_video](/pictures/consumer.gif)
+```sh
+$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+```
+
+As you can see, you need to specify a few parameters:
+
+- `--address`: the Lightstreamer Server address
+- `--adapter-set`: the name of the requested Adapter Set, which triggers Lightstreamer to activate the Kafka Connector deployed into the `adapters` folder
+- `--data-adapter`: the name of the requested Data Adapter, which identifies the selected Kafka connection configuration
+- `--items`: the list of items to subscribe to
+- `--fields`: the list of requested fields for the items
+
+> [!NOTE]
+> While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
+
+![consumer_video](/pictures/consumer.gif)
 
 # Configuration
 
@@ -2391,5 +2512,7 @@ To learn more about the [Lightstreamer Broker](https://lightstreamer.com/product
 # Examples
 
 The [examples](/examples/) folder contains all the examples referenced throughout this guide, along with additional resources tailored for specific Kafka broker vendors. Additionally, you can explore the [_Airport Demo_](/examples/airport-demo/) for deeper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
+
+For a Kubernetes-based setup, the [Kafka Connector Helm Chart example](https://github.com/Lightstreamer/helm-charts/blob/main/examples/kafka-connector) provides a complete, self-contained deployment that mirrors the [Quickstart](#quick-start-set-up-in-5-minutes) on Kubernetes.
 
 For more examples and live demos, visit our [online showcase](https://demos.lightstreamer.com/?p=kafkaconnector&lclient=noone&f=all&lall=all&sallall=all).
