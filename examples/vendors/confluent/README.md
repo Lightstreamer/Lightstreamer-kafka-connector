@@ -23,6 +23,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Docker-based Deployment](#docker-based-deployment)
     - [Requirements](#requirements-1)
     - [Get the Image](#get-the-image)
+    - [Configure](#configure-1)
     - [Start](#start-1)
   - [Kubernetes Deployment](#kubernetes-deployment)
   - [End-to-End Streaming](#end-to-end-streaming)
@@ -815,7 +816,7 @@ Example:
 <param name="authentication.password">authorized-kafka-user-password</param>
 ```
 
-For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud QuickStart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
+For an example of a SASL/PLAIN authentication configuration, see the [adapters.xml](/examples/vendors/confluent/quickstart-confluent-cloud/adapters.xml#L28) file of the [_Confluent Cloud Quickstart_](/examples/vendors/confluent/quickstart-confluent-cloud/) app.
 
 ##### `SCRAM-SHA-256`
 
