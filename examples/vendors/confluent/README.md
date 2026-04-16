@@ -24,6 +24,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
     - [Requirements](#requirements-1)
     - [Get the Image](#get-the-image)
     - [Start](#start-1)
+  - [Kubernetes Deployment](#kubernetes-deployment)
   - [End-to-End Streaming](#end-to-end-streaming)
     - [Connect a Kafka Producer](#connect-a-kafka-producer)
     - [Connect a Lightstreamer Consumer](#connect-a-lightstreamer-consumer)
@@ -97,7 +98,7 @@ The Lightstreamer Kafka Connector provides a wide range of powerful features, in
 
 The Lightstreamer Kafka Connector seamlessly integrates the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) with [Confluent Cloud](https://www.confluent.io/confluent-cloud/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_generic&utm_source=Lightstreamer&utm_medium=partnerref) and Confluent Platform. While existing producers and consumers continue connecting directly to the Kafka broker, internet-based applications connect through the Lightstreamer Broker, which efficiently handles last-mile data delivery. Authentication and authorization for internet-based clients are managed via a custom Metadata Adapter, created using the [Metadata Adapter API Extension](#customizing-the-kafka-connector-metadata-adapter-class) and integrated into the Lightstreamer Broker.
 
-Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises.
+Both the Kafka Connector and the Metadata Adapter run in-process with the Lightstreamer Broker, which can be deployed in the cloud or on-premises. For Kubernetes environments, the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md) provides a streamlined deployment experience.
 
 ## Kafka Client vs. Kafka Connect
 
@@ -115,8 +116,8 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 We provide two distinct quickstart examples to showcase the functionalities of the Lightstreamer Kafka Connector for both cases: _Confluent Platform_ and _Confluent Cloud_:
 
-* [_Confluent Platform_ Quickstart_](./quickstart-confluent-platform/README.md)
-* [_Confluent Cloud_ Quickstart_](./quickstart-confluent-cloud/README.md)
+* [_Confluent Platform_ Quickstart](./quickstart-confluent-platform/README.md)
+* [_Confluent Cloud_ Quickstart](./quickstart-confluent-cloud/README.md)
 
 # Deployment
 
@@ -128,9 +129,12 @@ Deployment options:
   Download and configure the Lightstreamer Broker and Kafka Connector from their respective archives.
 
 - **Docker-based Deployment:**
-  Build and configure a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
+  Pull or build a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
 
-In both cases, you'll need a [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account.
+- **Kubernetes Deployment:**
+  Deploy the Kafka Connector to a Kubernetes cluster using the Lightstreamer Helm Chart.
+
+In all cases, you'll need a [Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) account.
 
 > [!TIP]
 > Don't have a Confluent Cloud account yet? Start [your free trial of Confluent Cloud](https://www.confluent.io/confluent-cloud/tryfree/?utm_campaign=tm.pmm_cd.cwc_partner_Lightstreamer_tryfree&utm_source=Lightstreamer&utm_medium=partnerref) today. New signups receive $400 to spend during their first 30 days.
@@ -313,9 +317,17 @@ $ docker run --name kafka-connector -d -p 8080:8080 \
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
+## Kubernetes Deployment
+
+To deploy the Lightstreamer Kafka Connector to a Kubernetes cluster, use the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts), which provides built-in support for the Kafka Connector through the `connectors.kafkaConnector` values section.
+
+The Helm Chart handles provisioning, connection setup, topic routing, field mapping, schema registry integration, and logging — all configured declaratively through Helm values. Multiple provisioning methods are available, including the official [Lightstreamer Kafka Connector container image](https://github.com/orgs/Lightstreamer/packages/container/package/lightstreamer-kafka-connector).
+
+For the full deployment guide, see [Deploying Lightstreamer Broker to Kubernetes](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md), and in particular the [Kafka Connector](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md#kafka-connector) section for connector-specific configuration.
+
 ## End-to-End Streaming
 
-Once the Lightstreamer Kafka Connector is up and running—whether deployed manually or using Docker—it's time to publish events and connect a Lightstreamer consumer to experience a basic *end-to-end* streaming flow in action.
+Once the Lightstreamer Kafka Connector is up and running—whether deployed manually, using Docker, or on Kubernetes—it's time to publish events and connect a Lightstreamer consumer to experience a basic *end-to-end* streaming flow in action.
 
 ### Connect a Kafka Producer
 
@@ -2359,5 +2371,7 @@ To learn more about the [Lightstreamer Broker](https://lightstreamer.com/product
 # Examples
 
 The [examples](/examples/) folder contains all the examples referenced throughout this guide, along with additional resources tailored for specific Kafka broker vendors. Additionally, you can explore the [_Airport Demo_](/examples/airport-demo/) for deeper insights into various usage and configuration options of the Lightstreamer Kafka Connector.
+
+For a Kubernetes-based setup, the [Kafka Connector Helm Chart example](https://github.com/Lightstreamer/helm-charts/blob/main/examples/kafka-connector) provides a complete, self-contained deployment that mirrors the [Quickstart](#quick-start-set-up-in-5-minutes) on Kubernetes.
 
 For more examples and live demos, visit our [online showcase](https://demos.lightstreamer.com/?p=kafkaconnector&lclient=noone&f=all&lall=all&sallall=all).
