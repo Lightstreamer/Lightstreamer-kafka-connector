@@ -317,7 +317,7 @@ Images are published to GitHub Container Registry on each release. You can pull 
 $ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 
 # Or pull a specific version
-$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.5.1
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:1.5.2
 ```
 
 **Alternatively, build locally from source:**
