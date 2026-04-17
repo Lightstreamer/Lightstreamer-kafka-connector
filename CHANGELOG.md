@@ -1,6 +1,17 @@
 # Changelog
 
-## [1.5.1] [2026-04-14]
+## [1.5.2] (2026-04-16)
+
+**Bug Fixes**
+
+- **Concurrent subscribe/unsubscribe race condition**: Fixed a race condition where rapid subscribe/unsubscribe/subscribe sequences could leave the Kafka consumer in an inconsistent state. ([#85](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/85))
+
+**Documentation**
+
+- **Kubernetes and Helm Chart deployment references**: Restructured the _Installation_ section of [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) into a new _Deployment_ section covering Manual, Docker-based, and Kubernetes or OpenShift deployment options, with references to the [Lightstreamer Helm Charts](https://github.com/Lightstreamer/helm-charts) repository and its [deployment guide](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md). ([#86](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/86))
+
+
+## [1.5.1] (2026-04-14)
 
 **Documentation**
 
