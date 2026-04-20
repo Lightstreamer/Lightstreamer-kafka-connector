@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -36,6 +36,7 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,16 +65,16 @@ public class ConnectorConfigurator {
         return config;
     }
 
-    public Config<?, ?> consumerConfig() throws ConfigException {
+    public ConnectionSpec<?, ?> connectionSpec() throws ConfigException {
         try {
-            return doConsumerConfig(config, mkKeyValueSelectorSuppliers(config));
+            return doConnectionSpec(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
             logger.atError().setCause(e).log();
             throw new ConfigException(e.getMessage());
         }
     }
 
-    private static <K, V> Config<K, V> doConsumerConfig(
+    private static <K, V> ConnectionSpec<K, V> doConnectionSpec(
             ConnectorConfig config, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException, ConfigException {
         FieldConfigs fieldConfigs = config.getFieldConfigs();
@@ -91,12 +92,17 @@ public class ConnectorConfigurator {
                         config.isFieldsSkipFailedMappingEnabled(),
                         config.isFieldsMapNonScalarValuesEnabled());
 
-        return new Config<>(
+        KafkaRecord.DeserializerPair<K, V> deserializerPair =
+                new KafkaRecord.DeserializerPair<>(
+                        sSuppliers.keySelectorSupplier().deserializer(),
+                        sSuppliers.valueSelectorSupplier().deserializer());
+
+        return new ConnectionSpec<>(
                 config.getAdapterName(),
                 config.baseConsumerProps(),
                 itemTemplates,
                 fieldsExtractor,
-                sSuppliers,
+                deserializerPair,
                 config.getRecordExtractionErrorHandlingStrategy(),
                 CommandModeStrategy.from(
                         config.isAutoCommandModeEnabled(), config.isCommandEnforceEnabled()),
