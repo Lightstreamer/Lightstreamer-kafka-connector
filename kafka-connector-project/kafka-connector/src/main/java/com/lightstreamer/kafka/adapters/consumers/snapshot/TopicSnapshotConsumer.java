@@ -18,8 +18,8 @@
 package com.lightstreamer.kafka.adapters.consumers.snapshot;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
-import com.lightstreamer.kafka.adapters.consumers.CommandMode;
-import com.lightstreamer.kafka.adapters.consumers.CommandMode.Command;
+import com.lightstreamer.kafka.adapters.consumers.processor.CommandMode;
+import com.lightstreamer.kafka.adapters.consumers.processor.CommandMode.Command;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
