@@ -15,7 +15,7 @@
  * limitations under the License.
 */
 
-package com.lightstreamer.kafka.adapters.consumers.wrapper;
+package com.lightstreamer.kafka.adapters.consumers;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
@@ -23,13 +23,13 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus.State;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -209,7 +209,7 @@ public class KafkaConsumerWrapper<K, V> {
     private static final Duration MONITOR_SCRAPE_INTERVAL = Duration.ofSeconds(1);
     private static final Duration MONITOR_LOG_REPORTING_INTERVAL = Duration.ofSeconds(3);
 
-    private final Config<K, V> config;
+    private final ConnectionSpec<K, V> connectionSpec;
     private final MetadataListener metadataListener;
     private final Logger logger;
     private final Consumer<byte[], byte[]> consumer;
@@ -224,16 +224,16 @@ public class KafkaConsumerWrapper<K, V> {
     private volatile FutureStatus status;
 
     public KafkaConsumerWrapper(
-            Config<K, V> config,
+            ConnectionSpec<K, V> connectionSpec,
             MetadataListener metadataListener,
             EventListener eventListener,
             SubscribedItems subscribedItems,
             RecordMapper<K, V> recordMapper,
             Supplier<Consumer<byte[], byte[]>> consumerSupplier)
             throws KafkaException {
-        this.config = config;
+        this.connectionSpec = connectionSpec;
         this.metadataListener = metadataListener;
-        this.logger = LogFactory.getLogger(this.config.connectionName());
+        this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
         this.pollDuration = MAX_POLL_DURATION;
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
@@ -250,14 +250,14 @@ public class KafkaConsumerWrapper<K, V> {
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
-        Concurrency concurrency = this.config.concurrency();
+        Concurrency concurrency = this.connectionSpec.concurrency();
         this.recordConsumer =
                 RecordConsumer.<K, V>recordMapper(recordMapper)
                         .subscribedItems(subscribedItems)
-                        .commandMode(this.config.commandModeStrategy())
+                        .commandMode(this.connectionSpec.commandModeStrategy())
                         .eventListener(eventListener)
                         .offsetService(offsetService)
-                        .errorStrategy(this.config.errorHandlingStrategy())
+                        .errorStrategy(this.connectionSpec.errorHandlingStrategy())
                         .logger(logger)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
@@ -267,23 +267,20 @@ public class KafkaConsumerWrapper<K, V> {
                         .monitor(monitor)
                         .build();
 
-        KafkaRecord.DeserializerPair<K, V> deserializers =
-                new KafkaRecord.DeserializerPair<>(
-                        config.suppliers().keySelectorSupplier().deserializer(),
-                        config.suppliers().valueSelectorSupplier().deserializer());
+        KafkaRecord.DeserializerPair<K, V> deserializers = connectionSpec.deserializerPair();
         this.deserializationMode = new EagerDeserializationMode<>(deserializers);
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
     }
 
     private Monitor newMonitor() {
-        return new KafkaConnectorMonitor(this.config.connectionName())
+        return new KafkaConnectorMonitor(this.connectionSpec.connectionName())
                 .withScrapeInterval(MONITOR_SCRAPE_INTERVAL)
                 .withDataPoints(MONITOR_DATA_POINTS)
                 .withLogReporter();
     }
 
     private String getProperty(String key) {
-        return this.config.consumerProperties().getProperty(key);
+        return this.connectionSpec.consumerProperties().getProperty(key);
     }
 
     public FutureStatus startLoop(ExecutorService pool) {
@@ -358,7 +355,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     boolean subscribed() {
-        ItemTemplates<K, V> templates = this.config.itemTemplates();
+        ItemTemplates<K, V> templates = this.connectionSpec.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
             logger.debug("Subscribing to the requested pattern {}", pattern.pattern());
