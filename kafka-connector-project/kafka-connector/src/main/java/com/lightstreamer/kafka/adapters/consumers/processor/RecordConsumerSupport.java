@@ -19,10 +19,9 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.CommandMode;
-import com.lightstreamer.kafka.adapters.consumers.CommandMode.Command;
-import com.lightstreamer.kafka.adapters.consumers.CommandMode.Key;
 import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.processor.CommandMode.Command;
+import com.lightstreamer.kafka.adapters.consumers.processor.CommandMode.Key;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
