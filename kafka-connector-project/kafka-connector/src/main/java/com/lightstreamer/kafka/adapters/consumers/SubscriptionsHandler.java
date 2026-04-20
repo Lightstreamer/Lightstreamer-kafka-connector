@@ -17,18 +17,22 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import static org.apache.kafka.common.serialization.Serdes.ByteArray;
-
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.TopicSnapshotConsumer;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.FutureStatus;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.CacheSnapshotStrategy;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.ConsumerSnapshotStrategy;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.NoSnapshotStrategy;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy;
+import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -36,20 +40,12 @@ import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionEx
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 
-import java.time.Duration;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 
@@ -69,17 +65,19 @@ public interface SubscriptionsHandler<K, V> {
 
     static class Builder<K, V> {
 
-        private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER =
-                ByteArray().deserializer();
-
-        private Config<K, V> consumerConfig;
+        private ConnectionSpec<K, V> connectionSpec;
         private MetadataListener metadataListener;
         private Supplier<Consumer<byte[], byte[]>> consumerSupplier;
+        private Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier;
+        private SnapshotMode snapshotMode = SnapshotMode.DISABLED;
+
+        // Package-private: allows tests to inject a custom strategy directly
+        SnapshotDeliveryStrategy<K, V> snapshotStrategy;
 
         private Builder() {}
 
-        public Builder<K, V> withConsumerConfig(Config<K, V> consumerConfig) {
-            this.consumerConfig = consumerConfig;
+        public Builder<K, V> withConnectionSpec(ConnectionSpec<K, V> connectionSpec) {
+            this.connectionSpec = connectionSpec;
             return this;
         }
 
@@ -94,56 +92,45 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-        public SubscriptionsHandler<K, V> build() {
-            this.consumerSupplier =
-                    Objects.requireNonNullElse(
-                            this.consumerSupplier, defaultConsumerSupplier(consumerConfig));
-            return new DefaultSubscriptionsHandler<>(this);
+        public Builder<K, V> withSnapshotConsumerSupplier(
+                Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier) {
+            this.snapshotConsumerSupplier = snapshotConsumerSupplier;
+            return this;
         }
 
-        private static <K, V> Supplier<Consumer<byte[], byte[]>> defaultConsumerSupplier(
-                Config<K, V> config) {
-            return () ->
-                    new KafkaConsumer<>(
-                            config.consumerProperties(),
-                            BYTE_ARRAY_DESERIALIZER,
-                            BYTE_ARRAY_DESERIALIZER);
+        public Builder<K, V> withSnapshotMode(SnapshotMode snapshotMode) {
+            this.snapshotMode = snapshotMode;
+            return this;
+        }
+
+        public SubscriptionsHandler<K, V> build() {
+            if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
+            if (metadataListener == null)
+                throw new IllegalStateException("MetadataListener not set");
+            if (consumerSupplier == null)
+                throw new IllegalStateException("ConsumerSupplier not set");
+            if (snapshotMode == null) throw new IllegalStateException("SnapshotMode not set");
+            if (snapshotStrategy == null && snapshotMode != SnapshotMode.DISABLED) {
+                if (snapshotConsumerSupplier == null)
+                    throw new IllegalStateException("SnapshotConsumerSupplier not set");
+            }
+            return new DefaultSubscriptionsHandler<>(this);
         }
     }
 
     static class DefaultSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
-        private final Config<K, V> config;
+        private final ConnectionSpec<K, V> configSpec;
         private final MetadataListener metadataListener;
         private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
 
         private final Logger logger;
         private final RecordMapper<K, V> recordMapper;
-        private final KafkaRecord.DeserializerPair<K, V> deserializerPair;
         private final ExecutorService pool;
+        private final SnapshotDeliveryStrategy<K, V> snapshotStrategy;
 
         private final SubscribedItems subscribedItems;
         private final ReentrantLock consumerLock = new ReentrantLock();
-
-        /** Active snapshot consumers keyed by topic. */
-        private final Map<String, TopicSnapshotConsumer<K, V>> snapshotConsumers =
-                new ConcurrentHashMap<>();
-
-        /**
-         * Tracks how many topic consumers still need to complete for each item. When the count
-         * reaches zero, the item is finalized (end of snapshot + enable real-time).
-         */
-        private final Map<SubscribedItem, AtomicInteger> pendingSnapshotTopics =
-                new ConcurrentHashMap<>();
-
-        /** Thread pool for running {@link TopicSnapshotConsumer} instances. Uses daemon threads. */
-        private final ExecutorService snapshotPool =
-                Executors.newCachedThreadPool(
-                        r -> {
-                            Thread t = new Thread(r, "SnapshotConsumer");
-                            t.setDaemon(true);
-                            return t;
-                        });
 
         private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
         private FutureStatus futureStatus; // guarded by consumerLock
@@ -156,19 +143,67 @@ public interface SubscriptionsHandler<K, V> {
         Runnable stopConsumingHook = () -> {};
 
         DefaultSubscriptionsHandler(Builder<K, V> builder) {
-            this.config = builder.consumerConfig;
+            this.configSpec = builder.connectionSpec;
             this.metadataListener = builder.metadataListener;
             this.consumerSupplier = builder.consumerSupplier;
-            this.logger = LogFactory.getLogger(config.connectionName());
+            this.logger = LogFactory.getLogger(configSpec.connectionName());
             this.recordMapper =
-                    RecordMapper.from(config.itemTemplates(), config.fieldsExtractor());
-            this.deserializerPair =
-                    new KafkaRecord.DeserializerPair<>(
-                            config.suppliers().keySelectorSupplier().deserializer(),
-                            config.suppliers().valueSelectorSupplier().deserializer());
+                    RecordMapper.from(configSpec.itemTemplates(), configSpec.fieldsExtractor());
+            this.snapshotStrategy =
+                    builder.snapshotStrategy != null
+                            ? builder.snapshotStrategy
+                            : resolveStrategy(
+                                    builder.snapshotMode,
+                                    recordMapper,
+                                    builder.snapshotConsumerSupplier,
+                                    configSpec);
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
             this.subscribedItems = SubscribedItems.create();
+        }
+
+        private static <K, V> SnapshotDeliveryStrategy<K, V> resolveStrategy(
+                SnapshotMode mode,
+                RecordMapper<K, V> recordMapper,
+                Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier,
+                ConnectionSpec<K, V> spec) {
+            if (mode == SnapshotMode.DISABLED) {
+                return new NoSnapshotStrategy<>();
+            }
+
+            SnapshotConnectionSpec<K, V> snapshotSpec =
+                    new SnapshotConnectionSpec<>() {
+                        @Override
+                        public String connectionName() {
+                            return spec.connectionName();
+                        }
+
+                        @Override
+                        public ItemTemplates<K, V> itemTemplates() {
+                            return spec.itemTemplates();
+                        }
+
+                        @Override
+                        public KafkaRecord.DeserializerPair<K, V> deserializerPair() {
+                            return spec.deserializerPair();
+                        }
+
+                        @Override
+                        public CommandModeStrategy commandModeStrategy() {
+                            return spec.commandModeStrategy();
+                        }
+                    };
+
+            return switch (mode) {
+                case CONSUMER ->
+                        new ConsumerSnapshotStrategy<>(
+                                snapshotSpec, recordMapper, snapshotConsumerSupplier);
+
+                case CACHE ->
+                        new CacheSnapshotStrategy<>(
+                                snapshotSpec, recordMapper, snapshotConsumerSupplier);
+                case DISABLED -> throw new AssertionError("Unreachable");
+            };
         }
 
         @Override
@@ -177,13 +212,14 @@ public interface SubscriptionsHandler<K, V> {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
             this.eventListener = EventListener.smartEventListener(listener);
+            snapshotStrategy.init();
         }
 
         @Override
         public void subscribe(String item, Object itemHandle) throws SubscriptionException {
             try {
                 SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
-                if (!config.itemTemplates().matches(newItem)) {
+                if (!configSpec.itemTemplates().matches(newItem)) {
                     logger.atWarn()
                             .log("Item [{}] does not match any defined item templates", item);
                     throw new SubscriptionException(
@@ -196,8 +232,7 @@ public interface SubscriptionsHandler<K, V> {
 
                 // TODO: temporarily always enabled; gate on a snapshot.enable configuration
                 // property. When disabled, call item.enableRealtimeEvents(eventListener) instead.
-                incrementAndMaybeStartConsuming();
-                enqueueForSnapshot(newItem);
+                incrementAndMaybeStartConsuming(newItem);
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
@@ -214,7 +249,7 @@ public interface SubscriptionsHandler<K, V> {
             return removedItem;
         }
 
-        private void incrementAndMaybeStartConsuming() {
+        private void incrementAndMaybeStartConsuming(SubscribedItem item) {
             logger.atTrace().log("Acquiring consumer lock to start consuming events...");
             consumerLock.lock();
             logger.atTrace().log("Consumer lock acquired");
@@ -228,6 +263,7 @@ public interface SubscriptionsHandler<K, V> {
                 } else {
                     logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
+                snapshotStrategy.deliverSnapshot(item, eventListener);
             } catch (KafkaException ke) {
                 logger.atError().setCause(ke).log("Unable to connect to Kafka");
                 metadataListener.forceUnsubscriptionAll();
@@ -246,7 +282,7 @@ public interface SubscriptionsHandler<K, V> {
             try {
                 itemsCount--;
                 if (itemsCount == 0) {
-                    shutdownSnapshotConsumers();
+                    snapshotStrategy.onAllItemsUnsubscribed();
                     if (consumer != null) {
                         logger.atInfo().log("Stopping consumer...");
                         consumer.shutdown();
@@ -282,117 +318,12 @@ public interface SubscriptionsHandler<K, V> {
                         "EventListener must be set before starting the consumer");
             }
             return new KafkaConsumerWrapper<>(
-                    config,
+                    configSpec,
                     metadataListener,
                     eventListener,
                     subscribedItems,
                     recordMapper,
                     consumerSupplier);
-        }
-
-        /**
-         * Enqueues an item for snapshot delivery. For each configured topic, gets or creates a
-         * {@link TopicSnapshotConsumer} and enqueues the item. The consumer is launched on first
-         * creation and will self-remove via the completion callback when done.
-         *
-         * <p>Falls back to immediate real-time mode when regex topic subscriptions are active,
-         * since snapshot requires literal topic names to resolve partitions.
-         */
-        private void enqueueForSnapshot(SubscribedItem item) {
-            // TODO: validate at config time when snapshot.enable is gated by configuration
-            if (config.itemTemplates().isRegexEnabled()) {
-                logger.atWarn()
-                        .log(
-                                "Snapshot not supported with regex topic subscriptions, "
-                                        + "falling back to real-time for item [{}]",
-                                item.name());
-                item.enableRealtimeEvents(eventListener);
-                return;
-            }
-
-            Set<String> topics = config.itemTemplates().topicsFor(item);
-            if (topics.isEmpty()) {
-                item.enableRealtimeEvents(eventListener);
-                return;
-            }
-
-            // Register the number of topics this item must wait for before finalization
-            pendingSnapshotTopics.put(item, new AtomicInteger(topics.size()));
-
-            for (String topic : topics) {
-                boolean[] created = {false};
-                TopicSnapshotConsumer<K, V> snapshotConsumer =
-                        snapshotConsumers.computeIfAbsent(
-                                topic,
-                                t -> {
-                                    created[0] = true;
-                                    return createSnapshotConsumer(t);
-                                });
-                snapshotConsumer.enqueue(item);
-                if (created[0]) {
-                    snapshotPool.submit(snapshotConsumer);
-                }
-            }
-        }
-
-        private TopicSnapshotConsumer<K, V> createSnapshotConsumer(String topic) {
-            logger.atInfo().log("Creating snapshot consumer for topic [{}]", topic);
-            return new TopicSnapshotConsumer<>(
-                    topic,
-                    logger,
-                    recordMapper,
-                    eventListener,
-                    consumerSupplier,
-                    deserializerPair,
-                    config.commandModeStrategy(),
-                    Duration.ZERO,
-                    new TopicSnapshotConsumer.SnapshotListener() {
-                        @Override
-                        public void onSnapshotConsumerCompleted(String completedTopic) {
-                            logger.atInfo().log(
-                                    "Snapshot consumer for topic [{}] completed", completedTopic);
-                            snapshotConsumers.remove(completedTopic);
-                        }
-
-                        @Override
-                        public void onItemComplete(SubscribedItem item) {
-                            onItemSnapshotComplete(item);
-                        }
-                    });
-        }
-
-        /**
-         * Called by each {@link TopicSnapshotConsumer} when it has finished processing an item.
-         * Decrements the per-item topic counter; when the last topic completes, the item is
-         * finalized with end of snapshot and real-time events are enabled.
-         */
-        private void onItemSnapshotComplete(SubscribedItem item) {
-            AtomicInteger remaining = pendingSnapshotTopics.get(item);
-            if (remaining == null || remaining.decrementAndGet() > 0) {
-                return;
-            }
-            pendingSnapshotTopics.remove(item);
-            try {
-                item.endOfSnapshot(eventListener);
-                item.enableRealtimeEvents(eventListener);
-                logger.atDebug().log("Snapshot finalized for item [{}]", item.name());
-            } catch (Exception e) {
-                logger.atError()
-                        .setCause(e)
-                        .log("Error finalizing snapshot for item [{}]", item.name());
-                try {
-                    item.enableRealtimeEvents(eventListener);
-                } catch (Exception inner) {
-                    logger.atError()
-                            .setCause(inner)
-                            .log("Failed to enable real-time events for item [{}]", item.name());
-                }
-            }
-        }
-
-        private void shutdownSnapshotConsumers() {
-            snapshotConsumers.values().forEach(TopicSnapshotConsumer::shutdown);
-            snapshotConsumers.clear();
         }
 
         // Only for testing purposes
