@@ -241,8 +241,7 @@ public class OffsetServiceTest {
         // Update the offsets and then commit
         records.forEach(
                 record -> {
-                    offsetService.updateOffsets(
-                            KafkaRecord.fromDeferred(record, deserializerPair, null));
+                    offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
                 });
         offsetService.commitSync();
 
@@ -300,7 +299,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         offsetService.commitSync();
 
         // Check the committed map has not changed
@@ -351,7 +350,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         offsetService.commitAsync(System.currentTimeMillis());
 
         // Check the committed map
@@ -388,7 +387,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         assertThat(offsetService.offsetStore().get().snapshot())
                 .containsExactly(
                         partition0, new OffsetAndMetadata(16L),
@@ -423,7 +422,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         // Simulate revocation of partition 0
         offsetService.onPartitionsRevoked(Set.of(partition0));
@@ -466,7 +465,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         offsetService.onConsumerShutdown();
         records = mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
@@ -509,7 +508,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         // Trigger a rebalance, which in turn make the OffsetService invoke onPartitionsRevoked.
         // The rebalance event remove partition0.
         mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition1)));
@@ -546,7 +545,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
@@ -556,7 +555,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit with insufficient records (below 100 threshold)
@@ -589,7 +588,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeAccumulation =
                 mockConsumer.committed(Set.of(partition0, partition1));
@@ -602,7 +601,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 1000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should not commit yet
 
@@ -616,7 +615,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 31000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should not commit yet
 
@@ -630,7 +629,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 61000L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit(); // Should trigger commit now
 
@@ -661,7 +660,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
@@ -671,7 +670,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // First call to maybeCommit with small record count (below threshold)
@@ -690,7 +689,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 200L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit again with small record count
@@ -723,14 +722,14 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         // Trigger first commit by exceeding record threshold
         for (int i = 0; i < 120; i++) {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -750,7 +749,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
         // Process a small number of records (should not trigger commit since counters were reset)
         for (int i = 0; i < 10; i++) {
             ConsumerRecord<byte[], byte[]> record =
@@ -760,7 +759,7 @@ public class OffsetServiceTest {
                             200000L + i,
                             ("key" + i).getBytes(),
                             ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -778,7 +777,7 @@ public class OffsetServiceTest {
                             300000L + i,
                             ("key" + i).getBytes(),
                             ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
         offsetService.maybeCommit();
 
@@ -808,7 +807,7 @@ public class OffsetServiceTest {
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
-                                KafkaRecord.fromDeferred(record, deserializerPair, null)));
+                                KafkaRecord.fromDeferred(record, deserializerPair)));
 
         Map<TopicPartition, OffsetAndMetadata> committedBeforeMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
@@ -818,7 +817,7 @@ public class OffsetServiceTest {
             ConsumerRecord<byte[], byte[]> record =
                     new ConsumerRecord<>(
                             TOPIC, 0, 100L + i, ("key" + i).getBytes(), ("value" + i).getBytes());
-            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair, null));
+            offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
         }
 
         // Call maybeCommit - should trigger commit due to exceeding threshold
