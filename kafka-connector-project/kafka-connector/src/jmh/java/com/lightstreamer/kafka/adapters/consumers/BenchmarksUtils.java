@@ -23,9 +23,8 @@ import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers;
 import com.lightstreamer.kafka.benchmarks.PriceInfo;
@@ -53,7 +52,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -129,28 +127,15 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void initStore(boolean flag, OffsetStoreSupplier storeSupplier) {
-            throw new UnsupportedOperationException("Unimplemented method 'initStore'");
-        }
-
-        @Override
-        public Optional<OffsetStore> offsetStore() {
-            throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
-        }
-
-        @Override
-        public void initStore(
-                OffsetStoreSupplier storeSupplier,
-                Map<TopicPartition, Long> startOffsets,
-                Map<TopicPartition, OffsetAndMetadata> committed) {
-            throw new UnsupportedOperationException("Unimplemented method 'initStore'");
-        }
-
-        @Override
         public void maybeCommit() {}
 
         @Override
         public void onConsumerShutdown() {}
+
+        @Override
+        public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
+            throw new UnsupportedOperationException("Unimplemented method 'offsetsSnapshot'");
+        }
     }
 
     public static class FakeMetadataListener implements MetadataListener {
@@ -485,7 +470,7 @@ public class BenchmarksUtils {
         }
     }
 
-    public static <T> RecordMapper<String, T> newRecordMapper(Config<String, T> config) {
+    public static <T> RecordMapper<String, T> newRecordMapper(ConnectionSpec<String, T> config) {
         return RecordMapper.<String, T>builder()
                 .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
                 .withFieldExtractor(config.fieldsExtractor())

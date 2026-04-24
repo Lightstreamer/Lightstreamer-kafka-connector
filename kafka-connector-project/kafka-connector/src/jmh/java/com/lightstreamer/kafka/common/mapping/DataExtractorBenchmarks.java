@@ -21,9 +21,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.DeserializationTiming;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.RecordDeserializationMode;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -80,7 +80,8 @@ public class DataExtractorBenchmarks {
             ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
 
             this.canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();

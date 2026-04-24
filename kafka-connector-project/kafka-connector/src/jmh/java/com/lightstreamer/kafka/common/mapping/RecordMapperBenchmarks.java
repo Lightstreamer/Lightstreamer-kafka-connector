@@ -20,9 +20,9 @@ package com.lightstreamer.kafka.common.mapping;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.DeserializationTiming;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.RecordDeserializationMode;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -86,7 +86,8 @@ public class RecordMapperBenchmarks {
                     BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
 
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
             this.subscribedItems =
                     BenchmarksUtils.subscriptions(
                             numOfSubscriptions, new FakeEventListener(bh), numOfTemplateParams);

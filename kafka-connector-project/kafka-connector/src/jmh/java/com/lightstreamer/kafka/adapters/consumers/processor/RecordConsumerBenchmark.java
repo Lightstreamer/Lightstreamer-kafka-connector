@@ -28,12 +28,11 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.PriceInfoRecords;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.DeserializationTiming;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
@@ -128,7 +127,8 @@ public class RecordConsumerBenchmark {
             ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
 
             // Configure the RecordMapper.
             RecordMapper<String, V> recordMapper = BenchmarksUtils.newRecordMapper(config);
@@ -210,17 +210,16 @@ public class RecordConsumerBenchmark {
             this.priceInfoRecords = new PriceInfoRecords(TOPIC, descriptorPath);
             this.listener = new FakeEventListener(bh);
             this.offsetService =
-                    Offsets.OffsetService(
+                    OffsetService.create(
                             new MockConsumer<>(StrategyType.LATEST.toString()), logger);
-            this.offsetService.initStore(false);
         }
 
         @Setup(Level.Iteration)
         public void setUp() {
             ConnectorConfigurator configurator = priceInfoRecords.newConfigurator();
             @SuppressWarnings("unchecked")
-            Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>) configurator.consumerConfig();
+            ConnectionSpec<String, DynamicMessage> config =
+                    (ConnectionSpec<String, DynamicMessage>) configurator.connectionSpec();
 
             // Configure the RecordMapper.
             RecordMapper<String, DynamicMessage> recordMapper =
