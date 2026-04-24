@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -139,13 +139,12 @@ public interface RecordConsumer<K, V> {
     /**
      * Consumes a batch of records.
      *
-     * <p>This method processes a batch of records of the specified generic types K and V. The
-     * implementation is responsible for handling the records within the batch according to the
-     * business logic requirements.
+     * <p>Implementations process each record in the batch according to the configured {@link
+     * RecordProcessor} and error handling strategy.
      *
-     * @param <K> the type of the keys in the record batch
-     * @param <V> the type of the values in the record batch
-     * @param batch the batch of records to be consumed, must not be null
+     * @param batch the batch of records to be consumed
+     * @throws KafkaException if a record fails processing and the error strategy is {@link
+     *     RecordErrorHandlingStrategy#FORCE_UNSUBSCRIPTION}, or if an unrecoverable error occurs
      */
     void consumeBatch(RecordBatch<K, V> batch);
 
