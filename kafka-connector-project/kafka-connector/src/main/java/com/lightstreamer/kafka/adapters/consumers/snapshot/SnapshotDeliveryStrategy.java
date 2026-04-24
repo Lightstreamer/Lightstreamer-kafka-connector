@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers.snapshot;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 
@@ -41,7 +42,10 @@ public interface SnapshotDeliveryStrategy<K, V> {
         CONSUMER,
 
         /** In-memory materialized view of compacted topics, loaded at init, tailed continuously. */
-        CACHE
+        CACHE,
+
+        /** Delegates to Lightstreamer's built-in implicit item snapshot mechanism. */
+        IMPLICIT_ITEM_SNAPSHOT;
     }
 
     /**
@@ -51,7 +55,7 @@ public interface SnapshotDeliveryStrategy<K, V> {
      * @throws KafkaException if a Kafka operation fails during initialization, signaling that the
      *     adapter should not start
      */
-    default void init() throws KafkaException {}
+    default void init(ItemEventListener listener) throws KafkaException {}
 
     /**
      * Delivers snapshot data for the given item and finalizes the snapshot phase. After this method
