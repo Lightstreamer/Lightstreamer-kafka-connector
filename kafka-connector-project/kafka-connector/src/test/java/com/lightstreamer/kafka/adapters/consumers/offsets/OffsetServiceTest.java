@@ -24,15 +24,10 @@ import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 import static org.apache.kafka.common.serialization.Serdes.String;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.CommitStrategy;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetServiceImpl;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
-import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
-import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetStore;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -44,11 +39,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -56,12 +53,12 @@ import java.util.stream.Stream;
 public class OffsetServiceTest {
 
     private static final String TOPIC = "topic";
-
-    private MockConsumer mockConsumer;
-    private OffsetServiceImpl offsetService;
     private static final TopicPartition partition0 = new TopicPartition(TOPIC, 0);
     private static final TopicPartition partition1 = new TopicPartition(TOPIC, 1);
     private static final TopicPartition partition2 = new TopicPartition(TOPIC, 2);
+
+    private MockConsumer mockConsumer;
+    private OffsetServiceImpl offsetService;
 
     private DeserializerPair<String, String> deserializerPair =
             new DeserializerPair<>(String().deserializer(), String().deserializer());
@@ -104,101 +101,32 @@ public class OffsetServiceTest {
         this.mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
     }
 
-    static Stream<Arguments> initStoreArguments() {
-        return Stream.of(
-                arguments(
-                        Collections.emptyMap(),
-                        Map.of(partition0, 10L, partition1, 12L),
-                        Map.of(
-                                partition0,
-                                new OffsetAndMetadata(10L),
-                                partition1,
-                                new OffsetAndMetadata(12L))),
-                arguments(
-                        Map.of(partition0, new OffsetAndMetadata(10L)),
-                        Map.of(partition0, 5L, partition1, 12L),
-                        Map.of(
-                                partition0,
-                                new OffsetAndMetadata(10L),
-                                partition1,
-                                new OffsetAndMetadata(12L))),
-                arguments(
-                        Map.of(partition0, new OffsetAndMetadata(2L)),
-                        Map.of(partition0, 5L, partition1, 12L),
-                        Map.of(
-                                partition0,
-                                new OffsetAndMetadata(2L),
-                                partition1,
-                                new OffsetAndMetadata(12L))),
-                arguments(
-                        Map.of(
-                                partition0,
-                                new OffsetAndMetadata(1L),
-                                partition1,
-                                new OffsetAndMetadata(7L)),
-                        Map.of(partition0, 5L, partition1, 12L),
-                        Map.of(
-                                partition0,
-                                new OffsetAndMetadata(1L),
-                                partition1,
-                                new OffsetAndMetadata(7L))));
-    }
-
-    @ParameterizedTest
-    @MethodSource("initStoreArguments")
-    void shouldInitStoreWithArguments(
-            Map<TopicPartition, OffsetAndMetadata> committed,
-            Map<TopicPartition, Long> startOffsets,
-            Map<TopicPartition, OffsetAndMetadata> expected) {
-
-        setUp(true);
-
-        // Initialize the store
-        offsetService.initStore(startOffsets, committed);
-
-        // The store should have the expected initial committed repo
-        Map<TopicPartition, OffsetAndMetadata> map = offsetService.offsetStore().get().snapshot();
-        assertThat(map).isEqualTo(expected);
-    }
-
-    @Test
-    void shouldInitStore() {
-        setUp(true);
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
-
-        Map<TopicPartition, OffsetAndMetadata> map = offsetService.offsetStore().get().snapshot();
-        assertThat(map)
-                .containsExactly(
+    private void prepareCommittedRecords() {
+        mockConsumer.commitSync(
+                Map.of(
                         partition0,
-                        new OffsetAndMetadata(10l),
+                        new OffsetAndMetadata(15L),
                         partition1,
-                        new OffsetAndMetadata(12L));
+                        new OffsetAndMetadata(16l)));
     }
 
     @Test
-    void shouldUpdateOffsets() {
+    public void shouldUpdateOffsets() {
         setUp(true);
-
-        // Initialize with a mocked store because we want to verify
-        // just whether records are actually saved onto it upon invoking updateOffsets.
-        offsetService.initStore(
-                Mocks.MockOffsetStore::new,
-                Map.of(partition0, 0L, partition1, 0L),
-                Collections.emptyMap());
-        MockOffsetStore store = (MockOffsetStore) offsetService.offsetStore().get();
-        assertThat(store.getRecords()).isEmpty();
 
         KafkaRecord<?, ?> record1 = KafkaRecord(TOPIC, 0, "A-0");
         offsetService.updateOffsets(record1);
+        assertThat(offsetService.offsetsSnapshot())
+                .containsExactly(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(1L));
+
         KafkaRecord<?, ?> record2 = KafkaRecord(TOPIC, 0, "B-10");
         offsetService.updateOffsets(record2);
-        assertThat(store.getRecords()).containsExactly(record1, record2);
+        assertThat(offsetService.offsetsSnapshot())
+                .containsExactly(new TopicPartition(TOPIC, 0), new OffsetAndMetadata(11L));
     }
 
     @Test
-    void shouldStoreFirstFailure() {
+    public void shouldStoreFirstFailure() {
         setUp(true);
 
         // Notify two different exceptions
@@ -210,23 +138,10 @@ public class OffsetServiceTest {
     }
 
     @Test
-    void shouldCommitSync() {
+    public void shouldCommitSync() {
         setUp(true);
 
         prepareCommittedRecords();
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
-
-        // No commit happens before invocation of commitSync
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedBeforeConsuming)
-                .containsExactly(
-                        partition0,
-                        new OffsetAndMetadata(15L),
-                        partition1,
-                        new OffsetAndMetadata(16L));
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -238,11 +153,23 @@ public class OffsetServiceTest {
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
-        // Update the offsets and then commit
+        // Update the offsets
         records.forEach(
                 record -> {
                     offsetService.updateOffsets(KafkaRecord.fromDeferred(record, deserializerPair));
                 });
+
+        // No commit happens before invocation of commitSync
+        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedBeforeConsuming)
+                .containsExactly(
+                        partition0,
+                        new OffsetAndMetadata(15L),
+                        partition1,
+                        new OffsetAndMetadata(16L));
+
+        // Commit synchronously
         offsetService.commitSync();
 
         // Check the committed map
@@ -256,34 +183,21 @@ public class OffsetServiceTest {
                         new OffsetAndMetadata(17L));
     }
 
-    static Stream<Arguments> providedCommitSyncAndIgnoreErrorsArguments() {
+    static Stream<Arguments> providedErrors() {
         return Stream.of(
                 arguments(new KafkaException("Simulated commit error")),
                 arguments(new RuntimeException("Generic error")));
     }
 
     @ParameterizedTest
-    @MethodSource("providedCommitSyncAndIgnoreErrorsArguments")
-    void shouldCommitSyncIgnoreErrors(RuntimeException exception) {
+    @MethodSource("providedErrors")
+    public void shouldNotCommitSyncDueToException(RuntimeException exception) {
         setUp(true);
 
         prepareCommittedRecords();
 
         // Configure the mock consumer to throw an exception on commit
         mockConsumer.setCommitException(exception);
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
-
-        // No commit happens before invocation of commitSync
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedBeforeConsuming)
-                .containsExactly(
-                        partition0,
-                        new OffsetAndMetadata(15L),
-                        partition1,
-                        new OffsetAndMetadata(16L));
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -295,11 +209,24 @@ public class OffsetServiceTest {
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
-        // Update the offsets and then commit
+        // Update the offsets
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
                                 KafkaRecord.fromDeferred(record, deserializerPair)));
+
+        // No commit happens before invocation of commitSync
+        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedBeforeConsuming)
+                .containsExactly(
+                        partition0,
+                        new OffsetAndMetadata(15L),
+                        partition1,
+                        new OffsetAndMetadata(16L));
+
+        // Commit synchronously, which should throw an exception that is caught and ignored by the
+        // OffsetService
         offsetService.commitSync();
 
         // Check the committed map has not changed
@@ -308,33 +235,11 @@ public class OffsetServiceTest {
         assertThat(committedAfterConsuming).isEqualTo(committedBeforeConsuming);
     }
 
-    private void prepareCommittedRecords() {
-        mockConsumer.commitSync(
-                Map.of(
-                        partition0,
-                        new OffsetAndMetadata(15L),
-                        partition1,
-                        new OffsetAndMetadata(16l)));
-    }
-
     @Test
-    void shouldCommitAsync() {
+    public void shouldCommitAsync() {
         setUp(true);
 
         prepareCommittedRecords();
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
-
-        // No commit happens before invocation of commitSync
-        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
-                mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedBeforeConsuming)
-                .containsExactly(
-                        partition0,
-                        new OffsetAndMetadata(15L),
-                        partition1,
-                        new OffsetAndMetadata(16L));
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -351,6 +256,18 @@ public class OffsetServiceTest {
                 record ->
                         offsetService.updateOffsets(
                                 KafkaRecord.fromDeferred(record, deserializerPair)));
+
+        // No commit happens before invocation of commitSync
+        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedBeforeConsuming)
+                .containsExactly(
+                        partition0,
+                        new OffsetAndMetadata(15L),
+                        partition1,
+                        new OffsetAndMetadata(16L));
+
+        // Commit asynchronously
         offsetService.commitAsync(System.currentTimeMillis());
 
         // Check the committed map
@@ -364,14 +281,15 @@ public class OffsetServiceTest {
                         new OffsetAndMetadata(17L));
     }
 
-    @Test
-    void shouldClearOffsetsOnPartitionsLost() {
+    @ParameterizedTest
+    @MethodSource("providedErrors")
+    public void shouldNotCommitAsyncDueToException(RuntimeException exception) {
         setUp(true);
 
         prepareCommittedRecords();
 
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
+        // Configure the mock consumer to throw an exception on commit
+        mockConsumer.setCommitException(exception);
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -379,34 +297,69 @@ public class OffsetServiceTest {
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 0, "A-15"));
                     mockConsumer.addRecord(ConsumerRecord(TOPIC, 1, "B-16"));
                 });
-        org.apache.kafka.clients.consumer.ConsumerRecords<byte[], byte[]> records =
+        ConsumerRecords<byte[], byte[]> records =
                 mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(2);
 
-        // Update the offsets BUT NOT commit
+        // Update the offsets and then commit
         records.forEach(
                 record ->
                         offsetService.updateOffsets(
                                 KafkaRecord.fromDeferred(record, deserializerPair)));
-        assertThat(offsetService.offsetStore().get().snapshot())
+
+        // No commit happens before invocation of commitSync
+        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedBeforeConsuming)
+                .containsExactly(
+                        partition0,
+                        new OffsetAndMetadata(15L),
+                        partition1,
+                        new OffsetAndMetadata(16L));
+
+        // Commit asynchronously, which should trigger an exception that is asynchronously caught
+        // and logged by the OffsetService
+        offsetService.commitAsync(System.currentTimeMillis());
+
+        // Check the committed map has not changed
+        Map<TopicPartition, OffsetAndMetadata> committedAfterConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedAfterConsuming).isEqualTo(committedBeforeConsuming);
+    }
+
+    @Test
+    public void shouldClearOffsetsOnPartitionsLost() {
+        setUp(true);
+
+        List<KafkaRecord<?, ?>> records =
+                List.of(
+                        KafkaRecord.fromDeferred(
+                                ConsumerRecord(TOPIC, 0, "A-15"), deserializerPair),
+                        KafkaRecord.fromDeferred(
+                                ConsumerRecord(TOPIC, 1, "B-16"), deserializerPair));
+        records.forEach(record -> offsetService.updateOffsets(record));
+        assertThat(offsetService.offsetsSnapshot())
                 .containsExactly(
                         partition0, new OffsetAndMetadata(16L),
                         partition1, new OffsetAndMetadata(17L));
 
-        // Simulate partition loss
+        // Simulate loss of partition 1, which should clear only the offset for that partition
         offsetService.onPartitionsLost(Set.of(new TopicPartition(TOPIC, 1)));
-        assertThat(offsetService.offsetStore().get().snapshot())
+        assertThat(offsetService.offsetsSnapshot())
                 .containsExactly(partition0, new OffsetAndMetadata(16L));
+
+        // Simulate loss of partition 0, which should clear the remaining offset and leave the store
+        // empty
+        offsetService.onPartitionsLost(Set.of(new TopicPartition(TOPIC, 0)));
+        assertThat(offsetService.offsetsSnapshot()).isEmpty();
     }
 
-    @Test
-    void shouldCommitOnPartitionsRevoked() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void shouldCommitOnPartitionsRevoked(boolean shutdownConsumer) {
         setUp(true);
 
         prepareCommittedRecords();
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -424,32 +377,50 @@ public class OffsetServiceTest {
                         offsetService.updateOffsets(
                                 KafkaRecord.fromDeferred(record, deserializerPair)));
 
+        // No commit happens before invocation of commitSync
+        Map<TopicPartition, OffsetAndMetadata> committedBeforeConsuming =
+                mockConsumer.committed(Set.of(partition0, partition1));
+        assertThat(committedBeforeConsuming)
+                .containsExactly(
+                        partition0,
+                        new OffsetAndMetadata(15L),
+                        partition1,
+                        new OffsetAndMetadata(16L));
+
+        if (shutdownConsumer) {
+            offsetService.onConsumerShutdown();
+        }
         // Simulate revocation of partition 0
         offsetService.onPartitionsRevoked(Set.of(partition0));
 
         // Check that the offset store only contains partition 1
-        assertThat(offsetService.offsetStore().get().snapshot())
+        assertThat(offsetService.offsetsSnapshot())
                 .containsExactly(partition1, new OffsetAndMetadata(17L));
 
         // Check the committed map
         Map<TopicPartition, OffsetAndMetadata> committedAfterConsuming =
                 mockConsumer.committed(Set.of(partition0, partition1));
-        assertThat(committedAfterConsuming)
-                .containsExactly(
-                        partition0,
-                        new OffsetAndMetadata(16L),
-                        partition1,
-                        new OffsetAndMetadata(17L));
+        if (shutdownConsumer) {
+            // If the consumer is shutting down, commit is skipped, so the committed offsets should
+            // be unchanged
+            assertThat(committedAfterConsuming).isEqualTo(committedAfterConsuming);
+        } else {
+            // If the consumer is not shutting down, the commit should have been triggered, so the
+            // committed offsets should be updated
+            assertThat(committedAfterConsuming)
+                    .containsExactly(
+                            partition0,
+                            new OffsetAndMetadata(16L),
+                            partition1,
+                            new OffsetAndMetadata(17L));
+        }
     }
 
     @Test
-    void shouldCommitOnConsumerShutdown() {
+    public void shouldCommitOnConsumerShutdown() {
         setUp(true);
 
         prepareCommittedRecords();
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -467,7 +438,9 @@ public class OffsetServiceTest {
                         offsetService.updateOffsets(
                                 KafkaRecord.fromDeferred(record, deserializerPair)));
 
+        // Shutdown the consumer, which should trigger a final commit of the offsets
         offsetService.onConsumerShutdown();
+
         records = mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
         assertThat(records.count()).isEqualTo(0);
 
@@ -483,16 +456,13 @@ public class OffsetServiceTest {
     }
 
     @Test
-    void shouldIgnoreErrorsOnPartitionRevoked() {
+    public void shouldIgnoreErrorsOnPartitionRevoked() {
         setUp(true);
 
         prepareCommittedRecords();
 
         // Configure the mock consumer to throw an exception on commit
         mockConsumer.setCommitException(new KafkaException("Simulated commit error"));
-
-        // Normally, the store is initialized only after the very first poll invocation
-        offsetService.initStore(false);
 
         // Poll two new records
         mockConsumer.schedulePollTask(
@@ -527,11 +497,11 @@ public class OffsetServiceTest {
         assertThat(actualOnPartition1.offset()).isEqualTo(16l);
     }
 
-    void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
+    @Test
+    public void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
-        offsetService.initStore(false);
 
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
@@ -564,17 +534,14 @@ public class OffsetServiceTest {
         // Check that no commit was triggered
         Map<TopicPartition, OffsetAndMetadata> committedAfterMaybeCommit =
                 mockConsumer.committed(Set.of(partition0, partition1));
-
-        // Offsets should remain unchanged
         assertThat(committedAfterMaybeCommit).isEqualTo(committedBeforeMaybeCommit);
     }
 
     @Test
-    void shouldAccumulateRecordCountsAcrossMultipleMaybeCommitCalls() {
+    public void shouldAccumulateRecordCountsAcrossMultipleMaybeCommitCalls() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
-        offsetService.initStore(false);
 
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
@@ -642,11 +609,10 @@ public class OffsetServiceTest {
     }
 
     @Test
-    void shouldCommitWhenMaybeCommitTimeThresholdReached() throws InterruptedException {
+    public void shouldCommitWhenMaybeCommitTimeThresholdReached() throws InterruptedException {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
-        offsetService.initStore(false);
 
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
@@ -705,10 +671,9 @@ public class OffsetServiceTest {
     }
 
     @Test
-    void shouldResetCountersAfterCommit() {
+    public void shouldResetCountersAfterCommit() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
         prepareCommittedRecords();
-        offsetService.initStore(false);
 
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
@@ -789,11 +754,10 @@ public class OffsetServiceTest {
     }
 
     @Test
-    void shouldCommitWhenMaybeCommitThresholdReached() {
+    public void shouldCommitWhenMaybeCommitRecordThresholdReached() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
-        offsetService.initStore(false);
 
         // Poll and update offsets for some records
         mockConsumer.schedulePollTask(
