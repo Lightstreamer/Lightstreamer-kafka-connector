@@ -31,11 +31,31 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
  */
 public interface SnapshotConnectionSpec<K, V> {
 
+    /**
+     * Returns the connection name used for logging and identification.
+     *
+     * @return the connection name
+     */
     String connectionName();
 
+    /**
+     * Returns the item templates for mapping Kafka records to subscribed items.
+     *
+     * @return the {@link ItemTemplates} for this connection
+     */
     ItemTemplates<K, V> itemTemplates();
 
+    /**
+     * Returns the deserializer pair for keys and values.
+     *
+     * @return the {@link KafkaRecord.DeserializerPair} for this connection
+     */
     KafkaRecord.DeserializerPair<K, V> deserializerPair();
 
+    /**
+     * Returns the command mode strategy.
+     *
+     * @return the {@link CommandModeStrategy} for this connection
+     */
     CommandModeStrategy commandModeStrategy();
 }
