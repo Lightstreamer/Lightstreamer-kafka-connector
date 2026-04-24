@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.consumers.CommandMode.Command;
+import com.lightstreamer.kafka.adapters.consumers.processor.CommandMode.Command;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandProcessUpdatesStrategy;
 
 import org.junit.jupiter.params.ParameterizedTest;
