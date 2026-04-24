@@ -80,6 +80,14 @@ public class ConsumerSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<
                         return t;
                     });
 
+    /**
+     * Constructs a new {@code ConsumerSnapshotStrategy}.
+     *
+     * @param connectionSpec the snapshot connection specification providing templates and
+     *     deserializers
+     * @param recordMapper the mapper for converting Kafka records to item events
+     * @param consumerSupplier factory for creating Kafka consumers for snapshot reads
+     */
     public ConsumerSnapshotStrategy(
             SnapshotConnectionSpec<K, V> connectionSpec,
             RecordMapper<K, V> recordMapper,
