@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers.snapshot;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -114,7 +115,7 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
     }
 
     @Override
-    public void init() {
+    public void init(ItemEventListener listener) throws KafkaException {
         logger.atInfo().log("Initializing snapshot cache for {} topics...", topics.size());
         Map<String, Map<TopicPartition, Long>> resumeOffsets = load();
         startSync(resumeOffsets);
@@ -162,32 +163,16 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
     public void deliverSnapshot(SubscribedItem item, EventListener listener) {
         Optional<Map<String, String>> cached = lookup(item);
         if (cached.isPresent()) {
-            logger.atDebug().log("Delivering cached snapshot for item [{}]", item.name());
+            logger.atInfo().log("Delivering cached snapshot for item [{}]", item.name());
             item.sendSnapshotEvent(cached.get(), listener);
         } else {
-            logger.atDebug().log(
+            logger.atInfo().log(
                     "No cached data for item [{}], delivering empty snapshot", item.name());
         }
         // Always finalize — empty snapshot is valid
         item.endOfSnapshot(listener);
         item.enableRealtimeEvents(listener);
-        logger.atTrace().log("Snapshot delivery completed for item [{}]", item.name());
-    }
-
-    @Override
-    public void shutdown() {
-        tailingTasks.values().forEach(TailingTask::stop);
-        tailingTasks.clear();
-        tailingPool.shutdown();
-        try {
-            if (!tailingPool.awaitTermination(10, TimeUnit.SECONDS)) {
-                tailingPool.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            tailingPool.shutdownNow();
-            Thread.currentThread().interrupt();
-        }
-        cache.clear();
+        logger.atInfo().log("Snapshot delivery completed for item [{}]", item.name());
     }
 
     /**
@@ -209,6 +194,22 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
         return cache.size();
     }
 
+    @Override
+    public void shutdown() {
+        tailingTasks.values().forEach(TailingTask::stop);
+        tailingTasks.clear();
+        tailingPool.shutdown();
+        try {
+            if (!tailingPool.awaitTermination(10, TimeUnit.SECONDS)) {
+                tailingPool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            tailingPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        cache.clear();
+    }
+
     private Map<TopicPartition, Long> loadTopic(String topic) {
         logger.atInfo().log("Loading snapshot cache for topic [{}]...", topic);
         long topicStart = System.currentTimeMillis();
@@ -219,12 +220,20 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
             consumer.assign(partitions);
             consumer.seekToBeginning(partitions);
             Map<TopicPartition, Long> endOffsets = consumer.endOffsets(partitions);
-            long totalRecords = endOffsets.values().stream().mapToLong(Long::longValue).sum();
-            logger.atDebug().log(
-                    "Topic [{}]: {} partitions, {} total records to consume",
+            Map<TopicPartition, Long> beginningOffsets = consumer.beginningOffsets(partitions);
+            long estimatedRecords =
+                    endOffsets.entrySet().stream()
+                            .mapToLong(
+                                    e ->
+                                            e.getValue()
+                                                    - beginningOffsets.getOrDefault(e.getKey(), 0L))
+                            .sum();
+            logger.atInfo().log(
+                    "Topic [{}]: {} partitions, ~{} records to consume (upper bound,"
+                            + " actual count may be lower due to compaction)",
                     topic,
                     partitions.size(),
-                    totalRecords);
+                    estimatedRecords);
 
             Map<TopicPartition, Long> currentOffsets = new HashMap<>();
 
@@ -235,6 +244,8 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
                     TopicPartition tp = new TopicPartition(raw.topic(), raw.partition());
                     currentOffsets.merge(tp, raw.offset() + 1, Long::max);
                 }
+                logger.atInfo().log(
+                        "Processed {} records for topic [{}]...", records.count(), topic);
             }
 
             long topicElapsed = System.currentTimeMillis() - topicStart;
@@ -251,21 +262,9 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
 
     private void processRecord(ConsumerRecord<byte[], byte[]> raw) {
         try {
-            if (raw.value() == null) {
-                // Tombstone: deserialize only the key to resolve canonical names, then remove
-                K key =
-                        deserializerPair
-                                .keyDeserializer()
-                                .deserialize(raw.topic(), raw.headers(), raw.key());
-                KafkaRecord<K, V> kafkaRecord =
-                        KafkaRecord.from(
-                                raw.topic(),
-                                raw.partition(),
-                                raw.offset(),
-                                raw.timestamp(),
-                                key,
-                                null,
-                                raw.headers());
+            KafkaRecord<K, V> kafkaRecord = KafkaRecord.fromEager(raw, deserializerPair);
+            if (kafkaRecord.isPayloadNull()) {
+                // Tombstone: resolve canonical names, then remove
                 MappedRecord mapped = recordMapper.map(kafkaRecord);
                 for (String canonicalName : mapped.canonicalItemNames()) {
                     cache.remove(canonicalName);
@@ -273,7 +272,6 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
                 return;
             }
 
-            KafkaRecord<K, V> kafkaRecord = deserialize(raw);
             MappedRecord mapped = recordMapper.map(kafkaRecord);
             Map<String, String> fields = mapped.fieldsMap();
             for (String canonicalName : mapped.canonicalItemNames()) {
@@ -288,27 +286,6 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
                             raw.topic(),
                             raw.partition());
         }
-    }
-
-    private KafkaRecord<K, V> deserialize(ConsumerRecord<byte[], byte[]> raw) {
-        K key =
-                deserializerPair
-                        .keyDeserializer()
-                        .deserialize(raw.topic(), raw.headers(), raw.key());
-        V value =
-                raw.value() != null
-                        ? deserializerPair
-                                .valueDeserializer()
-                                .deserialize(raw.topic(), raw.headers(), raw.value())
-                        : null;
-        return KafkaRecord.from(
-                raw.topic(),
-                raw.partition(),
-                raw.offset(),
-                raw.timestamp(),
-                key,
-                value,
-                raw.headers());
     }
 
     private static List<TopicPartition> discoverPartitions(
@@ -416,26 +393,22 @@ public class CacheSnapshotStrategy<K, V> implements SnapshotDeliveryStrategy<K, 
 
                 while (!closed) {
                     ConsumerRecords<byte[], byte[]> records = consumer.poll(TAIL_POLL_TIMEOUT);
+                    logger.atInfo().log(
+                            "Polled {} new records for topic [{}]...", records.count(), topic);
                     for (ConsumerRecord<byte[], byte[]> raw : records) {
                         processRecord(raw);
                     }
                 }
             } catch (WakeupException e) {
-                if (!closed) {
-                    logger.atWarn()
-                            .log("Unexpected wakeup in cache tailing task for topic [{}]", topic);
-                }
-            } catch (KafkaException e) {
+                logger.atDebug().log(
+                        "Cache tailing task woken up for shutdown of topic [{}]", topic);
+            } catch (Exception e) {
                 logger.atError()
                         .setCause(e)
                         .log(
                                 "Snapshot cache tailing failed for topic [{}], "
                                         + "snapshots may become stale",
                                 topic);
-            } catch (Exception e) {
-                logger.atError()
-                        .setCause(e)
-                        .log("Unexpected error in cache tailing task for topic [{}]", topic);
             } finally {
                 this.activeConsumer = null;
                 consumer.close();
