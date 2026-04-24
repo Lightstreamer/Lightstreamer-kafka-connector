@@ -33,13 +33,13 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
@@ -94,10 +94,11 @@ public class RecordConsumerTest {
             long offset,
             String threadName) {}
 
-    private static RecordMapper<String, String> newRecordMapper(Config<String, String> config) {
+    private static RecordMapper<String, String> newRecordMapper(
+            ConnectionSpec<String, String> spec) {
         return RecordMapper.<String, String>builder()
-                .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
-                .withFieldExtractor(config.fieldsExtractor())
+                .withCanonicalItemExtractors(spec.itemTemplates().groupExtractors())
+                .withFieldExtractor(spec.fieldsExtractor())
                 .build();
     }
 
@@ -111,7 +112,7 @@ public class RecordConsumerTest {
     private static Monitor monitor = new Mocks.MockMonitor();
 
     private RecordConsumer<String, String> recordConsumer;
-    private Config<String, String> config;
+    private ConnectionSpec<String, String> connectionSpec;
     private RecordMapper<String, String> recordMapper;
     private Items.SubscribedItems subscriptions;
 
@@ -135,12 +136,13 @@ public class RecordConsumerTest {
                 new ConnectorConfigurator(
                         ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
 
-        this.config = (Config<String, String>) connectorConfigurator.consumerConfig();
+        this.connectionSpec =
+                (ConnectionSpec<String, String>) connectorConfigurator.connectionSpec();
 
         this.subscriptions = SubscribedItems.create();
 
         // Configure the RecordMapper.
-        this.recordMapper = newRecordMapper(config);
+        this.recordMapper = newRecordMapper(connectionSpec);
     }
 
     void subscribe(EventListener listener) {
@@ -159,7 +161,7 @@ public class RecordConsumerTest {
                 .commandMode(commandStrategy)
                 .eventListener(listener)
                 .offsetService(new MockOffsetService())
-                .errorStrategy(config.errorHandlingStrategy())
+                .errorStrategy(connectionSpec.errorHandlingStrategy())
                 .logger(logger)
                 .threads(threads)
                 .ordering(orderStrategy)
