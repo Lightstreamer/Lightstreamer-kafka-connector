@@ -25,8 +25,7 @@ import com.lightstreamer.interfaces.data.ItemEvent;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetStore;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -39,6 +38,7 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecord
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.OffsetCommitCallback;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
@@ -50,7 +50,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 public class Mocks {
@@ -80,6 +79,19 @@ public class Mocks {
             }
 
             super.commitSync(offsets);
+        }
+
+        @Override
+        public synchronized void commitAsync(
+                Map<TopicPartition, OffsetAndMetadata> offsets, OffsetCommitCallback callback) {
+            if (commitException != null) {
+                if (callback != null) {
+                    callback.onComplete(offsets, commitException);
+                }
+                return;
+            }
+
+            super.commitAsync(offsets, callback);
         }
 
         @Override
@@ -175,53 +187,16 @@ public class Mocks {
             return firstFailure;
         }
 
-        @Override
-        public void initStore(boolean flag, OffsetStoreSupplier storeSupplier) {
-            throw new UnsupportedOperationException("Unimplemented method 'initStore'");
-        }
-
-        @Override
-        public Optional<OffsetStore> offsetStore() {
-            throw new UnsupportedOperationException("Unimplemented method 'offsetStore'");
-        }
-
-        @Override
-        public void initStore(
-                OffsetStoreSupplier storeSupplier,
-                Map<TopicPartition, Long> startOffsets,
-                Map<TopicPartition, OffsetAndMetadata> committed) {
-            throw new UnsupportedOperationException("Unimplemented method 'initStore'");
-        }
-
         public List<ConsumedRecordInfo> getConsumedRecords() {
             return records;
         }
 
         @Override
         public void onConsumerShutdown() {}
-    }
-
-    public static class MockOffsetStore implements OffsetStore {
-
-        private final List<KafkaRecord<?, ?>> records = new ArrayList<>();
-        private final Map<TopicPartition, OffsetAndMetadata> topicMap;
-
-        public MockOffsetStore(Map<TopicPartition, OffsetAndMetadata> topicMap, Logger log) {
-            this.topicMap = Collections.unmodifiableMap(topicMap);
-        }
 
         @Override
-        public void save(KafkaRecord<?, ?> record) {
-            records.add(record);
-        }
-
-        @Override
-        public Map<TopicPartition, OffsetAndMetadata> snapshot() {
-            return topicMap;
-        }
-
-        public List<KafkaRecord<?, ?>> getRecords() {
-            return Collections.unmodifiableList(records);
+        public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
+            throw new UnsupportedOperationException("Unimplemented method 'offsetsSnapshot'");
         }
     }
 
