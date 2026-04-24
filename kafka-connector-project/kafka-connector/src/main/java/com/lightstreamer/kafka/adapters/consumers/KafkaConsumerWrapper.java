@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
 
@@ -26,8 +25,7 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.listeners.EventListener;
@@ -59,10 +57,28 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * Wraps a Kafka {@link Consumer} to manage its full lifecycle: connection, subscription, polling,
+ * and graceful shutdown.
+ *
+ * <p>Instances are created in a {@link FutureStatus.State#CONNECTED CONNECTED} state and transition
+ * through {@link FutureStatus.State#INITIALIZED INITIALIZED} to one of the terminal states via
+ * {@link #start(ExecutorService)} and {@link #shutdown()}.
+ *
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
+ */
 public class KafkaConsumerWrapper<K, V> {
 
+    /**
+     * Represents the asynchronous status of a {@link KafkaConsumerWrapper}.
+     *
+     * <p>The status wraps a {@link CompletableFuture} whose value is the current {@link State} of
+     * the consumer lifecycle.
+     */
     public static class FutureStatus {
 
+        /** The lifecycle states of a {@link KafkaConsumerWrapper}. */
         public enum State {
             /** The loop is not started yet, no records will be consumed. */
             CONNECTED,
@@ -79,8 +95,8 @@ public class KafkaConsumerWrapper<K, V> {
             /** The loop is closed because of an exception. */
             LOOP_CLOSED_BY_EXCEPTION,
 
-            /** The loop is closed gracefully because of a wakeup call. */
-            LOOP_CLOSED_BY_WAKEUP,
+            /** The consuming loop exited normally due to shutdown. */
+            LOOP_CLOSED_BY_SHUTDOWN,
 
             /** The loop is in a shutdown state. */
             SHUTDOWN;
@@ -97,10 +113,20 @@ public class KafkaConsumerWrapper<K, V> {
             this.futureState = futureState;
         }
 
+        /**
+         * Waits for the state to be determined and returns it.
+         *
+         * @return the resolved {@link State}
+         */
         public State join() {
             return futureState.join();
         }
 
+        /**
+         * Checks whether the state has already been determined.
+         *
+         * @return {@code true} if the state is available, {@code false} otherwise
+         */
         public boolean isStateAvailable() {
             return futureState.isDone();
         }
@@ -111,14 +137,34 @@ public class KafkaConsumerWrapper<K, V> {
          * <p>This method verifies both that the connection state has been determined (future is
          * completed) and that the actual state is CONNECTED.
          *
-         * @return {@code true} if the consumer is connected to Kafka, false otherwise
+         * @return {@code true} if the consumer is connected to Kafka, {@code false} otherwise
          */
         public boolean isConnected() {
             return futureState.isDone() && futureState.join().equals(State.CONNECTED);
         }
 
+        /**
+         * Checks whether initialization has failed.
+         *
+         * @return {@code true} if the consumer failed during initialization, {@code false}
+         *     otherwise
+         */
         public boolean initFailed() {
             return futureState.isDone() && futureState.join().initFailed();
+        }
+
+        /**
+         * Checks whether the consuming loop has exited, either normally or due to an exception.
+         *
+         * @return {@code true} if the loop has closed, {@code false} otherwise
+         */
+        public boolean isClosed() {
+            if (!futureState.isDone()) {
+                return false;
+            }
+            State state = futureState.join();
+            return state.equals(State.LOOP_CLOSED_BY_EXCEPTION)
+                    || state.equals(State.LOOP_CLOSED_BY_SHUTDOWN);
         }
 
         /**
@@ -131,6 +177,11 @@ public class KafkaConsumerWrapper<K, V> {
             return futureState.isDone() && futureState.join().equals(State.SHUTDOWN);
         }
 
+        /**
+         * Creates a {@code FutureStatus} in the {@link State#CONNECTED} state.
+         *
+         * @return a new {@code FutureStatus} representing a connected consumer
+         */
         public static FutureStatus connected() {
             return new FutureStatus(CompletableFuture.completedFuture(State.CONNECTED));
         }
@@ -214,11 +265,12 @@ public class KafkaConsumerWrapper<K, V> {
     private final Logger logger;
     private final Consumer<byte[], byte[]> consumer;
     private final OffsetService offsetService;
-    private final RecordConsumer<K, V> recordConsumer;
     private final Duration pollDuration;
-    private final ReentrantLock statusLock = new ReentrantLock();
     private final RecordDeserializationMode<K, V> deserializationMode;
     private final Monitor monitor;
+    private final RecordConsumer<K, V> recordConsumer;
+    private final ReentrantLock statusLock = new ReentrantLock();
+    private volatile boolean closed = false;
 
     private volatile Thread hook;
     private volatile FutureStatus status;
@@ -234,7 +286,6 @@ public class KafkaConsumerWrapper<K, V> {
         this.connectionSpec = connectionSpec;
         this.metadataListener = metadataListener;
         this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
-        this.pollDuration = MAX_POLL_DURATION;
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
@@ -242,10 +293,10 @@ public class KafkaConsumerWrapper<K, V> {
         // Instantiate the Kafka Consumer
         this.consumer = consumerSupplier.get();
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
-        this.status = FutureStatus.connected();
-        this.offsetService = Offsets.OffsetService(consumer, logger);
-
-        // Initialize the monitor for this consumer wrapper instance.
+        this.offsetService = OffsetService.create(consumer, logger);
+        this.pollDuration = MAX_POLL_DURATION;
+        this.deserializationMode =
+                new EagerDeserializationMode<>(connectionSpec.deserializerPair());
         this.monitor = newMonitor();
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
@@ -267,9 +318,9 @@ public class KafkaConsumerWrapper<K, V> {
                         .monitor(monitor)
                         .build();
 
-        KafkaRecord.DeserializerPair<K, V> deserializers = connectionSpec.deserializerPair();
-        this.deserializationMode = new EagerDeserializationMode<>(deserializers);
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
+
+        this.status = FutureStatus.connected();
     }
 
     private Monitor newMonitor() {
@@ -283,7 +334,18 @@ public class KafkaConsumerWrapper<K, V> {
         return this.connectionSpec.consumerProperties().getProperty(key);
     }
 
-    public FutureStatus startLoop(ExecutorService pool) {
+    /**
+     * Initializes the Kafka subscription and starts the consuming loop on the given executor.
+     *
+     * <p>If the consumer is not in the {@link FutureStatus.State#CONNECTED CONNECTED} state, this
+     * method returns the current status without taking any action. On successful initialization,
+     * the consuming loop is submitted asynchronously. On failure, resources are cleaned up and a
+     * failed status is returned immediately.
+     *
+     * @param pool the {@link ExecutorService} to run the consuming loop on
+     * @return the {@link FutureStatus} representing the outcome of the start attempt
+     */
+    public FutureStatus start(ExecutorService pool) {
         statusLock.lock();
         try {
             if (!status.isConnected()) {
@@ -298,10 +360,12 @@ public class KafkaConsumerWrapper<K, V> {
 
             if (state.initFailed()) {
                 // In case of failure, immediately return a failed status.
+                closeConsumer();
+                metadataListener.forceUnsubscriptionAll();
                 return updateStatus(CompletableFuture.completedFuture(state));
             }
 
-            return updateStatus(CompletableFuture.supplyAsync(this::runLoop, pool));
+            return updateStatus(CompletableFuture.supplyAsync(this::run, pool));
         } finally {
             statusLock.unlock();
         }
@@ -313,35 +377,18 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private State init() {
-        State state;
-
         try {
             if (subscribed()) {
                 this.monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
-                pollOnce(this::initStoreAndConsume);
-                state = State.INITIALIZED;
+                return State.INITIALIZED;
             } else {
                 logger.atWarn().log("Initialization failed because no topics are subscribed");
-                state = State.INIT_FAILED_BY_SUBSCRIPTION;
+                return State.INIT_FAILED_BY_SUBSCRIPTION;
             }
-        } catch (KafkaException e) {
-            logger.atWarn().setCause(e).log("Initialization failed because of an exception");
-            state = State.INIT_FAILED_BY_EXCEPTION;
         } catch (RuntimeException e) {
-            logger.atWarn()
-                    .setCause(e)
-                    .log("Initialization failed because of an unexpected exception");
-            state = State.INIT_FAILED_BY_EXCEPTION;
+            logger.atWarn().setCause(e).log("Initialization failed because of an exception");
+            return State.INIT_FAILED_BY_EXCEPTION;
         }
-
-        if (state.initFailed()) {
-            closeConsumer();
-            // forceUnsubscriptionAll is idempotent, so calling it here is safe even if already
-            // invoked in the doPoll catch blocks.
-            metadataListener.forceUnsubscriptionAll();
-        }
-
-        return state;
     }
 
     private void installShutdownHook() {
@@ -396,38 +443,6 @@ public class KafkaConsumerWrapper<K, V> {
         return true;
     }
 
-    void pollOnce(java.util.function.Consumer<RecordBatch<K, V>> batchConsumer)
-            throws KafkaException {
-        logger.atInfo().log("Starting first poll to initialize the offset store", pollDuration);
-
-        doPoll(batchConsumer, pollDuration);
-        logger.atInfo().log("First poll completed");
-    }
-
-    private void doPoll(
-            java.util.function.Consumer<RecordBatch<K, V>> batchConsumer, Duration pollTimeout)
-            throws KafkaException {
-        try {
-            ConsumerRecords<byte[], byte[]> records = consumer.poll(pollTimeout);
-            RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
-            batchConsumer.accept(batch);
-        } catch (WakeupException we) {
-            // Catch and rethrow the exception here because of the next KafkaException
-            logger.atDebug().log("Kafka Consumer woke up during poll");
-            throw we;
-        } catch (KafkaException ke) {
-            // Includes SerializationException (a KafkaException subclass) thrown during eager
-            // deserialization: treated as fatal, causing connector shutdown
-            logger.atError().setCause(ke).log("Unrecoverable exception during poll");
-            metadataListener.forceUnsubscriptionAll();
-            throw ke;
-        } catch (Exception e) {
-            logger.atError().setCause(e).log("Unexpected exception during poll");
-            metadataListener.forceUnsubscriptionAll();
-            throw new KafkaException("Unexpected exception during poll", e);
-        }
-    }
-
     private void closeConsumer() {
         logger.atDebug().log("Start closing Kafka Consumer");
         recordConsumer.close();
@@ -440,51 +455,81 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Kafka Consumer closed");
     }
 
-    private State runLoop() {
+    private State run() {
         // Install the shutdown hook
         installShutdownHook();
         logger.atDebug().log("Shutdown hook set");
         try {
-            runPollingLoop(this.recordConsumer::consumeBatch);
+            consumeForEver(this.recordConsumer::consumeBatch);
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
-            logger.atError().setCause(e).log("Unrecoverable exception during polling");
+            metadataListener.forceUnsubscriptionAll();
             return State.LOOP_CLOSED_BY_EXCEPTION;
         } finally {
             closeConsumer();
         }
-        return State.LOOP_CLOSED_BY_WAKEUP;
+        return State.LOOP_CLOSED_BY_SHUTDOWN;
     }
 
-    void runPollingLoop(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
+    void consumeForEver(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
                 "Starting polling forever with poll timeout of {} ms and max.poll.records {}",
                 pollDuration.toMillis(),
                 getProperty(MAX_POLL_RECORDS_CONFIG));
-        for (; ; ) {
-            doPoll(recordConsumer, pollDuration);
+        while (!closed) {
+            try {
+                ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
+                RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
+                recordConsumer.accept(batch);
+            } catch (WakeupException we) {
+                // Rethrow before the KafkaException catch (WakeupException extends KafkaException)
+                logger.atDebug().log("Kafka Consumer woken up during poll");
+                throw we;
+            } catch (KafkaException ke) {
+                // Includes SerializationException (a KafkaException subclass) thrown during eager
+                // deserialization: treated as fatal, causing connector shutdown
+                logger.atError().setCause(ke).log("Unrecoverable exception during poll");
+                throw ke;
+            } catch (Exception e) {
+                logger.atError().setCause(e).log("Unexpected exception during poll");
+                throw new KafkaException("Unexpected exception during poll", e);
+            }
         }
     }
 
-    private boolean isFromLatest() {
-        return getProperty(AUTO_OFFSET_RESET_CONFIG).equals("latest");
-    }
-
-    void initStoreAndConsume(RecordBatch<K, V> batch) {
-        offsetService.initStore(isFromLatest());
-        recordConsumer.consumeBatch(batch);
-    }
-
+    /**
+     * Initiates a graceful shutdown of this consumer.
+     *
+     * <p>The behavior depends on the current state:
+     *
+     * <ul>
+     *   <li>{@link FutureStatus.State#SHUTDOWN SHUTDOWN} — returns immediately (idempotent).
+     *   <li>{@link FutureStatus.State#CONNECTED CONNECTED} — closes resources directly (never
+     *       started).
+     *   <li>Loop still running — wakes up the consumer and waits for the loop to exit.
+     *   <li>Init failed or loop already exited — skips to hook cleanup and state transition.
+     * </ul>
+     *
+     * @return the {@link FutureStatus} in the {@link FutureStatus.State#SHUTDOWN SHUTDOWN} state
+     */
     public FutureStatus shutdown() {
         statusLock.lock();
         try {
             if (status.isShutdown()) {
+                // Already shut down, nothing to do
                 return status;
             }
 
-            doShutdown();
+            if (status.isConnected()) {
+                // Never started — no async thread to join, just close resources
+                closeConsumer();
+            } else if (!status.initFailed() && !status.isClosed()) {
+                // Init failure and loop exit already cleaned up — only doShutdown if loop is still
+                // running
+                doShutdown();
+            }
 
             if (this.hook != null) {
                 logger.atDebug().log("Removing shutdown hook");
@@ -499,6 +544,7 @@ public class KafkaConsumerWrapper<K, V> {
 
     private void doShutdown() {
         logger.atInfo().log("Shutting down Kafka consumer");
+        closed = true;
         logger.atDebug().log("Waking up consumer");
         consumer.wakeup();
         logger.atDebug().log("Consumer woken up, waiting for graceful thread completion");
