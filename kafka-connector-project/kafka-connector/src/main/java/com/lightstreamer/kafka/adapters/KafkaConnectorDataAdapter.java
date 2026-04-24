@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.adapters;
 
-import static com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode.CACHE;
+import static com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode.*;
 
 import static org.apache.kafka.common.serialization.Serdes.ByteArray;
 
@@ -89,7 +89,10 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                         Objects.requireNonNullElse(
                                 consumerSupplier,
                                 consumerSupplier(connectionSpec.consumerProperties())))
+                // .withSnapshotMode(
+                //         DISABLED) // TODO: gate on a snapshot.enable configuration property
                 .withSnapshotMode(CACHE)
+                // .withSnapshotMode(IMPLICIT_ITEM_SNAPSHOT)
                 .withSnapshotConsumerSupplier(
                         Objects.requireNonNullElse(
                                 snapshotConsumerSupplier, snapshotConsumerSupplier(connectionSpec)))
@@ -141,14 +144,14 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        logger.info("Trying subscription to item [{}]", itemName);
+        // logger.info("Trying subscription to item [{}]", itemName);
         subscriptionsHandler.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        logger.info("Unsubscribing from item [{}]", itemName);
+        // logger.info("Unsubscribing from item [{}]", itemName);
         subscriptionsHandler.unsubscribe(itemName);
     }
 }
