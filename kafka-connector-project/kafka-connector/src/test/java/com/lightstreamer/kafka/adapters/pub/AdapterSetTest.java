@@ -37,8 +37,14 @@ import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -159,12 +165,17 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter1.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter1.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
+
         // TODO: temporarily always true; restore to isFalse() when snapshot.enable is gated
         assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isTrue();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter2.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter2.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter2.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
@@ -179,6 +190,8 @@ public class AdapterSetTest {
         assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter3.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter3.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter3.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
@@ -190,6 +203,28 @@ public class AdapterSetTest {
         connectorDataAdapter3.setListener(new MockItemEventListener());
         // TODO: temporarily always true; restore to isFalse() when snapshot.enable is gated
         assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isTrue();
+    }
+
+    private Consumer<byte[], byte[]> getSnapshotConsumer() {
+        MockConsumer snapshotConsumer = new Mocks.MockConsumer(StrategyType.EARLIEST.toString());
+
+        TopicPartition tp = new TopicPartition("topic", 0);
+        snapshotConsumer.updateBeginningOffsets(Map.of(tp, 0L));
+        snapshotConsumer.updateEndOffsets(Map.of(tp, 0L));
+        snapshotConsumer.updatePartitions(
+                tp.topic(),
+                List.of(new PartitionInfo(tp.topic(), tp.partition(), null, null, null)));
+        return snapshotConsumer;
+    }
+
+    private Consumer<byte[], byte[]> getConsumer() {
+        MockConsumer consumer = new Mocks.MockConsumer(StrategyType.LATEST.toString());
+
+        TopicPartition tp = new TopicPartition("topic", 0);
+        consumer.updatePartitions(
+                tp.topic(),
+                List.of(new PartitionInfo(tp.topic(), tp.partition(), null, null, null)));
+        return consumer;
     }
 
     @Test
