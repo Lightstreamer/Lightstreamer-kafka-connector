@@ -316,7 +316,7 @@ public class TopicSnapshotConsumer<K, V> implements Runnable {
     /**
      * Discovers all partitions for the target topic.
      *
-     * @return list of TopicPartition objects, or empty if topic doesn't exist
+     * @return list of {@link TopicPartition} objects, or empty if topic doesn't exist
      */
     private List<TopicPartition> discoverPartitions(Consumer<byte[], byte[]> consumer) {
         List<PartitionInfo> partitionInfos =
