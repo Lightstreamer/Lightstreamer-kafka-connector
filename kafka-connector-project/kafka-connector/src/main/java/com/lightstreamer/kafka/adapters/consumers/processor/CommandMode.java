@@ -30,8 +30,7 @@ import java.util.stream.Stream;
  * Lightstreamer events derived from Kafka records.
  *
  * <p>Used by both the real-time record processing pipeline ({@code RecordConsumerSupport}) and the
- * snapshot consumer ({@code TopicSnapshotConsumer}) to ensure consistent event schema across
- * delivery paths.
+ * snapshot strategies to ensure consistent event schema across delivery paths.
  */
 public interface CommandMode {
 
