@@ -277,6 +277,22 @@ public interface ConfigTypes {
         }
     }
 
+    /** Snapshot delivery mode, selecting how clients receive initial state on subscribe. */
+    enum SnapshotMode {
+        /** No snapshot — real-time events are enabled immediately on subscribe. */
+        DISABLED,
+
+        /** In-memory materialized view of compacted topics, loaded at init, tailed continuously. */
+        CACHE,
+
+        /** Delegates to Lightstreamer's built-in implicit item snapshot mechanism. */
+        IMPLICIT;
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
     private static Set<String> enumNames(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
     }
