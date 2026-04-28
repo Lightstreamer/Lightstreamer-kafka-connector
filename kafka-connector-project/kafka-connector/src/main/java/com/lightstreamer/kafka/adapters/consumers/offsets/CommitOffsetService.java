@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2024 Lightstreamer Srl
+ * Copyright (C) 2026 Lightstreamer Srl
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,10 +31,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Default {@link OffsetService} implementation that tracks offsets in a {@link ConcurrentHashMap}
- * and commits them to Kafka using configurable {@link CommitStrategy} timing.
+ * {@link OffsetService} implementation that tracks offsets in a {@link ConcurrentHashMap} and
+ * commits them to Kafka using configurable {@link CommitStrategy} timing.
  */
-class OffsetServiceImpl implements OffsetService {
+class CommitOffsetService implements OffsetService {
 
     private final Consumer<?, ?> consumer;
     private final Logger logger;
@@ -49,12 +49,12 @@ class OffsetServiceImpl implements OffsetService {
     private volatile int messagesSinceLastCommit = 0;
 
     /** Creates a new instance with the default {@link CommitStrategy.Adaptive} strategy. */
-    OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger) {
+    CommitOffsetService(Consumer<?, ?> consumer, Logger logger) {
         this(consumer, logger, CommitStrategy.adaptiveCommitStrategy(5));
     }
 
     /** Creates a new instance with the specified {@link CommitStrategy}. */
-    OffsetServiceImpl(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
+    CommitOffsetService(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
         this.consumer = consumer;
         this.logger = logger;
         this.commitStrategy = commitStrategy;
