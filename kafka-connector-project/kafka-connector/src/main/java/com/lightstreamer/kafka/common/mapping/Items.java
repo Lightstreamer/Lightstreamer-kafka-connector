@@ -53,37 +53,108 @@ import java.util.regex.Pattern;
 
 public class Items {
 
+    /** Represents a named item with an associated handle for server-side identification. */
     public interface Item {
 
+        /**
+         * Returns the name of this item.
+         *
+         * @return the item name
+         */
         String name();
 
+        /**
+         * Returns the handle object used by the Lightstreamer Server to identify this item.
+         *
+         * @return the item handle
+         */
         Object itemHandle();
     }
 
+    /**
+     * Represents a subscribed item that can receive snapshot and real-time events from Kafka
+     * records routed through the mapping pipeline.
+     *
+     * <p>Implementations control the event delivery lifecycle: buffering real-time events until
+     * snapshot delivery completes, then switching to direct delivery via {@link
+     * #enableRealtimeEvents(EventListener)}.
+     *
+     * @see SubscribedItems
+     */
     public interface SubscribedItem extends Item {
 
+        /**
+         * Returns the schema associated with this item, used for template matching.
+         *
+         * @return the {@link Schema} of this item
+         */
         Schema schema();
 
+        /**
+         * Indicates whether this item is still in the snapshot delivery phase.
+         *
+         * @return {@code true} if snapshot delivery is in progress, {@code false} otherwise
+         */
         boolean isSnapshot();
 
+        /**
+         * Sets the snapshot delivery state of this item.
+         *
+         * @param flag {@code true} to indicate snapshot is in progress, {@code false} when complete
+         */
         void setSnapshot(boolean flag);
 
+        /**
+         * Returns the canonical item name used for routing and identification.
+         *
+         * @return the canonical item name
+         */
         String asCanonicalItemName();
 
+        /**
+         * Enables direct real-time event delivery, draining any buffered events first.
+         *
+         * @param listener the {@link EventListener} to deliver events to
+         */
         void enableRealtimeEvents(EventListener listener);
 
+        /**
+         * Sends a real-time event for this item.
+         *
+         * <p>The default implementation delegates directly to {@link EventListener#update}.
+         * Subclasses may override to buffer events during the snapshot phase.
+         *
+         * @param event the field name-value pairs to send
+         * @param listener the {@link EventListener} to deliver the event to
+         */
         default void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
             listener.update(this, event, false);
         }
 
+        /**
+         * Sends a snapshot event for this item.
+         *
+         * @param event the field name-value pairs to send
+         * @param listener the {@link EventListener} to deliver the event to
+         */
         default void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
             listener.update(this, event, true);
         }
 
+        /**
+         * Clears the snapshot for this item on the server.
+         *
+         * @param listener the {@link EventListener} to notify
+         */
         default void clearSnapshot(EventListener listener) {
             listener.clearSnapshot(this);
         }
 
+        /**
+         * Signals the end of snapshot delivery for this item.
+         *
+         * @param listener the {@link EventListener} to notify
+         */
         default void endOfSnapshot(EventListener listener) {
             listener.endOfSnapshot(this);
         }
@@ -113,6 +184,21 @@ public class Items {
          */
         static SubscribedItems create() {
             return new DefaultSubscribedItems();
+        }
+
+        /**
+         * Creates an implicit instance of {@code SubscribedItems} that auto-registers items on
+         * first access via {@link #getItem(String)}.
+         *
+         * <p>Items created by this implementation use a lightweight {@link DirectSubscribedItem}
+         * that delegates directly to the {@link EventListener} without buffering, making it
+         * suitable for the implicit item snapshot strategy where no explicit subscribe/unsubscribe
+         * lifecycle is managed.
+         *
+         * @return a new {@code SubscribedItems} instance that creates items on demand
+         */
+        static SubscribedItems implicit() {
+            return new ImplicitSubscribedItems();
         }
 
         /**
@@ -168,6 +254,7 @@ public class Items {
         void clear();
     }
 
+    /** No-operation implementation of {@link SubscribedItems} that ignores all mutations. */
     private static class NOPSubscribedItems implements SubscribedItems {
 
         private static final NOPSubscribedItems NOP = new NOPSubscribedItems();
@@ -204,6 +291,10 @@ public class Items {
         }
     }
 
+    /**
+     * Default thread-safe implementation of {@link SubscribedItems} backed by a {@link
+     * ConcurrentHashMap}.
+     */
     private static class DefaultSubscribedItems implements SubscribedItems {
 
         private final Map<String, SubscribedItem> sourceItems;
@@ -243,15 +334,183 @@ public class Items {
         }
     }
 
+    /**
+     * A {@link SubscribedItems} implementation that auto-registers items on first access. When
+     * {@link #getItem(String)} is called with a canonical name not yet in the map, a lightweight
+     * {@link DirectSubscribedItem} is created and cached atomically, using the canonical name as
+     * the item handle.
+     *
+     * <p>Designed for the implicit item snapshot strategy where no explicit subscribe/unsubscribe
+     * lifecycle is managed by the adapter.
+     */
+    private static class ImplicitSubscribedItems implements SubscribedItems {
+
+        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
+
+        @Override
+        public void addItem(SubscribedItem item) {
+            items.put(item.asCanonicalItemName(), item);
+        }
+
+        @Override
+        public Optional<SubscribedItem> removeItem(String itemName) {
+            return Optional.ofNullable(items.remove(itemName));
+        }
+
+        /**
+         * {@inheritDoc}
+         *
+         * <p>If no item exists for the given name, a lightweight {@link DirectSubscribedItem} is
+         * created atomically and cached. The item uses the canonical name itself as its handle (no
+         * server-side subscription exists in implicit mode) and {@link Schema#nop()} as its schema.
+         *
+         * <p>Using {@code Schema.nop()} is safe here because implicit items bypass the {@link
+         * ItemTemplates#matches(SubscribedItem)} check entirely — routing is performed by canonical
+         * name string lookup in this map, not by schema matching. This avoids parsing the
+         * subscription expression and allocating a per-item {@code Schema} object, which would
+         * otherwise duplicate identical schema data across potentially hundreds of thousands of
+         * items (one per unique key in the compacted topic).
+         */
+        @Override
+        public SubscribedItem getItem(String itemName) {
+            return items.computeIfAbsent(
+                    itemName, name -> new DirectSubscribedItem(name, name, Schema.nop()));
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return items.isEmpty();
+        }
+
+        @Override
+        public int size() {
+            return items.size();
+        }
+
+        @Override
+        public void clear() {
+            items.clear();
+        }
+    }
+
+    /**
+     * A lightweight {@link SubscribedItem} implementation that delivers events directly via the
+     * interface default methods, without buffering.
+     *
+     * <p>Unlike {@link BufferedSubscribedItem}, this implementation allocates no queue, lock, or
+     * consumer lambda — all event delivery goes straight to the {@link EventListener}.
+     *
+     * <p>Used in two scenarios:
+     *
+     * <ul>
+     *   <li>No-snapshot mode with an explicit server-provided item handle
+     *   <li>Implicit item snapshot strategy where the canonical name serves as the item handle
+     * </ul>
+     */
+    private static class DirectSubscribedItem implements SubscribedItem {
+
+        private final Object itemHandle;
+        private final String canonicalItemName;
+        private final Schema schema;
+
+        DirectSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+            this(expression.asCanonicalItemName(), itemHandle, expression.schema());
+        }
+
+        DirectSubscribedItem(String canonicalItemName, Object itemHandle, Schema schema) {
+            this.canonicalItemName = canonicalItemName;
+            this.itemHandle = itemHandle;
+            this.schema = schema;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemHandle, canonicalItemName);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            return obj instanceof DirectSubscribedItem other
+                    && canonicalItemName.equals(other.canonicalItemName)
+                    && Objects.equals(itemHandle, other.itemHandle);
+        }
+
+        @Override
+        public String name() {
+            return canonicalItemName;
+        }
+
+        @Override
+        public Object itemHandle() {
+            return itemHandle;
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        @Override
+        public String asCanonicalItemName() {
+            return canonicalItemName;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return false;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            // No-op: direct items do not manage snapshot state
+        }
+
+        @Override
+        public void enableRealtimeEvents(EventListener listener) {
+            // No-op: direct items deliver events immediately via interface defaults
+        }
+    }
+
+    /**
+     * Manages item templates that map Kafka topic records to Lightstreamer items through canonical
+     * extraction.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     public interface ItemTemplates<K, V> {
 
+        /**
+         * Checks whether any configured template matches the given item's schema.
+         *
+         * @param item the {@link SubscribedItem} to test
+         * @return {@code true} if at least one template matches, {@code false} otherwise
+         */
         boolean matches(SubscribedItem item);
 
+        /**
+         * Returns extractors grouped by topic name.
+         *
+         * @return a map from topic name to the set of {@link CanonicalItemExtractor}s for that
+         *     topic
+         */
         Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
-        // Only for testing purposes
+        /**
+         * Returns the set of extractor schemas configured for the given topic. Intended for testing
+         * purposes only.
+         *
+         * @param topic the Kafka topic name
+         * @return the set of {@link Schema}s for that topic
+         */
         Set<Schema> getExtractorSchemasByTopicName(String topic);
 
+        /**
+         * Returns all topic names covered by the configured templates.
+         *
+         * @return the set of topic names
+         */
         Set<String> topics();
 
         /**
@@ -263,25 +522,38 @@ public class Items {
          */
         Set<String> topicsFor(SubscribedItem item);
 
+        /**
+         * Indicates whether regex-based topic matching is enabled.
+         *
+         * @return {@code true} if regex matching is enabled, {@code false} otherwise
+         */
         default boolean isRegexEnabled() {
             return false;
         }
 
+        /**
+         * Returns the compiled subscription pattern when regex topic matching is enabled.
+         *
+         * @return an {@link Optional} containing the compiled {@link Pattern}, or empty if regex is
+         *     disabled
+         */
         Optional<Pattern> subscriptionPattern();
     }
 
-    private static class DefaultSubscribedItem implements SubscribedItem {
+    /**
+     * The default {@link SubscribedItem} implementation that buffers real-time events during the
+     * snapshot phase and drains them upon {@link #enableRealtimeEvents(EventListener)}.
+     */
+    private static class BufferedSubscribedItem implements SubscribedItem {
 
         private final Object itemHandle;
         private final String canonicalItemName;
         private final Schema schema;
+        private volatile Queue<Map<String, String>> pendingRealtimeEvents;
+        private volatile BiConsumer<Map<String, String>, EventListener> realtimeEventConsumer;
         private boolean snapshotFlag;
 
-        private volatile Queue<Map<String, String>> pendingRealtimeEvents;
-
-        private volatile BiConsumer<Map<String, String>, EventListener> realtimeEventConsumer;
-
-        DefaultSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+        BufferedSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
             this.canonicalItemName = expression.asCanonicalItemName();
             this.schema = expression.schema();
             this.itemHandle = itemHandle;
@@ -302,7 +574,7 @@ public class Items {
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
-            return obj instanceof DefaultSubscribedItem other
+            return obj instanceof BufferedSubscribedItem other
                     && canonicalItemName.equals(other.canonicalItemName)
                     && Objects.equals(itemHandle, other.itemHandle);
         }
@@ -407,6 +679,13 @@ public class Items {
         }
     }
 
+    /**
+     * Associates a topic with a {@link CanonicalItemExtractor} and the resulting {@link Schema} for
+     * template matching.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     private static class ItemTemplate<K, V> {
 
         private final Schema schema;
@@ -432,6 +711,13 @@ public class Items {
         }
     }
 
+    /**
+     * Default implementation of {@link ItemTemplates} backed by an immutable list of {@link
+     * ItemTemplate} entries.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     private static class DefaultItemTemplates<K, V> implements ItemTemplates<K, V> {
 
         private final List<ItemTemplate<K, V>> templates;
@@ -507,19 +793,54 @@ public class Items {
         }
     }
 
+    /**
+     * Creates a buffered {@link SubscribedItem} using the input as both the subscription expression
+     * source and the item handle.
+     *
+     * @param input the subscription expression string, also used as the item handle
+     * @return a new {@link SubscribedItem} that buffers real-time events until snapshot completes
+     * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
+     */
     public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
         return subscribedFrom(input, input);
     }
 
+    /**
+     * Creates a buffered {@link SubscribedItem} from the given input and item handle.
+     *
+     * @param input the subscription expression string
+     * @param itemHandle the handle object used by the Lightstreamer Server to identify the item
+     * @return a new {@link SubscribedItem} that buffers real-time events until snapshot completes
+     * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
+     */
     public static SubscribedItem subscribedFrom(String input, Object itemHandle)
             throws ExpressionException {
         return subscribedFrom(Expressions.Subscription(input), itemHandle);
     }
 
+    /**
+     * Creates a {@link BufferedSubscribedItem} from a pre-parsed subscription expression and item
+     * handle.
+     *
+     * @param expression the parsed {@link SubscriptionExpression}
+     * @param itemHandle the handle object used by the Lightstreamer Server to identify the item
+     * @return a new {@link SubscribedItem} wrapping the given expression
+     */
     static SubscribedItem subscribedFrom(SubscriptionExpression expression, Object itemHandle) {
-        return new DefaultSubscribedItem(expression, itemHandle);
+        return new BufferedSubscribedItem(expression, itemHandle);
     }
 
+    /**
+     * Creates an {@link ItemTemplates} instance from the given topic configurations and selector
+     * suppliers.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     * @param topicsConfig the {@link TopicConfigurations} defining topic-to-item mappings
+     * @param sSuppliers the {@link KeyValueSelectorSuppliers} used to create extractors
+     * @return a new {@link ItemTemplates} instance covering all configured topic mappings
+     * @throws ExtractionException if an extractor cannot be created from the configuration
+     */
     public static <K, V> ItemTemplates<K, V> templatesFrom(
             TopicConfigurations topicsConfig, KeyValueSelectorSuppliers<K, V> sSuppliers)
             throws ExtractionException {
