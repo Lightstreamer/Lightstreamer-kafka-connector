@@ -575,6 +575,15 @@ public class ConnectorConfigTest {
         assertThat(requestTimeoutMs.mutable()).isFalse();
         assertThat(requestTimeoutMs.defaultValue()).isEqualTo("30000");
         assertThat(requestTimeoutMs.type()).isEqualTo(ConfType.INT);
+
+        ConfParameter itemSnapshotMode =
+                configSpec.findParameter(ConnectorConfig.ITEM_SNAPSHOT_MODE);
+        assertThat(itemSnapshotMode.name()).isEqualTo(ConnectorConfig.ITEM_SNAPSHOT_MODE);
+        assertThat(itemSnapshotMode.required()).isFalse();
+        assertThat(itemSnapshotMode.multiple()).isFalse();
+        assertThat(itemSnapshotMode.mutable()).isTrue();
+        assertThat(itemSnapshotMode.defaultValue()).isEqualTo("DISABLED");
+        assertThat(itemSnapshotMode.type()).isEqualTo(ConfType.SNAPSHOT_MODE);
     }
 
     private Map<String, String> standardParameters() {
