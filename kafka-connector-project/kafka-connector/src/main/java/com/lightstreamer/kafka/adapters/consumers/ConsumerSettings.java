@@ -52,23 +52,24 @@ public interface ConsumerSettings {
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             CommandModeStrategy commandModeStrategy,
-            Concurrency concurrency) {}
-
-    /**
-     * Thread concurrency settings for record processing.
-     *
-     * @param orderStrategy the ordering guarantee when processing records in parallel
-     * @param threads the number of threads dedicated to record processing
-     */
-    record Concurrency(RecordConsumeWithOrderStrategy orderStrategy, int threads) {
+            Concurrency concurrency) {
 
         /**
-         * Returns whether record processing uses more than one thread.
+         * Thread concurrency settings for record processing.
          *
-         * @return {@code true} if parallel, {@code false} otherwise
+         * @param orderStrategy the ordering guarantee when processing records in parallel
+         * @param threads the number of threads dedicated to record processing
          */
-        public boolean isParallel() {
-            return threads() != 1;
+        public record Concurrency(RecordConsumeWithOrderStrategy orderStrategy, int threads) {
+
+            /**
+             * Returns whether record processing uses more than one thread.
+             *
+             * @return {@code true} if parallel, {@code false} otherwise
+             */
+            public boolean isParallel() {
+                return threads() != 1;
+            }
         }
     }
 }
