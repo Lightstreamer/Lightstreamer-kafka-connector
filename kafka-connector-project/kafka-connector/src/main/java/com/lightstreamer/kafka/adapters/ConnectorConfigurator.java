@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -38,19 +38,26 @@ import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSupplier
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * Translates a {@link ConnectorConfig} into the {@link ConnectionSpec} consumed by the Kafka
+ * consumer infrastructure.
+ */
 public class ConnectorConfigurator {
 
     private final ConnectorConfig config;
-    private final Logger logger;
 
+    /**
+     * Creates a configurator by parsing raw adapter parameters.
+     *
+     * @param params the adapter parameter map
+     * @param configDir the adapter configuration directory
+     * @throws ConfigException if the configuration is invalid
+     */
     public ConnectorConfigurator(Map<String, String> params, File configDir)
             throws ConfigException {
         this(ConnectorConfig.newConfig(configDir, params));
@@ -58,19 +65,28 @@ public class ConnectorConfigurator {
 
     private ConnectorConfigurator(ConnectorConfig config) {
         this.config = config;
-        this.logger = LoggerFactory.getLogger(config.getAdapterName());
     }
 
+    /**
+     * Returns the underlying connector configuration.
+     *
+     * @return the {@link ConnectorConfig}
+     */
     public ConnectorConfig getConfig() {
         return config;
     }
 
+    /**
+     * Builds a {@link ConnectionSpec} from the current configuration.
+     *
+     * @return the fully resolved {@code ConnectionSpec}
+     * @throws ConfigException if the configuration cannot be resolved
+     */
     public ConnectionSpec<?, ?> connectionSpec() throws ConfigException {
         try {
             return doConnectionSpec(config, mkKeyValueSelectorSuppliers(config));
         } catch (Exception e) {
-            logger.atError().setCause(e).log();
-            throw new ConfigException(e.getMessage());
+            throw new ConfigException(e.getMessage(), e);
         }
     }
 
