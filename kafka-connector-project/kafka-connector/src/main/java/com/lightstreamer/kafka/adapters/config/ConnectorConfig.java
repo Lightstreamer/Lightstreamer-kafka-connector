@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.SNAPSHOT_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
@@ -60,6 +61,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SnapshotMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -99,6 +101,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String TOPIC_MAPPING = "map";
     private static final String MAP_SUFFIX = "to";
+
+    public static final String ITEM_SNAPSHOT_MODE = "item.snapshot.mode";
 
     public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
@@ -225,6 +229,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(
+                                ITEM_SNAPSHOT_MODE,
+                                false,
+                                false,
+                                SNAPSHOT_MODE,
+                                defaultValue(SnapshotMode.DISABLED.toString()))
                         .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
