@@ -37,14 +37,27 @@ import java.util.Map;
 public interface OffsetService extends ConsumerRebalanceListener {
 
     /**
-     * Creates a new {@code OffsetService} for the specified consumer.
+     * Creates a new {@code OffsetService} that tracks and commits offsets to Kafka.
      *
      * @param consumer the Kafka {@link Consumer} to commit offsets to
      * @param logger the {@link Logger} for commit diagnostics
-     * @return a new {@code OffsetService} instance
+     * @return a new committing {@code OffsetService} instance
      */
-    static OffsetService create(Consumer<?, ?> consumer, Logger logger) {
-        return new OffsetServiceImpl(consumer, logger);
+    static OffsetService commit(Consumer<?, ?> consumer, Logger logger) {
+        return new CommitOffsetService(consumer, logger);
+    }
+
+    /**
+     * Creates a no-operation {@code OffsetService} that never commits offsets.
+     *
+     * <p>Suitable for consumers using manual partition assignment ({@code assign()} + {@code
+     * seekToBeginning()}) where offset tracking is unnecessary.
+     *
+     * @param logger the {@link Logger} for lifecycle diagnostics
+     * @return a no-op {@code OffsetService} instance
+     */
+    static OffsetService noCommit(Logger logger) {
+        return new NoCommitOffsetService(logger);
     }
 
     /**
