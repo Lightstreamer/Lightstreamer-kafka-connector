@@ -431,20 +431,43 @@ public interface RecordMapper<K, V> {
          * @return a new RecordMapper instance ready for Kafka record transformation
          */
         public RecordMapper<K, V> build() {
-            return new DefaultRecordMapper<>(this);
+            return new RecordMapperImpl<>(this);
         }
     }
 }
 
-final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
+/**
+ * Default implementation of {@link RecordMapper} that transforms Kafka records into {@link
+ * MappedRecord} instances using template-based canonical item extraction and lazy field mapping.
+ *
+ * <p>Supports both literal and regex-based topic matching via a pluggable {@link
+ * ExtractorsSupplier} strategy selected at construction time.
+ *
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
+ */
+final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
 
-    protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
+    private static final Logger log = LoggerFactory.getLogger(RecordMapperImpl.class);
 
+    /**
+     * Strategy for resolving canonical item extractors for a given topic name.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     interface ExtractorsSupplier<K, V> {
 
         Collection<CanonicalItemExtractor<K, V>> getExtractors(String topic);
     }
 
+    /**
+     * Associates a compiled regex {@link Pattern} with its corresponding set of canonical item
+     * extractors for regex-based topic matching.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     static record PatternAndExtractors<K, V>(
             Pattern pattern, Set<CanonicalItemExtractor<K, V>> extractors) {}
 
@@ -454,7 +477,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
     private final ExtractorsSupplier<K, V> extractorsSupplier;
     private final boolean regexEnabled;
 
-    DefaultRecordMapper(Builder<K, V> builder) {
+    RecordMapperImpl(Builder<K, V> builder) {
         this.fieldExtractor = builder.fieldExtractor;
         this.templateExtractors =
                 Collections.unmodifiableMap(builder.extractorsByTopicSubscription);
@@ -519,7 +542,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         var extractors = extractorsSupplier.getExtractors(record.topic());
 
         if (extractors.isEmpty()) {
-            return DefaultMappedRecord.NOPRecord;
+            return MappedRecordImpl.NOPRecord;
         }
 
         String[] canonicalItems = new String[extractors.size()];
@@ -528,34 +551,55 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(
+        return new MappedRecordImpl(
                 canonicalItems, () -> fieldExtractor.extractMap(record), record.isPayloadNull());
     }
 }
 
-final class DefaultMappedRecord implements MappedRecord {
+/**
+ * Default implementation of {@link MappedRecord} that holds pre-computed canonical item names and a
+ * lazy supplier for the extracted field map.
+ *
+ * <p>A singleton {@link #NOPRecord} instance represents an empty mapping with no routable items.
+ */
+final class MappedRecordImpl implements MappedRecord {
 
     private static final Supplier<Map<String, String>> EMPTY_FIELDS_MAP = Collections::emptyMap;
 
-    static final MappedRecord NOPRecord = new DefaultMappedRecord();
+    /** Singleton no-operation record with no item names and an empty fields map. */
+    static final MappedRecord NOPRecord = new MappedRecordImpl();
 
     private final String[] itemNames;
-
-    // Lazy supplier for fieldsMap. It is used to avoid computing the fieldsMap
-    // when not needed (i.e. when routing only).
     private final Supplier<Map<String, String>> fieldsMapSupplier;
 
     private boolean payloadNull;
 
-    private DefaultMappedRecord() {
+    /**
+     * Constructs a no-operation instance with no item names, an empty fields map, and null payload.
+     */
+    private MappedRecordImpl() {
         this(new String[0], EMPTY_FIELDS_MAP, true);
     }
 
-    DefaultMappedRecord(String[] itemNames) {
+    /**
+     * Constructs a {@code MappedRecordImpl} with the given item names, an empty fields map, and
+     * null payload.
+     *
+     * @param itemNames the canonical item names this record maps to
+     */
+    MappedRecordImpl(String[] itemNames) {
         this(itemNames, EMPTY_FIELDS_MAP, true);
     }
 
-    DefaultMappedRecord(
+    /**
+     * Constructs a {@code MappedRecordImpl} with the given item names, fields map supplier, and
+     * payload null flag.
+     *
+     * @param canonicalItems the canonical item names this record maps to
+     * @param fieldsMap the lazy supplier for extracted field name-value pairs
+     * @param payloadNull {@code true} if the record payload is null, {@code false} otherwise
+     */
+    MappedRecordImpl(
             String[] canonicalItems, Supplier<Map<String, String>> fieldsMap, boolean payloadNull) {
         this.itemNames = canonicalItems;
         this.fieldsMapSupplier = fieldsMap;
