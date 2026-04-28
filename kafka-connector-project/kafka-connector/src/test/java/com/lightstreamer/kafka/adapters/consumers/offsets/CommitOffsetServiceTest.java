@@ -50,7 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class OffsetServiceTest {
+public class CommitOffsetServiceTest {
 
     private static final String TOPIC = "topic";
     private static final TopicPartition partition0 = new TopicPartition(TOPIC, 0);
@@ -58,7 +58,7 @@ public class OffsetServiceTest {
     private static final TopicPartition partition2 = new TopicPartition(TOPIC, 2);
 
     private MockConsumer mockConsumer;
-    private OffsetServiceImpl offsetService;
+    private CommitOffsetService offsetService;
 
     private DeserializerPair<String, String> deserializerPair =
             new DeserializerPair<>(String().deserializer(), String().deserializer());
@@ -91,7 +91,7 @@ public class OffsetServiceTest {
 
         // Initialize the OffsetService
         this.offsetService =
-                new OffsetServiceImpl(
+                new CommitOffsetService(
                         mockConsumer, LoggerFactory.getLogger(OffsetService.class), commitStrategy);
 
         // Subscribe to topic specifying the OffsetService as ConsumerRebalancerListener
