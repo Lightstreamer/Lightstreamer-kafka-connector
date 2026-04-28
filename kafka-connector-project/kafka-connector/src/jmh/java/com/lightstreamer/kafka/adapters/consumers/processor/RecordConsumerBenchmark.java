@@ -210,7 +210,7 @@ public class RecordConsumerBenchmark {
             this.priceInfoRecords = new PriceInfoRecords(TOPIC, descriptorPath);
             this.listener = new FakeEventListener(bh);
             this.offsetService =
-                    OffsetService.create(
+                    OffsetService.commit(
                             new MockConsumer<>(StrategyType.LATEST.toString()), logger);
         }
 
