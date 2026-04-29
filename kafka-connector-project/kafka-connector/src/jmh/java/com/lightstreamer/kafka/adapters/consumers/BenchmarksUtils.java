@@ -289,7 +289,7 @@ public class BenchmarksUtils {
         }
 
         public SubscribedItems subscriptions(int numOfSubscriptions, EventListener listener) {
-            SubscribedItems subscribedItems = SubscribedItems.create();
+            SubscribedItems subscribedItems = SubscribedItems.explicit();
 
             String[] items =
                     IntStream.range(0, numOfSubscriptions)
@@ -479,7 +479,7 @@ public class BenchmarksUtils {
 
     public static SubscribedItems subscriptions(
             int subscriptions, EventListener listener, int numOfTemplateParams) {
-        SubscribedItems subscribedItems = SubscribedItems.create();
+        SubscribedItems subscribedItems = SubscribedItems.explicit();
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
 
