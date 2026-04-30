@@ -53,6 +53,17 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * A {@link RecordSender} implementation that bridges Kafka Connect sink records to the
+ * Lightstreamer Remote Data Adapter protocol.
+ *
+ * <p>This adapter manages item subscriptions, maps incoming {@link SinkRecord}s to subscribed items
+ * via {@link RecordMapper}, and delivers updates to the Lightstreamer Server through an {@link
+ * EventListener}. It also tracks consumer offsets for pre-commit reporting.
+ *
+ * @see RecordSender
+ * @see DownstreamUpdater
+ */
 public final class StreamingDataAdapter implements RecordSender {
 
     /** An interface used internally to forward records to a downstream destination. */
@@ -61,13 +72,15 @@ public final class StreamingDataAdapter implements RecordSender {
         /**
          * Forwards the records to the downstream destination.
          *
-         * <p>The method is invoked by the StreamingDataAdapter for each collection of SinkRecord
+         * <p>Invoked by {@code StreamingDataAdapter} for each collection of {@link SinkRecord}
          * provided by Kafka Connect.
          *
          * @param records the collection of records to forward
          */
         void update(Collection<SinkRecord> records);
     }
+
+    // Static fields
 
     private static Logger logger = LoggerFactory.getLogger(StreamingDataAdapter.class);
 
@@ -76,21 +89,23 @@ public final class StreamingDataAdapter implements RecordSender {
                 logger.debug("Skipping record");
             };
 
+    // Instance fields (final → volatile → plain)
+
     // The ItemTemplate instance for enabling the Filtered Routing.
     private final ItemTemplates<Object, Object> itemTemplates;
+
+    // The RecordMapper instance configured to map the SinkRecord to a flat map of fields.
+    private final RecordMapper<Object, Object> recordMapper;
 
     // The RecordErrorHandlingStrategy instance for managing records that cannot be processed
     // successfully.
     private final RecordErrorHandlingStrategy errorHandlingStrategy;
 
-    // The ErrantRecordReporter instance for forwarding unprocessable records to the DQL.
+    // The ErrantRecordReporter instance for forwarding unprocessable records to the DLQ.
     private final ErrantRecordReporter reporter;
 
     /** A container of all currently subscribed items. */
-    private final SubscribedItems subscribed = SubscribedItems.create();
-
-    // The EventListener instance injected by the Remote Provider Server.
-    private volatile EventListener listener;
+    private final SubscribedItems subscribed = SubscribedItems.explicit();
 
     // The lock used to synchronize the replacement of the DownstreamUpdater instance.
     private final ReentrantLock updaterLock = new ReentrantLock();
@@ -98,14 +113,14 @@ public final class StreamingDataAdapter implements RecordSender {
     // The counter of all subscribed items.
     private final AtomicInteger itemsCounter = new AtomicInteger(0);
 
-    // The RecordMapper instance configured to map the SinkRecord to a flat
-    private final RecordMapper<Object, Object> recordMapper;
+    // The offsets map.
+    private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
+
+    // The EventListener instance injected by the Remote Provider Server.
+    private volatile EventListener listener;
 
     // The current DownstreamUpdater for managing incoming records.
     private volatile DownstreamUpdater updater = NOP_UPDATER;
-
-    // The offsets map.
-    private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
     // The initialization parameters received from Proxy Adapter.
     private Map<String, String> initParameters = Collections.emptyMap();
