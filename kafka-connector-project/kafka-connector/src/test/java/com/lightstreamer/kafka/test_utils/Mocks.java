@@ -50,7 +50,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Properties;
+import java.util.function.Function;
 
 public class Mocks {
 
@@ -102,21 +103,28 @@ public class Mocks {
             return super.listTopics();
         }
 
-        public static Supplier<Consumer<byte[], byte[]>> supplier() {
-            return supplier(false);
+        public static Function<Properties, Consumer<byte[], byte[]>> factory() {
+            return factory(false);
         }
 
-        public static Supplier<Consumer<byte[], byte[]>> supplier(boolean exceptionOnConnection) {
-            return () -> {
-                if (exceptionOnConnection) {
-                    throw new KafkaException("Simulated Exception");
-                }
-                return new MockConsumer(EARLIEST.toString());
-            };
+        public static Function<Properties, Consumer<byte[], byte[]>> factory(
+                boolean exceptionOnConnection) {
+            return prop -> consumer(exceptionOnConnection);
         }
 
-        public static Supplier<Consumer<byte[], byte[]>> supplier(String... topics) {
-            return () -> {
+        public static Consumer<byte[], byte[]> consumer(boolean exceptionOnConnection) {
+            if (exceptionOnConnection) {
+                throw new KafkaException("Simulated Exception");
+            }
+            return new MockConsumer(EARLIEST.toString());
+        }
+
+        public static Consumer<byte[], byte[]> consumer() {
+            return consumer(false);
+        }
+
+        public static Function<Properties, Consumer<byte[], byte[]>> factory(String... topics) {
+            return prop -> {
                 MockConsumer mockConsumer = new MockConsumer(EARLIEST.toString());
                 for (String topic : topics) {
                     mockConsumer.updatePartitions(
