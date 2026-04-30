@@ -29,8 +29,8 @@ import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListe
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.PriceInfoRecords;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -159,7 +159,9 @@ public class RecordConsumerBenchmark {
                             BenchmarksUtils.valueDeserializer(type, configurator.getConfig()));
             this.deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
+                            DeserializationTiming.valueOf(deserializationTiming),
+                            deserializerPair,
+                            logger);
             this.batch = this.deserializationMode.toBatch(consumerRecords, true);
         }
 
@@ -250,7 +252,9 @@ public class RecordConsumerBenchmark {
             this.consumerRecords = BenchmarksUtils.pollRecordsFromRaw(TOPICS, 1, rawRecords);
             this.deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
+                            DeserializationTiming.valueOf(deserializationTiming),
+                            deserializerPair,
+                            logger);
         }
 
         @TearDown(Level.Iteration)
