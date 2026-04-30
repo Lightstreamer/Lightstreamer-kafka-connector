@@ -104,7 +104,7 @@ public final class StreamingDataAdapter implements RecordSender {
     // The ErrantRecordReporter instance for forwarding unprocessable records to the DLQ.
     private final ErrantRecordReporter reporter;
 
-    /** A container of all currently subscribed items. */
+    // A container of all currently subscribed items.
     private final SubscribedItems subscribed = SubscribedItems.explicit();
 
     // The lock used to synchronize the replacement of the DownstreamUpdater instance.
