@@ -21,8 +21,8 @@ import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -45,6 +45,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class RecordMapperBenchmarks {
 
+    static final Logger logger = LoggerFactory.getLogger("Benchmark");
     static String[] TOPICS = {"users"};
 
     @State(Scope.Thread)
@@ -102,7 +105,7 @@ public class RecordMapperBenchmarks {
 
             var deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.EAGER, deserializerPair);
+                            DeserializationTiming.EAGER, deserializerPair, logger);
             RecordBatch<String, V> recordBatch = deserializationMode.toBatch(consumerRecords);
 
             this.mapper = BenchmarksUtils.newRecordMapper(config);
