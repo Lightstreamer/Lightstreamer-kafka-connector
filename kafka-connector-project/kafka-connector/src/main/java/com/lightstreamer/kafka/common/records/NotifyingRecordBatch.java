@@ -45,7 +45,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
 
     private final List<KafkaRecord<K, V>> records;
     private final AtomicInteger processedCount = new AtomicInteger(0);
-    private final int recordCount;
+    private int recordCount;
 
     /**
      * Constructs a new {@code NotifyingRecordBatch} with the specified capacity.
@@ -106,6 +106,16 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
             throw new IllegalStateException(
                     "Expected " + recordCount + " records but got " + records.size());
         }
+    }
+
+    /**
+     * Adjusts the expected record count to match the actual number of records added.
+     *
+     * <p>This is used after eager deserialization when some records are skipped due to
+     * deserialization errors, so that the completion tracking reflects the actual batch size.
+     */
+    void shrink() {
+        this.recordCount = records.size();
     }
 
     @Override

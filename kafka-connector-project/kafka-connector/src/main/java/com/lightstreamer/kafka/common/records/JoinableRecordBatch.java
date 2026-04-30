@@ -62,6 +62,16 @@ public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
     }
 
     @Override
+    void shrink() {
+        int skipped = count() - getRecords().size();
+        super.shrink();
+        // Count down once for each skipped record so the latch reflects the actual batch size.
+        for (int i = 0; i < skipped; i++) {
+            latch.countDown();
+        }
+    }
+
+    @Override
     public void recordProcessed(RecordBatchListener monitor) {
         super.recordProcessed(monitor);
         latch.countDown();

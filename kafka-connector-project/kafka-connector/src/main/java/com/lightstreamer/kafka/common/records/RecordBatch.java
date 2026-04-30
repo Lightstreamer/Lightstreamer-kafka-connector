@@ -22,8 +22,10 @@ import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.SerializationException;
 
 import java.util.List;
+import java.util.function.BiConsumer;
 
 /**
  * Represents a batch of Kafka records with flexible deserialization and processing strategies.
@@ -152,20 +154,22 @@ public interface RecordBatch<K, V> {
      * detection but requires more upfront processing for all records. The returned batch does not
      * support synchronous waiting via {@link #join()}.
      *
+     * <p>Any record that fails deserialization causes the entire batch to fail with a {@link
+     * SerializationException}.
+     *
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param consumerRecords the consumer records batch to convert
      * @param deserializerPair the pair of deserializers for keys and values
      * @return a non-joinable {@code RecordBatch} with eagerly deserialized keys and values
-     * @throws org.apache.kafka.common.errors.SerializationException if any record's key or value
-     *     cannot be deserialized
-     * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean)
+     * @throws SerializationException if any record's key or value cannot be deserialized
+     * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean, BiConsumer)
      * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
      */
     static <K, V> RecordBatch<K, V> batchFromEager(
             ConsumerRecords<byte[], byte[]> consumerRecords,
             DeserializerPair<K, V> deserializerPair) {
-        return batchFromEager(consumerRecords, deserializerPair, false);
+        return batchFromEager(consumerRecords, deserializerPair, false, null);
     }
 
     /**
@@ -176,6 +180,9 @@ public interface RecordBatch<K, V> {
      * parameter controls whether the returned batch supports synchronous waiting via {@link
      * #join()}.
      *
+     * <p>Any record that fails deserialization causes the entire batch to fail with a {@link
+     * SerializationException}.
+     *
      * @param <K> the type of the deserialized key
      * @param <V> the type of the deserialized value
      * @param consumerRecords the consumer records batch to convert
@@ -183,27 +190,89 @@ public interface RecordBatch<K, V> {
      * @param joinable if {@code true}, the returned batch supports {@link #join()}; if {@code
      *     false}, {@link #join()} returns immediately
      * @return a {@code RecordBatch} with eagerly deserialized keys and values
-     * @throws org.apache.kafka.common.errors.SerializationException if any record's key or value
-     *     cannot be deserialized
+     * @throws SerializationException if any record's key or value cannot be deserialized
+     * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean, BiConsumer)
      * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
      */
     static <K, V> RecordBatch<K, V> batchFromEager(
             ConsumerRecords<byte[], byte[]> consumerRecords,
             DeserializerPair<K, V> deserializerPair,
             boolean joinable) {
+        return batchFromEager(consumerRecords, deserializerPair, joinable, null);
+    }
 
-        int recordCount = consumerRecords.count();
+    /**
+     * Converts a batch of Kafka consumer records to a {@code RecordBatch} with eager
+     * deserialization, handling per-record deserialization errors via a callback.
+     *
+     * <p>Deserialization is performed immediately during batch creation. If an {@code errorHandler}
+     * is provided, records that fail deserialization are skipped (the handler is invoked with the
+     * raw record and exception), and remaining records are still included in the batch. If all
+     * records in the batch fail, a {@link SerializationException} is thrown to signal a likely
+     * systemic configuration error (e.g., wrong deserializer).
+     *
+     * <p>If {@code errorHandler} is {@code null}, any deserialization failure causes the entire
+     * batch to fail immediately.
+     *
+     * @param <K> the type of the deserialized key
+     * @param <V> the type of the deserialized value
+     * @param consumerRecords the consumer records batch to convert
+     * @param deserializerPair the pair of deserializers for keys and values
+     * @param joinable if {@code true}, the returned batch supports {@link #join()}; if {@code
+     *     false}, {@link #join()} returns immediately
+     * @param errorHandler callback invoked for each record that fails deserialization, or {@code
+     *     null} to propagate the first failure immediately
+     * @return a {@code RecordBatch} with eagerly deserialized keys and values (excluding any
+     *     skipped records)
+     * @throws SerializationException if {@code errorHandler} is null and a record fails
+     *     deserialization, or if all records in a non-empty batch fail deserialization
+     * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
+     */
+    static <K, V> RecordBatch<K, V> batchFromEager(
+            ConsumerRecords<byte[], byte[]> consumerRecords,
+            DeserializerPair<K, V> deserializerPair,
+            boolean joinable,
+            BiConsumer<ConsumerRecord<byte[], byte[]>, SerializationException> errorHandler) {
+
+        int totalCount = consumerRecords.count();
         NotifyingRecordBatch<K, V> batch =
                 (joinable
-                        ? new JoinableRecordBatch<>(recordCount)
-                        : new NotifyingRecordBatch<>(recordCount));
+                        ? new JoinableRecordBatch<>(totalCount)
+                        : new NotifyingRecordBatch<>(totalCount));
+
+        int skipped = 0;
+        SerializationException lastException = null;
         for (TopicPartition partition : consumerRecords.partitions()) {
             for (ConsumerRecord<byte[], byte[]> record : consumerRecords.records(partition)) {
-                batch.addEagerRecord(record, deserializerPair);
+                try {
+                    batch.addEagerRecord(record, deserializerPair);
+                } catch (SerializationException e) {
+                    if (errorHandler == null) {
+                        throw e;
+                    }
+                    skipped++;
+                    lastException = e;
+                    errorHandler.accept(record, e);
+                }
             }
         }
-        // Validate batch construction before returning
-        batch.validate();
+
+        // Circuit breaker: if ALL records in a non-empty batch failed, it's likely a systemic
+        // configuration error (e.g., wrong deserializer) rather than isolated corrupt records.
+        if (skipped > 0 && skipped == totalCount) {
+            throw new SerializationException(
+                    "All "
+                            + totalCount
+                            + " records in batch failed deserialization"
+                            + " — likely a configuration error (wrong deserializer?)",
+                    lastException);
+        }
+
+        if (skipped > 0) {
+            batch.shrink();
+        } else {
+            batch.validate();
+        }
 
         return batch;
     }
