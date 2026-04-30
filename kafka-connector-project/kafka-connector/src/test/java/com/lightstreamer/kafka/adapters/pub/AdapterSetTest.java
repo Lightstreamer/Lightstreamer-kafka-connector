@@ -59,7 +59,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class AdapterSetTest {
@@ -165,7 +167,7 @@ public class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter1.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter1.setConsumerFactory(this.getConsumer());
         connectorDataAdapter1.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
@@ -174,7 +176,7 @@ public class AdapterSetTest {
         assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isTrue();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter2.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter2.setConsumerFactory(this.getConsumer());
         connectorDataAdapter2.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter2.init(
                 ConnectorConfigProvider.minimalConfigWith(
@@ -190,7 +192,7 @@ public class AdapterSetTest {
         assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter3.setConsumerSupplier(this::getConsumer);
+        connectorDataAdapter3.setConsumerFactory(this.getConsumer());
         connectorDataAdapter3.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter3.init(
                 ConnectorConfigProvider.minimalConfigWith(
@@ -217,14 +219,14 @@ public class AdapterSetTest {
         return snapshotConsumer;
     }
 
-    private Consumer<byte[], byte[]> getConsumer() {
+    private Function<Properties, Consumer<byte[], byte[]>> getConsumer() {
         MockConsumer consumer = new Mocks.MockConsumer(StrategyType.LATEST.toString());
 
         TopicPartition tp = new TopicPartition("topic", 0);
         consumer.updatePartitions(
                 tp.topic(),
                 List.of(new PartitionInfo(tp.topic(), tp.partition(), null, null, null)));
-        return consumer;
+        return props -> consumer;
     }
 
     @Test
