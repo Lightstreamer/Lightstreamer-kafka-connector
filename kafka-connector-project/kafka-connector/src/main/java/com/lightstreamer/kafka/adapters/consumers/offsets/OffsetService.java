@@ -25,6 +25,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -58,6 +59,23 @@ public interface OffsetService extends ConsumerRebalanceListener {
      */
     static OffsetService noCommit(Logger logger) {
         return new NoCommitOffsetService(logger);
+    }
+
+    /**
+     * Creates an {@code OffsetService} that commits offsets and seeks newly assigned partitions to
+     * the beginning.
+     *
+     * <p>On each partition assignment, partitions that have never been seen before are seeked to
+     * the beginning, and end offsets are captured for the catch-up gate. Re-assigned partitions
+     * resume from their committed offsets.
+     *
+     * @param consumer the Kafka {@link Consumer} to commit offsets to and seek on
+     * @param logger the {@link Logger} for commit and seek diagnostics
+     * @return a seeking-commit {@code OffsetService} instance
+     */
+    static OffsetService seekingCommit(Consumer<?, ?> consumer, Logger logger) {
+        return new SeekingOffsetService(
+                new CommitOffsetService(consumer, logger), consumer, logger);
     }
 
     /**
@@ -95,4 +113,31 @@ public interface OffsetService extends ConsumerRebalanceListener {
      * @return an unmodifiable copy of the offset map
      */
     Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot();
+
+    /**
+     * Returns the end offsets captured during the most recent partition assignment, for use as the
+     * catch-up completion gate.
+     *
+     * <p>The default implementation returns {@code null}, indicating that no catch-up end offsets
+     * are tracked. Implementations that seek to the beginning on assignment override this to
+     * provide the target offsets.
+     *
+     * @return the end offsets map, or {@code null} if not applicable
+     */
+    default Map<TopicPartition, Long> getCatchUpEndOffsets() {
+        return null;
+    }
+
+    /**
+     * Called when partitions are lost during a consumer group rebalance.
+     *
+     * <p>The default implementation delegates to {@link #onPartitionsRevoked(Collection)} for
+     * backward compatibility.
+     *
+     * @param partitions the partitions that were lost
+     */
+    @Override
+    default void onPartitionsLost(Collection<TopicPartition> partitions) {
+        onPartitionsRevoked(partitions);
+    }
 }
