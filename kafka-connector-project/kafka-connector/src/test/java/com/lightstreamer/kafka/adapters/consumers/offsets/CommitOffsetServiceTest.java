@@ -795,4 +795,11 @@ public class CommitOffsetServiceTest {
         assertThat(committedAfterMaybeCommit).isNotEmpty();
         assertThat(committedAfterMaybeCommit).isNotEqualTo(committedBeforeMaybeCommit);
     }
+
+    @Test
+    public void shouldBeCreatableViaFactoryMethod() {
+        MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
+        OffsetService service = OffsetService.commit(consumer, LoggerFactory.getLogger("test"));
+        assertThat(service).isInstanceOf(CommitOffsetService.class);
+    }
 }
