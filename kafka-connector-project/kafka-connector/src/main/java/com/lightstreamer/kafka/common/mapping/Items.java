@@ -48,9 +48,22 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+/**
+ * Factory and container types for managing subscribed items and item templates in the Lightstreamer
+ * Kafka Connector mapping pipeline.
+ *
+ * <p>This class provides:
+ *
+ * <ul>
+ *   <li>{@link SubscribedItem} — the item abstraction for event delivery
+ *   <li>{@link SubscribedItems} — thread-safe collections of subscribed items
+ *   <li>{@link ItemTemplates} — topic-to-item mapping via canonical extraction
+ *   <li>Factory methods ({@code subscribedFrom}, {@code templatesFrom}) for creating instances
+ * </ul>
+ */
 public class Items {
 
     /** Represents a named item with an associated handle for server-side identification. */
@@ -75,9 +88,10 @@ public class Items {
      * Represents a subscribed item that can receive snapshot and real-time events from Kafka
      * records routed through the mapping pipeline.
      *
-     * <p>Implementations control the event delivery lifecycle: buffering real-time events until
-     * snapshot delivery completes, then switching to direct delivery via {@link
-     * #enableRealtimeEvents(EventListener)}.
+     * <p>Implementations control the event delivery lifecycle: events of either kind (snapshot or
+     * real-time) may be buffered until delivery is unlocked via {@link
+     * #enableEventsDelivery(EventListener)}, after which both kinds flow directly to the {@link
+     * EventListener}.
      *
      * @see SubscribedItems
      */
@@ -112,17 +126,20 @@ public class Items {
         String asCanonicalItemName();
 
         /**
-         * Enables direct real-time event delivery, draining any buffered events first.
+         * Unlocks event delivery for this item: drains any events (snapshot or real-time) that were
+         * buffered before this call, preserving insertion order and the original {@code isSnapshot}
+         * flag of each event, and switches the item to direct delivery for all subsequent events.
          *
          * @param listener the {@link EventListener} to deliver events to
          */
-        void enableRealtimeEvents(EventListener listener);
+        void enableEventsDelivery(EventListener listener);
 
         /**
          * Sends a real-time event for this item.
          *
          * <p>The default implementation delegates directly to {@link EventListener#update}.
-         * Subclasses may override to buffer events during the snapshot phase.
+         * Subclasses may override to buffer events until delivery is unlocked via {@link
+         * #enableEventsDelivery(EventListener)}.
          *
          * @param event the field name-value pairs to send
          * @param listener the {@link EventListener} to deliver the event to
@@ -133,6 +150,10 @@ public class Items {
 
         /**
          * Sends a snapshot event for this item.
+         *
+         * <p>The default implementation delegates directly to {@link EventListener#update}.
+         * Subclasses may override to buffer events until delivery is unlocked via {@link
+         * #enableEventsDelivery(EventListener)}.
          *
          * @param event the field name-value pairs to send
          * @param listener the {@link EventListener} to deliver the event to
@@ -178,27 +199,17 @@ public class Items {
     public interface SubscribedItems {
 
         /**
-         * Creates a new empty instance of SubscribedItems.
+         * Creates a new empty instance of {@code SubscribedItems} that requires items to be
+         * explicitly added via {@link #addItem(SubscribedItem)} before they can be retrieved.
          *
-         * @return a new {@code SubscribedItems} instance
+         * @return a new explicit {@code SubscribedItems} instance
          */
-        static SubscribedItems create() {
-            return new DefaultSubscribedItems();
+        static SubscribedItems explicit() {
+            return new ConcurrentSubscribedItems();
         }
 
-        /**
-         * Creates an implicit instance of {@code SubscribedItems} that auto-registers items on
-         * first access via {@link #getItem(String)}.
-         *
-         * <p>Items created by this implementation use a lightweight {@link DirectSubscribedItem}
-         * that delegates directly to the {@link EventListener} without buffering, making it
-         * suitable for the implicit item snapshot strategy where no explicit subscribe/unsubscribe
-         * lifecycle is managed.
-         *
-         * @return a new {@code SubscribedItems} instance that creates items on demand
-         */
-        static SubscribedItems implicit() {
-            return new ImplicitSubscribedItems();
+        static ForcedSubscribedItems forced(Supplier<EventListener> listenerSupplier) {
+            return new ForcedSubscribedItems(listenerSupplier);
         }
 
         /**
@@ -271,6 +282,7 @@ public class Items {
             return Optional.empty();
         }
 
+        @Override
         public SubscribedItem getItem(String itemName) {
             return null;
         }
@@ -292,58 +304,83 @@ public class Items {
     }
 
     /**
-     * Default thread-safe implementation of {@link SubscribedItems} backed by a {@link
-     * ConcurrentHashMap}.
+     * {@link SubscribedItems} implementation backing the eager / forced-subscription snapshot
+     * strategy. On the first {@link #getItem(String)} call for a canonical name, invokes the
+     * configured {@code onForce} callback (typically {@code ItemEventListener.forceSubscription})
+     * to instruct the Server to open the subscription synchronously, then caches a stateless {@link
+     * DirectSubscribedItem} for the same name. Subsequent calls return the cached item without
+     * re-forcing.
+     *
+     * <p>{@link #releaseAll()} pairs each entry with a call to the configured {@code onUnforce}
+     * callback and clears the map; intended for adapter shutdown.
      */
-    private static class DefaultSubscribedItems implements SubscribedItems {
+    public static class ForcedSubscribedItems implements SubscribedItems {
 
-        private final Map<String, SubscribedItem> sourceItems;
+        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
+        private final Supplier<EventListener> listenerSupplier;
 
-        DefaultSubscribedItems() {
-            this.sourceItems = new ConcurrentHashMap<>();
+        ForcedSubscribedItems(Supplier<EventListener> listenerSupplier) {
+            this.listenerSupplier = Objects.requireNonNull(listenerSupplier, "listenerSupplier");
         }
 
         @Override
         public void addItem(SubscribedItem item) {
-            sourceItems.put(item.asCanonicalItemName(), item);
+            // No-op: items are created on demand by getItem() via forceSubscription.
         }
 
         @Override
         public Optional<SubscribedItem> removeItem(String itemName) {
-            return Optional.ofNullable(sourceItems.remove(itemName));
+            SubscribedItem removed = items.remove(itemName);
+            if (removed != null) {
+                listenerSupplier.get().unforceSubscription(itemName);
+            }
+            return Optional.ofNullable(removed);
         }
 
         @Override
         public SubscribedItem getItem(String itemName) {
-            return sourceItems.get(itemName);
+            return items.computeIfAbsent(
+                    itemName,
+                    name -> {
+                        listenerSupplier.get().forceSubscription(name);
+                        return new DirectSubscribedItem(name, name, Schema.nop());
+                    });
         }
 
         @Override
         public boolean isEmpty() {
-            return sourceItems.isEmpty();
+            return items.isEmpty();
         }
 
         @Override
         public int size() {
-            return sourceItems.size();
+            return items.size();
         }
 
         @Override
         public void clear() {
-            sourceItems.clear();
+            items.clear();
+        }
+
+        /**
+         * Releases every forced item by invoking {@code unforceSubscription} on the resolved {@link
+         * EventListener} for each entry, then clears the map. Safe to call on shutdown; idempotent.
+         */
+        public void releaseAll() {
+            EventListener listener = listenerSupplier.get();
+            for (String itemName : items.keySet()) {
+                listener.unforceSubscription(itemName);
+            }
+            items.clear();
         }
     }
 
     /**
-     * A {@link SubscribedItems} implementation that auto-registers items on first access. When
-     * {@link #getItem(String)} is called with a canonical name not yet in the map, a lightweight
-     * {@link DirectSubscribedItem} is created and cached atomically, using the canonical name as
-     * the item handle.
-     *
-     * <p>Designed for the implicit item snapshot strategy where no explicit subscribe/unsubscribe
-     * lifecycle is managed by the adapter.
+     * Thread-safe implementation of {@link SubscribedItems} backed by a {@link ConcurrentHashMap}
+     * for explicit (on-demand) mode. Items must be added via {@link #addItem(SubscribedItem)}
+     * before they can be retrieved.
      */
-    private static class ImplicitSubscribedItems implements SubscribedItems {
+    private static class ConcurrentSubscribedItems implements SubscribedItems {
 
         private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
 
@@ -357,24 +394,9 @@ public class Items {
             return Optional.ofNullable(items.remove(itemName));
         }
 
-        /**
-         * {@inheritDoc}
-         *
-         * <p>If no item exists for the given name, a lightweight {@link DirectSubscribedItem} is
-         * created atomically and cached. The item uses the canonical name itself as its handle (no
-         * server-side subscription exists in implicit mode) and {@link Schema#nop()} as its schema.
-         *
-         * <p>Using {@code Schema.nop()} is safe here because implicit items bypass the {@link
-         * ItemTemplates#matches(SubscribedItem)} check entirely — routing is performed by canonical
-         * name string lookup in this map, not by schema matching. This avoids parsing the
-         * subscription expression and allocating a per-item {@code Schema} object, which would
-         * otherwise duplicate identical schema data across potentially hundreds of thousands of
-         * items (one per unique key in the compacted topic).
-         */
         @Override
         public SubscribedItem getItem(String itemName) {
-            return items.computeIfAbsent(
-                    itemName, name -> new DirectSubscribedItem(name, name, Schema.nop()));
+            return items.get(itemName);
         }
 
         @Override
@@ -397,7 +419,7 @@ public class Items {
      * A lightweight {@link SubscribedItem} implementation that delivers events directly via the
      * interface default methods, without buffering.
      *
-     * <p>Unlike {@link BufferedSubscribedItem}, this implementation allocates no queue, lock, or
+     * <p>Unlike {@code BufferedSubscribedItem}, this implementation allocates no queue, lock, or
      * consumer lambda — all event delivery goes straight to the {@link EventListener}.
      *
      * <p>Used in two scenarios:
@@ -413,13 +435,9 @@ public class Items {
         private final String canonicalItemName;
         private final Schema schema;
 
-        DirectSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this(expression.asCanonicalItemName(), itemHandle, expression.schema());
-        }
-
         DirectSubscribedItem(String canonicalItemName, Object itemHandle, Schema schema) {
-            this.canonicalItemName = canonicalItemName;
             this.itemHandle = itemHandle;
+            this.canonicalItemName = canonicalItemName;
             this.schema = schema;
         }
 
@@ -467,8 +485,154 @@ public class Items {
         }
 
         @Override
-        public void enableRealtimeEvents(EventListener listener) {
+        public void enableEventsDelivery(EventListener listener) {
             // No-op: direct items deliver events immediately via interface defaults
+        }
+    }
+
+    /**
+     * The default {@link SubscribedItem} implementation that buffers <em>every</em> event (snapshot
+     * or real-time) until delivery is unlocked via {@link #enableEventsDelivery(EventListener)}, at
+     * which point the buffered events are drained in insertion order — each preserving its original
+     * {@code isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
+     */
+    private static class BufferedSubscribedItem implements SubscribedItem {
+
+        /**
+         * Functional interface for dispatching an event with its {@code isSnapshot} flag.
+         * Implementations may either enqueue the event or deliver it directly to the listener.
+         */
+        @FunctionalInterface
+        private interface EventDispatcher {
+            void dispatch(Map<String, String> event, boolean isSnapshot, EventListener listener);
+        }
+
+        /** A buffered event together with its original {@code isSnapshot} flag. */
+        private record PendingEvent(Map<String, String> event, boolean isSnapshot) {}
+
+        private final Object itemHandle;
+        private final String canonicalItemName;
+        private final Schema schema;
+        private volatile Queue<PendingEvent> pendingEvents;
+        private volatile EventDispatcher dispatcher;
+        private boolean snapshotFlag;
+
+        BufferedSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+            this.itemHandle = itemHandle;
+            this.canonicalItemName = expression.asCanonicalItemName();
+            this.schema = expression.schema();
+            this.snapshotFlag = true;
+            this.pendingEvents = new ConcurrentLinkedQueue<>();
+            this.dispatcher =
+                    (event, isSnapshot, listener) -> {
+                        // Queue the event for later delivery, preserving its flag.
+                        pendingEvents.add(new PendingEvent(event, isSnapshot));
+                    };
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(itemHandle, canonicalItemName);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            return obj instanceof BufferedSubscribedItem other
+                    && canonicalItemName.equals(other.canonicalItemName)
+                    && Objects.equals(itemHandle, other.itemHandle);
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        @Override
+        public Object itemHandle() {
+            return itemHandle;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return snapshotFlag;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            this.snapshotFlag = flag;
+        }
+
+        @Override
+        public String asCanonicalItemName() {
+            return canonicalItemName;
+        }
+
+        @Override
+        public String name() {
+            return canonicalItemName;
+        }
+
+        private EventDispatcher directDispatcher() {
+            return (event, isSnapshot, listener) -> listener.update(this, event, isSnapshot);
+        }
+
+        @Override
+        public void enableEventsDelivery(EventListener listener) {
+            if (pendingEvents == null) {
+                // Already unlocked - no action needed
+                return;
+            }
+            // Create a final dispatcher that flushes queue first, then switches to direct mode.
+            // This handles the race where a producer thread observes the buffering dispatcher and
+            // enqueues an event after the unlocking thread has already drained the queue.
+            ReentrantLock lock = new ReentrantLock();
+            EventDispatcher finalDispatcher =
+                    (event, isSnapshot, eventListener) -> {
+                        // First, drain any remaining events from the queue to maintain ordering.
+                        lock.lock();
+                        try {
+                            if (pendingEvents != null) {
+                                drainPendingEvents(eventListener);
+                                // Clear the queue reference to help GC (no longer needed).
+                                pendingEvents = null;
+                            }
+                        } finally {
+                            lock.unlock();
+                        }
+
+                        // Then deliver the current event directly.
+                        eventListener.update(this, event, isSnapshot);
+
+                        // After draining, switch to the direct dispatcher for optimal performance.
+                        dispatcher = directDispatcher();
+                    };
+
+            // Drain any pending events before switching.
+            drainPendingEvents(listener);
+
+            // Atomic switch to the self-draining dispatcher.
+            dispatcher = finalDispatcher;
+        }
+
+        private void drainPendingEvents(EventListener listener) {
+            PendingEvent pending;
+            // Drain all events from the queue, preserving each event's original flag.
+            while ((pending = pendingEvents.poll()) != null) {
+                listener.update(this, pending.event(), pending.isSnapshot());
+            }
+        }
+
+        @Override
+        public void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
+            // Simple volatile read + call - no synchronization needed!
+            dispatcher.dispatch(event, false, listener);
+        }
+
+        @Override
+        public void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
+            // Buffered like real-time events; drained in insertion order on unlock.
+            dispatcher.dispatch(event, true, listener);
         }
     }
 
@@ -538,145 +702,6 @@ public class Items {
          *     disabled
          */
         Optional<Pattern> subscriptionPattern();
-    }
-
-    /**
-     * The default {@link SubscribedItem} implementation that buffers real-time events during the
-     * snapshot phase and drains them upon {@link #enableRealtimeEvents(EventListener)}.
-     */
-    private static class BufferedSubscribedItem implements SubscribedItem {
-
-        private final Object itemHandle;
-        private final String canonicalItemName;
-        private final Schema schema;
-        private volatile Queue<Map<String, String>> pendingRealtimeEvents;
-        private volatile BiConsumer<Map<String, String>, EventListener> realtimeEventConsumer;
-        private boolean snapshotFlag;
-
-        BufferedSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.canonicalItemName = expression.asCanonicalItemName();
-            this.schema = expression.schema();
-            this.itemHandle = itemHandle;
-            this.snapshotFlag = true;
-            this.pendingRealtimeEvents = new ConcurrentLinkedQueue<>();
-            this.realtimeEventConsumer =
-                    (event, listener) -> {
-                        // Queue the event for later processing
-                        pendingRealtimeEvents.add(event);
-                    };
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(itemHandle, canonicalItemName);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            return obj instanceof BufferedSubscribedItem other
-                    && canonicalItemName.equals(other.canonicalItemName)
-                    && Objects.equals(itemHandle, other.itemHandle);
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return itemHandle;
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return snapshotFlag;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            this.snapshotFlag = flag;
-        }
-
-        @Override
-        public String asCanonicalItemName() {
-            return canonicalItemName;
-        }
-
-        @Override
-        public String name() {
-            return canonicalItemName;
-        }
-
-        private BiConsumer<Map<String, String>, EventListener> directConsumer() {
-            return (event, listener) -> listener.update(this, event, false);
-        }
-
-        @Override
-        public void enableRealtimeEvents(EventListener listener) {
-            if (pendingRealtimeEvents == null) {
-                // Already enabled - no action needed
-                return;
-            }
-            // Create a final consumer that flushes queue first, then switches to direct mode
-            ReentrantLock lock = new ReentrantLock();
-            BiConsumer<Map<String, String>, EventListener> finalConsumer =
-                    (event, eventListener) -> {
-                        // First, drain any remaining events from queue to maintain ordering
-                        lock.lock();
-                        try {
-                            if (pendingRealtimeEvents != null) {
-                                drainPendingRealtimeEvents(eventListener);
-                                // Clear the queue to help GC (no longer needed)
-                                pendingRealtimeEvents = null;
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
-
-                        // Then process the current event
-                        eventListener.update(this, event, false);
-
-                        // After draining queue, switch to direct consumer for optimal performance
-                        realtimeEventConsumer = directConsumer();
-                    };
-
-            // Drain any pending events before switching
-            drainPendingRealtimeEvents(listener);
-
-            // Atomic switch to self-draining consumer
-            realtimeEventConsumer = finalConsumer;
-        }
-
-        private void drainPendingRealtimeEvents(EventListener listener) {
-            Map<String, String> event;
-            // Drain all events from queue
-            while ((event = pendingRealtimeEvents.poll()) != null) {
-                listener.update(this, event, false);
-            }
-        }
-
-        @Override
-        public void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
-            // Simple volatile read + call - no synchronization needed!
-            realtimeEventConsumer.accept(event, listener);
-        }
-
-        @Override
-        public void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
-            listener.update(this, event, true);
-        }
-
-        @Override
-        public void clearSnapshot(EventListener listener) {
-            listener.clearSnapshot(this);
-        }
-
-        @Override
-        public void endOfSnapshot(EventListener listener) {
-            listener.endOfSnapshot(this);
-        }
     }
 
     /**
@@ -819,7 +844,7 @@ public class Items {
     }
 
     /**
-     * Creates a {@link BufferedSubscribedItem} from a pre-parsed subscription expression and item
+     * Creates a {@code BufferedSubscribedItem} from a pre-parsed subscription expression and item
      * handle.
      *
      * @param expression the parsed {@link SubscriptionExpression}
