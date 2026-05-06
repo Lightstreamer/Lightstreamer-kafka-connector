@@ -22,7 +22,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.common.listeners.EventListener;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -75,9 +74,6 @@ public interface RecordConsumer<K, V> {
         }
 
         void process(KafkaRecord<K, V> record) throws ValueException;
-
-        void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
-                throws ValueException;
 
         void useLogger(Logger logger);
 
