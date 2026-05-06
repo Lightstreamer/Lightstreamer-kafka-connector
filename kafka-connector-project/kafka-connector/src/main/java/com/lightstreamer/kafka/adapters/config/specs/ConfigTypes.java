@@ -282,11 +282,8 @@ public interface ConfigTypes {
         /** No snapshot — real-time events are enabled immediately on subscribe. */
         DISABLED,
 
-        /** In-memory materialized view of compacted topics, loaded at init, tailed continuously. */
-        CACHE,
-
-        /** Delegates to Lightstreamer's built-in implicit item snapshot mechanism. */
-        IMPLICIT;
+        /** Snapshot is delivered by the adapter before enabling real-time events. */
+        ENABLED;
 
         public static Set<String> names() {
             return enumNames(values());
