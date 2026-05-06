@@ -31,6 +31,10 @@ public interface EventListener {
 
     void failure(Exception exception);
 
+    void forceSubscription(String item);
+
+    void unforceSubscription(String item);
+
     static EventListener smartEventListener(
             com.lightstreamer.interfaces.data.ItemEventListener listener) {
         return new SmartEventListener(listener);
