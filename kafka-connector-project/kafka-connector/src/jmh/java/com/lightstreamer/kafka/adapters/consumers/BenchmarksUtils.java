@@ -105,6 +105,16 @@ public class BenchmarksUtils {
             System.out.println("Total events processed: " + counter.get());
             counter.set(0);
         }
+
+        @Override
+        public void forceSubscription(String item) {
+            throw new UnsupportedOperationException("Unimplemented method 'forceSubscription'");
+        }
+
+        @Override
+        public void unforceSubscription(String item) {
+            throw new UnsupportedOperationException("Unimplemented method 'unforceSubscription'");
+        }
     }
 
     public static class FakeOffsetService implements OffsetService {
@@ -297,7 +307,7 @@ public class BenchmarksUtils {
                             .toArray(String[]::new);
             for (int i = 0; i < numOfSubscriptions; i++) {
                 SubscribedItem item = Items.subscribedFrom(items[i], new Object());
-                item.enableRealtimeEvents(listener);
+                item.enableEventsDelivery(listener);
                 subscribedItems.addItem(item);
             }
             return subscribedItems;
@@ -494,7 +504,7 @@ public class BenchmarksUtils {
                     };
             String input = SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params);
             SubscribedItem item = Items.subscribedFrom(input, new Object());
-            item.enableRealtimeEvents(listener);
+            item.enableEventsDelivery(listener);
             subscribedItems.addItem(item);
         }
         return subscribedItems;
