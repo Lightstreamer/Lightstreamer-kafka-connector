@@ -48,4 +48,12 @@ public class LegacyEventListener implements EventListener {
     public void failure(Exception exception) {
         listener.failure(exception);
     }
+
+    public void forceSubscription(String item) {
+        listener.forceSubscription(item);
+    }
+
+    public void unforceSubscription(String item) {
+        listener.unforceSubscription(item);
+    }
 }

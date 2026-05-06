@@ -48,4 +48,14 @@ class RemoteEventListener implements EventListener {
     public void failure(Exception exception) {
         listener.failure(exception);
     }
+
+    @Override
+    public void forceSubscription(String item) {
+        // no-op since remote listeners don't support forced subscriptions
+    }
+
+    @Override
+    public void unforceSubscription(String item) {
+        // no-op since remote listeners don't support forced subscriptions
+    }
 }

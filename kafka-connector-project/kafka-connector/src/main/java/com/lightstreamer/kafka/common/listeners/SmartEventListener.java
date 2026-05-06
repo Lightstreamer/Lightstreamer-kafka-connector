@@ -48,4 +48,14 @@ class SmartEventListener implements EventListener {
     public void failure(Exception exception) {
         listener.failure(exception);
     }
+
+    @Override
+    public void forceSubscription(String item) {
+        listener.forceSubscription(item);
+    }
+
+    @Override
+    public void unforceSubscription(String item) {
+        listener.unforceSubscription(item);
+    }
 }
