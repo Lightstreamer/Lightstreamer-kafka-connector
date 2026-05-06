@@ -1092,6 +1092,10 @@ public final class ConnectorConfig extends AbstractConfig {
         return topicMappings;
     }
 
+    public SnapshotMode getSnapshotMode() {
+        return SnapshotMode.valueOf(get(ITEM_SNAPSHOT_MODE, SNAPSHOT_MODE, false));
+    }
+
     public boolean isMapRegExEnabled() {
         return getBoolean(MAP_REG_EX_ENABLE);
     }
