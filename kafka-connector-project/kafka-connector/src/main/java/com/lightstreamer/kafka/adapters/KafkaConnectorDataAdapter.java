@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka.adapters;
 
-import static com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode.*;
-
 import static org.apache.kafka.common.serialization.Serdes.ByteArray;
 
 import com.lightstreamer.interfaces.data.DataProviderException;
@@ -35,7 +33,6 @@ import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
@@ -44,10 +41,17 @@ import java.io.File;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 import javax.annotation.Nonnull;
 
+/**
+ * {@link SmartDataProvider} implementation that bridges Lightstreamer subscriptions to Kafka
+ * consumers.
+ *
+ * <p>On {@link #init(Map, File)}, the adapter configures a {@link SubscriptionsHandler} that
+ * manages the Kafka consumer lifecycle based on the configured snapshot mode.
+ */
 public class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER = ByteArray().deserializer();
@@ -56,8 +60,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     private SubscriptionsHandler<?, ?> subscriptionsHandler;
     private ConnectorConfig connectorConfig;
     private MetadataListener metadataListener;
-    private Supplier<Consumer<byte[], byte[]>> consumerSupplier;
-    private Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier;
+    private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
 
     public KafkaConnectorDataAdapter() {}
 
@@ -80,49 +83,39 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
         this.logger.info("KafkaConnector configuration complete");
     }
 
+    /**
+     * Builds a {@link SubscriptionsHandler} for the given connection specification.
+     *
+     * @param <K> the deserialized key type
+     * @param <V> the deserialized value type
+     * @param connectionSpec the {@link ConnectionSpec} defining consumer settings
+     * @return a configured {@code SubscriptionsHandler}
+     * @throws DataProviderException if the handler cannot be built
+     */
     protected <K, V> SubscriptionsHandler<K, V> subscriptionHandler(
             ConnectionSpec<K, V> connectionSpec) throws DataProviderException {
         return SubscriptionsHandler.<K, V>builder()
                 .withConnectionSpec(connectionSpec)
                 .withMetadataListener(metadataListener)
-                .withConsumerSupplier(
-                        Objects.requireNonNullElse(
-                                consumerSupplier,
-                                consumerSupplier(connectionSpec.consumerProperties())))
-                // .withSnapshotMode(
-                //         DISABLED) // TODO: gate on a snapshot.enable configuration property
-                .withSnapshotMode(CACHE)
-                // .withSnapshotMode(IMPLICIT_ITEM_SNAPSHOT)
-                .withSnapshotConsumerSupplier(
-                        Objects.requireNonNullElse(
-                                snapshotConsumerSupplier, snapshotConsumerSupplier(connectionSpec)))
+                .withConsumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
+                .withSnapshotMode(connectorConfig.getSnapshotMode())
                 .build();
     }
 
-    public void setSnapshotConsumerSupplier(
-            Supplier<org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>>
-                    snapshotConsumerSupplier) {
-        this.snapshotConsumerSupplier = snapshotConsumerSupplier;
+    /**
+     * Injects a custom consumer factory. Intended for testing.
+     *
+     * @param consumerFactory function that creates a Kafka consumer from the given properties
+     */
+    public final void setConsumerFactory(
+            Function<Properties, org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>>
+                    consumerFactory) {
+        this.consumerFactory = consumerFactory;
     }
 
-    public void setConsumerSupplier(
-            Supplier<org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>> consumerSupplier) {
-        this.consumerSupplier = consumerSupplier;
-    }
-
-    private static <K, V> Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier(
-            ConnectionSpec<K, V> connectionSpec) {
-        Properties snapshotProps = new Properties();
-        snapshotProps.putAll(connectionSpec.consumerProperties());
-        snapshotProps.remove(ConsumerConfig.GROUP_ID_CONFIG);
-        return consumerSupplier(snapshotProps);
-    }
-
-    private static <K, V> Supplier<Consumer<byte[], byte[]>> consumerSupplier(
-            Properties consumerProps) {
-        return () ->
-                new KafkaConsumer<>(
-                        consumerProps, BYTE_ARRAY_DESERIALIZER, BYTE_ARRAY_DESERIALIZER);
+    private static <K, V> Function<Properties, Consumer<byte[], byte[]>> consumerFactory() {
+        return props ->
+                new KafkaConsumer<>(props, BYTE_ARRAY_DESERIALIZER, BYTE_ARRAY_DESERIALIZER);
     }
 
     @Override
