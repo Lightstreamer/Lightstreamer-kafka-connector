@@ -245,23 +245,12 @@ public class RecordConsumerSupport {
             sendUpdates(updates, routable, listener);
         }
 
-        default void processUpdatesAsSnapshot(
-                MappedRecord record, SubscribedItem subscribedItem, EventListener listener) {
-            final Map<String, String> updates = getEvent(record);
-            sendUpdatesAsSnapshot(updates, subscribedItem, listener);
-        }
-
         default Map<String, String> getEvent(MappedRecord record) {
             return record.fieldsMap();
         }
 
         void sendUpdates(
                 Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener);
-
-        default void sendUpdatesAsSnapshot(
-                Map<String, String> updates,
-                SubscribedItem subscribedItem,
-                EventListener listener) {}
 
         void useLogger(Logger logger);
 
@@ -301,14 +290,6 @@ public class RecordConsumerSupport {
             for (SubscribedItem sub : routable) {
                 sub.sendRealtimeEvent(updates, listener);
             }
-        }
-
-        @Override
-        public void sendUpdatesAsSnapshot(
-                Map<String, String> updates,
-                SubscribedItem subscribedItem,
-                EventListener listener) {
-            subscribedItem.sendSnapshotEvent(updates, listener);
         }
 
         public final void useLogger(Logger logger) {
@@ -375,7 +356,6 @@ public class RecordConsumerSupport {
                     handleSnapshot(cmd, sub, listener);
                 } else {
                     getLogger().atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
-                    // updater.update(sub, updates, sub.isSnapshot());
                     if (sub.isSnapshot()) {
                         sub.sendSnapshotEvent(updates, listener);
                     } else {
@@ -487,14 +467,6 @@ public class RecordConsumerSupport {
             } else {
                 logger.atDebug().log("No routable items found");
             }
-        }
-
-        @Override
-        public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
-                throws ValueException {
-            logger.atDebug().log("Mapping incoming Kafka record for subscribed item");
-            MappedRecord mappedRecord = recordMapper.map(record);
-            processUpdatesStrategy.processUpdatesAsSnapshot(mappedRecord, subscribedItem, listener);
         }
 
         @Override
