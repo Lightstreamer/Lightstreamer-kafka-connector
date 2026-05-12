@@ -162,8 +162,6 @@ public class ConfigsSpec {
 
         SCHEMA_REGISTRY_PROVIDER(Options.schemaRegistryProviders()),
 
-        SNAPSHOT_MODE(Options.snapshotModes()),
-
         URL {
             @Override
             public boolean checkValidity(String param) {
@@ -501,10 +499,6 @@ public class ConfigsSpec {
 
         static Options saslMechanisms() {
             return new Options(SaslMechanism.names());
-        }
-
-        static Options snapshotModes() {
-            return new Options(ConfigTypes.SnapshotMode.names());
         }
 
         static Options schemaRegistryProviders() {
