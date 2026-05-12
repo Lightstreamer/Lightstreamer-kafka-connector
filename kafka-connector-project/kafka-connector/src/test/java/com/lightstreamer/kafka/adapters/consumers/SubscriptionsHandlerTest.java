@@ -24,9 +24,8 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
@@ -65,7 +64,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldNotCreateSubscriptionsHandler() {
+    public void shouldNotBuildSubscriptionsHandler() {
         IllegalStateException ise =
                 assertThrows(
                         IllegalStateException.class,
@@ -91,58 +90,32 @@ public class SubscriptionsHandlerTest {
                                     .withMetadataListener(metadataListener)
                                     .build();
                         });
-        assertThat(ise).hasMessageThat().isEqualTo("ConsumerSupplier not set");
-
-        ise =
-                assertThrows(
-                        IllegalStateException.class,
-                        () -> {
-                            SubscriptionsHandler.<String, String>builder()
-                                    .withConnectionSpec(connectionSpec)
-                                    .withMetadataListener(metadataListener)
-                                    .withConsumerSupplier(MockConsumer.supplier())
-                                    // SnapshotMode is set by default to CACHE, so we need to
-                                    // explicitly set it to null to trigger the NPE
-                                    .withSnapshotMode(null)
-                                    .build();
-                        });
-        assertThat(ise).hasMessageThat().isEqualTo("SnapshotMode not set");
-
-        ise =
-                assertThrows(
-                        IllegalStateException.class,
-                        () -> {
-                            SubscriptionsHandler.<String, String>builder()
-                                    .withConnectionSpec(connectionSpec)
-                                    .withMetadataListener(metadataListener)
-                                    .withConsumerSupplier(MockConsumer.supplier())
-                                    .withSnapshotMode(SnapshotMode.CACHE)
-                                    .build();
-                        });
-        assertThat(ise).hasMessageThat().isEqualTo("SnapshotConsumerSupplier not set");
+        assertThat(ise).hasMessageThat().isEqualTo("ConsumerFactory not set");
     }
 
     @Test
-    public void shouldCreateSubscriptionsHandler() {
+    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeDisabled() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 SubscriptionsHandler.<String, String>builder()
                         .withConnectionSpec(connectionSpec)
                         .withMetadataListener(metadataListener)
-                        .withConsumerSupplier(MockConsumer.supplier())
+                        .withConsumerFactory(MockConsumer.factory())
                         .build();
+        assertThat(subscriptionsHandler)
+                .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
     }
 
     @Test
-    public void shouldCreateSubscriptionsHandlerWithSnapshotMode() {
+    public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 SubscriptionsHandler.<String, String>builder()
                         .withConnectionSpec(connectionSpec)
                         .withMetadataListener(metadataListener)
-                        .withConsumerSupplier(MockConsumer.supplier())
-                        .withSnapshotMode(SnapshotMode.CACHE)
-                        .withSnapshotConsumerSupplier(MockConsumer.supplier())
+                        .withConsumerFactory(MockConsumer.factory())
+                        .withItemSnapshotEnabled(true)
                         .build();
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
+        assertThat(subscriptionsHandler)
+                .isInstanceOf(SubscriptionsHandler.ForceableSubscriptionsHandler.class);
     }
 }
