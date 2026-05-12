@@ -17,11 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 
+import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
 import java.util.Objects;
@@ -92,7 +93,7 @@ public interface RecordConsumer<K, V> {
 
     interface WithEnforceCommandMode<K, V> {
 
-        StartBuildingConsumer<K, V> eventListener(EventListener listener);
+        StartBuildingConsumer<K, V> eventListener(ItemEventListener listener);
     }
 
     public interface StartBuildingConsumer<K, V> {
