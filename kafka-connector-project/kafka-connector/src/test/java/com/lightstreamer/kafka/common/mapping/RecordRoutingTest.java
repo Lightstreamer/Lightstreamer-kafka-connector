@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -32,6 +31,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -64,17 +65,17 @@ public class RecordRoutingTest {
                         List.of(TEST_TOPIC_1),
                         "item",
                         // Routable item
-                        List.of(subscribedFrom("item", "handle1")),
+                        List.of(Items.onDemandSubscribedItem("item", "handle1")),
                         // Non-routable item
-                        List.of(subscribedFrom("otherItem", "handle2"))),
+                        List.of(Items.onDemandSubscribedItem("otherItem", "handle2"))),
                 // Many-to-One
                 arguments(
                         List.of(TEST_TOPIC_1, TEST_TOPIC_2),
                         "item",
                         // Routable item
-                        List.of(subscribedFrom("item", "handle1")),
+                        List.of(Items.onDemandSubscribedItem("item", "handle1")),
                         // Non-routable item
-                        List.of(subscribedFrom("otherItem", "handle2"))));
+                        List.of(Items.onDemandSubscribedItem("otherItem", "handle2"))));
     }
 
     @ParameterizedTest
@@ -82,8 +83,8 @@ public class RecordRoutingTest {
     public void shouldRouteFromSimpleItems(
             List<String> topics,
             String itemName,
-            List<SubscribedItem> routable,
-            List<SubscribedItem> nonRoutable)
+            List<OnDemandSubscribedItem> routable,
+            List<OnDemandSubscribedItem> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.mkSimpleItems(
@@ -95,11 +96,11 @@ public class RecordRoutingTest {
 
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
-            SubscribedItems subscribedItems = SubscribedItems.create();
-            for (SubscribedItem item : routable) {
+            OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+            for (OnDemandSubscribedItem item : routable) {
                 subscribedItems.addItem(item);
             }
-            for (SubscribedItem item : nonRoutable) {
+            for (OnDemandSubscribedItem item : nonRoutable) {
                 subscribedItems.addItem(item);
             }
 
@@ -117,19 +118,19 @@ public class RecordRoutingTest {
                                 // Routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        subscribedFrom(
+                                        Items.onDemandSubscribedItem(
                                                 "item-[key=key,value=value,topic=topic]", "handle1")
-                                        // subscribedFrom(
+                                        // Items.subscribedItem(
                                         //         "item-[value=value,topic=topic,key=key]",
                                         //         "handle2")
                                         ),
                                 // Routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        subscribedFrom(
+                                        Items.onDemandSubscribedItem(
                                                 "item-[key=key,value=value,topic=anotherTopic]",
                                                 "handle1")
-                                        // subscribedFrom(
+                                        // Items.subscribedItem(
                                         //         "item-[topic=anotherTopic,value=value,key=key]",
                                         //         "handle2"))
                                         )),
@@ -137,25 +138,30 @@ public class RecordRoutingTest {
                                 // Non-routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        subscribedFrom(
+                                        Items.onDemandSubscribedItem(
                                                 "item-[key=key,value=value,topic=anotherTopic]",
                                                 "handle1"),
-                                        subscribedFrom("item", "handle3"),
-                                        subscribedFrom("item-[key=key]", "handle4"),
-                                        subscribedFrom("item-[key=anotherKey]", "handle5"),
-                                        subscribedFrom("item-[value=anotherValue]", "handle6"),
-                                        subscribedFrom("nonRoutable", new Object())),
+                                        Items.onDemandSubscribedItem("item", "handle3"),
+                                        Items.onDemandSubscribedItem("item-[key=key]", "handle4"),
+                                        Items.onDemandSubscribedItem(
+                                                "item-[key=anotherKey]", "handle5"),
+                                        Items.onDemandSubscribedItem(
+                                                "item-[value=anotherValue]", "handle6"),
+                                        Items.onDemandSubscribedItem("nonRoutable", new Object())),
                                 // Non-routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        subscribedFrom(
+                                        Items.onDemandSubscribedItem(
                                                 "item-[key=key,value=value,topic=topic]",
                                                 "handle1"),
-                                        subscribedFrom("item", "handle3"),
-                                        subscribedFrom("item-[key=key]", "handle4"),
-                                        subscribedFrom("item-[key=anotherKey]", "handle5"),
-                                        subscribedFrom("item-[value=anotherValue]", "handle6"),
-                                        subscribedFrom("nonRoutable", new Object())))));
+                                        Items.onDemandSubscribedItem("item", "handle3"),
+                                        Items.onDemandSubscribedItem("item-[key=key]", "handle4"),
+                                        Items.onDemandSubscribedItem(
+                                                "item-[key=anotherKey]", "handle5"),
+                                        Items.onDemandSubscribedItem(
+                                                "item-[value=anotherValue]", "handle6"),
+                                        Items.onDemandSubscribedItem(
+                                                "nonRoutable", new Object())))));
     }
 
     @ParameterizedTest
@@ -163,8 +169,8 @@ public class RecordRoutingTest {
     public void shouldRouteFromTemplates(
             List<String> topics,
             List<String> templateStr,
-            Map<String, List<SubscribedItem>> routable,
-            Map<String, List<SubscribedItem>> nonRoutable)
+            Map<String, List<OnDemandSubscribedItem>> routable,
+            Map<String, List<OnDemandSubscribedItem>> nonRoutable)
             throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.ItemTemplates(
@@ -176,12 +182,12 @@ public class RecordRoutingTest {
 
         for (String topic : topics) {
             MappedRecord mapped = mapper.map(Records.KafkaRecord(topic, "key", "value"));
-            List<SubscribedItem> routableForTopic = routable.get(topic);
-            List<SubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
-            List<SubscribedItem> all =
+            List<OnDemandSubscribedItem> routableForTopic = routable.get(topic);
+            List<OnDemandSubscribedItem> nonRoutableForTopic = nonRoutable.get(topic);
+            List<OnDemandSubscribedItem> all =
                     Stream.concat(routableForTopic.stream(), nonRoutableForTopic.stream()).toList();
-            SubscribedItems subscribed = SubscribedItems.create();
-            for (SubscribedItem item : all) {
+            OnDemandSubscribedItems subscribed = SubscribedItems.onDemand();
+            for (OnDemandSubscribedItem item : all) {
                 subscribed.addItem(item);
             }
 
@@ -202,14 +208,15 @@ public class RecordRoutingTest {
                             """,
                         List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
                         List.of(
-                                subscribedFrom(
+                                Items.onDemandSubscribedItem(
                                         "user-[firstName=James,lastName=Kirk]", new Object())),
                         List.of(
-                                subscribedFrom("item", new Object()),
-                                subscribedFrom("item-[key=key]", new Object()),
-                                subscribedFrom("item-[key=anotherKey]", new Object()),
-                                subscribedFrom("item-[value=anotherValue]", new Object()),
-                                subscribedFrom("nonRoutable", new Object()))));
+                                Items.onDemandSubscribedItem("item", new Object()),
+                                Items.onDemandSubscribedItem("item-[key=key]", new Object()),
+                                Items.onDemandSubscribedItem("item-[key=anotherKey]", new Object()),
+                                Items.onDemandSubscribedItem(
+                                        "item-[value=anotherValue]", new Object()),
+                                Items.onDemandSubscribedItem("nonRoutable", new Object()))));
     }
 
     @ParameterizedTest
@@ -217,8 +224,8 @@ public class RecordRoutingTest {
     public void shouldRouteFromTemplateWithJsonValueRecord(
             String jsonString,
             List<String> templateStr,
-            List<SubscribedItem> routable,
-            List<SubscribedItem> nonRoutable)
+            List<OnDemandSubscribedItem> routable,
+            List<OnDemandSubscribedItem> nonRoutable)
             throws JsonMappingException, JsonProcessingException, ExtractionException {
         ItemTemplates<String, JsonNode> templates =
                 ItemTemplatesUtils.ItemTemplates(JsonValue(), List.of(TEST_TOPIC_1), templateStr);
@@ -229,11 +236,11 @@ public class RecordRoutingTest {
 
         JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
         MappedRecord mapped = mapper.map(Records.KafkaRecord(TEST_TOPIC_1, "key", jsonNode));
-        SubscribedItems subscribedItems = SubscribedItems.create();
-        for (SubscribedItem item : routable) {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        for (OnDemandSubscribedItem item : routable) {
             subscribedItems.addItem(item);
         }
-        for (SubscribedItem item : nonRoutable) {
+        for (OnDemandSubscribedItem item : nonRoutable) {
             subscribedItems.addItem(item);
         }
 
@@ -265,10 +272,11 @@ public class RecordRoutingTest {
                                 .add("header-key1", "header-value1".getBytes())
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subscribedFrom(subscribingItemName, new Object());
+        OnDemandSubscribedItem subscribedItem =
+                Items.onDemandSubscribedItem(subscribingItemName, new Object());
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
 
-        SubscribedItems subscribedItems = SubscribedItems.create();
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         subscribedItems.addItem(subscribedItem);
         Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
@@ -302,10 +310,11 @@ public class RecordRoutingTest {
                                 .add("header-key1", "header-value1".getBytes())
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
-        SubscribedItem subscribedItem = subscribedFrom(subscribingItemName, new Object());
+        OnDemandSubscribedItem subscribedItem =
+                Items.onDemandSubscribedItem(subscribingItemName, new Object());
         assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
 
-        SubscribedItems subscribedItems = SubscribedItems.create();
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         subscribedItems.addItem(subscribedItem);
         Set<SubscribedItem> routed = mapped.route(subscribedItems);
         if (routable) {
