@@ -31,7 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +40,6 @@ import java.util.Set;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * The {@code RecordMapper} interface provides a mechanism for transforming Kafka records into
@@ -565,11 +563,12 @@ final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
 final class MappedRecordImpl implements MappedRecord {
 
     private static final Supplier<Map<String, String>> EMPTY_FIELDS_MAP = Collections::emptyMap;
+    private static final String[] EMPTY_ITEMS = new String[0];
 
     /** Singleton no-operation record with no item names and an empty fields map. */
     static final MappedRecord NOPRecord = new MappedRecordImpl();
 
-    private final String[] itemNames;
+    private final String[] items;
     private final Supplier<Map<String, String>> fieldsMapSupplier;
 
     private boolean payloadNull;
@@ -578,45 +577,47 @@ final class MappedRecordImpl implements MappedRecord {
      * Constructs a no-operation instance with no item names, an empty fields map, and null payload.
      */
     private MappedRecordImpl() {
-        this(new String[0], EMPTY_FIELDS_MAP, true);
+        this(EMPTY_ITEMS, EMPTY_FIELDS_MAP, true);
     }
 
     /**
-     * Constructs a {@code MappedRecordImpl} with the given item names, an empty fields map, and
-     * null payload.
+     * Constructs a {@code MappedRecordImpl} with the given canonical item names, an empty fields
+     * map, and null payload.
      *
-     * @param itemNames the canonical item names this record maps to
+     * @param canonicalItemNames the canonical Lightstreamer item names this record maps to
      */
-    MappedRecordImpl(String[] itemNames) {
-        this(itemNames, EMPTY_FIELDS_MAP, true);
+    MappedRecordImpl(String[] canonicalItemNames) {
+        this(canonicalItemNames, EMPTY_FIELDS_MAP, true);
     }
 
     /**
-     * Constructs a {@code MappedRecordImpl} with the given item names, fields map supplier, and
-     * payload null flag.
+     * Constructs a {@code MappedRecordImpl} with the given canonical item names, fields map
+     * supplier, and payload null flag.
      *
-     * @param canonicalItems the canonical item names this record maps to
+     * @param canonicalItemNames the canonical Lightstreamer item names this record maps to
      * @param fieldsMap the lazy supplier for extracted field name-value pairs
      * @param payloadNull {@code true} if the record payload is null, {@code false} otherwise
      */
     MappedRecordImpl(
-            String[] canonicalItems, Supplier<Map<String, String>> fieldsMap, boolean payloadNull) {
-        this.itemNames = canonicalItems;
+            String[] canonicalItemNames,
+            Supplier<Map<String, String>> fieldsMap,
+            boolean payloadNull) {
+        this.items = canonicalItemNames;
         this.fieldsMapSupplier = fieldsMap;
         this.payloadNull = payloadNull;
     }
 
     @Override
     public String[] canonicalItemNames() {
-        return itemNames;
+        return items;
     }
 
     @Override
     public Set<SubscribedItem> route(SubscribedItems items) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        for (String itemName : itemNames) {
-            SubscribedItem item = items.getItem(itemName);
+        for (String name : this.items) {
+            SubscribedItem item = items.getItem(name);
             if (item != null) {
                 result.add(item);
             }
@@ -636,7 +637,7 @@ final class MappedRecordImpl implements MappedRecord {
 
     @Override
     public String toString() {
-        String data = Arrays.stream(itemNames).collect(Collectors.joining(","));
+        String data = String.join(",", items);
         return String.format(
                 "MappedRecord (canonicalItemNames=[%s], fieldsMap=%s)",
                 data, fieldsMapSupplier.get());
