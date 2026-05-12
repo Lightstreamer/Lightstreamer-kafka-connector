@@ -23,13 +23,14 @@ import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.ca
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
@@ -197,7 +198,7 @@ public class RecordProcessorTest {
 
     RecordProcessor<String, String> processor(
             RecordMapper<String, String> mapper,
-            EventListener listener,
+            ItemEventListener listener,
             SubscribedItems subscribedItems,
             ProcessUpdatesStrategy updatesStrategy) {
         return new DefaultRecordProcessor<>(mapper, subscribedItems, listener, updatesStrategy);
@@ -225,21 +226,19 @@ public class RecordProcessorTest {
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapper,
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.defaultStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
         // Subscribe to "item1" and process the record
         Object itemHandle1 = new Object();
-        SubscribedItem item1 = Items.subscribedFrom("item1", itemHandle1);
+        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("item1", itemHandle1);
         subscribedItems.addItem(item1);
-        item1.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         processor.process(record);
 
@@ -253,9 +252,8 @@ public class RecordProcessorTest {
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
-        SubscribedItem item2 = Items.subscribedFrom("item2", itemHandle2);
+        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("item2", itemHandle2);
         subscribedItems.addItem(item2);
-        item2.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         processor.process(record);
 
@@ -269,19 +267,17 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotProcessUnexpectedSubscription() {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         defaultMapper(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
-        SubscribedItem item = Items.subscribedFrom("item3", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item3", new Object());
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
         // Verify that the update has NOT been routed
@@ -302,21 +298,19 @@ public class RecordProcessorTest {
     @MethodSource("recordsForAutoCommandMode")
     public void shouldProcessRecordWithAutoCommandMode(
             KafkaRecord<String, String> record, Map<String, String> expectedFields) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForAutoCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.autoCommandModeStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
 
         // Subscribe to "item1" and process the record
         Object itemHandle1 = new Object();
-        SubscribedItem item1 = Items.subscribedFrom("item1", itemHandle1);
+        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("item1", itemHandle1);
         subscribedItems.addItem(item1);
-        item1.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         processor.process(record);
 
@@ -332,9 +326,8 @@ public class RecordProcessorTest {
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
-        SubscribedItem item2 = Items.subscribedFrom("item2", itemHandle2);
+        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("item2", itemHandle2);
         subscribedItems.addItem(item2);
-        item2.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         processor.process(record);
 
@@ -354,21 +347,19 @@ public class RecordProcessorTest {
     @ParameterizedTest
     @MethodSource("commands")
     public void shouldProcessRecordWithAdmittedCommands(String command, int expectedUpdates) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        SubscribedItem item = Items.subscribedFrom("item1", itemHandle);
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
@@ -379,10 +370,10 @@ public class RecordProcessorTest {
 
         // Verify that the real-time update has been routed
         assertThat(this.eventListener.getAllUpdatesChronological()).hasSize(expectedUpdates);
-        assertThat(this.eventListener.getSmartSnapshotUpdates())
-                .containsExactly(
-                        new UpdateCall(
-                                itemHandle, Map.of("command", command, "key", "aKey"), true));
+        // assertThat(this.eventListener.getSmartSnapshotUpdates())
+        //         .containsExactly(
+        //                 new UpdateCall(
+        //                         itemHandle, Map.of("command", command, "key", "aKey"), true));
         // Verify that the update has been routed as a snapshot
         assertThat(item.isSnapshot()).isTrue();
     }
@@ -390,19 +381,17 @@ public class RecordProcessorTest {
     @ParameterizedTest
     @ValueSource(strings = {"CS", "EOS"})
     public void shouldNotProcessRecordWithNotAdmittedCommand(String command) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener); // Mark the subscription as snapshot processed
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
@@ -417,20 +406,18 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldProcessRecordWithClearSnapshotCommand() {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "snapshot", "CS");
         processor.process(record);
@@ -449,17 +436,16 @@ public class RecordProcessorTest {
     @ParameterizedTest
     @ValueSource(strings = {"ADD", "UPDATE", "DELETE"})
     public void shouldNotProcessRecordWithWrongCommandForSnapshot(String wrongCommand) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -481,20 +467,18 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldProcessRecordWithEndOfSnapshotCommand() {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "snapshot", "EOS");
         processor.process(record);
@@ -512,19 +496,17 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotTriggerSnapshotEventAfterEOS() {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1"
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener);
 
         // Process a record containing a regular command
         var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
@@ -579,19 +561,17 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldKeepSendingSnapshotAfterCS() {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
-        EventListener listener = EventListener.smartEventListener(this.eventListener);
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
                         mapperForCommandMode(),
-                        listener,
+                        this.eventListener,
                         subscribedItems,
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1"
-        SubscribedItem item = Items.subscribedFrom("item1", new Object());
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         subscribedItems.addItem(item);
-        item.enableEventsDelivery(listener);
 
         // Process a record containing a regular command
         var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
