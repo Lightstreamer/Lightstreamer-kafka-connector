@@ -168,7 +168,6 @@ public class AdapterSetTest {
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
         connectorDataAdapter1.setConsumerFactory(this.getConsumer());
-        connectorDataAdapter1.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
 
@@ -177,7 +176,6 @@ public class AdapterSetTest {
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         connectorDataAdapter2.setConsumerFactory(this.getConsumer());
-        connectorDataAdapter2.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter2.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
@@ -193,7 +191,6 @@ public class AdapterSetTest {
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
         connectorDataAdapter3.setConsumerFactory(this.getConsumer());
-        connectorDataAdapter3.setSnapshotConsumerSupplier(this::getSnapshotConsumer);
         connectorDataAdapter3.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
@@ -205,18 +202,6 @@ public class AdapterSetTest {
         connectorDataAdapter3.setListener(new MockItemEventListener());
         // TODO: temporarily always true; restore to isFalse() when snapshot.enable is gated
         assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isTrue();
-    }
-
-    private Consumer<byte[], byte[]> getSnapshotConsumer() {
-        MockConsumer snapshotConsumer = new Mocks.MockConsumer(StrategyType.EARLIEST.toString());
-
-        TopicPartition tp = new TopicPartition("topic", 0);
-        snapshotConsumer.updateBeginningOffsets(Map.of(tp, 0L));
-        snapshotConsumer.updateEndOffsets(Map.of(tp, 0L));
-        snapshotConsumer.updatePartitions(
-                tp.topic(),
-                List.of(new PartitionInfo(tp.topic(), tp.partition(), null, null, null)));
-        return snapshotConsumer;
     }
 
     private Function<Properties, Consumer<byte[], byte[]>> getConsumer() {
