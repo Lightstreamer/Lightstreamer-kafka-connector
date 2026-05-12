@@ -20,6 +20,12 @@ package com.lightstreamer.kafka.adapters.consumers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.interfaces.data.DiffAlgorithm;
+import com.lightstreamer.interfaces.data.IndexedItemEvent;
+import com.lightstreamer.interfaces.data.ItemEvent;
+import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.data.OldItemEvent;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -28,9 +34,9 @@ import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeserializers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers;
 import com.lightstreamer.kafka.benchmarks.PriceInfo;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -68,7 +74,7 @@ public class BenchmarksUtils {
     private static List<String> SUBSCRIPTIONS =
             List.of("users-[key=%s]", "users-[key=%s,tag=%s]", "users-[key=%s,tag=%s,sonTag=%s]");
 
-    public static class FakeEventListener implements EventListener {
+    public static class FakeEventListener implements ItemEventListener {
 
         private Blackhole blackHole;
         private AtomicInteger counter;
@@ -79,7 +85,7 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void update(SubscribedItem item, Map<String, String> updates, boolean isSnapshot) {
+        public void smartUpdate(Object handle, Map updates, boolean isSnapshot) {
             blackHole.consume(updates);
             // System.out.println(Received update for item " + item.asCanonicalItemName() + ": " +
             // updates);
@@ -87,17 +93,32 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void endOfSnapshot(SubscribedItem itemName) {
+        public void smartUpdate(Object arg0, ItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
+        }
+
+        @Override
+        public void smartUpdate(Object arg0, OldItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
+        }
+
+        @Override
+        public void smartUpdate(Object arg0, IndexedItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'smartUpdate'");
+        }
+
+        @Override
+        public void smartEndOfSnapshot(Object handle) {
             throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
         }
 
         @Override
-        public void clearSnapshot(SubscribedItem itemName) {
+        public void smartClearSnapshot(Object handle) {
             throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
         }
 
         @Override
-        public void failure(Exception e) {
+        public void failure(Throwable th) {
             throw new UnsupportedOperationException("Unimplemented method 'failure'");
         }
 
@@ -107,13 +128,54 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void forceSubscription(String item) {
+        public Mode forceSubscription(String item) {
             throw new UnsupportedOperationException("Unimplemented method 'forceSubscription'");
         }
 
         @Override
         public void unforceSubscription(String item) {
             throw new UnsupportedOperationException("Unimplemented method 'unforceSubscription'");
+        }
+
+        @Override
+        public void clearSnapshot(String arg0) {
+            throw new UnsupportedOperationException("Unimplemented method 'clearSnapshot'");
+        }
+
+        @Override
+        public void declareFieldDiffOrder(String arg0, Map<String, DiffAlgorithm[]> arg1) {
+            throw new UnsupportedOperationException("Unimplemented method 'declareFieldDiffOrder'");
+        }
+
+        @Override
+        public void endOfSnapshot(String arg0) {
+            throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
+        }
+
+        @Override
+        public void smartDeclareFieldDiffOrder(Object arg0, Map<String, DiffAlgorithm[]> arg1) {
+            throw new UnsupportedOperationException(
+                    "Unimplemented method 'smartDeclareFieldDiffOrder'");
+        }
+
+        @Override
+        public void update(String arg0, ItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void update(String arg0, OldItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void update(String arg0, Map arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
+        }
+
+        @Override
+        public void update(String arg0, IndexedItemEvent arg1, boolean arg2) {
+            throw new UnsupportedOperationException("Unimplemented method 'update'");
         }
     }
 
@@ -298,16 +360,16 @@ public class BenchmarksUtils {
                     .build();
         }
 
-        public SubscribedItems subscriptions(int numOfSubscriptions, EventListener listener) {
-            SubscribedItems subscribedItems = SubscribedItems.explicit();
+        public OnDemandSubscribedItems subscriptions(
+                int numOfSubscriptions, ItemEventListener listener) {
+            OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
 
             String[] items =
                     IntStream.range(0, numOfSubscriptions)
                             .mapToObj(i -> String.format("ltest-[key=META250801P00680%03d]", i))
                             .toArray(String[]::new);
             for (int i = 0; i < numOfSubscriptions; i++) {
-                SubscribedItem item = Items.subscribedFrom(items[i], new Object());
-                item.enableEventsDelivery(listener);
+                OnDemandSubscribedItem item = Items.onDemandSubscribedItem(items[i], new Object());
                 subscribedItems.addItem(item);
             }
             return subscribedItems;
@@ -488,8 +550,8 @@ public class BenchmarksUtils {
     }
 
     public static SubscribedItems subscriptions(
-            int subscriptions, EventListener listener, int numOfTemplateParams) {
-        SubscribedItems subscribedItems = SubscribedItems.explicit();
+            int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
 
@@ -503,8 +565,7 @@ public class BenchmarksUtils {
                                         "Invalid subscription number: " + numOfTemplateParams);
                     };
             String input = SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params);
-            SubscribedItem item = Items.subscribedFrom(input, new Object());
-            item.enableEventsDelivery(listener);
+            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(input, new Object());
             subscribedItems.addItem(item);
         }
         return subscribedItems;
