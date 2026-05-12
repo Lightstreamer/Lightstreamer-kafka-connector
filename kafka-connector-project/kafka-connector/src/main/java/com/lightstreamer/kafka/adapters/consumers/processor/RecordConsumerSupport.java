@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
@@ -32,7 +33,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithL
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithOptionals;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.WithSubscribedItems;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -104,7 +104,7 @@ public class RecordConsumerSupport {
 
         protected RecordMapper<K, V> mapper;
         protected SubscribedItems subscribed;
-        protected EventListener listener;
+        protected ItemEventListener listener;
         protected CommandModeStrategy commandModeStrategy;
 
         StartBuildingProcessorBuilderImpl(RecordMapper<K, V> mapper) {
@@ -141,7 +141,7 @@ public class RecordConsumerSupport {
         }
 
         @Override
-        public StartBuildingConsumer<K, V> eventListener(EventListener listener) {
+        public StartBuildingConsumer<K, V> eventListener(ItemEventListener listener) {
             parentBuilder.listener = Objects.requireNonNull(listener, "EventListener not set");
 
             ProcessUpdatesStrategy processUpdatesStrategy =
@@ -240,7 +240,7 @@ public class RecordConsumerSupport {
     static interface ProcessUpdatesStrategy {
 
         default void processUpdates(
-                MappedRecord record, Set<SubscribedItem> routable, EventListener listener) {
+                MappedRecord record, Set<SubscribedItem> routable, ItemEventListener listener) {
             final Map<String, String> updates = getEvent(record);
             sendUpdates(updates, routable, listener);
         }
@@ -250,7 +250,9 @@ public class RecordConsumerSupport {
         }
 
         void sendUpdates(
-                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener);
+                Map<String, String> updates,
+                Set<SubscribedItem> routable,
+                ItemEventListener listener);
 
         void useLogger(Logger logger);
 
@@ -286,7 +288,9 @@ public class RecordConsumerSupport {
 
         @Override
         public void sendUpdates(
-                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
+                Map<String, String> updates,
+                Set<SubscribedItem> routable,
+                ItemEventListener listener) {
             for (SubscribedItem sub : routable) {
                 sub.sendRealtimeEvent(updates, listener);
             }
@@ -336,7 +340,9 @@ public class RecordConsumerSupport {
 
         @Override
         public void sendUpdates(
-                Map<String, String> updates, Set<SubscribedItem> routable, EventListener listener) {
+                Map<String, String> updates,
+                Set<SubscribedItem> routable,
+                ItemEventListener listener) {
             Optional<Command> command = checkInput(updates);
             if (command.isEmpty()) {
                 getLogger()
@@ -400,7 +406,8 @@ public class RecordConsumerSupport {
             };
         }
 
-        private void handleSnapshot(Command snapshot, SubscribedItem sub, EventListener listener) {
+        private void handleSnapshot(
+                Command snapshot, SubscribedItem sub, ItemEventListener listener) {
             switch (snapshot) {
                 case CS -> {
                     getLogger().atDebug().log("Sending clearSnapshot");
@@ -434,14 +441,14 @@ public class RecordConsumerSupport {
 
         protected final RecordMapper<K, V> recordMapper;
         protected final ProcessUpdatesStrategy processUpdatesStrategy;
-        protected final EventListener listener;
+        protected final ItemEventListener listener;
         protected final SubscribedItems subscribedItems;
         protected Logger logger = LoggerFactory.getLogger(DefaultRecordProcessor.class);
 
         DefaultRecordProcessor(
                 RecordMapper<K, V> recordMapper,
                 SubscribedItems subscribedItems,
-                EventListener listener,
+                ItemEventListener listener,
                 ProcessUpdatesStrategy processUpdatesStrategy) {
             this.recordMapper = recordMapper;
             this.listener = listener;
