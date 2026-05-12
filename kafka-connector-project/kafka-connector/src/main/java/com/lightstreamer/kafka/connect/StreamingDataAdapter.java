@@ -21,9 +21,10 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -59,7 +60,7 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * <p>This adapter manages item subscriptions, maps incoming {@link SinkRecord}s to subscribed items
  * via {@link RecordMapper}, and delivers updates to the Lightstreamer Server through an {@link
- * EventListener}. It also tracks consumer offsets for pre-commit reporting.
+ * ItemEventListener}. It also tracks consumer offsets for pre-commit reporting.
  *
  * @see RecordSender
  * @see DownstreamUpdater
@@ -105,7 +106,7 @@ public final class StreamingDataAdapter implements RecordSender {
     private final ErrantRecordReporter reporter;
 
     // A container of all currently subscribed items.
-    private final SubscribedItems subscribed = SubscribedItems.explicit();
+    private final OnDemandSubscribedItems subscribed = SubscribedItems.onDemand();
 
     // The lock used to synchronize the replacement of the DownstreamUpdater instance.
     private final ReentrantLock updaterLock = new ReentrantLock();
@@ -116,8 +117,8 @@ public final class StreamingDataAdapter implements RecordSender {
     // The offsets map.
     private final Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
-    // The EventListener instance injected by the Remote Provider Server.
-    private volatile EventListener listener;
+    // The ItemEventListener instance injected by the Remote Provider Server.
+    private volatile ItemEventListener listener;
 
     // The current DownstreamUpdater for managing incoming records.
     private volatile DownstreamUpdater updater = NOP_UPDATER;
@@ -148,7 +149,7 @@ public final class StreamingDataAdapter implements RecordSender {
     @Override
     public void setListener(ItemEventListener eventListener) {
         // The listener is set before any subscribe is called and never changes.
-        this.listener = EventListener.remoteEventListener(eventListener);
+        this.listener = eventListener;
         logger.info("ItemEventListener set");
     }
 
@@ -161,7 +162,7 @@ public final class StreamingDataAdapter implements RecordSender {
     public void subscribe(String item) throws SubscriptionException, FailureException {
         logger.info("Trying subscription to item [{}]", item);
         try {
-            SubscribedItem newItem = Items.subscribedFrom(item);
+            OnDemandSubscribedItem newItem = Items.onDemandSubscribedItem(item, item);
             if (!itemTemplates.matches(newItem)) {
                 logger.warn("Item [{}] does not match any defined item templates", newItem);
                 throw new SubscriptionException("Item does not match any defined item templates");
@@ -172,7 +173,6 @@ public final class StreamingDataAdapter implements RecordSender {
             if (itemsCounter.addAndGet(1) == 1) {
                 setDownstreamUpdater(this::update);
             }
-            newItem.enableRealtimeEvents(listener);
         } catch (ExpressionException e) {
             logger.error("", e);
             throw new SubscriptionException(e.getMessage());
@@ -239,7 +239,7 @@ public final class StreamingDataAdapter implements RecordSender {
     }
 
     // Only for testing purposes
-    EventListener getEventListener() {
+    ItemEventListener getEventListener() {
         return listener;
     }
 
@@ -317,8 +317,7 @@ public final class StreamingDataAdapter implements RecordSender {
         logger.info("Routing record to {} items", routable.size());
         for (SubscribedItem sub : routable) {
             logger.debug("Sending updates: {}", updates);
-            // listener.update(sub.itemHandle().toString(), updates, false);
-            sub.sendRealtimeEvent(updates, listener);
+            listener.update(sub.canonicalName(), updates, false);
         }
 
         saveOffsets(record);
