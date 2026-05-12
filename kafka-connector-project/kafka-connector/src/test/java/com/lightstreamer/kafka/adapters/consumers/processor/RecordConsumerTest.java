@@ -28,6 +28,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toList;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
@@ -40,9 +41,8 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -114,7 +114,7 @@ public class RecordConsumerTest {
     private RecordConsumer<String, String> recordConsumer;
     private ConnectionSpec<String, String> connectionSpec;
     private RecordMapper<String, String> recordMapper;
-    private Items.SubscribedItems subscriptions;
+    private Items.OnDemandSubscribedItems subscriptions;
 
     private DeserializerPair<String, String> deserializerPair =
             new DeserializerPair<>(String().deserializer(), String().deserializer());
@@ -139,20 +139,19 @@ public class RecordConsumerTest {
         this.connectionSpec =
                 (ConnectionSpec<String, String>) connectorConfigurator.connectionSpec();
 
-        this.subscriptions = SubscribedItems.create();
+        this.subscriptions = SubscribedItems.onDemand();
 
         // Configure the RecordMapper.
         this.recordMapper = newRecordMapper(connectionSpec);
     }
 
-    void subscribe(EventListener listener) {
-        SubscribedItem item = Items.subscribedFrom("item", new Object());
+    void subscribe(ItemEventListener listener) {
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item", new Object());
         this.subscriptions.addItem(item);
-        item.enableRealtimeEvents(listener);
     }
 
     private RecordConsumer<String, String> mkRecordConsumer(
-            EventListener listener,
+            ItemEventListener listener,
             int threads,
             CommandModeStrategy commandStrategy,
             OrderStrategy orderStrategy) {
@@ -230,7 +229,7 @@ public class RecordConsumerTest {
     @Test
     public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
-        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
+        ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -355,7 +354,7 @@ public class RecordConsumerTest {
             RecordErrorHandlingStrategy error,
             Monitor monitor) {
         MockOffsetService offsetService = new MockOffsetService();
-        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
+        ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -453,7 +452,7 @@ public class RecordConsumerTest {
     public void shouldBuildSingleThreadedRecordConsumerFromRecordMapper(
             CommandModeStrategy commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
-        EventListener listener = EventListener.smartEventListener(new MockItemEventListener());
+        ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -571,9 +570,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OffsetService not set");
@@ -585,9 +582,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(null);
                         });
@@ -600,9 +595,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(null);
@@ -616,9 +609,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -633,9 +624,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -662,9 +651,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -680,9 +667,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -700,9 +685,7 @@ public class RecordConsumerTest {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
                                     .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(
-                                            EventListener.smartEventListener(
-                                                    new MockItemEventListener()))
+                                    .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
@@ -752,11 +735,13 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        EventListener listener = EventListener.smartEventListener(testListener);
-        subscribe(listener);
+        subscribe(testListener);
         recordConsumer =
                 mkRecordConsumer(
-                        listener, threads, CommandModeStrategy.NONE, OrderStrategy.ORDER_BY_KEY);
+                        testListener,
+                        threads,
+                        CommandModeStrategy.NONE,
+                        OrderStrategy.ORDER_BY_KEY);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -822,11 +807,10 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer
         MockItemEventListener testListener = new MockItemEventListener();
-        EventListener listener = EventListener.smartEventListener(testListener);
-        subscribe(listener);
+        subscribe(testListener);
         recordConsumer =
                 mkRecordConsumer(
-                        listener,
+                        testListener,
                         threads,
                         CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
@@ -880,11 +864,10 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        EventListener listener = EventListener.smartEventListener(testListener);
-        subscribe(listener);
+        subscribe(testListener);
         recordConsumer =
                 mkRecordConsumer(
-                        listener,
+                        testListener,
                         threads,
                         CommandModeStrategy.NONE,
                         OrderStrategy.ORDER_BY_PARTITION);
@@ -922,10 +905,10 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        EventListener listener = EventListener.smartEventListener(testListener);
-        subscribe(listener);
+        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
+                mkRecordConsumer(
+                        testListener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -953,10 +936,10 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        EventListener listener = EventListener.smartEventListener(testListener);
-        subscribe(listener);
+        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(listener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
+                mkRecordConsumer(
+                        testListener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
 
         RecordBatch<String, String> batch =
                 RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
