@@ -24,6 +24,7 @@ import com.lightstreamer.interfaces.data.IndexedItemEvent;
 import com.lightstreamer.interfaces.data.ItemEvent;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.OldItemEvent;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
@@ -248,13 +249,12 @@ public class Mocks {
         }
 
         @Override
+        public void useLogger(Logger logger) {}
+
         public void processAsSnapshot(KafkaRecord<K, V> record, SubscribedItem subscribedItem)
                 throws ValueException {
             throw new UnsupportedOperationException("Unimplemented method 'processAsSnapshot'");
         }
-
-        @Override
-        public void useLogger(Logger logger) {}
 
         @Override
         public ProcessUpdatesType processUpdatesType() {
@@ -326,6 +326,17 @@ public class Mocks {
             } else {
                 realtimeUpdates.add(call);
             }
+        }
+
+        @Override
+        public void unforceSubscription(String itemName) {
+            // No-op for this mock, but could be extended to record forced subscriptions if needed
+        }
+
+        @Override
+        public Mode forceSubscription(String itemName) {
+            // No-op for this mock, but could be extended to record forced subscriptions if needed
+            return null;
         }
 
         @Override
