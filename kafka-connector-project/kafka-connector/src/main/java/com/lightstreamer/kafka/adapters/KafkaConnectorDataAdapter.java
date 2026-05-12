@@ -98,7 +98,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                 .withConnectionSpec(connectionSpec)
                 .withMetadataListener(metadataListener)
                 .withConsumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
-                .withSnapshotMode(connectorConfig.getSnapshotMode())
+                .withItemSnapshotEnabled(connectorConfig.isItemSnapshotEnabled())
                 .build();
     }
 
