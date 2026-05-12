@@ -32,6 +32,7 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
@@ -140,19 +141,19 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        SubscribedItem item1 = Items.subscribedFrom("stock-[index=1]");
+        SubscribedItem item1 = Items.onDemandSubscribedItem("stock-[index=1]", new Object());
         assertWithMessage("The item matches at least a template")
                 .that(templates.matches(item1))
                 .isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
-        SubscribedItem item2 = Items.subscribedFrom("stock-[index=2]");
+        SubscribedItem item2 = Items.onDemandSubscribedItem("stock-[index=2]", new Object());
         assertWithMessage("The item matches at least a template")
                 .that(templates.matches(item2))
                 .isTrue();
         assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
-        SubscribedItem item3 = Items.subscribedFrom("anItem");
+        SubscribedItem item3 = Items.onDemandSubscribedItem("anItem", new Object());
         assertWithMessage("The item does not match any defined template")
                 .that(templates.matches(item3))
                 .isFalse();
@@ -184,23 +185,25 @@ public class ItemTemplatesTest {
                         Schema.from("stock", Set.of("index")),
                         Schema.from("simple-item-1", emptySet()));
 
-        SubscribedItem item1 = Items.subscribedFrom("simple-item-1");
+        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", new Object());
         assertThat(templates.matches(item1)).isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item2 = Items.subscribedFrom("stock-[index=1]");
+        OnDemandSubscribedItem item2 =
+                Items.onDemandSubscribedItem("stock-[index=1]", new Object());
         assertThat(templates.matches(item2)).isTrue();
         assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item3 = Items.subscribedFrom("stock-[index=2]");
+        OnDemandSubscribedItem item3 =
+                Items.onDemandSubscribedItem("stock-[index=2]", new Object());
         assertThat(templates.matches(item3)).isTrue();
         assertThat(templates.topicsFor(item3)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item4 = Items.subscribedFrom("simple-item-2");
+        OnDemandSubscribedItem item4 = Items.onDemandSubscribedItem("simple-item-2", new Object());
         assertThat(templates.matches(item4)).isFalse();
         assertThat(templates.topicsFor(item4)).isEmpty();
 
-        SubscribedItem item5 = Items.subscribedFrom("stock-[key=1]");
+        OnDemandSubscribedItem item5 = Items.onDemandSubscribedItem("stock-[key=1]", new Object());
         assertThat(templates.matches(item5)).isFalse();
         assertThat(templates.topicsFor(item5)).isEmpty();
     }
@@ -226,7 +229,7 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
 
-        SubscribedItem item1 = Items.subscribedFrom("simple-item-1");
+        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", new Object());
         assertThat(templates.matches(item1)).isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
     }
@@ -255,11 +258,12 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        SubscribedItem item1 = Items.subscribedFrom("stock-[index=1]");
+        OnDemandSubscribedItem item1 =
+                Items.onDemandSubscribedItem("stock-[index=1]", new Object());
         assertThat(templates.matches(item1)).isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly("stocks");
 
-        SubscribedItem item2 = Items.subscribedFrom("stock-[key=1]");
+        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("stock-[key=1]", new Object());
         assertThat(templates.matches(item2)).isFalse();
         assertThat(templates.topicsFor(item2)).isEmpty();
     }
@@ -285,15 +289,15 @@ public class ItemTemplatesTest {
                         Schema.from("simple-item-1", emptySet()),
                         Schema.from("simple-item-2", emptySet()));
 
-        SubscribedItem item1 = Items.subscribedFrom("simple-item-1", "itemHandle1");
+        SubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item2 = Items.subscribedFrom("simple-item-2", "itemHandle2");
+        SubscribedItem item2 = Items.onDemandSubscribedItem("simple-item-2", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
         assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item3 = Items.subscribedFrom("simple-item-3", "itemHandle2");
+        SubscribedItem item3 = Items.onDemandSubscribedItem("simple-item-3", "itemHandle2");
         assertThat(templates.matches(item3)).isFalse();
         assertThat(templates.topicsFor(item3)).isEmpty();
     }
@@ -331,13 +335,13 @@ public class ItemTemplatesTest {
                         Schema.from("template-relatives", Set.of("topic", "info1")));
 
         SubscribedItem item1 =
-                Items.subscribedFrom(
+                Items.onDemandSubscribedItem(
                         "template-family-[topic=" + TEST_TOPIC_1 + ",info=150]", "itemHandle1");
         assertThat(templates.matches(item1)).isTrue();
         assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
 
         SubscribedItem item2 =
-                Items.subscribedFrom(
+                Items.onDemandSubscribedItem(
                         "template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]", "itemHandle2");
         assertThat(templates.matches(item2)).isTrue();
         assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
@@ -375,7 +379,7 @@ public class ItemTemplatesTest {
         assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
         assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem subscribingItem = Items.subscribedFrom("orders", "");
+        SubscribedItem subscribingItem = Items.onDemandSubscribedItem("orders", "");
         assertThat(templates.matches(subscribingItem)).isTrue();
         assertThat(templates.topicsFor(subscribingItem))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
@@ -416,13 +420,13 @@ public class ItemTemplatesTest {
         assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
         SubscribedItem itemFilteringTopic1 =
-                Items.subscribedFrom("template-orders-[topic=new_orders]", "");
+                Items.onDemandSubscribedItem("template-orders-[topic=new_orders]", "");
         assertThat(templates.matches(itemFilteringTopic1)).isTrue();
         assertThat(templates.topicsFor(itemFilteringTopic1))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
 
         SubscribedItem itemFilteringTopic2 =
-                Items.subscribedFrom("template-orders-[topic=past_orders]", "");
+                Items.onDemandSubscribedItem("template-orders-[topic=past_orders]", "");
         assertThat(templates.matches(itemFilteringTopic2)).isTrue();
         assertThat(templates.topicsFor(itemFilteringTopic2))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
@@ -503,9 +507,10 @@ public class ItemTemplatesTest {
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
 
-        SubscribedItem stockItem = Items.subscribedFrom("stock-[symbol=AAPL]");
+        SubscribedItem stockItem =
+                Items.onDemandSubscribedItem("stock-[symbol=AAPL]", new Object());
         assertThat(templates.topicsFor(stockItem)).containsExactly("stocks");
-        SubscribedItem userItem = Items.subscribedFrom("user-[id=42]");
+        SubscribedItem userItem = Items.onDemandSubscribedItem("user-[id=42]", new Object());
         assertThat(templates.topicsFor(userItem)).containsExactly("users");
     }
 }
