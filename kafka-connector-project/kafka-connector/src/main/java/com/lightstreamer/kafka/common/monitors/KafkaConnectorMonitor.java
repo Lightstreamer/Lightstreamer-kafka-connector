@@ -311,8 +311,6 @@ public final class KafkaConnectorMonitor implements Monitor {
                 new Reporters.ConsoleReporter());
     }
 
-    // Public methods
-
     /**
      * Returns a new monitor with the specified scrape interval.
      *
@@ -388,6 +386,10 @@ public final class KafkaConnectorMonitor implements Monitor {
         return observer;
     }
 
+    private void addObserver(DefaultObserver observer) {
+        observers.put(observer.observerID, observer);
+    }
+
     @Override
     public synchronized void start(Duration stepInterval) {
         if (started) {
@@ -409,16 +411,17 @@ public final class KafkaConnectorMonitor implements Monitor {
 
         // Log warning if stepInterval is not a multiple of scrapeInterval
         if (stepInterval.toMillis() % scrapeInterval.toMillis() != 0) {
-            logger.warn(
-                    "stepInterval ({} ms) is not a multiple of scrapeInterval ({} ms). "
-                            + "This may lead to unpredictable evaluation timing.",
-                    stepInterval.toMillis(),
-                    scrapeInterval.toMillis());
+            logger.atWarn()
+                    .log(
+                            "stepInterval ({} ms) is not a multiple of scrapeInterval ({} ms). "
+                                    + "This may lead to unpredictable evaluation timing.",
+                            stepInterval.toMillis(),
+                            scrapeInterval.toMillis());
         }
 
         this.started = true;
 
-        logger.info(
+        logger.atInfo().log(
                 "Starting KafkaConnectorMonitor with scrape interval: {} ms and data points: {}",
                 scrapeInterval.toMillis(),
                 dataPoints);
@@ -442,48 +445,11 @@ public final class KafkaConnectorMonitor implements Monitor {
                 TimeUnit.MILLISECONDS);
     }
 
-    @Override
-    public synchronized boolean isRunning() {
-        return started;
-    }
-
-    @Override
-    public synchronized void stop() {
-        if (!started) {
-            return;
-        }
-
-        try {
-            logger.info("Stopping KafkaConnectorMonitor");
-            this.executor.shutdown();
-
-            // Wait up to 5 seconds for graceful termination
-            if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                logger.warn("Graceful shutdown timeout, forcing termination");
-                this.executor.shutdownNow();
-                this.executor.awaitTermination(2, TimeUnit.SECONDS);
-            }
-        } catch (InterruptedException e) {
-            logger.error("Interrupted while stopping monitor", e);
-            this.executor.shutdownNow();
-            Thread.currentThread().interrupt();
-        } finally {
-            this.executor = null;
-            this.started = false;
-        }
-    }
-
-    // Private methods
-
-    private void addObserver(DefaultObserver observer) {
-        observers.put(observer.observerID, observer);
-    }
-
     private void scrapeMeters() {
         try {
             observers.values().forEach(DefaultObserver::observe);
         } catch (Exception e) {
-            logger.error("Error while scraping meters", e);
+            logger.atError().setCause(e).log("Error while scraping meters");
         }
     }
 
@@ -496,10 +462,43 @@ public final class KafkaConnectorMonitor implements Monitor {
                             try {
                                 observer.emit(reporter, timestamp);
                             } catch (Exception e) {
-                                logger.error(
-                                        "Error while evaluating observer: " + observer.observerID,
-                                        e);
+                                logger.atError()
+                                        .setCause(e)
+                                        .log(
+                                                "Error while evaluating observer: {}",
+                                                observer.observerID);
                             }
                         });
+    }
+
+    @Override
+    public synchronized boolean isRunning() {
+        return started;
+    }
+
+    @Override
+    public synchronized void stop() {
+        if (!started) {
+            return;
+        }
+
+        try {
+            logger.atInfo().log("Stopping KafkaConnectorMonitor");
+            this.executor.shutdown();
+
+            // Wait up to 5 seconds for graceful termination
+            if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                logger.atWarn().log("Graceful shutdown timeout, forcing termination");
+                this.executor.shutdownNow();
+                this.executor.awaitTermination(2, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            logger.atError().setCause(e).log("Interrupted while stopping monitor");
+            this.executor.shutdownNow();
+            Thread.currentThread().interrupt();
+        } finally {
+            this.executor = null;
+            this.started = false;
+        }
     }
 }
