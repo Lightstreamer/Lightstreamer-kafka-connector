@@ -25,6 +25,9 @@ Within each access level (`protected`, `private`, etc.), fields are ordered:
 2. `volatile` fields next (mutable, thread-shared)
 3. Non-`final`, non-`volatile` fields last
 
+Within each modifier group, fields are **logically grouped**: related fields are kept together, and
+dependencies are declared before their dependents.
+
 ## Example
 
 ```java
@@ -63,9 +66,32 @@ distant `private` section.
 > make reading and understanding the code easier."*
 > — Oracle Code Conventions, Section 3.1.3
 
+## Interface Method Ordering
+
+Within an interface, order methods by category:
+
+1. **Static factory methods** first (e.g., `static Foo of(...)`)
+2. **Queries / accessors** (read-only methods that return state)
+3. **Mutators** (methods that change state)
+
+Within each category, group by functionality as usual.
+
 ## Constructor Initialization Order
 
 Constructor assignments should follow field declaration order. When a data dependency requires a
 field to be initialized before fields declared above it (e.g., a `private` config field used to
 derive `protected` fields), initialize the dependency first without reordering the field
 declarations — the field declaration order reflects the public API surface and takes precedence.
+
+## Nested/Inner Class Ordering
+
+When a file contains multiple nested classes implementing the same interface or extending the same
+base, group them together. Order nested types by their relationship:
+
+1. **Interface/abstract type** first
+2. **Implementations** of that interface/abstract type immediately after, grouped together
+
+Do not interleave unrelated types between implementations of the same contract. For example, if a
+file contains both `SubscribedItem` implementations and `ItemTemplates` implementations, all
+`SubscribedItem` implementations should be contiguous — not separated by the `ItemTemplates`
+interface.

@@ -103,17 +103,19 @@ This document defines the Javadoc conventions adopted across the Kafka Connector
 
 ## `@throws` Clauses
 
-- Use the **fully qualified class name** for external exceptions, **no** `{@link}`:
+- Use the **simple name** when the exception type is **imported** or is a standard JDK exception:
+  ```java
+  /**
+   * @throws KafkaException if a Kafka operation fails during initialization
+   * @throws IllegalStateException if the batch is in an invalid state
+   */
+  ```
+- Use the **fully qualified class name** when the exception type is **not imported**
+  (e.g., a transitive exception thrown by a callee). Do **not** use `{@link}`:
   ```java
   /**
    * @throws org.apache.kafka.common.errors.SerializationException if the key or value
    *     cannot be deserialized
-   */
-  ```
-- Use the **simple name** for standard JDK exceptions:
-  ```java
-  /**
-   * @throws IllegalStateException if the batch is in an invalid state
    */
   ```
 - Start the description with a conditional **"if"** clause.
@@ -151,3 +153,69 @@ This document defines the Javadoc conventions adopted across the Kafka Connector
 - **`@param <K>`, `@param <V>`**: always present for generic types, using the form
   `the type of the key/value in the Kafka record`.
 - **`@see`**: reference closely related types (e.g., sibling implementations).
+
+## Javadoc Coverage Requirements
+
+### Required
+
+- All `public` and `protected` types (classes, interfaces, enums, records)
+- All `public` and `protected` methods and constructors
+- All `public` and `protected` fields and constants
+- Package-private classes that serve as primary implementations of public interfaces
+
+### Recommended
+
+- Package-private methods with non-obvious behavior or contracts
+- **Sibling consistency**: when an interface or its first implementation has Javadoc, give all
+  sibling implementations a brief Javadoc too — even when private. This avoids visually-asymmetric
+  groups where one nested type is documented and adjacent ones are bare.
+
+### Exempt
+
+- `@Override` methods where the parent Javadoc is sufficient (unless adding
+  implementation-specific detail)
+- Trivial getters/setters with self-evident semantics
+- Test classes and test methods (the `should...` name is the documentation)
+- Private members (inline comments suffice)
+
+### Class-level Javadoc Structure
+
+1. **Summary sentence** — one sentence describing the type's responsibility
+2. **Extended description** — behavioral contracts, threading guarantees, lifecycle notes
+   (only when non-trivial)
+3. **`@see`** — related types for navigation
+4. **`@param <T>`** — for each generic type parameter
+
+### Method-level Javadoc Structure
+
+1. **Summary sentence** — verb phrase: "Creates...", "Returns...", "Throws..."
+2. **`@param`** — one per parameter
+3. **`@return`** — unless `void`
+4. **`@throws`** — one per declared or significant unchecked exception
+
+### Guiding Principle
+
+> Javadoc describes *what* and *why* (the contract), not *how* (implementation details).
+> If the name and signature already communicate the full contract, Javadoc adds no value and
+> can be omitted for non-public members.
+
+## Field Comments: `/** */` vs `//`
+
+- Use `/** Javadoc */` only on `public` and `protected` fields — these appear in generated
+  API documentation and are part of the visible contract.
+- Use `//` inline comments on package-private and `private` fields — they are implementation
+  details, not API surface. Javadoc on private fields is misleading (signals API documentation
+  where none exists).
+
+```java
+// Correct: public field with Javadoc
+public final Duration timeout;
+
+// Correct: private field with inline comment
+// The lock used to synchronize updater replacement.
+private final ReentrantLock updaterLock = new ReentrantLock();
+
+// Incorrect: Javadoc on a private field
+/** The lock used to synchronize updater replacement. */
+private final ReentrantLock updaterLock = new ReentrantLock();
+```
