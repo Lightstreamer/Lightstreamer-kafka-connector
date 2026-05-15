@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
@@ -120,8 +119,7 @@ public class ConnectorConfigurator {
                 fieldsExtractor,
                 deserializerPair,
                 config.getRecordExtractionErrorHandlingStrategy(),
-                CommandModeStrategy.from(
-                        config.isAutoCommandModeEnabled(), config.isCommandEnforceEnabled()),
+                config.getCommandMode(),
                 new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));
