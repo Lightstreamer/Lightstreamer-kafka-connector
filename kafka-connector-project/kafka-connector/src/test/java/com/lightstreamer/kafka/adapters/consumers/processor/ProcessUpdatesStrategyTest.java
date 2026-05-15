@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.AutoCommandModeProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandProcessUpdatesStrategy;
@@ -64,19 +64,19 @@ public class ProcessUpdatesStrategyTest {
     }
 
     @ParameterizedTest
-    @EnumSource(CommandModeStrategy.class)
-    public void shouldCreateFromCommandModeStrategy(CommandModeStrategy strategy) {
-        ProcessUpdatesStrategy strategy1 = ProcessUpdatesStrategy.fromCommandModeStrategy(strategy);
-        switch (strategy) {
+    @EnumSource(CommandMode.class)
+    public void shouldCreateFromCommandModeStrategy(CommandMode commandMode) {
+        ProcessUpdatesStrategy strategy1 = ProcessUpdatesStrategy.fromCommandMode(commandMode);
+        switch (commandMode) {
             case AUTO:
                 assertThat(strategy1).isInstanceOf(AutoCommandModeProcessUpdatesStrategy.class);
                 assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
                 break;
-            case ENFORCE:
+            case EXPLICIT:
                 assertThat(strategy1).isInstanceOf(CommandProcessUpdatesStrategy.class);
                 assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.COMMAND);
                 break;
-            case NONE:
+            case DISABLED:
                 assertThat(strategy1).isInstanceOf(DefaultUpdatesStrategy.class);
                 assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.DEFAULT);
                 break;
