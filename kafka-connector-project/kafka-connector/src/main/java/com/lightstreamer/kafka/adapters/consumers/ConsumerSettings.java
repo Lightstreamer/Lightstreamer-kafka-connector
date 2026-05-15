@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -51,7 +51,7 @@ public interface ConsumerSettings {
             FieldsExtractor<K, V> fieldsExtractor,
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             RecordErrorHandlingStrategy errorHandlingStrategy,
-            CommandModeStrategy commandModeStrategy,
+            CommandMode commandModeStrategy,
             Concurrency concurrency) {
 
         /**
