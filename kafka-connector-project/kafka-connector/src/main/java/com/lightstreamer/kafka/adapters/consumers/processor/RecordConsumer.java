@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
@@ -165,29 +165,12 @@ public interface RecordConsumer<K, V> {
     interface WithSubscribedItems<K, V> {
 
         /**
-         * Sets the command mode strategy for the processor.
-         *
-         * @param commandModeStrategy the strategy to apply
-         * @return the next builder step
-         */
-        WithEnforceCommandMode<K, V> commandMode(CommandModeStrategy commandModeStrategy);
-    }
-
-    /**
-     * Builder step for setting the event listener.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    interface WithEnforceCommandMode<K, V> {
-
-        /**
          * Sets the {@link ItemEventListener} that receives dispatched updates.
          *
          * @param listener the event listener
          * @return the next builder step
          */
-        StartBuildingConsumer<K, V> eventListener(ItemEventListener listener);
+        WithEventListener<K, V> eventListener(ItemEventListener listener);
     }
 
     /**
@@ -196,7 +179,7 @@ public interface RecordConsumer<K, V> {
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
      */
-    public interface StartBuildingConsumer<K, V> {
+    public interface WithEventListener<K, V> {
 
         /**
          * Sets the {@link OffsetService} for offset management.
@@ -221,23 +204,6 @@ public interface RecordConsumer<K, V> {
          * @param errorHandlingStrategy the error handling strategy
          * @return the next builder step
          */
-        WithLogger<K, V> errorStrategy(RecordErrorHandlingStrategy errorHandlingStrategy);
-    }
-
-    /**
-     * Builder step for setting the logger.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    interface WithLogger<K, V> {
-
-        /**
-         * Sets the logger for diagnostic output.
-         *
-         * @param logger the logger
-         * @return the next builder step
-         */
         WithOptionals<K, V> logger(Logger logger);
     }
 
@@ -248,6 +214,10 @@ public interface RecordConsumer<K, V> {
      * @param <V> the type of the value in the Kafka record
      */
     interface WithOptionals<K, V> {
+
+        WithOptionals<K, V> errorStrategy(RecordErrorHandlingStrategy errorHandlingStrategy);
+
+        WithOptionals<K, V> commandMode(CommandMode commandMode);
 
         /**
          * Enables or disables the catch-up phase for this consumer.
@@ -313,20 +283,6 @@ public interface RecordConsumer<K, V> {
         return RecordConsumerSupport.startBuildingProcessor(mapper);
     }
 
-    /**
-     * Starts the builder chain for creating a {@code RecordConsumer} from an existing {@link
-     * RecordProcessor}.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     * @param recordProcessor the pre-built record processor
-     * @return the first step of the consumer builder
-     */
-    public static <K, V> StartBuildingConsumer<K, V> recordProcessor(
-            RecordProcessor<K, V> recordProcessor) {
-        return RecordConsumerSupport.startBuildingConsumer(recordProcessor);
-    }
-
     // Queries / accessors
 
     /**
@@ -357,7 +313,7 @@ public interface RecordConsumer<K, V> {
      *
      * @return an {@link Optional} containing the {@link OrderStrategy}, or empty if unordered
      */
-    default Optional<OrderStrategy> orderStrategy() {
+    default Optional<OrderStrategy> ordering() {
         return Optional.empty();
     }
 
@@ -383,6 +339,13 @@ public interface RecordConsumer<K, V> {
      * @return the {@link RecordProcessor}
      */
     RecordProcessor<K, V> recordProcessor();
+
+    /**
+     * Returns the offset service for this consumer.
+     *
+     * @return the {@link OffsetService}
+     */
+    OffsetService offsetService();
 
     /**
      * Returns the monitor for tracking consumer metrics.
