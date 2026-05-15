@@ -29,10 +29,10 @@ import java.util.stream.Stream;
  * command semantics ({@code ADD}, {@code DELETE}, {@code UPDATE}, {@code CS}, {@code EOS}) to
  * Lightstreamer events derived from Kafka records.
  *
- * <p>Used by both the real-time record processing pipeline ({@code RecordConsumerSupport}) and the
+ * <p>Used by both the real-time record processing pipeline ({@link RecordConsumerSupport}) and the
  * snapshot strategies to ensure consistent event schema across delivery paths.
  */
-public interface CommandMode {
+public interface CommandEvents {
 
     static final String SNAPSHOT = "snapshot";
 
@@ -58,7 +58,7 @@ public interface CommandMode {
         CS,
         EOS;
 
-        static Map<String, Command> CACHE =
+        private static final Map<String, Command> CACHE =
                 Stream.of(values())
                         .collect(Collectors.toMap(Command::toString, Function.identity()));
 
