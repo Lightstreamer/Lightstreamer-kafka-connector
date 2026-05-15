@@ -23,7 +23,6 @@ import static org.apache.kafka.common.serialization.Serdes.String;
 
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
@@ -140,10 +139,8 @@ public class RecordConsumerBenchmark {
             this.recordConsumer =
                     RecordConsumer.recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
-                            .errorStrategy(config.errorHandlingStrategy())
                             .logger(logger)
                             .threads(threads)
                             .ordering(OrderStrategy.valueOf(ordering))
@@ -233,10 +230,8 @@ public class RecordConsumerBenchmark {
             this.recordConsumer =
                     RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
-                            .errorStrategy(config.errorHandlingStrategy())
                             .logger(logger)
                             .threads(threads)
                             .ordering(OrderStrategy.ORDER_BY_KEY)
