@@ -18,6 +18,8 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+import static com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy.ORDER_BY_PARTITION;
 import static com.lightstreamer.kafka.test_utils.Records.generateRecords;
 
 import static org.apache.kafka.common.serialization.Serdes.String;
@@ -31,15 +33,16 @@ import static java.util.stream.Collectors.toList;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.AbstractRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
@@ -54,7 +57,7 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
-import com.lightstreamer.kafka.test_utils.Mocks.MockRecordProcessor;
+import com.lightstreamer.kafka.test_utils.Mocks.MockRecordMapper;
 import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -102,10 +105,8 @@ public class RecordConsumerTest {
                 .build();
     }
 
-    private static ProcessUpdatesType getProcessUpdatesType(CommandModeStrategy commandMode) {
-        ProcessUpdatesStrategy processUpdateStrategy =
-                ProcessUpdatesStrategy.fromCommandModeStrategy(commandMode);
-        return processUpdateStrategy.type();
+    private static ProcessUpdatesType getProcessUpdatesType(CommandMode commandMode) {
+        return ProcessUpdatesStrategy.fromCommandMode(commandMode).type();
     }
 
     private static final Logger logger = LogFactory.getLogger("TestConnection");
@@ -145,25 +146,26 @@ public class RecordConsumerTest {
         this.recordMapper = newRecordMapper(connectionSpec);
     }
 
-    void subscribe(ItemEventListener listener) {
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item", new Object());
+    void subscribeTo(String itemName) {
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem(itemName, new Object());
         this.subscriptions.addItem(item);
     }
 
     private RecordConsumer<String, String> mkRecordConsumer(
             ItemEventListener listener,
             int threads,
-            CommandModeStrategy commandStrategy,
-            OrderStrategy orderStrategy) {
+            CommandMode commandStrategy,
+            OrderStrategy orderStrategy, boolean enableCatchUp) {
         return RecordConsumer.<String, String>recordMapper(recordMapper)
                 .subscribedItems(subscriptions)
-                .commandMode(commandStrategy)
                 .eventListener(listener)
                 .offsetService(new MockOffsetService())
-                .errorStrategy(connectionSpec.errorHandlingStrategy())
                 .logger(logger)
+                .errorStrategy(connectionSpec.errorHandlingStrategy())
+                .commandMode(commandStrategy)
                 .threads(threads)
                 .ordering(orderStrategy)
+                .enableCatchUp(enableCatchUp)
                 .build();
     }
 
@@ -227,18 +229,15 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void shouldBuildParallelRecordConsumerFromRecordMapperWithDefaultValues() {
+    public void shouldRecordConsumerWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
         ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .commandMode(CommandModeStrategy.NONE) // Default value
                         .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(
-                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE) // Default value
                         .logger(logger)
                         .build();
 
@@ -248,23 +247,20 @@ public class RecordConsumerTest {
 
         ParallelRecordConsumer<String, String> parallelRecordConsumer =
                 (ParallelRecordConsumer<String, String>) recordConsumer;
-        assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
+        assertThat(parallelRecordConsumer.offsetService()).isSameInstanceAs(offsetService);
         assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.recordProcessor)
-                .isInstanceOf(DefaultRecordProcessor.class);
+        assertThat(parallelRecordConsumer.recordProcessor())
+                .isInstanceOf(RecordProcessorImpl.class);
+
         // Default values
-        assertThat(parallelRecordConsumer.errorStrategy())
-                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(parallelRecordConsumer.orderStrategy())
-                .hasValue(OrderStrategy.ORDER_BY_PARTITION);
-        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
-        assertThat(parallelRecordConsumer.actualThreads)
-                .isEqualTo(parallelRecordConsumer.configuredThreads);
-        assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
+        assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
+        assertThat(parallelRecordConsumer.ordering()).hasValue(ORDER_BY_PARTITION);
+        assertThat(parallelRecordConsumer.enableCatchUp).isFalse();
+        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(IGNORE_AND_CONTINUE);
         assertThat(recordConsumer.monitor()).isNull();
 
-        DefaultRecordProcessor<String, String> recordProcessor =
-                (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
+        RecordProcessorImpl<String, String> recordProcessor =
+                (RecordProcessorImpl<String, String>) parallelRecordConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
@@ -272,85 +268,75 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
-    @Test
-    public void shouldBuildParallelRecordConsumerFromRecordProcessorWithDefaultValues() {
-        MockOffsetService offsetService = new MockOffsetService();
-
-        recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(new MockRecordProcessor<>())
-                        .offsetService(offsetService)
-                        .errorStrategy(
-                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE) // Default value
-                        .logger(logger)
-                        .build();
-
-        assertThat(recordConsumer).isNotNull();
-        assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
-        assertThat(recordConsumer.isParallel()).isTrue();
-
-        ParallelRecordConsumer<String, String> parallelRecordConsumer =
-                (ParallelRecordConsumer<String, String>) recordConsumer;
-        assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
-        assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
-        // Default values
-        assertThat(parallelRecordConsumer.errorStrategy())
-                .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(parallelRecordConsumer.orderStrategy())
-                .hasValue(OrderStrategy.ORDER_BY_PARTITION);
-        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(1);
-        assertThat(parallelRecordConsumer.actualThreads)
-                .isEqualTo(parallelRecordConsumer.configuredThreads);
-        assertThat(recordConsumer.numOfThreads()).isEqualTo(parallelRecordConsumer.actualThreads);
-        assertThat(recordConsumer.monitor()).isNull();
-    }
-
     static Stream<Arguments> parallelConsumerArgs() {
         return Stream.of(
                 arguments(
+                        1, // Only one thread
+                        true, // Prefer single thread to trigger SingleThreadedRecordConsumer
+                        OrderStrategy.UNORDERED, // Actually irrelevant, since ordering is ignored for single-threaded consumers
+                        true,
+                        CommandMode.AUTO,
+                        IGNORE_AND_CONTINUE,
+                        monitor),
+                arguments(
+                        1,
+                        false, // Trigger ParallelRecordConsumer even if only one thread
+                        OrderStrategy.UNORDERED,
+                        true,
+                        CommandMode.EXPLICIT,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        monitor),                        
+                arguments(
                         -1,
+                        true, // Irrelevant for "threads" configured with -1 (auto)
                         OrderStrategy.ORDER_BY_KEY,
-                        CommandModeStrategy.AUTO,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        true,
+                        CommandMode.AUTO,
+                        IGNORE_AND_CONTINUE,
                         monitor),
                 arguments(
                         -1,
+                        false, // Irrelevant for "threads" configured with -1 (auto)
                         OrderStrategy.ORDER_BY_KEY,
-                        CommandModeStrategy.NONE,
+                        true,
+                        CommandMode.DISABLED,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         monitor),
                 arguments(
                         2,
-                        OrderStrategy.ORDER_BY_PARTITION,
-                        CommandModeStrategy.AUTO,
+                        false, // Irrelevant when "threads" is greater than 1, since a ParallelRecordConsumer is created anyway
+                        ORDER_BY_PARTITION,
+                        false,
+                        CommandMode.AUTO,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         monitor),
                 arguments(
                         2,
-                        OrderStrategy.ORDER_BY_PARTITION,
-                        CommandModeStrategy.NONE,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        false,
+                        ORDER_BY_PARTITION,
+                        true,
+                        CommandMode.DISABLED,
+                        IGNORE_AND_CONTINUE,
                         monitor),
+
                 arguments(
                         4,
+                        false,
                         OrderStrategy.UNORDERED,
-                        CommandModeStrategy.AUTO,
-                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
-                        monitor),
-                arguments(
-                        4,
-                        OrderStrategy.UNORDERED,
-                        CommandModeStrategy.NONE,
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        false,
+                        CommandMode.DISABLED,
+                        IGNORE_AND_CONTINUE,
                         monitor));
     }
 
     @ParameterizedTest
     @MethodSource("parallelConsumerArgs")
-    public void shouldBuildParallelRecordConsumerFromRecordMapperWithNonDefaultValues(
+    public void shouldBuildParallelRecordConsumerWithNonDefaultValues(
             int threads,
+            boolean preferSingleThread,
             OrderStrategy order,
-            CommandModeStrategy command,
+            boolean enableCatchUp,
+            CommandMode command,
             RecordErrorHandlingStrategy error,
             Monitor monitor) {
         MockOffsetService offsetService = new MockOffsetService();
@@ -359,42 +345,54 @@ public class RecordConsumerTest {
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .commandMode(command)
                         .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(error)
                         .logger(logger)
+                        .commandMode(command)
+                        .errorStrategy(error)
                         .threads(threads)
+                        .preferSingleThread(preferSingleThread)
                         .ordering(order)
+                        .enableCatchUp(enableCatchUp)
                         .monitor(monitor)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
-        assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
-        assertThat(recordConsumer.isParallel()).isTrue();
 
-        ParallelRecordConsumer<String, String> parallelRecordConsumer =
-                (ParallelRecordConsumer<String, String>) recordConsumer;
-        assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
-        assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.recordProcessor)
-                .isInstanceOf(DefaultRecordProcessor.class);
+        AbstractRecordConsumer<String, String> rc =
+                (AbstractRecordConsumer<String, String>) recordConsumer;
+        assertThat(rc.offsetService()).isSameInstanceAs(offsetService);
+        assertThat(rc.logger).isSameInstanceAs(logger);
+        assertThat(rc.recordProcessor()).isInstanceOf(RecordProcessorImpl.class);
         // Non-default values
-        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
-        assertThat(parallelRecordConsumer.orderStrategy()).hasValue(order);
-        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
-        if (threads == -1) {
-            assertThat(parallelRecordConsumer.actualThreads).isGreaterThan(1);
-        } else {
-            assertThat(parallelRecordConsumer.actualThreads)
-                    .isEqualTo(parallelRecordConsumer.configuredThreads);
-        }
-        assertThat(parallelRecordConsumer.numOfThreads())
-                .isEqualTo(parallelRecordConsumer.actualThreads);
-        assertThat(parallelRecordConsumer.monitor()).isSameInstanceAs(monitor);
+        assertThat(rc.errorStrategy()).isEqualTo(error);
 
-        DefaultRecordProcessor<String, String> recordProcessor =
-                (DefaultRecordProcessor<String, String>) parallelRecordConsumer.recordProcessor;
+        assertThat(rc.enableCatchUp).isEqualTo(enableCatchUp);
+
+        // These are the only strict conditions to get a SingleThreadedRecordConsumer, 
+        // otherwise a ParallelRecordConsumer is created even if preferSingleThread is true 
+        // and threads is 1.
+        if (preferSingleThread && threads == 1) { 
+            assertThat(recordConsumer).isInstanceOf(SingleThreadedRecordConsumer.class);
+            assertThat(recordConsumer.isParallel()).isFalse();
+            assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
+            assertThat(recordConsumer.ordering()).isEmpty();
+        } else {
+            assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
+            assertThat(recordConsumer.isParallel()).isTrue();
+
+            if (threads == -1) {
+                assertThat(rc.numOfThreads()).isGreaterThan(1);
+            } else {
+                assertThat(rc.numOfThreads()).isEqualTo(threads);
+            }
+            assertThat(rc.ordering()).hasValue(order);
+        }
+
+        assertThat(rc.monitor()).isSameInstanceAs(monitor);
+
+        RecordProcessorImpl<String, String> recordProcessor =
+                (RecordProcessorImpl<String, String>) recordConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType()).isEqualTo(getProcessUpdatesType(command));
@@ -403,65 +401,19 @@ public class RecordConsumerTest {
     }
 
     @ParameterizedTest
-    @MethodSource("parallelConsumerArgs")
-    public void shouldBuildParallelRecordConsumerFromRecordProcessorWithNonDefaultValues(
-            int threads,
-            OrderStrategy order,
-            CommandModeStrategy commandMode,
-            RecordErrorHandlingStrategy error,
-            Monitor monitor) {
-        MockOffsetService offsetService = new MockOffsetService();
-
-        recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(
-                                new MockRecordProcessor<>(getProcessUpdatesType(commandMode)))
-                        .offsetService(offsetService)
-                        .errorStrategy(error)
-                        .logger(logger)
-                        .threads(threads)
-                        .ordering(order)
-                        .monitor(monitor)
-                        .build();
-
-        assertThat(recordConsumer).isNotNull();
-        assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
-        assertThat(recordConsumer.isParallel()).isTrue();
-
-        ParallelRecordConsumer<String, String> parallelRecordConsumer =
-                (ParallelRecordConsumer<String, String>) recordConsumer;
-        assertThat(parallelRecordConsumer.offsetService).isSameInstanceAs(offsetService);
-        assertThat(parallelRecordConsumer.logger).isSameInstanceAs(logger);
-        assertThat(parallelRecordConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
-        // Non-default values
-        assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(error);
-        assertThat(parallelRecordConsumer.orderStrategy()).hasValue(order);
-        assertThat(parallelRecordConsumer.configuredThreads).isEqualTo(threads);
-        if (threads == -1) {
-            assertThat(parallelRecordConsumer.actualThreads).isGreaterThan(1);
-        } else {
-            assertThat(parallelRecordConsumer.actualThreads)
-                    .isEqualTo(parallelRecordConsumer.configuredThreads);
-        }
-        assertThat(parallelRecordConsumer.numOfThreads())
-                .isEqualTo(parallelRecordConsumer.actualThreads);
-        assertThat(parallelRecordConsumer.monitor()).isSameInstanceAs(monitor);
-    }
-
-    @ParameterizedTest
-    @EnumSource(CommandModeStrategy.class)
-    public void shouldBuildSingleThreadedRecordConsumerFromRecordMapper(
-            CommandModeStrategy commandMode) {
+    @EnumSource(CommandMode.class)
+    public void shouldBuildSingleThreadedRecordConsumer(CommandMode commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
         ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
                 RecordConsumer.<String, String>recordMapper(recordMapper)
                         .subscribedItems(subscriptions)
-                        .commandMode(commandMode)
                         .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
+                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                        .commandMode(commandMode)
                         .threads(1)
                         // The following should trigger a SingleThreadedRecordConsumer instance
                         .preferSingleThread(true)
@@ -471,18 +423,18 @@ public class RecordConsumerTest {
         assertThat(recordConsumer).isInstanceOf(SingleThreadedRecordConsumer.class);
         assertThat(recordConsumer.isParallel()).isFalse();
         assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
-        assertThat(recordConsumer.orderStrategy()).isEmpty();
+        assertThat(recordConsumer.ordering()).isEmpty();
 
         SingleThreadedRecordConsumer<String, String> monoThreadedConsumer =
                 (SingleThreadedRecordConsumer<String, String>) recordConsumer;
-        assertThat(monoThreadedConsumer.offsetService).isSameInstanceAs(offsetService);
+        assertThat(monoThreadedConsumer.offsetService()).isSameInstanceAs(offsetService);
         assertThat(monoThreadedConsumer.logger).isSameInstanceAs(logger);
         assertThat(monoThreadedConsumer.errorStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
-        assertThat(monoThreadedConsumer.recordProcessor).isInstanceOf(DefaultRecordProcessor.class);
+        assertThat(monoThreadedConsumer.recordProcessor()).isInstanceOf(RecordProcessorImpl.class);
 
-        DefaultRecordProcessor<String, String> recordProcessor =
-                (DefaultRecordProcessor<String, String>) monoThreadedConsumer.recordProcessor;
+        RecordProcessorImpl<String, String> recordProcessor =
+                (RecordProcessorImpl<String, String>) monoThreadedConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType())
@@ -491,36 +443,46 @@ public class RecordConsumerTest {
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
-    @ParameterizedTest
-    @EnumSource(CommandModeStrategy.class)
-    public void shouldBuildSingleThreadedRecordConsumerFromRecordProcessor(
-            CommandModeStrategy commandMode) {
+    public void shouldBuildSingleThreadedRecordConsumerWithNonDefaultValues(
+            CommandMode commandMode) {
         MockOffsetService offsetService = new MockOffsetService();
+        ItemEventListener listener = new MockItemEventListener();
 
         recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(
-                                new MockRecordProcessor<>(getProcessUpdatesType(commandMode)))
+                RecordConsumer.<String, String>recordMapper(recordMapper)
+                        .subscribedItems(subscriptions)
+                        .eventListener(listener)
                         .offsetService(offsetService)
-                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .logger(logger)
+                        .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                        .commandMode(commandMode)
                         .threads(1)
-                        .preferSingleThread(
-                                true) // This triggers a SingleThreadedRecordConsumer instance
+                        // The following should trigger a SingleThreadedRecordConsumer instance
+                        .preferSingleThread(true)
                         .build();
 
         assertThat(recordConsumer).isNotNull();
         assertThat(recordConsumer).isInstanceOf(SingleThreadedRecordConsumer.class);
         assertThat(recordConsumer.isParallel()).isFalse();
         assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
-        assertThat(recordConsumer.orderStrategy()).isEmpty();
+        assertThat(recordConsumer.ordering()).isEmpty();
 
         SingleThreadedRecordConsumer<String, String> monoThreadedConsumer =
                 (SingleThreadedRecordConsumer<String, String>) recordConsumer;
-        assertThat(monoThreadedConsumer.offsetService).isSameInstanceAs(offsetService);
+        assertThat(monoThreadedConsumer.offsetService()).isSameInstanceAs(offsetService);
         assertThat(monoThreadedConsumer.logger).isSameInstanceAs(logger);
         assertThat(monoThreadedConsumer.errorStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION);
-        assertThat(monoThreadedConsumer.recordProcessor).isInstanceOf(MockRecordProcessor.class);
+        assertThat(monoThreadedConsumer.recordProcessor()).isInstanceOf(RecordProcessorImpl.class);
+
+        RecordProcessorImpl<String, String> recordProcessor =
+                (RecordProcessorImpl<String, String>) monoThreadedConsumer.recordProcessor();
+        assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
+        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
+        assertThat(recordProcessor.processUpdatesType())
+                .isEqualTo(getProcessUpdatesType(commandMode));
+        assertThat(recordProcessor.logger).isSameInstanceAs(logger);
+        assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
     }
 
     @Test
@@ -548,17 +510,6 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(null);
-                        });
-        assertThat(ne).hasMessageThat().isEqualTo("CommandModeStrategy not set");
-
-        ne =
-                assertThrows(
-                        NullPointerException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("EventListener not set");
@@ -569,7 +520,6 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(null);
                         });
@@ -581,23 +531,8 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
-                                    .errorStrategy(null);
-                        });
-        assertThat(ne).hasMessageThat().isEqualTo("ErrorStrategy not set");
-
-        ne =
-                assertThrows(
-                        NullPointerException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
-                                    .eventListener(new MockItemEventListener())
-                                    .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("Logger not set");
@@ -608,10 +543,34 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
+                                    .logger(logger)
+                                    .errorStrategy(null);
+                        });
+        assertThat(ne).hasMessageThat().isEqualTo("ErrorStrategy not set");
+
+        ne =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            RecordConsumer.<String, String>recordMapper(recordMapper)
+                                    .subscribedItems(subscriptions)
+                                    .eventListener(new MockItemEventListener())
+                                    .offsetService(new MockOffsetService())
+                                    .logger(logger)
+                                    .commandMode(null);
+                        });
+        assertThat(ne).hasMessageThat().isEqualTo("CommandMode not set");
+
+        ne =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            RecordConsumer.<String, String>recordMapper(recordMapper)
+                                    .subscribedItems(subscriptions)
+                                    .eventListener(new MockItemEventListener())
+                                    .offsetService(new MockOffsetService())
                                     .logger(logger)
                                     .ordering(null);
                         });
@@ -623,72 +582,66 @@ public class RecordConsumerTest {
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
-                                    .ordering(OrderStrategy.ORDER_BY_PARTITION)
                                     .monitor(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("Monitor not set");
-
-        ne =
-                assertThrows(
-                        NullPointerException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordProcessor(null);
-                        });
-        assertThat(ne).hasMessageThat().isEqualTo("RecordProcessor not set");
     }
 
     @Test
     public void shouldFailBuildingDueToIllegalValues() {
+        // Illegal values for threads: zero and negative numbers (except -1, which is a special
+        // value to indicate "auto")
+        int[] illegalThreadValues = {-2, 0};
+        for (int threads : illegalThreadValues) {
+            IllegalArgumentException ie =
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> {
+                                RecordConsumer.<String, String>recordMapper(recordMapper)
+                                        .subscribedItems(subscriptions)
+                                        .eventListener(new MockItemEventListener())
+                                        .offsetService(new MockOffsetService())
+                                        .logger(logger)
+                                        .threads(threads)
+                                        .build();
+                            });
+            assertThat(ie).hasMessageThat().isEqualTo("Threads number must be greater than zero");
+        }
+
+        // CommandMode.EXPLICIT does not support parallel processing, so threads must be 1
+        illegalThreadValues = new int[] {-1, 2};
+        for (int threads : illegalThreadValues) {
+            IllegalArgumentException ie =
+                    assertThrows(
+                            IllegalArgumentException.class,
+                            () -> {
+                                RecordConsumer.<String, String>recordMapper(recordMapper)
+                                        .subscribedItems(subscriptions)
+                                        .eventListener(new MockItemEventListener())
+                                        .offsetService(new MockOffsetService())
+                                        .logger(logger)
+                                        .commandMode(CommandMode.EXPLICIT)
+                                        .threads(threads)
+                                        .build();
+                            });
+            assertThat(ie)
+                    .hasMessageThat()
+                    .isEqualTo("Command mode does not support parallel processing");
+        }
+
         IllegalArgumentException ie =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> {
                             RecordConsumer.<String, String>recordMapper(recordMapper)
                                     .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.NONE)
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                                     .logger(logger)
-                                    .threads(0)
-                                    .build();
-                        });
-        assertThat(ie).hasMessageThat().isEqualTo("Threads number must be greater than zero");
-
-        ie =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(new MockItemEventListener())
-                                    .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
-                                    .logger(logger)
-                                    .threads(2)
-                                    .build();
-                        });
-        assertThat(ie)
-                .hasMessageThat()
-                .isEqualTo("Command mode does not support parallel processing");
-
-        ie =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .commandMode(CommandModeStrategy.ENFORCE)
-                                    .eventListener(new MockItemEventListener())
-                                    .offsetService(new MockOffsetService())
-                                    .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
-                                    .logger(logger)
+                                    .commandMode(CommandMode.EXPLICIT)
                                     .threads(-1)
                                     .build();
                         });
@@ -733,15 +686,13 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 2);
 
+        subscribeTo("item");
+
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        subscribe(testListener);
         recordConsumer =
                 mkRecordConsumer(
-                        testListener,
-                        threads,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.ORDER_BY_KEY);
+                        testListener, threads, CommandMode.DISABLED, OrderStrategy.ORDER_BY_KEY, false);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -805,15 +756,12 @@ public class RecordConsumerTest {
         recordsOnTopic2.forEach(action);
         ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
+        subscribeTo("item");
+
         // Make the RecordConsumer
         MockItemEventListener testListener = new MockItemEventListener();
-        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        threads,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.ORDER_BY_PARTITION);
+                mkRecordConsumer(testListener, threads, CommandMode.DISABLED, ORDER_BY_PARTITION, false);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -862,15 +810,12 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 3);
 
+        subscribeTo("item");
+
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        threads,
-                        CommandModeStrategy.NONE,
-                        OrderStrategy.ORDER_BY_PARTITION);
+                mkRecordConsumer(testListener, threads, CommandMode.DISABLED, ORDER_BY_PARTITION, false);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -903,12 +848,12 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 3);
 
+        subscribeTo("item");
+
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(
-                        testListener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
+                mkRecordConsumer(testListener, 2, CommandMode.DISABLED, OrderStrategy.UNORDERED, false);
 
         for (int i = 0; i < iterations; i++) {
             RecordBatch<String, String> batch =
@@ -934,12 +879,12 @@ public class RecordConsumerTest {
         recordsByPartition.put(new TopicPartition("topic", 0), List.of(recordWithNullValue));
         ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
+        subscribeTo("item");
+
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        subscribe(testListener);
         recordConsumer =
-                mkRecordConsumer(
-                        testListener, 2, CommandModeStrategy.NONE, OrderStrategy.UNORDERED);
+                mkRecordConsumer(testListener, 2, CommandMode.DISABLED, OrderStrategy.UNORDERED, false);
 
         RecordBatch<String, String> batch =
                 RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
@@ -947,6 +892,32 @@ public class RecordConsumerTest {
         batch.join();
         List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(1);
+    }
+
+    @Test
+    public void shouldEndCatchUp() {
+                ConsumerRecord<byte[], byte[]> recordWithNullValue =
+                new ConsumerRecord<>(
+                        "topic", 0, 0L, "key".getBytes(StandardCharsets.UTF_8), null); // Null value
+        Map<TopicPartition, List<ConsumerRecord<byte[], byte[]>>> recordsByPartition =
+                new HashMap<>();
+        recordsByPartition.put(new TopicPartition("topic", 0), List.of(recordWithNullValue));
+        ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
+
+        subscribeTo("item");
+
+        // Make the RecordConsumer.
+        MockItemEventListener testListener = new MockItemEventListener();
+        recordConsumer =
+                mkRecordConsumer(testListener, 2, CommandMode.DISABLED, OrderStrategy.UNORDERED, true);
+
+        RecordBatch<String, String> batch =
+                RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, true);
+        recordConsumer.consumeBatch(batch);
+        batch.join();
+        List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+        assertThat(realtimeUpdates).hasSize(1);
+        assertThat(realtimeUpdates.get(0).isSnapshot()).isTrue();
     }
 
     static Stream<Arguments> handleErrors() {
@@ -972,12 +943,14 @@ public class RecordConsumerTest {
 
         MockOffsetService offsetService = new MockOffsetService();
         recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(
-                                new MockRecordProcessor<>(exception, offendingOffsets))
+                RecordConsumer.<String, String>recordMapper(
+                                new MockRecordMapper<>(exception, offendingOffsets))
+                        .subscribedItems(subscriptions)
+                        .eventListener(new MockItemEventListener())
                         .offsetService(offsetService)
+                        .logger(logger)
                         // The following forces the exception to be propagated
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
-                        .logger(logger)
                         .threads(numOfThreads)
                         // This enforces usage of the SingleThreadedConsumer if numOfThreads is 1
                         .preferSingleThread(true)
@@ -1023,12 +996,16 @@ public class RecordConsumerTest {
 
         MockOffsetService offsetService = new MockOffsetService();
         recordConsumer =
-                RecordConsumer.<String, String>recordProcessor(
-                                new MockRecordProcessor<>(exception, offendingOffsets))
+                RecordConsumer.<String, String>recordMapper(
+                                new MockRecordMapper<>(exception, offendingOffsets))
+                        .subscribedItems(subscriptions)
+                        .eventListener(new MockItemEventListener())
                         .offsetService(offsetService)
-                        // The following prevents the exception to be propagated
-                        .errorStrategy(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE)
                         .logger(logger)
+                        // The following prevents the exception from being propagated, but only if
+                        // it's a ValueException.
+                        // Other exceptions should still be propagated even with this strategy.
+                        .errorStrategy(IGNORE_AND_CONTINUE)
                         .threads(numOfThreads)
                         // This enforces usage of the SingleThreadedConsume if numOfThreads is 1
                         .preferSingleThread(true)
