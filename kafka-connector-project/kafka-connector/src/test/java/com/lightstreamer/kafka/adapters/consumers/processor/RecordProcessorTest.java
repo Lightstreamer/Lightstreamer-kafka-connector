@@ -26,8 +26,8 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultRecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
@@ -201,7 +201,7 @@ public class RecordProcessorTest {
             ItemEventListener listener,
             SubscribedItems subscribedItems,
             ProcessUpdatesStrategy updatesStrategy) {
-        return new DefaultRecordProcessor<>(mapper, subscribedItems, listener, updatesStrategy);
+        return new RecordProcessorImpl<>(mapper, subscribedItems, listener, updatesStrategy);
     }
 
     static Stream<Arguments> records() {
