@@ -248,23 +248,23 @@ public interface ConfigTypes {
         }
     }
 
-    enum CommandModeStrategy {
-        NONE,
-        ENFORCE,
+    enum CommandMode {
+        DISABLED,
+        EXPLICIT,
         AUTO;
 
-        public static CommandModeStrategy from(boolean auto, boolean enforce) {
+        public static CommandMode from(boolean auto, boolean explicit) {
             if (auto) {
                 return AUTO;
             }
-            if (enforce) {
-                return ENFORCE;
+            if (explicit) {
+                return EXPLICIT;
             }
-            return NONE;
+            return DISABLED;
         }
 
         public boolean manageSnapshot() {
-            return this == ENFORCE;
+            return this == EXPLICIT;
         }
     }
 
