@@ -52,7 +52,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -505,12 +505,12 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandMode() {
-        if (isAutoCommandModeEnabled()) {
+        if (isAutoCommandMode()) {
             checkCommandKey();
             return;
         }
 
-        if (isCommandEnforceEnabled()) {
+        if (isExplicitCommandMode()) {
             if (getRecordConsumeWithNumThreads() != 1) {
                 throw new ConfigException(
                         "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
@@ -521,6 +521,11 @@ public final class ConnectorConfig extends AbstractConfig {
                 throw new ConfigException(
                         "Command mode requires a command field. Parameter [%s] must be set"
                                 .formatted("field.command"));
+            }
+            if (isItemSnapshotEnabled()) {
+                throw new ConfigException(
+                        "Item snapshot does not allow command mode. Parameter [%s] must be set to [false]"
+                                .formatted(ITEM_SNAPSHOT_ENABLE));
             }
         }
     }
@@ -614,16 +619,16 @@ public final class ConnectorConfig extends AbstractConfig {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
     }
 
-    public boolean isCommandEnforceEnabled() {
+    public boolean isExplicitCommandMode() {
         return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
     }
 
-    public boolean isAutoCommandModeEnabled() {
+    public boolean isAutoCommandMode() {
         return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
     }
 
-    public CommandModeStrategy getCommandModeStrategy() {
-        return CommandModeStrategy.from(isAutoCommandModeEnabled(), isCommandEnforceEnabled());
+    public CommandMode getCommandMode() {
+        return CommandMode.from(isAutoCommandMode(), isExplicitCommandMode());
     }
 
     public final RecordConsumeFrom getRecordConsumeFrom() {
