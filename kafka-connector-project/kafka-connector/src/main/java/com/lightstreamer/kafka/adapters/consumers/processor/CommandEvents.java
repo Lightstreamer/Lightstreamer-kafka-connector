@@ -34,13 +34,27 @@ import java.util.stream.Stream;
  */
 public interface CommandEvents {
 
+    /** Key value used to identify snapshot control records. */
     static final String SNAPSHOT = "snapshot";
 
+    /**
+     * Decorates an event map with the given {@link Command}.
+     *
+     * @param event the event map to decorate
+     * @param command the command to attach
+     * @return the decorated event map
+     */
     static Map<String, String> decorate(Map<String, String> event, Command command) {
         event.put(Key.COMMAND.key(), command.toString());
         return event;
     }
 
+    /**
+     * Creates a DELETE event retaining only the key field from the original event.
+     *
+     * @param event the original event map
+     * @return a new event map decorated with the {@link Command#DELETE} command
+     */
     static Map<String, String> deleteEvent(Map<String, String> event) {
         // Creates a new event with only the key field: all other fields are discarded because
         // they are not relevant for the deletion operation.
@@ -51,6 +65,7 @@ public interface CommandEvents {
         return decorate(deleteEvent, Command.DELETE);
     }
 
+    /** Commands that can be attached to Lightstreamer events for COMMAND mode subscriptions. */
     enum Command {
         ADD,
         DELETE,
@@ -62,16 +77,28 @@ public interface CommandEvents {
                 Stream.of(values())
                         .collect(Collectors.toMap(Command::toString, Function.identity()));
 
+        /**
+         * Looks up the {@code Command} from the command field in the given map.
+         *
+         * @param input the field map to inspect
+         * @return the matching {@code Command}, or empty if not found
+         */
         public static Optional<Command> lookUp(Map<String, String> input) {
             String command = input.get(Key.COMMAND.key());
             return Optional.ofNullable(CACHE.get(command));
         }
 
+        /**
+         * Returns whether this command is a snapshot control flag ({@code CS} or {@code EOS}).
+         *
+         * @return {@code true} if this is a control flag, {@code false} otherwise
+         */
         public boolean isControlFlag() {
             return this.equals(CS) || this.equals(EOS);
         }
     }
 
+    /** Keys used to locate command mode fields within an event map. */
     enum Key {
         KEY("key"),
         COMMAND("command");
@@ -82,10 +109,21 @@ public interface CommandEvents {
             this.key = key;
         }
 
+        /**
+         * Retrieves the value associated with this key from the given map.
+         *
+         * @param input the field map to look up
+         * @return the value, or {@code null} if not present
+         */
         public String lookUp(Map<String, String> input) {
             return input.get(key);
         }
 
+        /**
+         * Returns the string key used for map lookups.
+         *
+         * @return the key string
+         */
         public String key() {
             return key;
         }
