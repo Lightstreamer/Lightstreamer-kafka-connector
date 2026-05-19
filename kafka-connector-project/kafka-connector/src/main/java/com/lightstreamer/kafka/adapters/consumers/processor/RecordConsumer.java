@@ -157,7 +157,7 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting the command mode strategy.
+     * Builder step for setting the {@link ItemEventListener}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -191,7 +191,7 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting the error handling strategy.
+     * Builder step for setting the {@link Logger}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -199,9 +199,9 @@ public interface RecordConsumer<K, V> {
     interface WithOffsetService<K, V> {
 
         /**
-         * Sets the strategy for handling record processing errors.
+         * Sets the logger for diagnostic output.
          *
-         * @param errorHandlingStrategy the error handling strategy
+         * @param logger the logger to use
          * @return the next builder step
          */
         WithOptionals<K, V> logger(Logger logger);
@@ -215,8 +215,20 @@ public interface RecordConsumer<K, V> {
      */
     interface WithOptionals<K, V> {
 
+        /**
+         * Sets the error handling strategy.
+         *
+         * @param errorHandlingStrategy the strategy to apply on record processing errors
+         * @return this builder step
+         */
         WithOptionals<K, V> errorStrategy(RecordErrorHandlingStrategy errorHandlingStrategy);
 
+        /**
+         * Sets the command mode for update dispatch.
+         *
+         * @param commandMode the {@link CommandMode} to apply
+         * @return this builder step
+         */
         WithOptionals<K, V> commandMode(CommandMode commandMode);
 
         /**
@@ -298,6 +310,13 @@ public interface RecordConsumer<K, V> {
      * @return {@code true} if {@link #close()} has been called, {@code false} otherwise
      */
     boolean isClosed();
+
+    /**
+     * Returns whether catch-up mode is enabled for this consumer.
+     *
+     * @return {@code true} if catch-up mode is enabled, {@code false} otherwise
+     */
+    boolean enableCatchUp();
 
     /**
      * Returns the number of worker threads used by this consumer.
