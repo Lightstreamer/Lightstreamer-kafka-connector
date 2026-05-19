@@ -1612,7 +1612,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToExplicitCommandModeWithItemSnapshotFlag() {
+    public void shouldFailDueToExplicitCommandModeWithItemSnapshotFlagEnabled() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
