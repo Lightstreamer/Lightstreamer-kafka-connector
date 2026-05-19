@@ -40,6 +40,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
@@ -91,7 +92,7 @@ import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfi
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
@@ -576,14 +577,13 @@ public class ConnectorConfigTest {
         assertThat(requestTimeoutMs.defaultValue()).isEqualTo("30000");
         assertThat(requestTimeoutMs.type()).isEqualTo(ConfType.INT);
 
-        ConfParameter itemSnapshotMode =
-                configSpec.findParameter(ConnectorConfig.ITEM_SNAPSHOT_MODE);
-        assertThat(itemSnapshotMode.name()).isEqualTo(ConnectorConfig.ITEM_SNAPSHOT_MODE);
-        assertThat(itemSnapshotMode.required()).isFalse();
-        assertThat(itemSnapshotMode.multiple()).isFalse();
-        assertThat(itemSnapshotMode.mutable()).isTrue();
-        assertThat(itemSnapshotMode.defaultValue()).isEqualTo("DISABLED");
-        assertThat(itemSnapshotMode.type()).isEqualTo(ConfType.SNAPSHOT_MODE);
+        ConfParameter itemSnapShotEnable = configSpec.findParameter(ITEM_SNAPSHOT_ENABLE);
+        assertThat(itemSnapShotEnable.name()).isEqualTo(ITEM_SNAPSHOT_ENABLE);
+        assertThat(itemSnapShotEnable.required()).isFalse();
+        assertThat(itemSnapShotEnable.multiple()).isFalse();
+        assertThat(itemSnapShotEnable.mutable()).isTrue();
+        assertThat(itemSnapShotEnable.defaultValue()).isEqualTo("false");
+        assertThat(itemSnapShotEnable.type()).isEqualTo(ConfType.BOOL);
     }
 
     private Map<String, String> standardParameters() {
@@ -1317,14 +1317,14 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGeCommandModeEnforce() {
+    public void shouldGetExplicitCommandMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.isCommandEnforceEnabled()).isFalse();
+        assertThat(config.isExplicitCommandMode()).isFalse();
 
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_EVALUATE_AS_COMMAND_ENABLE, "false"));
-        assertThat(config.isCommandEnforceEnabled()).isFalse();
+        assertThat(config.isExplicitCommandMode()).isFalse();
 
         // Checks value "true"
         config =
@@ -1336,7 +1336,7 @@ public class ConnectorConfigTest {
                                 "#{KEY}",
                                 "field.command",
                                 "#{VALUE}"));
-        assertThat(config.isCommandEnforceEnabled()).isTrue();
+        assertThat(config.isExplicitCommandMode()).isTrue();
 
         // Checks invalid values
         ConfigException ce =
@@ -1397,19 +1397,19 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetAutoCommandMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.isAutoCommandModeEnabled()).isFalse();
+        assertThat(config.isAutoCommandMode()).isFalse();
 
         // Checks value "false"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "false"));
-        assertThat(config.isAutoCommandModeEnabled()).isFalse();
+        assertThat(config.isAutoCommandMode()).isFalse();
 
         // Checks value "true"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"));
-        assertThat(config.isAutoCommandModeEnabled()).isTrue();
+        assertThat(config.isAutoCommandMode()).isTrue();
 
         // Check that field.key is set
         ConfigException ce =
@@ -1426,10 +1426,10 @@ public class ConnectorConfigTest {
     public void shouldGetCommandModeStrategy() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
 
-        // Checks value "NONE"
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
+        // Checks value "DISABLED"
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.DISABLED);
 
-        // Checks value "NONE" with both fields explicitly set to false
+        // Checks value "DISABLED" with both fields explicitly set to false
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -1437,13 +1437,13 @@ public class ConnectorConfigTest {
                                 "false",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "false"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.DISABLED);
 
         // Checks value "AUTO"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.AUTO);
 
         // Checks value "AUTO" even if FIELDS_EVALUATE_AS_COMMAND_ENABLE is set to true
         config =
@@ -1455,7 +1455,7 @@ public class ConnectorConfigTest {
                                 "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "true"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.AUTO);
 
         // Checks value "AUTO" with FIELDS_EVALUATE_AS_COMMAND_ENABLE explicitly set to false
         config =
@@ -1467,9 +1467,9 @@ public class ConnectorConfigTest {
                                 "#{KEY}",
                                 FIELDS_EVALUATE_AS_COMMAND_ENABLE,
                                 "false"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.AUTO);
 
-        // Checks value "ENFORCE"
+        // Checks value "EXPLICIT"
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -1479,9 +1479,9 @@ public class ConnectorConfigTest {
                                 "#{VALUE.aKey}",
                                 "field.command",
                                 "#{VALUE.aCommand}"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.EXPLICIT);
 
-        // Checks value "ENFORCE" with FIELDS_TRANSFORM_TO_COMMAND_ENABLE explicitly set to false
+        // Checks value "EXPLICIT" with FIELDS_AUTO_COMMAND_MODE_ENABLE explicitly set to false
         config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -1493,7 +1493,7 @@ public class ConnectorConfigTest {
                                 "#{VALUE.aKey}",
                                 "field.command",
                                 "#{VALUE.aCommand}"));
-        assertThat(config.getCommandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
+        assertThat(config.getCommandMode()).isEqualTo(CommandMode.EXPLICIT);
     }
 
     @Test
@@ -1584,6 +1584,53 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
+    }
+
+    @Test
+    public void shouldGetItemSnapshotFlag() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+
+        assertThat(config.isItemSnapshotEnabled()).isFalse();
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLE, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.isItemSnapshotEnabled()).isTrue();
+    }
+
+    @Test
+    public void shouldFailDueToInvalidItemSnapshotFlag() {
+        Map<String, String> configs = new HashMap<>();
+        configs.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLE, "t");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [item.snapshot.enable]");
+    }
+
+    @Test
+    public void shouldFailDueToExplicitCommandModeWithItemSnapshotFlag() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                ITEM_SNAPSHOT_ENABLE,
+                                                "true",
+                                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                                "true",
+                                                "field.key",
+                                                "#{VALUE.aKey}",
+                                                "field.command",
+                                                "#{VALUE.aCommand}")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Item snapshot does not allow command mode. Parameter [item.snapshot.enable] must be set to [false]");
     }
 
     @Test
