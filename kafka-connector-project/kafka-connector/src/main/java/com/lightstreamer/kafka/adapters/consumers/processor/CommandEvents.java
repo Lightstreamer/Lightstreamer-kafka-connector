@@ -67,7 +67,7 @@ public interface CommandEvents {
             return Optional.ofNullable(CACHE.get(command));
         }
 
-        public boolean isSnapshot() {
+        public boolean isControlFlag() {
             return this.equals(CS) || this.equals(EOS);
         }
     }
