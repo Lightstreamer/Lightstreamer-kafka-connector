@@ -175,6 +175,8 @@ This document defines the Javadoc conventions adopted across the Kafka Connector
 - `@Override` methods where the parent Javadoc is sufficient (unless adding
   implementation-specific detail)
 - Trivial getters/setters with self-evident semantics
+- Public constants whose name and value are self-explanatory
+  (e.g., `BOOTSTRAP_SERVERS = "bootstrap.servers"`)
 - Test classes and test methods (the `should...` name is the documentation)
 - Private members (inline comments suffice)
 
