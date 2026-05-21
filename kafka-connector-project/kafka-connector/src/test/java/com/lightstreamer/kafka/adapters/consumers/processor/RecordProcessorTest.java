@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSe
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
+import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
@@ -37,8 +38,8 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
-import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -46,51 +47,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 public class RecordProcessorTest {
-
-    static class EventConsumer implements BiConsumer<Map<String, String>, Boolean> {
-
-        private AtomicInteger counter = new AtomicInteger();
-        private AtomicBoolean snapshotEvent = new AtomicBoolean();
-        private Map<String, String> lastUpdates;
-
-        @Override
-        public void accept(Map<String, String> updates, Boolean isSnapshot) {
-            this.lastUpdates = updates;
-            counter.incrementAndGet();
-            snapshotEvent.set(isSnapshot);
-        }
-
-        int getCounter() {
-            return counter.get();
-        }
-
-        void resetCounter() {
-            counter.set(0);
-        }
-
-        boolean isSnapshotEvent() {
-            return snapshotEvent.get();
-        }
-
-        void resetSnapshotEvent() {
-            snapshotEvent.set(false);
-        }
-
-        Map<String, String> getLastUpdates() {
-            return lastUpdates;
-        }
-    }
 
     private static final String TEST_TOPIC = "topic";
 
@@ -217,7 +181,7 @@ public class RecordProcessorTest {
                 Arguments.of(
                         mapperWithNoFieldsExtractor(),
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-2"),
-                        Collections.emptyMap()));
+                        Map.of()));
     }
 
     @ParameterizedTest
@@ -243,7 +207,8 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that the real-time update has been routed
-        assertThat(this.eventListener.getSmartRealtimeUpdateCount()).isEqualTo(1);
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
         // Verify that the update has NOT been routed as a snapshot
         assertThat(this.eventListener.getSmartSnapshotUpdates()).isEmpty();
 
@@ -258,11 +223,10 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getSmartRealtimeUpdateCount()).isEqualTo(2);
-        assertThat(this.eventListener.getSmartRealtimeUpdates())
+        assertThat(this.eventListener.getEvents())
                 .containsExactly(
-                        new UpdateCall(itemHandle1, expectedFields, false),
-                        new UpdateCall(itemHandle2, expectedFields, false));
+                        new EventCall(UPDATE, itemHandle1, expectedFields, false),
+                        new EventCall(UPDATE, itemHandle2, expectedFields, false));
     }
 
     @Test
@@ -280,8 +244,10 @@ public class RecordProcessorTest {
         subscribedItems.addItem(item);
 
         processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
-        // Verify that the update has NOT been routed
-        assertThat(eventListener.getAllUpdatesChronological()).isEmpty();
+
+        // Verify that no events have been routed, since the record doesn't match any of the
+        // subscribed items
+        assertThat(eventListener.getEvents()).isEmpty();
     }
 
     static Stream<Arguments> recordsForAutoCommandMode() {
@@ -315,11 +281,8 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that the real-time update has been routed
-        assertThat(eventListener.getSmartRealtimeUpdateCount()).isEqualTo(1);
-        // Verify that the update has NOT been routed as a snapshot
-        assertThat(eventListener.getSmartSnapshotUpdates()).isEmpty();
-        assertThat(eventListener.getSmartRealtimeUpdates())
-                .containsExactly(new UpdateCall(itemHandle1, expectedFields, false));
+        assertThat(eventListener.getEvents())
+                .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
 
         // Reset the counter
         this.eventListener.reset();
@@ -332,21 +295,15 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getSmartRealtimeUpdateCount()).isEqualTo(2);
-        assertThat(this.eventListener.getSmartRealtimeUpdates())
+        assertThat(this.eventListener.getEvents())
                 .containsExactly(
-                        new UpdateCall(itemHandle1, expectedFields, false),
-                        new UpdateCall(itemHandle2, expectedFields, false));
-    }
-
-    static Stream<Arguments> commands() {
-        return Stream.of(
-                Arguments.of("ADD", 1), Arguments.of("UPDATE", 1), Arguments.of("DELETE", 1));
+                        new EventCall(UPDATE, itemHandle1, expectedFields, false),
+                        new EventCall(UPDATE, itemHandle2, expectedFields, false));
     }
 
     @ParameterizedTest
-    @MethodSource("commands")
-    public void shouldProcessRecordWithAdmittedCommands(String command, int expectedUpdates) {
+    @ValueSource(strings = {"ADD", "UPDATE", "DELETE"})
+    public void shouldProcessRecordWithAdmittedCommands(String command) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -364,23 +321,65 @@ public class RecordProcessorTest {
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
-        // Verify that the nor clearSnapshot neither endOfSnapshot were called
-        assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
-
         // Verify that the real-time update has been routed
-        assertThat(this.eventListener.getAllUpdatesChronological()).hasSize(expectedUpdates);
-        // assertThat(this.eventListener.getSmartSnapshotUpdates())
-        //         .containsExactly(
-        //                 new UpdateCall(
-        //                         itemHandle, Map.of("command", command, "key", "aKey"), true));
-        // Verify that the update has been routed as a snapshot
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(
+                        new EventCall(
+                                UPDATE,
+                                itemHandle,
+                                Map.of("command", command, "key", "aKey"),
+                                true));
+
         assertThat(item.isSnapshot()).isTrue();
     }
 
+    @Test
+    public void shouldNotProcessRecordWithNotAdmittedCommand() {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        RecordProcessor<String, String> processor =
+                processor(
+                        mapperForCommandMode(),
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.commandStrategy());
+
+        // Subscribe to "item1" and process the record
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        subscribedItems.addItem(item);
+
+        KafkaRecord<String, String> record =
+                Records.KafkaRecord(TEST_TOPIC, "aKey", "UNKNOWN_COMMAND");
+        processor.process(record);
+
+        // Verify that no events have been routed
+        assertThat(this.eventListener.getEvents()).isEmpty();
+    }
+
     @ParameterizedTest
-    @ValueSource(strings = {"CS", "EOS"})
-    public void shouldNotProcessRecordWithNotAdmittedCommand(String command) {
+    @NullAndEmptySource
+    public void shouldNotProcessRecordWithBlankOrNullKey(String key) {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        RecordProcessor<String, String> processor =
+                processor(
+                        mapperForCommandMode(),
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.commandStrategy());
+
+        // Subscribe to "item1" and process the record
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        subscribedItems.addItem(item);
+
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, key, "ADD");
+        processor.process(record);
+
+        // Verify that no events have been routed
+        assertThat(this.eventListener.getEvents()).isEmpty();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    public void shouldNotProcessRecordWithBlankOrNullCommand(String command) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -397,11 +396,7 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that no events have been routed
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
-
-        // Verify that the nor clearSnapshot neither endOfSnapshot were called
-        assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
+        assertThat(this.eventListener.getEvents()).isEmpty();
     }
 
     @Test
@@ -415,7 +410,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        Object itemHandle = new Object();
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -423,45 +419,9 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that only clearSnapshot was called
-        assertThat(this.eventListener.getSmartClearSnapshotCalls()).hasSize(1);
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
-
-        // Verify that no events have been routed
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
+        assertThat(this.eventListener.getEvents()).containsExactly(EventCall.CS(itemHandle));
 
         // Verify that the item keeps being a snapshot
-        assertThat(item.isSnapshot()).isTrue();
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"ADD", "UPDATE", "DELETE"})
-    public void shouldNotProcessRecordWithWrongCommandForSnapshot(String wrongCommand) {
-        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
-        RecordProcessor<String, String> processor =
-                processor(
-                        mapperForCommandMode(),
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
-
-        // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
-        assertThat(item.isSnapshot()).isTrue();
-        subscribedItems.addItem(item);
-
-        // Consume a record with a "snapshot" key and a wrong command
-        KafkaRecord<String, String> record =
-                Records.KafkaRecord(TEST_TOPIC, "snapshot", wrongCommand);
-        processor.process(record);
-
-        // Verify that the nor clear snapshot neither end of snapshot were called
-        assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).isEmpty();
-
-        // Verify that no events have been routed
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
-
-        // Verify that the item is still a snapshot
         assertThat(item.isSnapshot()).isTrue();
     }
 
@@ -476,7 +436,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        Object itemHandle = new Object();
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -484,18 +445,43 @@ public class RecordProcessorTest {
         processor.process(record);
 
         // Verify that only endOfSnapshot was called
-        assertThat(this.eventListener.getSmartClearSnapshotCalls()).isEmpty();
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls()).hasSize(1);
-
-        // Verify that no events have been routed
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
+        assertThat(this.eventListener.getEvents()).containsExactly(EventCall.EOS(itemHandle));
 
         // Verify that the item is no longer a snapshot
         assertThat(item.isSnapshot()).isFalse();
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"ADD", "UPDATE", "DELETE", "UNKNOWN_COMMAND"})
+    public void shouldNotProcessRecordWithWrongCommandForSnapshot(String wrongCommand) {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        RecordProcessor<String, String> processor =
+                processor(
+                        mapperForCommandMode(),
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.commandStrategy());
+
+        // Subscribe to "item1" and process the record
+        Object itemHandle = new Object();
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        assertThat(item.isSnapshot()).isTrue();
+        subscribedItems.addItem(item);
+
+        // Consume a record with a "snapshot" key and a wrong command
+        KafkaRecord<String, String> record =
+                Records.KafkaRecord(TEST_TOPIC, "snapshot", wrongCommand);
+        processor.process(record);
+
+        // Verify that neither clearSnapshot nor endOfSnapshot were called
+        assertThat(this.eventListener.getEvents()).isEmpty();
+
+        // Verify that the item is still a snapshot
+        assertThat(item.isSnapshot()).isTrue();
+    }
+
     @Test
-    public void shouldNotTriggerSnapshotEventAfterEOS() {
+    public void shouldSnapshotFollowCS() {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -505,7 +491,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1"
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        Object itemHandle = new Object();
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
         subscribedItems.addItem(item);
 
         // Process a record containing a regular command
@@ -513,76 +500,11 @@ public class RecordProcessorTest {
         processor.process(addRecord);
         assertThat(item.isSnapshot()).isTrue();
 
-        // Verify that the real-time update has NOT been routed
-        assertThat(this.eventListener.getSmartRealtimeUpdateCount()).isEqualTo(0);
-
         // Verify that the update has been routed as a snapshot
-        assertThat(this.eventListener.getSmartSnapshotUpdates()).hasSize(1);
-
-        // Reset the event listener
-        this.eventListener.reset();
-
-        // Then process a record containing an endOfSnapshot command
-        var eosRecord = Records.KafkaRecord(TEST_TOPIC, "snapshot", "EOS");
-        processor.process(eosRecord);
-
-        // Verify that the item is no longer a snapshot
-        assertThat(item.isSnapshot()).isFalse();
-
-        // Verify that the endOfSnapshot was called
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
-        assertThat(this.eventListener.getSmartEndOfSnapshotCalls())
-                .containsExactly(item.itemHandle());
-
-        // Finally, process a records containing regulars commands, which should NOT trigger
-        // snapshot events
-        for (String command : List.of("ADD", "UPDATE", "DELETE")) {
-            // Reset the event listener
-            this.eventListener.reset();
-            var record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
-            processor.process(record);
-
-            // Verify that the update as has been routed as real-time update
-            assertThat(this.eventListener.getAllUpdatesChronological()).hasSize(1);
-            assertThat(this.eventListener.getSmartRealtimeUpdates())
-                    .containsExactly(
-                            new UpdateCall(
-                                    item.itemHandle(),
-                                    Map.of("command", command, "key", "aKey"),
-                                    false));
-
-            // Verify that the update has NOT been routed as a snapshot
-            assertThat(this.eventListener.getSmartSnapshotUpdates()).isEmpty();
-
-            // Double check that the item isn't still a snapshot
-            assertThat(item.isSnapshot()).isFalse();
-        }
-    }
-
-    @Test
-    public void shouldKeepSendingSnapshotAfterCS() {
-        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
-        RecordProcessor<String, String> processor =
-                processor(
-                        mapperForCommandMode(),
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
-
-        // Subscribe to "item1"
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
-        subscribedItems.addItem(item);
-
-        // Process a record containing a regular command
-        var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
-        processor.process(addRecord);
-        assertThat(item.isSnapshot()).isTrue();
-
-        // Verify that the real-time update has NOT been routed
-        assertThat(this.eventListener.getSmartRealtimeUpdateCount()).isEqualTo(0);
-
-        // Verify that the update has been routed as a snapshot
-        assertThat(this.eventListener.getSmartSnapshotUpdates()).hasSize(1);
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(
+                        new EventCall(
+                                UPDATE, itemHandle, Map.of("command", "ADD", "key", "aKey"), true));
 
         // Reset the event listener
         this.eventListener.reset();
@@ -595,9 +517,8 @@ public class RecordProcessorTest {
         assertThat(item.isSnapshot()).isTrue();
 
         // Verify that the clearSnapshot was called
-        assertThat(this.eventListener.getAllUpdatesChronological()).isEmpty();
-        assertThat(this.eventListener.getSmartClearSnapshotCalls())
-                .containsExactly(item.itemHandle());
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(new EventCall(EventCall.EventType.CS, itemHandle, null, false));
 
         // Finally, process a records containing regulars commands, which should still trigger
         // snapshot events
@@ -609,17 +530,77 @@ public class RecordProcessorTest {
             processor.process(record);
 
             // Verify that the update has been routed as a snapshot
-            assertThat(this.eventListener.getAllUpdatesChronological()).hasSize(1);
-            assertThat(this.eventListener.getSmartSnapshotUpdates()).hasSize(1);
-            assertThat(this.eventListener.getSmartSnapshotUpdates())
+            assertThat(this.eventListener.getEvents())
                     .containsExactly(
-                            new UpdateCall(
-                                    item.itemHandle(),
+                            new EventCall(
+                                    UPDATE,
+                                    itemHandle,
                                     Map.of("command", command, "key", "aKey"),
                                     true));
 
             // Double check that the item is still a snapshot
             assertThat(item.isSnapshot()).isTrue();
+        }
+    }
+
+    @Test
+    public void shouldSnapshotFollowEOS() {
+        OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        RecordProcessor<String, String> processor =
+                processor(
+                        mapperForCommandMode(),
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.commandStrategy());
+
+        // Subscribe to "item1"
+        Object itemHandle = new Object();
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        subscribedItems.addItem(item);
+
+        // Process a record containing a regular command
+        var addRecord = Records.KafkaRecord(TEST_TOPIC, "aKey", "ADD");
+        processor.process(addRecord);
+        assertThat(item.isSnapshot()).isTrue();
+
+        // Verify that the update has been routed as a snapshot
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(
+                        new EventCall(
+                                UPDATE, itemHandle, Map.of("command", "ADD", "key", "aKey"), true));
+
+        // Reset the event listener
+        this.eventListener.reset();
+
+        // Then process a record containing an endOfSnapshot command
+        var eosRecord = Records.KafkaRecord(TEST_TOPIC, "snapshot", "EOS");
+        processor.process(eosRecord);
+
+        // Verify that the item is no longer a snapshot
+        assertThat(item.isSnapshot()).isFalse();
+
+        // Verify that the endOfSnapshot was called
+        assertThat(this.eventListener.getEvents()).containsExactly(EventCall.EOS(itemHandle));
+
+        // Finally, process a records containing regulars commands, which should NOT trigger
+        // snapshot events
+        for (String command : List.of("ADD", "UPDATE", "DELETE")) {
+            // Reset the event listener
+            this.eventListener.reset();
+            var record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
+            processor.process(record);
+
+            // Verify that the update as has been routed as real-time update
+            assertThat(this.eventListener.getEvents())
+                    .containsExactly(
+                            new EventCall(
+                                    UPDATE,
+                                    itemHandle,
+                                    Map.of("command", command, "key", "aKey"),
+                                    false));
+
+            // Double check that the item isn't a snapshot anymore
+            assertThat(item.isSnapshot()).isFalse();
         }
     }
 }
