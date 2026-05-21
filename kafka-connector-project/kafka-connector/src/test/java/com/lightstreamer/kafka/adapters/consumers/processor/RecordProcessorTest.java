@@ -333,8 +333,9 @@ public class RecordProcessorTest {
         assertThat(item.isSnapshot()).isTrue();
     }
 
-    @Test
-    public void shouldNotProcessRecordWithNotAdmittedCommand() {
+    @ParameterizedTest
+    @ValueSource(strings = {"CS", "EOS"})
+    public void shouldNotProcessRecordWithNotAdmittedCommand(String command) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -347,8 +348,7 @@ public class RecordProcessorTest {
         OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
         subscribedItems.addItem(item);
 
-        KafkaRecord<String, String> record =
-                Records.KafkaRecord(TEST_TOPIC, "aKey", "UNKNOWN_COMMAND");
+        KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
         processor.process(record);
 
         // Verify that no events have been routed
@@ -452,7 +452,7 @@ public class RecordProcessorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"ADD", "UPDATE", "DELETE", "UNKNOWN_COMMAND"})
+    @ValueSource(strings = {"ADD", "UPDATE", "DELETE", "UNKNOWN"})
     public void shouldNotProcessRecordWithWrongCommandForSnapshot(String wrongCommand) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
