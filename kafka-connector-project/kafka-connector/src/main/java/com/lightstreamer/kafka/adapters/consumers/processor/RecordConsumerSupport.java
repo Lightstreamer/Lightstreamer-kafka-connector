@@ -416,7 +416,7 @@ public class RecordConsumerSupport {
                 String key = Key.KEY.lookUp(event);
                 getLogger()
                         .atDebug()
-                        .log("Payload is null, sending DELETE command for key: %s", key);
+                        .log("Payload is null, sending DELETE command for key: {}", key);
                 return CommandEvents.deleteEvent(event);
             }
 
@@ -455,10 +455,10 @@ public class RecordConsumerSupport {
             for (SubscribedItem sub : routable) {
                 getLogger().atDebug().log("Enforce COMMAND mode semantic of records read");
 
-                if (cmd.isSnapshot()) {
-                    handleSnapshot(cmd, sub, listener);
+                if (cmd.isControlFlag()) {
+                    handleControlFlag(cmd, sub, listener);
                 } else {
-                    getLogger().atDebug().log(() -> "Sending %s command".formatted(cmd.toString()));
+                    getLogger().atDebug().log("Sending {} command", cmd.toString());
                     sub.sendEvent(updates, listener, sub.isSnapshot());
                 }
             }
@@ -491,34 +491,27 @@ public class RecordConsumerSupport {
 
             Command cmd = command.get();
 
-            // If the key is "snapshot", we expect the command to be either CS or EOS.
+            // The reserved "snapshot" key accepts only control flags (CS, EOS);
+            // data commands (ADD, UPDATE, DELETE) targeting it are invalid.
             if (CommandEvents.SNAPSHOT.equals(key)) {
-                if (!cmd.isSnapshot()) {
+                if (!cmd.isControlFlag()) {
                     return Optional.empty();
                 }
-                return command;
             }
-
-            // If the key is not "snapshot", we expect the command to be one of ADD, DELETE, or
-            // UPDATE.
-            return switch (cmd) {
-                case ADD, DELETE, UPDATE -> command;
-                default -> Optional.empty();
-            };
+                
+            return command;
         }
 
-        private void handleSnapshot(
-                Command snapshot, SubscribedItem sub, ItemEventListener listener) {
-            switch (snapshot) {
+        private void handleControlFlag(
+                Command controlFlag, SubscribedItem sub, ItemEventListener listener) {
+            switch (controlFlag) {
                 case CS -> {
                     getLogger().atDebug().log("Sending clearSnapshot");
-                    // updater.clearSnapshot(sub);
                     sub.setSnapshot(true);
                     sub.clearSnapshot(listener);
                 }
                 case EOS -> {
                     getLogger().atDebug().log("Sending endOfSnapshot");
-                    // updater.endOfSnapshot(sub);
                     sub.setSnapshot(false);
                     sub.endOfSnapshot(listener);
                 }
@@ -527,7 +520,7 @@ public class RecordConsumerSupport {
                             .atWarn()
                             .log(
                                     "Unexpected command for snapshot key, expected CS or EOS, got {}",
-                                    snapshot);
+                                    controlFlag);
                 }
             }
         }
@@ -607,14 +600,14 @@ public class RecordConsumerSupport {
         protected static final Duration DEFAULT_MONITOR_RANGE_INTERVAL = Duration.ofSeconds(30);
 
         protected final Logger logger;
-        protected final RecordErrorHandlingStrategy errorStrategy;
-        protected final boolean enableCatchUp;
         protected final Monitor monitor;
-        protected final Meters.Counter receivedRecordCounter;
-        protected final Meters.Counter processedRecordCounter;
         protected final RecordBatchListener recordBatchListener;
         protected volatile Throwable firstFailure = null;
 
+        private final RecordErrorHandlingStrategy errorStrategy;
+        private final boolean enableCatchUp;
+        private final Meters.Counter receivedRecordCounter;
+        private final Meters.Counter processedRecordCounter;
         private final OffsetService offsetService;
         private final RecordProcessor<K, V> recordProcessor;
         private volatile boolean closed = false;
@@ -695,6 +688,10 @@ public class RecordConsumerSupport {
         @Override
         public final Monitor monitor() {
             return monitor;
+        }
+
+        public final boolean enableCatchUp() {
+            return enableCatchUp;
         }
 
         @Override
@@ -923,7 +920,7 @@ public class RecordConsumerSupport {
                 logger.atDebug().log(
                         "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
                 final int threadIndex = i;
-                ringBufferPool.submit(() -> processRingBuffer(threadIndex, enableCatchUp));
+                ringBufferPool.submit(() -> processRingBuffer(threadIndex, enableCatchUp()));
             }
         }
 
