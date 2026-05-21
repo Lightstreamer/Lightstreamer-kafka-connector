@@ -1506,7 +1506,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    void shouldGetTopicMappingWithOneReference() {
+    public void shouldGetTopicMappingWithOneReference() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1");
         ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
@@ -1520,7 +1520,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    void shouldGetTopicMappingWithMoreReferences() {
+    public void shouldGetTopicMappingWithMoreReferences() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1,item1,item1,item2");
         ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
@@ -1534,7 +1534,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    void shouldGetItemTemplateConfigs() {
+    public void shouldGetItemTemplateConfigs() {
         ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
 
         var templateConfig = cgg1.getItemTemplateConfigs();
@@ -1589,7 +1589,6 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetItemSnapshotFlag() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-
         assertThat(config.isItemSnapshotEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1699,7 +1698,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    void shouldGetFieldConfigs() {
+    public void shouldGetFieldConfigs() {
         ConnectorConfig cgg = ConnectorConfigProvider.minimal();
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
         assertThat(fieldConfigs.namedFieldsExpressions()).hasSize(1);
@@ -1782,6 +1781,11 @@ public class ConnectorConfigTest {
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getRecordExtractionErrorHandlingStrategy())
                 .isEqualTo(FORCE_UNSUBSCRIPTION);
+
+        updatedConfig.put(ITEM_SNAPSHOT_ENABLE, "true");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getRecordExtractionErrorHandlingStrategy())
+                .isEqualTo(IGNORE_AND_CONTINUE);
     }
 
     @Test
