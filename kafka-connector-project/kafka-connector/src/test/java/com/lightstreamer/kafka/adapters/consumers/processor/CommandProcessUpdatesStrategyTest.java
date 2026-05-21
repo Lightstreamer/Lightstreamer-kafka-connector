@@ -35,13 +35,13 @@ public class CommandProcessUpdatesStrategyTest {
     @ParameterizedTest
     @EnumSource(names = {"CS", "EOS"})
     public void shouldBeSnapshot(Command cmd) {
-        assertThat(cmd.isSnapshot()).isTrue();
+        assertThat(cmd.isControlFlag()).isTrue();
     }
 
     @ParameterizedTest
     @EnumSource(names = {"ADD", "DELETE", "UPDATE"})
     public void shouldNotBeSnapshot(Command cmd) {
-        assertThat(cmd.isSnapshot()).isFalse();
+        assertThat(cmd.isControlFlag()).isFalse();
     }
 
     @ParameterizedTest(name = "[{index}] {arguments}")
@@ -92,8 +92,7 @@ public class CommandProcessUpdatesStrategyTest {
 
         Optional<Command> checkInput = commandStrategy.checkInput(input);
         if (expected) {
-            assertThat(checkInput).isPresent();
-            assertThat(checkInput.get()).isEqualTo(Command.valueOf(command));
+            assertThat(checkInput).hasValue(Command.valueOf(command));
         } else {
             assertThat(checkInput).isEmpty();
         }
