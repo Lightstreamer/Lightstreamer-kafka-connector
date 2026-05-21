@@ -497,9 +497,15 @@ public class RecordConsumerSupport {
                 if (!cmd.isControlFlag()) {
                     return Optional.empty();
                 }
+                return command;
             }
-                
-            return command;
+
+            // For regular keys, only data commands are valid; control flags
+            // (CS, EOS) are meaningful only on the "snapshot" key.
+            return switch (cmd) {
+                case ADD, DELETE, UPDATE -> command;
+                default -> Optional.empty();
+            };
         }
 
         private void handleControlFlag(
