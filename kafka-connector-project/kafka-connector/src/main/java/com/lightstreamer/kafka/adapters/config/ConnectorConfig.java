@@ -83,9 +83,16 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+/**
+ * Configuration for a Kafka Connector data adapter instance.
+ *
+ * <p>Parses and validates adapter parameters, builds the underlying Kafka consumer properties, and
+ * exposes typed accessors for all supported settings (encryption, authentication, schema registry,
+ * command mode, etc.).
+ *
+ * @see AbstractConfig
+ */
 public final class ConnectorConfig extends AbstractConfig {
-
-    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
     public static final String ENABLE = "enable";
 
@@ -98,7 +105,6 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String ITEM_TEMPLATE = "item-template";
 
     public static final String TOPIC_MAPPING = "map";
-    private static final String MAP_SUFFIX = "to";
 
     public static final String ITEM_SNAPSHOT_ENABLE = "item.snapshot.enable";
 
@@ -197,6 +203,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String CONSUMER_RETRIES =
             CONNECTOR_PREFIX + AdminClientConfig.RETRIES_CONFIG;
 
+    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
+
+    private static final String MAP_SUFFIX = "to";
     private static final ConfigsSpec CONFIG_SPEC;
 
     static {
@@ -432,18 +441,23 @@ public final class ConnectorConfig extends AbstractConfig {
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
         this.consumerProps = initProps();
-        itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
-        topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
-        fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
+        this.itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
+        this.topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
+        this.fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
         postValidate();
     }
 
+    /**
+     * Constructs a new {@code ConnectorConfig} by parsing and validating the given parameters.
+     *
+     * @param configs the raw adapter parameters
+     * @throws ConfigException if any parameter is missing, invalid, or conflicts with another
+     */
     public ConnectorConfig(Map<String, String> configs) throws ConfigException {
         this(CONFIG_SPEC, configs);
     }
 
-    @Override
-    protected final void postValidate() throws ConfigException {
+    private void postValidate() throws ConfigException {
         checkSchemaConfig(true);
         checkSchemaConfig(false);
         checkTopicMappingRegex();
@@ -585,16 +599,35 @@ public final class ConnectorConfig extends AbstractConfig {
         return CONFIG_SPEC;
     }
 
+    /**
+     * Creates a new {@code ConnectorConfig} with file paths resolved against the adapter directory.
+     *
+     * @param adapterDir the adapter's base directory for resolving relative file paths
+     * @param params the raw adapter parameters
+     * @return a validated {@code ConnectorConfig}
+     * @throws ConfigException if any parameter is missing, invalid, or conflicts with another
+     */
     public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params)
             throws ConfigException {
         return new ConnectorConfig(
                 AbstractConfig.resolveFilePaths(CONFIG_SPEC, params, adapterDir));
     }
 
+    /**
+     * Returns the base Kafka consumer properties derived from this configuration.
+     *
+     * @return an unmodifiable {@link Properties} instance
+     */
     public Properties baseConsumerProps() {
         return consumerProps;
     }
 
+    /**
+     * Returns a copy of the base consumer properties extended with the given overrides.
+     *
+     * @param props additional properties to merge (overriding base values on conflict)
+     * @return a new map containing both base and overridden properties
+     */
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
         Map<String, String> extendedProps =
                 new HashMap<>(
@@ -627,6 +660,11 @@ public final class ConnectorConfig extends AbstractConfig {
         return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
     }
 
+    /**
+     * Returns the resolved {@link CommandMode} based on the auto and explicit command flags.
+     *
+     * @return the active {@link CommandMode}
+     */
     public CommandMode getCommandMode() {
         return CommandMode.from(isAutoCommandMode(), isExplicitCommandMode());
     }
@@ -635,7 +673,19 @@ public final class ConnectorConfig extends AbstractConfig {
         return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
+    /**
+     * Returns the error handling strategy for record extraction failures.
+     *
+     * <p>When item snapshot is enabled, this always returns {@link
+     * RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE} regardless of the
+     * configured value.
+     *
+     * @return the active {@link RecordErrorHandlingStrategy}
+     */
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
+        if (isItemSnapshotEnabled()) {
+            return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+        }
         return RecordErrorHandlingStrategy.valueOf(
                 get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
     }
