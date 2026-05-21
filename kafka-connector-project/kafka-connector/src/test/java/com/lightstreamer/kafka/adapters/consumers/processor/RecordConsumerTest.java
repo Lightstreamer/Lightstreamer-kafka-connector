@@ -54,11 +54,11 @@ import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.test_utils.Mocks.MockRecordMapper;
-import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -803,7 +803,7 @@ public class RecordConsumerTest {
                     RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
             recordConsumer.consumeBatch(batch);
             batch.join();
-            List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+            List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
             List<Event> deliveredEvents =
                     realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
             assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
@@ -839,7 +839,7 @@ public class RecordConsumerTest {
                 RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
         recordConsumer.consumeBatch(batch);
         batch.join();
-        List<UpdateCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+        List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(1);
     }
 
@@ -871,9 +871,9 @@ public class RecordConsumerTest {
         recordConsumer.consumeBatch(snapshotBatch);
         recordConsumer.endCatchUp();
 
-        List<UpdateCall> snapshots = testListener.getAllUpdatesChronological();
+        List<EventCall> snapshots = testListener.getEvents();
         assertThat(snapshots).hasSize(100);
-        assertThat(snapshots.stream().allMatch(UpdateCall::isSnapshot));
+        assertThat(snapshots.stream().allMatch(EventCall::isSnapshot));
 
         testListener.reset();
 
@@ -882,9 +882,9 @@ public class RecordConsumerTest {
                         generateRecords("topic", 20, List.of("key"), 4), deserializerPair, true);
         recordConsumer.consumeBatch(updateBatch);
         updateBatch.join();
-        List<UpdateCall> updates = testListener.getAllUpdatesChronological();
+        List<EventCall> updates = testListener.getEvents();
         assertThat(updates).hasSize(20);
-        assertThat(updates.stream().noneMatch(UpdateCall::isSnapshot));
+        assertThat(updates.stream().noneMatch(EventCall::isSnapshot));
     }
 
     static Stream<Arguments> handleErrors() {
