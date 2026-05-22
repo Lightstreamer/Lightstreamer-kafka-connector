@@ -19,8 +19,9 @@ package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import com.lightstreamer.kafka.common.mapping.Items.BufferedSubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -28,9 +29,12 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 public class BufferedSubscribedItemTest {
 
@@ -50,7 +55,59 @@ public class BufferedSubscribedItemTest {
     @BeforeEach
     public void setUp() throws Exception {
         this.eventListener = new MockItemEventListener();
-        this.subscribedItem = Items.bufferedSubscribedFrom(Expressions.Subscription("test-item"));
+        this.subscribedItem =
+                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"));
+    }
+
+    @Test
+    public void shouldCreateBufferedSubscribedItemFromFactory() {
+        String expression = "item-[name=field1]";
+        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression);
+        assertThat(item).isNotNull();
+        assertThat(item.schema().name()).isEqualTo("item");
+        assertThat(item.schema().keys()).containsExactly("name");
+        assertThat(item.canonicalName()).isEqualTo("item-[name=field1]");
+    }
+
+    static Stream<Arguments> provideExpressions() {
+        return Stream.of(
+                arguments("item", "item", Collections.emptySet(), "item"),
+                arguments("item-first", "item-first", Collections.emptySet(), "item-first"),
+                arguments("item_123_", "item_123_", Collections.emptySet(), "item_123_"),
+                arguments("item-", "item-", Collections.emptySet(), "item-"),
+                arguments("prefix-[]", "prefix", Collections.emptySet(), "prefix"),
+                arguments("item-[name=field1]", "item", Set.of("name"), "item-[name=field1]"),
+                arguments(
+                        "item-[name2=field2,name1=field1]",
+                        "item",
+                        Set.of("name2", "name1"),
+                        "item-[name1=field1,name2=field2]"),
+                arguments(
+                        "item-first-[height=12.34]",
+                        "item-first",
+                        Set.of("height"),
+                        "item-first-[height=12.34]"),
+                arguments(
+                        "item_123_-[test=\\]", "item_123_", Set.of("test"), "item_123_-[test=\\]"),
+                arguments("item-[test=\"\"]", "item", Set.of("test"), "item-[test=\"\"]"),
+                arguments("prefix-[test=]]", "prefix", Set.of("test"), "prefix-[test=]]"),
+                arguments("item-[test=value,]", "item", Set.of("test"), "item-[test=value]"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideExpressions")
+    public void shouldCreateBufferedSubscribedItem(
+            String expression,
+            String expectedPrefix,
+            Set<String> expectedKeys,
+            String expectedCanonicalItemName) {
+        BufferedSubscribedItem item =
+                new BufferedSubscribedItem(Expressions.Subscription(expression));
+        assertThat(item).isNotNull();
+        assertThat(item.schema().name()).isEqualTo(expectedPrefix);
+        assertThat(item.schema().keys()).isEqualTo(expectedKeys);
+        assertThat(item.canonicalName()).isEqualTo(expectedCanonicalItemName);
+        assertThat(item.equals(item)).isTrue();
     }
 
     @Test
@@ -279,7 +336,7 @@ public class BufferedSubscribedItemTest {
     }
 
     @Test
-    public void shouldHandleMultipleEnableEventsDeliveryCalls() {
+    public void shouldEnableEventsDeliveryBeIdempotent() {
         // Send some events first
         Map<String, String> event1 = Map.of("field1", "value1");
         subscribedItem.sendEvent(event1, eventListener, false);
@@ -305,8 +362,17 @@ public class BufferedSubscribedItemTest {
         assertThat(realtimeUpdates.get(1).event()).isEqualTo(event2);
     }
 
-    @MethodSource("provideItems")
-    public void shouldMaintainSnapshotFlagBehavior(SubscribedItem subscribedItem) {
+    @Test
+    public void shouldMarkForced() {
+        // Mark the item as forced
+        subscribedItem.markForced();
+
+        // Verify that the item is marked as forced
+        assertThat(subscribedItem.isForced()).isTrue();
+    }
+
+    @Test
+    public void shouldMaintainSnapshotFlagBehavior() {
         // Initially in snapshot mode
         assertThat(subscribedItem.isSnapshot()).isTrue();
 
