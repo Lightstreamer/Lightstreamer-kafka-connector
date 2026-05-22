@@ -75,12 +75,12 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                         new KafkaConnectorDataAdapterOpts(
                                 connectorConfig.getAdapterName(),
                                 connectorConfig.isEnabled(),
-                                connectorConfig.isAutoCommandModeEnabled()
-                                        || connectorConfig.isCommandEnforceEnabled()));
+                                connectorConfig.isAutoCommandMode()
+                                        || connectorConfig.isExplicitCommandMode()));
 
-        this.logger.info("Configuring Kafka Connector");
+        this.logger.atInfo().log("Configuring Kafka Connector");
         this.subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
-        this.logger.info("KafkaConnector configuration complete");
+        this.logger.atInfo().log("KafkaConnector configuration complete");
     }
 
     /**
@@ -120,8 +120,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public boolean isSnapshotAvailable(@Nonnull String itemName) throws SubscriptionException {
-        // TODO: temporarily always enabled; gate on a snapshot.enable configuration property
-        return true;
+        return subscriptionsHandler.isSnapshotAvailable(itemName);
     }
 
     @Override
@@ -137,14 +136,14 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        // logger.info("Trying subscription to item [{}]", itemName);
+        logger.info("Trying subscription to item [{}]", itemName);
         subscriptionsHandler.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        // logger.info("Unsubscribing from item [{}]", itemName);
+        logger.info("Unsubscribing from item [{}]", itemName);
         subscriptionsHandler.unsubscribe(itemName);
     }
 }
