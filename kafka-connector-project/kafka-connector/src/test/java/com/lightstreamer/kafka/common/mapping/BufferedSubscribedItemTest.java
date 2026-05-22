@@ -131,7 +131,7 @@ public class BufferedSubscribedItemTest {
 
         // Phase 2: Unlock delivery — the buffered events drain in insertion order, each with its
         // original isSnapshot flag.
-        Object itemHandle = new Object(); // Just a dummy handle for testing
+        Object itemHandle = new Object();
         subscribedItem.enableEventsDelivery(itemHandle, eventListener);
 
         List<EventCall> allEvents = eventListener.getEvents();
@@ -227,7 +227,7 @@ public class BufferedSubscribedItemTest {
         final AtomicInteger threadCounter = new AtomicInteger(0);
         final ExecutorService executor =
                 Executors.newFixedThreadPool(
-                        22,
+                        10,
                         r -> {
                             Thread t = new Thread(r);
                             t.setDaemon(true);
@@ -235,17 +235,16 @@ public class BufferedSubscribedItemTest {
                             return t;
                         });
         final CountDownLatch startLatch = new CountDownLatch(1);
-        final CountDownLatch snapshotDoneLatch = new CountDownLatch(1);
         final AtomicInteger realtimeEventCounter = new AtomicInteger(0);
 
         String snapshotEventPrefix = "A.";
         String realtimeEventPrefix = "B.";
 
-        final Set<String> threads = new TreeSet<>();
+        final Set<String> threads = Collections.synchronizedSet(new TreeSet<>());
 
-        // Threads 1-21: Send concurrent real-time events
+        // Threads 1-5: send concurrent real-time events.
         List<CompletableFuture<Void>> realTime = new ArrayList<>();
-        for (int i = 0; i < 21; i++) {
+        for (int i = 0; i < 5; i++) {
             realTime.add(
                     CompletableFuture.runAsync(
                             () -> {
@@ -270,61 +269,120 @@ public class BufferedSubscribedItemTest {
                             executor));
         }
 
-        // Thread 22: Process snapshot and send post-transition events
-        Runnable runnable =
-                () -> {
-                    try {
-                        startLatch.await();
+        // Thread 6: buffer mixed events then activate and send post-transition events.
+        CompletableFuture<Void> activator =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                startLatch.await();
 
-                        // Send some snapshot events during the transition (before
-                        // enableEventsDelivery). These are buffered and drained on unlock.
-                        subscribedItem.sendEvent(
-                                Map.of("id", snapshotEventPrefix + "1"), eventListener, true);
-                        subscribedItem.sendEvent(
-                                Map.of("id", snapshotEventPrefix + "2"), eventListener, true);
+                                // Buffer snapshot events, a clearSnapshot, and an endOfSnapshot
+                                // before enableEventsDelivery. These exercise all PendingEvent
+                                // types in drainTo.
+                                subscribedItem.sendEvent(
+                                        Map.of("id", snapshotEventPrefix + "1"),
+                                        eventListener,
+                                        true);
+                                subscribedItem.clearSnapshot(eventListener);
+                                subscribedItem.sendEvent(
+                                        Map.of("id", snapshotEventPrefix + "2"),
+                                        eventListener,
+                                        true);
+                                subscribedItem.endOfSnapshot(eventListener);
 
-                        Thread.sleep(5); // Let some real-time events accumulate
-                        subscribedItem.enableEventsDelivery(new Object(), eventListener);
-                        snapshotDoneLatch.countDown();
+                                Thread.sleep(5); // Let some real-time events accumulate.
+                                subscribedItem.enableEventsDelivery(new Object(), eventListener);
 
-                        // Send post-transition events (both realtime and snapshot)
-                        for (int i = 1; i <= 3; i++) {
-                            subscribedItem.sendEvent(
-                                    Map.of("id", "post" + i), eventListener, false);
-                            subscribedItem.sendEvent(
-                                    Map.of("snapshot", "after" + i), eventListener, true);
-                            Thread.sleep(1);
-                        }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                };
-        CompletableFuture<Void> snapshot = CompletableFuture.runAsync(runnable, executor);
+                                // Send post-transition events (both realtime and snapshot).
+                                for (int i = 1; i <= 3; i++) {
+                                    subscribedItem.sendEvent(
+                                            Map.of("id", "post" + i), eventListener, false);
+                                    subscribedItem.sendEvent(
+                                            Map.of("snapshot", "after" + i), eventListener, true);
+                                    Thread.sleep(1);
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        },
+                        executor);
 
-        // Start all threads
+        // Thread 7: send clearSnapshot() calls with short random delays, exercising the
+        // redirect path when activation swaps the dispatcher mid-flight.
+        int clearSnapshotCount = 30;
+        CompletableFuture<Void> csFuture =
+                CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                startLatch.await();
+                                for (int i = 0; i < clearSnapshotCount; i++) {
+                                    TimeUnit.MILLISECONDS.sleep((long) (Math.random() * 5));
+                                    subscribedItem.clearSnapshot(eventListener);
+                                }
+                            } catch (InterruptedException e) {
+                                Thread.currentThread().interrupt();
+                            }
+                        },
+                        executor);
+
+        // Threads 8-10: send endOfSnapshot() calls with short random delays from multiple
+        // threads, exercising the redirect path when activation swaps the dispatcher mid-flight.
+        int eosThreadCount = 3;
+        int eosCallsPerThread = 30;
+        int endOfSnapshotCount = eosThreadCount * eosCallsPerThread;
+        List<CompletableFuture<Void>> eosFutures = new ArrayList<>();
+        for (int t = 0; t < eosThreadCount; t++) {
+            eosFutures.add(
+                    CompletableFuture.runAsync(
+                            () -> {
+                                try {
+                                    startLatch.await();
+                                    for (int i = 0; i < eosCallsPerThread; i++) {
+                                        TimeUnit.MILLISECONDS.sleep((long) (Math.random() * 5));
+                                        subscribedItem.endOfSnapshot(eventListener);
+                                    }
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            },
+                            executor));
+        }
+
+        // Start all threads.
         startLatch.countDown();
 
-        // Wait for completion with generous timeout
+        // Wait for completion.
         for (CompletableFuture<Void> future : realTime) {
             future.join();
         }
-        snapshot.join();
+        activator.join();
+        csFuture.join();
+        for (CompletableFuture<Void> future : eosFutures) {
+            future.join();
+        }
 
         executor.shutdown();
         assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
-        assertThat(threads).hasSize(21); // All threads ran
+        assertThat(threads).hasSize(5);
 
         // Verify all events were processed exactly once. Every event (snapshot or real-time)
         // sent before enableEventsDelivery is buffered and drained in insertion order, so the
         // two streams interleave. We only assert the totals here.
-        int expectedStressRealtimeEvents = 21 * 20; // 21 threads * 20 events each = 420
+        int expectedStressRealtimeEvents = 5 * 20; // 5 threads * 20 events each = 100
         int expectedPostTransitionRealtime = 3; // "post1", "post2", "post3"
         int expectedSnapshotEvents = 2 + 3; // 2 pre-transition + 3 post-transition
+        // The activator explicitly buffers 1 CS + 1 EOS before activation.
+        int bufferedClearSnapshots = 1;
+        int bufferedEndOfSnapshots = 1;
         int expectedTotalRealtime = expectedStressRealtimeEvents + expectedPostTransitionRealtime;
-        int expectedTotalEvents = expectedTotalRealtime + expectedSnapshotEvents;
+        int expectedTotalUpdates = expectedTotalRealtime + expectedSnapshotEvents;
+        int expectedTotalEvents =
+                expectedTotalUpdates
+                        + (clearSnapshotCount + bufferedClearSnapshots)
+                        + (endOfSnapshotCount + bufferedEndOfSnapshots);
 
         assertThat(realtimeEventCounter.get())
-                .isEqualTo(expectedStressRealtimeEvents); // Only stress events are counted
+                .isEqualTo(expectedStressRealtimeEvents); // Only stress events are counted.
         assertThat(eventListener.getSmartRealtimeUpdates()).hasSize(expectedTotalRealtime);
         assertThat(eventListener.getSmartSnapshotUpdates()).hasSize(expectedSnapshotEvents);
         assertThat(
@@ -332,30 +390,34 @@ public class BufferedSubscribedItemTest {
                                 .filter(c -> c.event().get("id").startsWith(realtimeEventPrefix))
                                 .count())
                 .isEqualTo(expectedStressRealtimeEvents);
+        assertThat(eventListener.getSmartClearSnapshotCalls())
+                .hasSize(clearSnapshotCount + bufferedClearSnapshots);
+        assertThat(eventListener.getSmartEndOfSnapshotCalls())
+                .hasSize(endOfSnapshotCount + bufferedEndOfSnapshots);
         assertThat(eventListener.getEvents()).hasSize(expectedTotalEvents);
     }
 
     @Test
     public void shouldEnableEventsDeliveryBeIdempotent() {
-        // Send some events first
+        // Send some events first.
         Map<String, String> event1 = Map.of("field1", "value1");
         subscribedItem.sendEvent(event1, eventListener, false);
 
-        Object itemHandle = new Object(); // Just a dummy handle for testing
+        Object itemHandle = new Object();
 
-        // Trigger enableEventsDelivery
+        // Trigger enableEventsDelivery.
         subscribedItem.enableEventsDelivery(itemHandle, eventListener);
         assertThat(eventListener.getSmartRealtimeUpdates()).hasSize(1);
 
-        // Second call - should have no effect
+        // Second call should have no effect.
         subscribedItem.enableEventsDelivery(itemHandle, eventListener);
         assertThat(eventListener.getSmartRealtimeUpdates()).hasSize(1);
 
-        // Send event after
+        // Send event after.
         Map<String, String> event2 = Map.of("field1", "value2");
         subscribedItem.sendEvent(event2, eventListener, false);
 
-        // Verify events were processed correctly
+        // Verify events were processed correctly.
         List<EventCall> realtimeUpdates = eventListener.getSmartRealtimeUpdates();
         assertThat(realtimeUpdates).hasSize(2);
         assertThat(realtimeUpdates.get(0).event()).isEqualTo(event1);
@@ -364,23 +426,23 @@ public class BufferedSubscribedItemTest {
 
     @Test
     public void shouldMarkForced() {
-        // Mark the item as forced
+        // Mark the item as forced.
         subscribedItem.markForced();
 
-        // Verify that the item is marked as forced
+        // Verify that the item is marked as forced.
         assertThat(subscribedItem.isForced()).isTrue();
     }
 
     @Test
     public void shouldMaintainSnapshotFlagBehavior() {
-        // Initially in snapshot mode
+        // Initially in snapshot mode.
         assertThat(subscribedItem.isSnapshot()).isTrue();
 
-        // Change flag
+        // Change flag.
         subscribedItem.setSnapshot(false);
         assertThat(subscribedItem.isSnapshot()).isFalse();
 
-        // Change back
+        // Change back.
         subscribedItem.setSnapshot(true);
         assertThat(subscribedItem.isSnapshot()).isTrue();
     }
