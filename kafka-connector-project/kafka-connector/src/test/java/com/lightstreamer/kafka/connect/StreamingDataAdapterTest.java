@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.connect;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
+import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
 import static org.junit.Assert.assertThrows;
 
@@ -31,8 +32,8 @@ import com.lightstreamer.kafka.connect.Fakes.FakeSinkContext;
 import com.lightstreamer.kafka.connect.Fakes.FakeSinkContext.FakeErrantRecordReporter;
 import com.lightstreamer.kafka.connect.StreamingDataAdapter.DownstreamUpdater;
 import com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig;
+import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.RemoteTestEventListener;
-import com.lightstreamer.kafka.test_utils.Mocks.UpdateCall;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -318,7 +319,7 @@ public class StreamingDataAdapterTest {
 
         // Verify that the ItemEventListener has been updated only with the non-failed field.
         assertThat(eventListener.getRealtimeUpdates())
-                .containsExactly(new UpdateCall("item1", Map.of("field2", "213"), false));
+                .containsExactly(new EventCall(UPDATE, "item1", Map.of("field2", "213"), false));
 
         // Verify that the Reporter has NOT been involved.
         FakeErrantRecordReporter reporter =
@@ -358,7 +359,7 @@ public class StreamingDataAdapterTest {
 
         // Verify that the ItemEventListener has been updated only with the first record.
         assertThat(eventListener.getRealtimeUpdates())
-                .containsExactly(new UpdateCall("item1", Map.of("field1", "213"), false));
+                .containsExactly(new EventCall(UPDATE, "item1", Map.of("field1", "213"), false));
 
         // Verify that the Reporter has been updated with the second record and the related thrown
         // exception.
