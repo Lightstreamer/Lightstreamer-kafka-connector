@@ -51,3 +51,14 @@ Do not use JUnit's `assertEquals`/`assertTrue` or Hamcrest matchers.
 
 Do not use external mock frameworks (Mockito, EasyMock, etc.). Use hand-written test doubles
 (stubs, fakes, spies) defined in the test class or in shared test utilities.
+
+## Inline Comments
+
+Inline comments within test methods are complete sentences and must end with a period:
+
+```java
+// The item name does not match any configured template, triggering a SubscriptionException
+// that causes an immediate failure without creating the internal consumer, so the future
+// is never completed and remains null.
+assertThat(subscriptionHandler.getFutureStatus()).isNull();
+```
