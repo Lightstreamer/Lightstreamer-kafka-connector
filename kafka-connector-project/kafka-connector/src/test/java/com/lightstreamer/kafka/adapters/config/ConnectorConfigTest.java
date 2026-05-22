@@ -1423,7 +1423,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetCommandModeStrategy() {
+    public void shouldGetCommandMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
 
         // Checks value "DISABLED"
