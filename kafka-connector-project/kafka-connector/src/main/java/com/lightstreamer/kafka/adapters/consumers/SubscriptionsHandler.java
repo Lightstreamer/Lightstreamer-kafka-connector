@@ -17,40 +17,32 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import static com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode.IMPLICIT_ITEM_SNAPSHOT;
-
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.CacheSnapshotStrategy;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.ConsumerSnapshotStrategy;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.ImplicitItemSnapshotStrategy;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.NoSnapshotStrategy;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy;
-import com.lightstreamer.kafka.adapters.consumers.snapshot.SnapshotDeliveryStrategy.SnapshotMode;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
-import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
+import java.util.function.Function;
 
 /**
  * Manages item subscriptions for a Kafka connection, coordinating consumer lifecycle and snapshot
@@ -63,8 +55,7 @@ import java.util.function.Supplier;
 public interface SubscriptionsHandler<K, V> {
 
     /**
-     * Subscribes to the given item, starting the Kafka consumer if this is the first active
-     * subscription.
+     * Subscribes to the given item, starting the Kafka consumer if required by the implementation.
      *
      * @param item the item name to subscribe to
      * @param itemHandle the opaque handle provided by Lightstreamer for this subscription
@@ -76,11 +67,22 @@ public interface SubscriptionsHandler<K, V> {
      * Unsubscribes from the given item, stopping the Kafka consumer if no active subscriptions
      * remain.
      *
-     * @param topic the item name to unsubscribe from
+     * @param item the item name to unsubscribe from
      * @return the removed {@link SubscribedItem}, or empty if the item was not subscribed
      * @throws SubscriptionException if the unsubscription fails
      */
-    Optional<SubscribedItem> unsubscribe(String topic) throws SubscriptionException;
+    Optional<SubscribedItem> unsubscribe(String item) throws SubscriptionException;
+
+    /**
+     * Returns whether the given item supports snapshot delivery. The result is used by {@link
+     * KafkaConnectorDataAdapter} to determine if a subscription should be treated as a snapshot
+     * subscription (Path-2) or a regular subscription (Path-1).
+     *
+     * @param itemName the name of the item to check
+     * @return {@code true} if the item supports snapshot delivery, {@code false} otherwise
+     * @throws SubscriptionException if the item does not match any configured templates
+     */
+    boolean isSnapshotAvailable(String itemName);
 
     /**
      * Returns whether a Kafka consumer is currently active and consuming events.
@@ -109,7 +111,10 @@ public interface SubscriptionsHandler<K, V> {
     }
 
     /**
-     * Builder for creating {@link SubscriptionsHandler} instances.
+     * Builder for creating {@link SubscriptionsHandler} instances. The implementation is selected
+     * from the connection's {@code item.snapshot.enable} flag: when {@code true} a {@link
+     * ForceableSubscriptionsHandler} is returned; otherwise an {@link
+     * OnDemandSubscriptionsHandler}.
      *
      * @param <K> the deserialized key type
      * @param <V> the deserialized value type
@@ -118,12 +123,8 @@ public interface SubscriptionsHandler<K, V> {
 
         private ConnectionSpec<K, V> connectionSpec;
         private MetadataListener metadataListener;
-        private Supplier<Consumer<byte[], byte[]>> consumerSupplier;
-        private Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier;
-        private SnapshotMode snapshotMode = SnapshotMode.DISABLED;
-
-        // Package-private: allows tests to inject a custom strategy directly
-        SnapshotDeliveryStrategy<K, V> snapshotStrategy;
+        private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
+        private boolean itemSnapshotEnabled = false;
 
         private Builder() {}
 
@@ -137,20 +138,14 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-        public Builder<K, V> withConsumerSupplier(
-                Supplier<Consumer<byte[], byte[]>> consumerSupplier) {
-            this.consumerSupplier = consumerSupplier;
+        public Builder<K, V> withConsumerFactory(
+                Function<Properties, Consumer<byte[], byte[]>> consumerFactory) {
+            this.consumerFactory = consumerFactory;
             return this;
         }
 
-        public Builder<K, V> withSnapshotConsumerSupplier(
-                Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier) {
-            this.snapshotConsumerSupplier = snapshotConsumerSupplier;
-            return this;
-        }
-
-        public Builder<K, V> withSnapshotMode(SnapshotMode snapshotMode) {
-            this.snapshotMode = snapshotMode;
+        public Builder<K, V> withItemSnapshotEnabled(boolean itemSnapshotEnabled) {
+            this.itemSnapshotEnabled = itemSnapshotEnabled;
             return this;
         }
 
@@ -158,123 +153,42 @@ public interface SubscriptionsHandler<K, V> {
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
             if (metadataListener == null)
                 throw new IllegalStateException("MetadataListener not set");
-            if (consumerSupplier == null)
-                throw new IllegalStateException("ConsumerSupplier not set");
-            if (snapshotMode == null) throw new IllegalStateException("SnapshotMode not set");
-            if (snapshotStrategy == null && snapshotMode != SnapshotMode.DISABLED) {
-                if (snapshotConsumerSupplier == null)
-                    throw new IllegalStateException("SnapshotConsumerSupplier not set");
-            }
-            return new DefaultSubscriptionsHandler<>(this);
+            if (consumerFactory == null) throw new IllegalStateException("ConsumerFactory not set");
+            return itemSnapshotEnabled
+                    ? new ForceableSubscriptionsHandler<>(this)
+                    : new OnDemandSubscriptionsHandler<>(this);
         }
     }
 
     /**
-     * Default implementation of {@link SubscriptionsHandler} that manages a single {@link
-     * KafkaConsumerWrapper} instance, creating it on the first subscribe and shutting it down when
-     * the last item is unsubscribed.
+     * Abstract base providing shared infrastructure for {@link SubscriptionsHandler}
+     * implementations. Owns the common fields (logger, record mapper, consumer factory) used by all
+     * handler variants.
      *
      * @param <K> the deserialized key type
      * @param <V> the deserialized value type
      */
-    static class DefaultSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
+    abstract class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
-        // Only for testing purposes: hook invoked before acquiring lock in
-        // decrementAndMaybeStopConsuming()
-        Runnable stopConsumingHook = () -> {};
+        protected final ConnectionSpec<K, V> configSpec;
+        protected final MetadataListener metadataListener;
+        protected final Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
+        protected final Logger logger;
+        protected final RecordMapper<K, V> recordMapper;
+        protected final ExecutorService pool;
 
-        private final ConnectionSpec<K, V> configSpec;
-        private final MetadataListener metadataListener;
-        private final Supplier<Consumer<byte[], byte[]>> consumerSupplier;
-        private final Logger logger;
-        private final RecordMapper<K, V> recordMapper;
-        private final ExecutorService pool;
-        private final SnapshotDeliveryStrategy<K, V> snapshotStrategy;
-        private final SubscribedItems subscribedItems;
-        private final ReentrantLock consumerLock = new ReentrantLock();
+        protected ItemEventListener eventListener;
 
-        private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
-        private FutureStatus futureStatus; // guarded by consumerLock
-        private int itemsCount; // guarded by consumerLock
-        private EventListener eventListener;
-        private SnapshotMode snapshotMode;
-
-        /** Constructs a {@code DefaultSubscriptionsHandler} from the given builder. */
-        DefaultSubscriptionsHandler(Builder<K, V> builder) {
+        /** Constructs the shared infrastructure from the given builder. */
+        AbstractSubscriptionsHandler(Builder<K, V> builder) {
             this.configSpec = builder.connectionSpec;
             this.metadataListener = builder.metadataListener;
-            this.consumerSupplier = builder.consumerSupplier;
+            this.consumerFactory = builder.consumerFactory;
             this.logger = LogFactory.getLogger(configSpec.connectionName());
             this.recordMapper =
                     RecordMapper.from(configSpec.itemTemplates(), configSpec.fieldsExtractor());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
-            this.snapshotStrategy =
-                    builder.snapshotStrategy != null
-                            ? builder.snapshotStrategy
-                            : resolveStrategy(
-                                    builder.snapshotMode,
-                                    recordMapper,
-                                    builder.snapshotConsumerSupplier,
-                                    configSpec);
-            this.subscribedItems = SubscribedItems.create();
-            this.snapshotMode = builder.snapshotMode;
-        }
-
-        /**
-         * Resolves the {@link SnapshotDeliveryStrategy} for the configured mode.
-         *
-         * @param mode the snapshot delivery mode
-         * @param recordMapper the record mapper for converting Kafka records
-         * @param snapshotConsumerSupplier factory for creating snapshot Kafka consumers
-         * @param spec the connection specification
-         * @return the resolved {@link SnapshotDeliveryStrategy}
-         */
-        private static <K, V> SnapshotDeliveryStrategy<K, V> resolveStrategy(
-                SnapshotMode mode,
-                RecordMapper<K, V> recordMapper,
-                Supplier<Consumer<byte[], byte[]>> snapshotConsumerSupplier,
-                ConnectionSpec<K, V> spec) {
-            if (mode == SnapshotMode.DISABLED) {
-                return new NoSnapshotStrategy<>();
-            }
-
-            SnapshotConnectionSpec<K, V> snapshotSpec =
-                    new SnapshotConnectionSpec<>() {
-                        @Override
-                        public String connectionName() {
-                            return spec.connectionName();
-                        }
-
-                        @Override
-                        public ItemTemplates<K, V> itemTemplates() {
-                            return spec.itemTemplates();
-                        }
-
-                        @Override
-                        public KafkaRecord.DeserializerPair<K, V> deserializerPair() {
-                            return spec.deserializerPair();
-                        }
-
-                        @Override
-                        public CommandModeStrategy commandModeStrategy() {
-                            return spec.commandModeStrategy();
-                        }
-                    };
-
-            return switch (mode) {
-                case CONSUMER ->
-                        new ConsumerSnapshotStrategy<>(
-                                snapshotSpec, recordMapper, snapshotConsumerSupplier);
-
-                case CACHE ->
-                        new CacheSnapshotStrategy<>(
-                                snapshotSpec, recordMapper, snapshotConsumerSupplier);
-                case IMPLICIT_ITEM_SNAPSHOT ->
-                        new ImplicitItemSnapshotStrategy<>(
-                                snapshotSpec, recordMapper, snapshotConsumerSupplier);
-                case DISABLED -> throw new AssertionError("Unreachable");
-            };
         }
 
         @Override
@@ -282,17 +196,85 @@ public interface SubscriptionsHandler<K, V> {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
-            this.eventListener = EventListener.smartEventListener(listener);
-            snapshotStrategy.init(listener);
+            this.eventListener = listener;
+            doSetListener(eventListener);
+        }
+
+        /**
+         * Hook invoked by {@link #setListener(ItemEventListener)} after null-checking the listener.
+         * Subclasses initialize the {@link ItemEventListener} and perform any mode-specific setup
+         * (e.g., initializing a snapshot strategy or starting the consumer).
+         *
+         * @param listener the non-null {@link ItemEventListener} provided by Lightstreamer
+         */
+        protected void doSetListener(ItemEventListener listener) {}
+
+        /**
+         * Creates a new {@link KafkaConsumerWrapper} configured for this handler's connection.
+         *
+         * @param eagerLifecycle {@code true} for an eager consumer, {@code false} for on-demand
+         * @param subscribedItems the {@link SubscribedItems} collection the consumer should route
+         *     records into
+         * @return a new {@link KafkaConsumerWrapper} instance
+         * @throws KafkaException if the consumer cannot be created
+         */
+        protected KafkaConsumerWrapper<K, V> newConsumer(
+                boolean eagerLifecycle, SubscribedItems subscribedItems) throws KafkaException {
+            if (eventListener == null) {
+                throw new RuntimeException(
+                        "EventListener must be set before starting the consumer");
+            }
+            return new KafkaConsumerWrapper<>(
+                    configSpec,
+                    metadataListener,
+                    eventListener,
+                    subscribedItems,
+                    recordMapper,
+                    consumerFactory,
+                    eagerLifecycle);
+        }
+    }
+
+    /**
+     * {@link SubscriptionsHandler} implementation that manages the Kafka consumer lifecycle on
+     * demand — starting it on the first subscription and shutting it down when the last item is
+     * unsubscribed.
+     *
+     * <ul>
+     *   <li>{@link #subscribe(String, Object)} validates the item against configured templates,
+     *       adds it to the active set, and starts the consumer if this is the first subscription.
+     *   <li>{@link #unsubscribe(String)} removes the item from the active set and stops the
+     *       consumer when no subscriptions remain.
+     * </ul>
+     *
+     * <p>Used when {@code item.snapshot.enable} is {@code false}.
+     *
+     * @param <K> the deserialized key type
+     * @param <V> the deserialized value type
+     */
+    class OnDemandSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
+
+        // Only for testing purposes: hook invoked before acquiring lock in
+        // decrementAndMaybeStopConsuming()
+        Runnable stopConsumingHook = () -> {};
+
+        private final ReentrantLock consumerLock = new ReentrantLock();
+
+        private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
+        private FutureStatus futureStatus; // guarded by consumerLock
+        private int itemsCount; // guarded by consumerLock
+        private OnDemandSubscribedItems subscribedItems;
+
+        /** Constructs an {@code OnDemandSubscriptionsHandler} from the given builder. */
+        OnDemandSubscriptionsHandler(Builder<K, V> builder) {
+            super(builder);
+            this.subscribedItems = SubscribedItems.onDemand();
         }
 
         @Override
         public void subscribe(String item, Object itemHandle) throws SubscriptionException {
-            if (snapshotMode.equals(IMPLICIT_ITEM_SNAPSHOT)) {
-                return;
-            }
             try {
-                SubscribedItem newItem = Items.subscribedFrom(item, itemHandle);
+                OnDemandSubscribedItem newItem = Items.onDemandSubscribedItem(item, itemHandle);
                 if (!configSpec.itemTemplates().matches(newItem)) {
                     logger.atWarn()
                             .log("Item [{}] does not match any defined item templates", item);
@@ -303,14 +285,16 @@ public interface SubscriptionsHandler<K, V> {
                 logger.atInfo().log("Subscribed to item [{}]", item);
 
                 subscribedItems.addItem(newItem);
-
-                // TODO: temporarily always enabled; gate on a snapshot.enable configuration
-                // property. When disabled, call item.enableRealtimeEvents(eventListener) instead.
                 incrementAndMaybeStartConsuming(newItem);
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
             }
+        }
+
+        @Override
+        public boolean isSnapshotAvailable(String itemName) {
+            return configSpec.commandMode().manageSnapshot();
         }
 
         /**
@@ -327,13 +311,12 @@ public interface SubscriptionsHandler<K, V> {
                 itemsCount++;
                 if (itemsCount == 1) {
                     logger.atInfo().log("Consumer not yet initialized, creating a new one...");
-                    consumer = newConsumer(); // May throw KafkaException
+                    consumer = newConsumer(false, subscribedItems); // May throw KafkaException
                     logger.atInfo().log("New consumer connecting and subscribing...");
                     futureStatus = consumer.start(pool);
                 } else {
                     logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
-                snapshotStrategy.deliverSnapshot(item, eventListener);
             } catch (KafkaException ke) {
                 logger.atError().setCause(ke).log("Unable to connect to Kafka");
                 metadataListener.forceUnsubscriptionAll();
@@ -344,31 +327,8 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        /**
-         * Creates a new {@link KafkaConsumerWrapper} configured for this handler's connection.
-         *
-         * @return a new {@link KafkaConsumerWrapper} instance
-         * @throws KafkaException if the consumer cannot be created
-         */
-        private KafkaConsumerWrapper<K, V> newConsumer() throws KafkaException {
-            if (eventListener == null) {
-                throw new RuntimeException(
-                        "EventListener must be set before starting the consumer");
-            }
-            return new KafkaConsumerWrapper<>(
-                    configSpec,
-                    metadataListener,
-                    eventListener,
-                    subscribedItems,
-                    recordMapper,
-                    consumerSupplier);
-        }
-
         @Override
         public Optional<SubscribedItem> unsubscribe(String item) {
-            if (snapshotMode.equals(IMPLICIT_ITEM_SNAPSHOT)) {
-                return Optional.empty();
-            }
             Optional<SubscribedItem> removedItem = subscribedItems.removeItem(item);
             if (removedItem.isPresent()) {
                 decrementAndMaybeStopConsuming();
@@ -389,7 +349,6 @@ public interface SubscriptionsHandler<K, V> {
             try {
                 itemsCount--;
                 if (itemsCount == 0) {
-                    snapshotStrategy.onAllItemsUnsubscribed();
                     if (consumer != null) {
                         logger.atInfo().log("Stopping consumer...");
                         consumer.shutdown();
@@ -420,13 +379,23 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         // Only for testing purposes
-        SubscribedItems getSubscribedItems() {
+        OnDemandSubscribedItems getSubscribedItems() {
             return subscribedItems;
         }
 
         // Only for testing purposes
         FutureStatus getFutureStatus() {
             return futureStatus;
+        }
+
+        // Only for testing purposes
+        KafkaConsumerWrapper<K, V> getConsumerWrapper() {
+            consumerLock.lock();
+            try {
+                return consumer;
+            } finally {
+                consumerLock.unlock();
+            }
         }
 
         // Only for testing purposes
@@ -437,6 +406,107 @@ public interface SubscriptionsHandler<K, V> {
             } finally {
                 consumerLock.unlock();
             }
+        }
+    }
+
+    /**
+     * {@link SubscriptionsHandler} implementation that manages the Kafka consumer lifecycle eagerly
+     * — starting it during {@link #setListener(ItemEventListener)} initialization and keeping it
+     * running for the adapter's entire lifetime.
+     *
+     * <ul>
+     *   <li>{@link #subscribe(String, Object)} either binds the Server-allocated handle on a
+     *       pre-existing entry (Path-2: previously installed by a record-driven cache miss in
+     *       {@link Items.ForceableSubscribedItems#getItem(String)}) or installs a fresh {@link
+     *       Items.SubscribedItem} (Path-1: organic, client-driven). Path-1 entries remain unforced
+     *       until a record arrives; Path-2 entries are forced from the moment {@code getItem}
+     *       drives {@code forceSubscription(name)}.
+     *   <li>{@link #unsubscribe(String)} prunes Path-1 entries that were never forced; forced
+     *       entries remain eternal so any future client subscription receives the current state as
+     *       a snapshot.
+     * </ul>
+     *
+     * <p>Used when {@code item.snapshot.enable} is {@code true}.
+     *
+     * @param <K> the deserialized key type
+     * @param <V> the deserialized value type
+     */
+    class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
+
+        private volatile KafkaConsumerWrapper<K, V> consumer;
+        private volatile FutureStatus futureStatus;
+        private ForceableSubscribedItems subscribedItems;
+
+        /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
+        ForceableSubscriptionsHandler(Builder<K, V> builder) {
+            super(builder);
+        }
+
+        @Override
+        protected void doSetListener(ItemEventListener listener) {
+            this.subscribedItems = SubscribedItems.forceable(listener, logger);
+            startConsuming();
+        }
+
+        ItemEventListener getEventListener() {
+            return eventListener;
+        }
+
+        /** Starts the Kafka consumer eagerly. Called once during initialization. */
+        private void startConsuming() {
+            logger.atInfo().log("Starting consumer eagerly for implicit item snapshot...");
+            consumer = newConsumer(true, subscribedItems);
+            futureStatus = consumer.start(pool);
+            if (futureStatus.initFailed()) {
+                throw new KafkaException("Consumer initialization failed: " + futureStatus.join());
+            }
+            logger.atInfo().log("Consumer started");
+        }
+
+        @Override
+        public void subscribe(String item, Object itemHandle) throws SubscriptionException {
+            SubscribedItem newItem = Items.onDemandSubscribedItem(item, itemHandle);
+            if (!configSpec.itemTemplates().matches(newItem)) {
+                throw new SubscriptionException("Item does not match any defined item templates");
+            }
+            logger.atInfo().log("Subscribed to item [{}]", item);
+            // Atomic install-or-activate. Returns the freshly installed entry on Path-1
+            // organic install; null on Path-2 (the poll thread reached this name first via
+            // getItem and is currently blocked in forceSubscription waiting for us).
+            SubscribedItem installed = subscribedItems.activateOrInstall(item, itemHandle);
+            if (installed != null) {
+                // Path-1 organic: emit end-of-snapshot for the new client subscription on
+                // the actual stored entry (same handle as newItem). Skipped on Path-2: the
+                // virtual handle has no client to receive it, and the seed record is about
+                // to be dispatched against it as the first server-pinned snapshot value.
+                installed.endOfSnapshot(getEventListener());
+            }
+        }
+
+        @Override
+        public Optional<SubscribedItem> unsubscribe(String item) {
+            // Forced (Path-2) entries are eternal: the eager consumer keeps feeding them so any
+            // future client subscription receives the current state as a snapshot. Path-1 entries
+            // that never received a record (and therefore were never promoted to eternal via
+            // forceSubscription) are pruned here so the map does not accumulate stale entries
+            // carrying handles the SDK has already torn down.
+            subscribedItems.removeIfUnforced(item);
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean isSnapshotAvailable(String itemName) {
+            return true;
+        }
+
+        @Override
+        public boolean isConsuming() {
+            return consumer != null && !futureStatus.isStateAvailable();
+        }
+
+        // Only for testing purposes
+        FutureStatus getFutureStatus() {
+            return futureStatus;
         }
     }
 }
