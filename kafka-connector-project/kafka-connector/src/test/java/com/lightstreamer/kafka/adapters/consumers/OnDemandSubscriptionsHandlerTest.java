@@ -50,6 +50,9 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +61,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class OnDemandSubscriptionsHandlerTest {
 
@@ -67,6 +71,7 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
+            CommandMode commandMode,
             String... topics) {
 
         Properties properties = new Properties();
@@ -88,7 +93,7 @@ public class OnDemandSubscriptionsHandlerTest {
                                         .valueSelectorSupplier()
                                         .deserializer()),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        CommandMode.DISABLED,
+                        commandMode,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
@@ -126,7 +131,7 @@ public class OnDemandSubscriptionsHandlerTest {
     private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
-        init(false, false, false, topics);
+        init(false, false, false, CommandMode.DISABLED, topics);
     }
 
     void init(
@@ -134,9 +139,27 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
             String... topics) {
+        init(
+                exceptionOnConnection,
+                exceptionOnListTopics,
+                exceptionOnPoll,
+                CommandMode.DISABLED,
+                topics);
+    }
+
+    void init(
+            boolean exceptionOnConnection,
+            boolean exceptionOnListTopics,
+            boolean exceptionOnPoll,
+            CommandMode commandMode,
+            String... topics) {
         this.subscriptionHandler =
                 mkSubscriptionsHandler(
-                        exceptionOnConnection, exceptionOnListTopics, exceptionOnPoll, topics);
+                        exceptionOnConnection,
+                        exceptionOnListTopics,
+                        exceptionOnPoll,
+                        commandMode,
+                        topics);
         this.subscriptionHandler.setListener(listener);
         this.subscribedItems = subscriptionHandler.getSubscribedItems();
     }
@@ -341,6 +364,21 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionHandler.getFutureStatus()).isNull();
     }
 
+    static Stream<Arguments> commandModes() {
+        return Stream.of(
+                Arguments.of(CommandMode.DISABLED, false),
+                Arguments.of(CommandMode.EXPLICIT, true),
+                Arguments.of(CommandMode.AUTO, false));
+    }
+
+    @ParameterizedTest
+    @MethodSource("commandModes")
+    public void shouldGetSnapshotAvailability(CommandMode commandMode, boolean expected)
+            throws SubscriptionException {
+        init(false, false, false, commandMode, "aTopic");
+        assertThat(subscriptionHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
+    }
+
     @Test
     public void shouldUnsubscribe() throws SubscriptionException {
         init("aTopic");
@@ -370,7 +408,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeNonExistingItem() {
+    public void shouldNotUnsubscribeFromExistingItem() {
         init();
 
         Optional<SubscribedItem> unsubscribed = subscriptionHandler.unsubscribe("anItemTemplate");
