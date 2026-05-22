@@ -41,7 +41,7 @@ import java.util.Optional;
 public class ConfigSpecTest {
 
     @Test
-    void shouldClone() {
+    public void shouldClone() {
         ConfigsSpec parent = new ConfigsSpec("parent");
         parent.add("prop1", ConfType.TEXT);
         parent.add("prop2", Options.evaluatorTypes());
@@ -56,7 +56,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    void shouldReturnSimpleNameSpacedConfigSpec() {
+    public void shouldReturnSimpleNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("source");
         source.add("prop1", ConfType.TEXT);
 
@@ -70,7 +70,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    void shouldReturnNestedNameSpacedConfigSpec() {
+    public void shouldReturnNestedNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("root");
         source.add("prop1", ConfType.TEXT);
         source.add("enabled.nested", true, false, ConfType.BOOL, defaultValue("true"));
@@ -189,7 +189,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldGetCommandModeStrategy() {
+    public void shouldGetCommandMode() {
         assertThat(CommandMode.from(true, false)).isEqualTo(CommandMode.AUTO);
         assertThat(CommandMode.from(true, true)).isEqualTo(CommandMode.AUTO);
         assertThat(CommandMode.from(false, true)).isEqualTo(CommandMode.EXPLICIT);
@@ -197,7 +197,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldCommandModeStrategyMangeSnapshot() {
+    public void shouldCommandModeManageSnapshot() {
         assertThat(CommandMode.AUTO.manageSnapshot()).isFalse();
         assertThat(CommandMode.EXPLICIT.manageSnapshot()).isTrue();
         assertThat(CommandMode.DISABLED.manageSnapshot()).isFalse();
