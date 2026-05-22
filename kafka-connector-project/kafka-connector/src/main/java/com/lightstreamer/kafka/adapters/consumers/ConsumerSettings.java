@@ -41,7 +41,8 @@ public interface ConsumerSettings {
      * @param fieldsExtractor extracts field values from deserialized records
      * @param deserializerPair key and value deserializers for raw Kafka records
      * @param errorHandlingStrategy how deserialization or extraction errors are handled
-     * @param commandModeStrategy COMMAND mode behavior ({@code ENFORCE}, {@code AUTO}, or none)
+     * @param commandMode COMMAND mode behavior ({@code EXPLICIT}, {@code AUTO}, or {@code
+     *     DISABLED})
      * @param concurrency thread count and ordering strategy for record processing
      */
     record ConnectionSpec<K, V>(
@@ -51,7 +52,7 @@ public interface ConsumerSettings {
             FieldsExtractor<K, V> fieldsExtractor,
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             RecordErrorHandlingStrategy errorHandlingStrategy,
-            CommandMode commandModeStrategy,
+            CommandMode commandMode,
             Concurrency concurrency) {
 
         /**
