@@ -30,6 +30,7 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Recor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -229,6 +230,38 @@ public class RecordProcessorTest {
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
     }
 
+    @ParameterizedTest
+    @MethodSource("records")
+    public void shouldProcessForcedSubscriptions(
+            RecordMapper<String, String> mapper,
+            KafkaRecord<String, String> record,
+            Map<String, String> expectedFields) {
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, null);
+        RecordProcessor<String, String> processor =
+                processor(
+                        mapper,
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.defaultStrategy());
+        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
+
+        processor.process(record);
+
+        // Simulate the forced subscription to "item1" triggered by the record processing
+        Object itemHandle1 = new Object();
+        subscribedItems.activateOrInstall("item1", itemHandle1);
+
+        // Simulate the forced subscription to "item2" triggered by the record processing
+        Object itemHandle2 = new Object();
+        subscribedItems.activateOrInstall("item2", itemHandle2);
+
+        // Verify that the update has been routed two times, one for "item1" and one for "item2"
+        assertThat(this.eventListener.getEvents())
+                .containsExactly(
+                        new EventCall(UPDATE, itemHandle1, expectedFields, false),
+                        new EventCall(UPDATE, itemHandle2, expectedFields, false));
+    }
+
     @Test
     public void shouldNotProcessUnexpectedSubscription() {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
@@ -248,6 +281,40 @@ public class RecordProcessorTest {
         // Verify that no events have been routed, since the record doesn't match any of the
         // subscribed items
         assertThat(eventListener.getEvents()).isEmpty();
+    }
+
+    @Test
+    public void shouldNotProcessUnexpectedSubscriptionWithForcedSubscription() {
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, null);
+        RecordProcessor<String, String> processor =
+                processor(
+                        defaultMapper(),
+                        this.eventListener,
+                        subscribedItems,
+                        ProcessUpdatesStrategy.defaultStrategy());
+
+        // Subscribe to the unexpected "item3" and process the record
+        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item3", new Object());
+        subscribedItems.activateOrInstall("item3", item);
+
+        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
+
+        // Simulate the forced subscription to "item1" triggered by the record processing
+        Object itemHandle1 = new Object();
+        subscribedItems.activateOrInstall("item1", itemHandle1);
+
+        // Simulate the forced subscription to "item2" triggered by the record processing
+        Object itemHandle2 = new Object();
+        subscribedItems.activateOrInstall("item2", itemHandle2);
+
+        // Verify that the update has been routed only for the forced subscriptions "item1" and
+        // "item2", but not for the unexpected "item3"
+        assertThat(eventListener.getEvents())
+                .containsExactly(
+                        new EventCall(
+                                UPDATE, itemHandle1, Map.of("aKey", "a", "aValue", "1a"), false),
+                        new EventCall(
+                                UPDATE, itemHandle2, Map.of("aKey", "a", "aValue", "1a"), false));
     }
 
     static Stream<Arguments> recordsForAutoCommandMode() {
