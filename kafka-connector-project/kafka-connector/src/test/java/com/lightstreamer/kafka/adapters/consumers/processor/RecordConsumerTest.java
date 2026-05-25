@@ -45,7 +45,9 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -85,6 +87,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class RecordConsumerTest {
@@ -146,12 +149,25 @@ public class RecordConsumerTest {
         this.recordMapper = newRecordMapper(connectionSpec);
     }
 
-    void subscribeTo(String itemName) {
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem(itemName, new Object());
-        this.subscriptions.addItem(item);
+    void subscribeTo(String itemName, SubscribedItems subscribedItems) {
+        if (subscribedItems instanceof OnDemandSubscribedItems onDemandSubscribedItems) {
+            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(itemName, new Object());
+            onDemandSubscribedItems.addItem(item);
+        } else if (subscribedItems instanceof ForceableSubscribedItems forceableSubscribedItems) {
+            // In production, the Server thread calls activateOrInstall as the subscribe
+            // callback triggered by forceSubscription inside getItem (Path-2) or by an
+            // organic client subscribe (Path-1). Here we invoke it directly to pre-register
+            // the item with a handle, simulating a Path-1 organic subscribe that has
+            // already completed before any record arrives.
+            forceableSubscribedItems.activateOrInstall(itemName, new Object());
+        } else {
+            throw new IllegalArgumentException(
+                    "Unsupported SubscribedItems type: " + subscribedItems);
+        }
     }
 
     private RecordConsumer<String, String> mkRecordConsumer(
+            SubscribedItems subscriptions,
             ItemEventListener listener,
             int threads,
             boolean preferSingleThread,
@@ -606,42 +622,54 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 2);
 
-        subscribeTo("item");
-
-        // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        threads,
-                        false,
-                        CommandMode.DISABLED,
-                        OrderStrategy.ORDER_BY_KEY,
-                        false);
 
-        for (int i = 0; i < iterations; i++) {
-            RecordBatch<String, String> batch =
-                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeBatch(batch);
-            batch.join();
-            List<Event> events =
-                    testListener.getSmartRealtimeUpdates().stream()
-                            .map(u -> buildEvent(u.event()))
-                            .toList();
+        @SuppressWarnings("unchecked")
+        Supplier<SubscribedItems>[] subscribedItemsSupplier =
+                new Supplier[] {
+                    () -> SubscribedItems.onDemand(),
+                    () -> SubscribedItems.forceable(testListener, null)
+                };
+        for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
+            SubscribedItems subscribedItems = supplier.get();
+            subscribeTo("item", subscribedItems);
+            recordConsumer =
+                    mkRecordConsumer(
+                            subscribedItems,
+                            testListener,
+                            threads,
+                            false,
+                            CommandMode.DISABLED,
+                            OrderStrategy.ORDER_BY_KEY,
+                            false);
 
-            for (String key : keys) {
-                // Get the list of positions stored in all received events relative to the same key
-                List<Integer> list =
-                        events.stream()
-                                .filter(e -> e.key().equals(key))
-                                .map(Event::position)
+            for (int i = 0; i < iterations; i++) {
+                RecordBatch<String, String> batch =
+                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                recordConsumer.consumeBatch(batch);
+                batch.join();
+                List<Event> events =
+                        testListener.getSmartRealtimeUpdates().stream()
+                                .map(u -> buildEvent(u.event()))
                                 .toList();
-                // Ensure that positions (and, therefore, the events) relative to the same key are
-                // in order
-                assertThat(list).isInOrder();
+
+                for (String key : keys) {
+                    // Get the list of positions stored in all received events relative to the same
+                    // key
+                    List<Integer> list =
+                            events.stream()
+                                    .filter(e -> e.key().equals(key))
+                                    .map(Event::position)
+                                    .toList();
+                    assertThat(list.size()).isGreaterThan(0);
+                    // Ensure that positions (and, therefore, the events) relative to the same key
+                    // are in order
+                    assertThat(list).isInOrder();
+                }
+
+                // Reset the listener list for next iteration
+                testListener.reset();
             }
-            // Reset the listener list for next iteration
-            testListener.reset();
         }
     }
 
@@ -681,36 +709,47 @@ public class RecordConsumerTest {
         recordsOnTopic2.forEach(action);
         ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
-        subscribeTo("item");
-
-        // Make the RecordConsumer
         MockItemEventListener testListener = new MockItemEventListener();
-        recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        threads,
-                        false,
-                        CommandMode.DISABLED,
-                        ORDER_BY_PARTITION,
-                        false);
 
-        for (int i = 0; i < iterations; i++) {
-            RecordBatch<String, String> batch =
-                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeBatch(batch);
-            batch.join();
-            List<Event> events =
-                    testListener.getSmartRealtimeUpdates().stream()
-                            .map(u -> buildEvent(u.event()))
-                            .toList();
-            for (int partition = 0; partition < partitionsOnTopic1; partition++) {
-                assertDeliveredEventsOrder(partition, events, "topic1");
+        @SuppressWarnings("unchecked")
+        Supplier<SubscribedItems>[] subscribedItemsSupplier =
+                new Supplier[] {
+                    () -> SubscribedItems.onDemand(),
+                    () -> SubscribedItems.forceable(testListener, null)
+                };
+
+        for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
+            SubscribedItems subscribedItems = supplier.get();
+            subscribeTo("item", subscribedItems);
+            // Make the RecordConsumer
+            recordConsumer =
+                    mkRecordConsumer(
+                            subscribedItems,
+                            testListener,
+                            threads,
+                            false,
+                            CommandMode.DISABLED,
+                            ORDER_BY_PARTITION,
+                            false);
+
+            for (int i = 0; i < iterations; i++) {
+                RecordBatch<String, String> batch =
+                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                recordConsumer.consumeBatch(batch);
+                batch.join();
+                List<Event> events =
+                        testListener.getSmartRealtimeUpdates().stream()
+                                .map(u -> buildEvent(u.event()))
+                                .toList();
+                for (int partition = 0; partition < partitionsOnTopic1; partition++) {
+                    assertDeliveredEventsOrder(partition, events, "topic1");
+                }
+                for (int partition = 0; partition < partitionsOnTopic2; partition++) {
+                    assertDeliveredEventsOrder(partition, events, "topic2");
+                }
+                // Reset the listener for next iteration
+                testListener.reset();
             }
-            for (int partition = 0; partition < partitionsOnTopic2; partition++) {
-                assertDeliveredEventsOrder(partition, events, "topic2");
-            }
-            // Reset the listener for next iteration
-            testListener.reset();
         }
     }
 
@@ -741,39 +780,49 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 3);
 
-        subscribeTo("item");
-
-        // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        threads,
-                        false,
-                        CommandMode.DISABLED,
-                        ORDER_BY_PARTITION,
-                        false);
 
-        for (int i = 0; i < iterations; i++) {
-            RecordBatch<String, String> batch =
-                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeBatch(batch);
-            batch.join();
-            List<Event> events =
-                    testListener.getSmartRealtimeUpdates().stream()
-                            .map(u -> buildEvent(u.event()))
-                            .toList();
-            assertThat(events.size()).isEqualTo(numOfRecords);
-            // Get the list of offsets per partition stored in all received events
-            Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
+        @SuppressWarnings("unchecked")
+        Supplier<SubscribedItems>[] subscribedItemsSupplier =
+                new Supplier[] {
+                    () -> SubscribedItems.onDemand(),
+                    () -> SubscribedItems.forceable(testListener, null)
+                };
 
-            // Ensure that the offsets relative to the same partition are in order
-            Collection<List<Number>> orderedLists = byPartition.values();
-            for (List<Number> orderedList : orderedLists) {
-                assertThat(orderedList).isInOrder();
+        for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
+            SubscribedItems subscribedItems = supplier.get();
+            subscribeTo("item", subscribedItems);
+            recordConsumer =
+                    mkRecordConsumer(
+                            subscribedItems,
+                            testListener,
+                            threads,
+                            false,
+                            CommandMode.DISABLED,
+                            ORDER_BY_PARTITION,
+                            false);
+
+            for (int i = 0; i < iterations; i++) {
+                RecordBatch<String, String> batch =
+                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                recordConsumer.consumeBatch(batch);
+                batch.join();
+                List<Event> events =
+                        testListener.getSmartRealtimeUpdates().stream()
+                                .map(u -> buildEvent(u.event()))
+                                .toList();
+                assertThat(events.size()).isEqualTo(numOfRecords);
+                // Get the list of offsets per partition stored in all received events
+                Map<String, List<Number>> byPartition = getByTopicAndPartition(events);
+
+                // Ensure that the offsets relative to the same partition are in order
+                Collection<List<Number>> orderedLists = byPartition.values();
+                for (List<Number> orderedList : orderedLists) {
+                    assertThat(orderedList).isInOrder();
+                }
+                // Reset the listener for next iteration
+                testListener.reset();
             }
-            // Reset the listener for next iteration
-            testListener.reset();
         }
     }
 
@@ -785,30 +834,40 @@ public class RecordConsumerTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 3);
 
-        subscribeTo("item");
-
-        // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        2,
-                        false,
-                        CommandMode.DISABLED,
-                        OrderStrategy.UNORDERED,
-                        false);
 
-        for (int i = 0; i < iterations; i++) {
-            RecordBatch<String, String> batch =
-                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
-            recordConsumer.consumeBatch(batch);
-            batch.join();
-            List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
-            List<Event> deliveredEvents =
-                    realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
-            assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
-            // Reset the listener for next iteration
-            testListener.reset();
+        @SuppressWarnings("unchecked")
+        Supplier<SubscribedItems>[] subscribedItemsSupplier =
+                new Supplier[] {
+                    () -> SubscribedItems.onDemand(),
+                    () -> SubscribedItems.forceable(testListener, null)
+                };
+
+        for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
+            SubscribedItems subscribedItems = supplier.get();
+            subscribeTo("item", subscribedItems);
+            recordConsumer =
+                    mkRecordConsumer(
+                            subscribedItems,
+                            testListener,
+                            2,
+                            false,
+                            CommandMode.DISABLED,
+                            OrderStrategy.UNORDERED,
+                            false);
+
+            for (int i = 0; i < iterations; i++) {
+                RecordBatch<String, String> batch =
+                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                recordConsumer.consumeBatch(batch);
+                batch.join();
+                List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+                List<Event> deliveredEvents =
+                        realtimeUpdates.stream().map(u -> buildEvent(u.event())).toList();
+                assertThat(deliveredEvents.size()).isEqualTo(numOfRecords);
+                // Reset the listener for next iteration
+                testListener.reset();
+            }
         }
     }
 
@@ -822,25 +881,38 @@ public class RecordConsumerTest {
         recordsByPartition.put(new TopicPartition("topic", 0), List.of(recordWithNullValue));
         ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
 
-        subscribeTo("item");
-
-        // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        recordConsumer =
-                mkRecordConsumer(
-                        testListener,
-                        2,
-                        false,
-                        CommandMode.DISABLED,
-                        OrderStrategy.UNORDERED,
-                        false);
 
-        RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
-        recordConsumer.consumeBatch(batch);
-        batch.join();
-        List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
-        assertThat(realtimeUpdates).hasSize(1);
+        @SuppressWarnings("unchecked")
+        Supplier<SubscribedItems>[] subscribedItemsSupplier =
+                new Supplier[] {
+                    () -> SubscribedItems.onDemand(),
+                    () -> SubscribedItems.forceable(testListener, null)
+                };
+
+        for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
+            SubscribedItems subscribedItems = supplier.get();
+            subscribeTo("item", subscribedItems);
+            recordConsumer =
+                    mkRecordConsumer(
+                            subscribedItems,
+                            testListener,
+                            2,
+                            false,
+                            CommandMode.DISABLED,
+                            OrderStrategy.UNORDERED,
+                            false);
+
+            RecordBatch<String, String> batch =
+                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+            recordConsumer.consumeBatch(batch);
+            batch.join();
+            List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
+            assertThat(realtimeUpdates).hasSize(1);
+
+            // Reset the listener for next iteration
+            testListener.reset();
+        }
     }
 
     static Stream<Arguments> catchUpSettings() {
@@ -850,15 +922,17 @@ public class RecordConsumerTest {
     @ParameterizedTest
     @MethodSource("catchUpSettings")
     public void shouldEndCatchUp(int threads, boolean preferSinglThread) {
+        final int numOfRecords = 100;
         ConsumerRecords<byte[], byte[]> consumerRecords =
-                generateRecords("topic", 100, List.of("key"), 4);
-
-        subscribeTo("item");
+                generateRecords("topic", numOfRecords, List.of("key"), 4);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(testListener, null);
+
         recordConsumer =
                 mkRecordConsumer(
+                        subscribedItems,
                         testListener,
                         threads,
                         preferSinglThread,
@@ -869,10 +943,16 @@ public class RecordConsumerTest {
         RecordBatch<String, String> snapshotBatch =
                 RecordBatch.batchFromEager(consumerRecords, deserializerPair, false);
         recordConsumer.consumeBatch(snapshotBatch);
+        // In production, the Server thread runs activateOrInstall as the subscribe callback
+        // inside forceSubscription (Path-2), binding a handle and switching the placeholder
+        // to direct-dispatch mode. Here the mock listener's forceSubscription is a no-op, so
+        // we must activate the entry manually before endCatchUp drains the buffered snapshot.
+        subscribedItems.activateOrInstall("item", new Object());
+
         recordConsumer.endCatchUp();
 
-        List<EventCall> snapshots = testListener.getEvents();
-        assertThat(snapshots).hasSize(100);
+        List<EventCall> snapshots = testListener.getSmartSnapshotUpdates();
+        assertThat(snapshots).hasSize(numOfRecords);
         assertThat(snapshots.stream().allMatch(EventCall::isSnapshot));
 
         testListener.reset();
@@ -885,6 +965,9 @@ public class RecordConsumerTest {
         List<EventCall> updates = testListener.getEvents();
         assertThat(updates).hasSize(20);
         assertThat(updates.stream().noneMatch(EventCall::isSnapshot));
+
+        // Reset the listener for next iteration
+        testListener.reset();
     }
 
     static Stream<Arguments> handleErrors() {
