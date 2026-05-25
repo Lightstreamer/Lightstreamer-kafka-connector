@@ -171,8 +171,7 @@ public class AdapterSetTest {
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
 
-        // TODO: temporarily always true; restore to isFalse() when snapshot.enable is gated
-        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isTrue();
+        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
 
         KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
         connectorDataAdapter2.setConsumerFactory(this.getConsumer());
@@ -200,8 +199,16 @@ public class AdapterSetTest {
                                 "#{KEY}")),
                 adapterDir.toFile());
         connectorDataAdapter3.setListener(new MockItemEventListener());
-        // TODO: temporarily always true; restore to isFalse() when snapshot.enable is gated
-        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isTrue();
+        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isFalse();
+
+        KafkaConnectorDataAdapter connectorDataAdapter4 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter4.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter4.init(
+                ConnectorConfigProvider.minimalConfigWith(
+                        Map.of(ConnectorConfig.ITEM_SNAPSHOT_ENABLE, "true")),
+                adapterDir.toFile());
+        connectorDataAdapter4.setListener(new MockItemEventListener());
+        assertThat(connectorDataAdapter4.isSnapshotAvailable("anItem")).isTrue();
     }
 
     private Function<Properties, Consumer<byte[], byte[]>> getConsumer() {
