@@ -37,11 +37,11 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -206,7 +206,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.commandModeStrategy()).isEqualTo(CommandModeStrategy.NONE);
+        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.DISABLED);
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
@@ -267,7 +267,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.commandModeStrategy()).isEqualTo(CommandModeStrategy.AUTO);
+        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.AUTO);
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
@@ -320,7 +320,7 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
 
-        assertThat(connectionSpec.commandModeStrategy()).isEqualTo(CommandModeStrategy.ENFORCE);
+        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.EXPLICIT);
     }
 
     @Test
