@@ -1032,13 +1032,14 @@ public class Items {
     }
 
     /**
-     * Creates a {@link OnDemandSubscribedItem} bound to the given handle at construction time.
+     * Creates an {@link OnDemandSubscribedItem} from the given subscription expression, bound to
+     * the specified handle.
      *
      * @param expression the {@link SubscriptionExpression} for the item
      * @param itemHandle the handle allocated by the Lightstreamer Server
      * @return a new {@code OnDemandSubscribedItem}
      */
-    public static OnDemandSubscribedItem onDemandSubscribedItem(
+    public static OnDemandSubscribedItem onDemandSubscribedFrom(
             SubscriptionExpression expression, Object itemHandle) {
         return new OnDemandSubscribedItem(expression, itemHandle);
     }
