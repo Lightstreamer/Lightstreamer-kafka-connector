@@ -207,7 +207,8 @@ public class AdapterSetTest {
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(ConnectorConfig.ITEM_SNAPSHOT_ENABLE, "true")),
                 adapterDir.toFile());
-        connectorDataAdapter4.setListener(new MockItemEventListener());
+        // Here we don't call setListener because snapshot availability should not depend on it, but
+        // rather on the configuration only
         assertThat(connectorDataAdapter4.isSnapshotAvailable("anItem")).isTrue();
     }
 
