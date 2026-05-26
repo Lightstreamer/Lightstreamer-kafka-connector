@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DynamicMessage;
@@ -39,6 +41,7 @@ import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
@@ -369,7 +372,8 @@ public class BenchmarksUtils {
                             .mapToObj(i -> String.format("ltest-[key=META250801P00680%03d]", i))
                             .toArray(String[]::new);
             for (int i = 0; i < numOfSubscriptions; i++) {
-                OnDemandSubscribedItem item = Items.onDemandSubscribedItem(items[i], new Object());
+                OnDemandSubscribedItem item =
+                        Items.onDemandSubscribedItem(Subscription(items[i]), new Object());
                 subscribedItems.addItem(item);
             }
             return subscribedItems;
@@ -564,7 +568,8 @@ public class BenchmarksUtils {
                                 throw new IllegalArgumentException(
                                         "Invalid subscription number: " + numOfTemplateParams);
                     };
-            String input = SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params);
+            SubscriptionExpression input =
+                    Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
             OnDemandSubscribedItem item = Items.onDemandSubscribedItem(input, new Object());
             subscribedItems.addItem(item);
         }
