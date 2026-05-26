@@ -25,9 +25,10 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.toSet;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
@@ -37,7 +38,11 @@ import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
+import org.slf4j.Logger;
+
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,9 +51,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -61,7 +64,7 @@ import java.util.regex.Pattern;
  *   <li>{@link SubscribedItem} — the item abstraction for event delivery
  *   <li>{@link SubscribedItems} — thread-safe collections of subscribed items
  *   <li>{@link ItemTemplates} — topic-to-item mapping via canonical extraction
- *   <li>Factory methods ({@code subscribedFrom}, {@code templatesFrom}) for creating instances
+ *   <li>Factory methods ({@code subscribedItem}, {@code templatesFrom}) for creating instances
  * </ul>
  */
 public class Items {
@@ -70,28 +73,20 @@ public class Items {
     public interface Item {
 
         /**
-         * Returns the name of this item.
+         * Returns the canonical name of this item.
          *
-         * @return the item name
+         * @return the canonical item name
          */
-        String name();
-
-        /**
-         * Returns the handle object used by the Lightstreamer Server to identify this item.
-         *
-         * @return the item handle
-         */
-        Object itemHandle();
+        String canonicalName();
     }
 
     /**
      * Represents a subscribed item that can receive snapshot and real-time events from Kafka
      * records routed through the mapping pipeline.
      *
-     * <p>Implementations control the event delivery lifecycle: events of either kind (snapshot or
-     * real-time) may be buffered until delivery is unlocked via {@link
-     * #enableEventsDelivery(EventListener)}, after which both kinds flow directly to the {@link
-     * EventListener}.
+     * <p>Implementations control the event delivery lifecycle: events may be delivered immediately
+     * to an {@link ItemEventListener}, or held until delivery is explicitly enabled by the
+     * collection that owns the item.
      *
      * @see SubscribedItems
      */
@@ -118,124 +113,63 @@ public class Items {
          */
         void setSnapshot(boolean flag);
 
-        /**
-         * Returns the canonical item name used for routing and identification.
-         *
-         * @return the canonical item name
-         */
-        String asCanonicalItemName();
-
-        /**
-         * Unlocks event delivery for this item: drains any events (snapshot or real-time) that were
-         * buffered before this call, preserving insertion order and the original {@code isSnapshot}
-         * flag of each event, and switches the item to direct delivery for all subsequent events.
-         *
-         * @param listener the {@link EventListener} to deliver events to
-         */
-        void enableEventsDelivery(EventListener listener);
-
-        /**
-         * Sends a real-time event for this item.
-         *
-         * <p>The default implementation delegates directly to {@link EventListener#update}.
-         * Subclasses may override to buffer events until delivery is unlocked via {@link
-         * #enableEventsDelivery(EventListener)}.
-         *
-         * @param event the field name-value pairs to send
-         * @param listener the {@link EventListener} to deliver the event to
-         */
-        default void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
-            listener.update(this, event, false);
-        }
-
-        /**
-         * Sends a snapshot event for this item.
-         *
-         * <p>The default implementation delegates directly to {@link EventListener#update}.
-         * Subclasses may override to buffer events until delivery is unlocked via {@link
-         * #enableEventsDelivery(EventListener)}.
-         *
-         * @param event the field name-value pairs to send
-         * @param listener the {@link EventListener} to deliver the event to
-         */
-        default void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
-            listener.update(this, event, true);
-        }
+        void sendEvent(Map<String, String> event, ItemEventListener listener, boolean isSnapshot);
 
         /**
          * Clears the snapshot for this item on the server.
          *
-         * @param listener the {@link EventListener} to notify
+         * @param listener the {@link ItemEventListener} to notify
          */
-        default void clearSnapshot(EventListener listener) {
-            listener.clearSnapshot(this);
-        }
+        void clearSnapshot(ItemEventListener listener);
 
         /**
          * Signals the end of snapshot delivery for this item.
          *
-         * @param listener the {@link EventListener} to notify
+         * @param listener the {@link ItemEventListener} to notify
          */
-        default void endOfSnapshot(EventListener listener) {
-            listener.endOfSnapshot(this);
-        }
+        void endOfSnapshot(ItemEventListener listener);
     }
 
     /**
      * Interface for managing a collection of subscribed items in the Lightstreamer Kafka connector.
      *
-     * <p>This interface provides operations to manage subscriptions including adding, removing, and
-     * retrieving subscribed items. It also provides utility methods to check the state of the
-     * subscription collection and factory methods to create instances.
+     * <p>This interface provides operations to retrieve, remove, and iterate over subscribed items.
+     * It also provides utility methods to check the state of the subscription collection and
+     * factory methods to create instances.
      *
      * <p>Implementations of this interface should handle the lifecycle of subscribed items and
      * provide thread-safe operations when used in concurrent environments.
-     *
-     * <p>The interface supports both active implementations that manage actual subscriptions and
-     * no-operation implementations for scenarios where subscription management is disabled.
      *
      * @see SubscribedItem
      */
     public interface SubscribedItems {
 
         /**
-         * Creates a new empty instance of {@code SubscribedItems} that requires items to be
-         * explicitly added via {@link #addItem(SubscribedItem)} before they can be retrieved.
+         * Creates a new empty {@link OnDemandSubscribedItems}. Items must be added explicitly via
+         * {@link OnDemandSubscribedItems#addItem(OnDemandSubscribedItem)} before they can be
+         * retrieved.
          *
-         * @return a new explicit {@code SubscribedItems} instance
+         * @return a new {@link OnDemandSubscribedItems} instance
          */
-        static SubscribedItems explicit() {
-            return new ConcurrentSubscribedItems();
-        }
-
-        static ForcedSubscribedItems forced(Supplier<EventListener> listenerSupplier) {
-            return new ForcedSubscribedItems(listenerSupplier);
+        static OnDemandSubscribedItems onDemand() {
+            return new OnDemandSubscribedItems();
         }
 
         /**
-         * Returns a no-operation implementation of {@code SubscribedItems}.
+         * Creates a {@link SubscribedItems} backing the forceable / forced-subscription snapshot
+         * strategy. On a miss, {@link #getItem(String)} drives {@code
+         * ItemEventListener.forceSubscription(name)} so the Server reentrantly binds a handle on
+         * the entry; forced entries are eternal for the connection lifetime.
          *
-         * @return a singleton no-operation implementation of the {@code SubscribedItems} interface
+         * @param itemEventListener the {@link ItemEventListener} used to drive {@code
+         *     forceSubscription} and to deliver events
+         * @param logger the {@link Logger} for recording force-subscription events and errors
+         * @return a new {@link ForceableSubscribedItems} instance
          */
-        static SubscribedItems nop() {
-            return NOPSubscribedItems.NOP;
+        static ForceableSubscribedItems forceable(
+                ItemEventListener itemEventListener, Logger logger) {
+            return new ForceableSubscribedItems(itemEventListener, logger);
         }
-
-        /**
-         * Adds a subscribed item to the collection.
-         *
-         * @param item the subscribed item to be added to the collection
-         */
-        void addItem(SubscribedItem item);
-
-        /**
-         * Removes a subscribed item identified by the given name.
-         *
-         * @param itemName the name of the item to remove
-         * @return an {@code Optional} containing the removed {@link SubscribedItem} if it existed,
-         *     or an empty Optional if no item with the given name was found
-         */
-        Optional<SubscribedItem> removeItem(String itemName);
 
         /**
          * Retrieves a subscribed item by its name.
@@ -261,90 +195,278 @@ public class Items {
          */
         int size();
 
-        /** Clears all subscribed items. */
-        void clear();
-    }
+        /**
+         * Returns the subscribed items as an unmodifiable collection.
+         *
+         * @return an unmodifiable view of the subscribed items
+         */
+        Collection<? extends SubscribedItem> values();
 
-    /** No-operation implementation of {@link SubscribedItems} that ignores all mutations. */
-    private static class NOPSubscribedItems implements SubscribedItems {
-
-        private static final NOPSubscribedItems NOP = new NOPSubscribedItems();
-
-        private NOPSubscribedItems() {}
-
-        @Override
-        public void addItem(SubscribedItem item) {
-            // No operation
-        }
-
-        @Override
-        public Optional<SubscribedItem> removeItem(String itemName) {
-            return Optional.empty();
-        }
-
-        @Override
-        public SubscribedItem getItem(String itemName) {
-            return null;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return true;
-        }
-
-        @Override
-        public int size() {
-            return 0;
-        }
-
-        @Override
-        public void clear() {
-            // No operation
+        /**
+         * Performs the given action for each subscribed item in this collection.
+         *
+         * @param action the action to perform on each {@link SubscribedItem}
+         */
+        default void forEach(java.util.function.Consumer<? super SubscribedItem> action) {
+            values().forEach(action);
         }
     }
 
     /**
-     * {@link SubscribedItems} implementation backing the eager / forced-subscription snapshot
-     * strategy. On the first {@link #getItem(String)} call for a canonical name, invokes the
-     * configured {@code onForce} callback (typically {@code ItemEventListener.forceSubscription})
-     * to instruct the Server to open the subscription synchronously, then caches a stateless {@link
-     * DirectSubscribedItem} for the same name. Subsequent calls return the cached item without
-     * re-forcing.
+     * {@link SubscribedItems} implementation backing the forceable / forced-subscription snapshot
+     * strategy, selected when {@code item.snapshot.mode = ENABLED}.
      *
-     * <p>{@link #releaseAll()} pairs each entry with a call to the configured {@code onUnforce}
-     * callback and clears the map; intended for adapter shutdown.
+     * <p>The map holds a single entry type, {@link BufferedSubscribedItem}, regardless of the path
+     * that installed it. A {@link BufferedSubscribedItem} starts in queueing mode (events
+     * accumulate in an internal queue) and switches to direct-dispatch mode the first time {@link
+     * BufferedSubscribedItem#enableEventsDelivery(Object, ItemEventListener)} is called, which also
+     * drains any queued events against the supplied handle. Each entry also carries a monotonic
+     * {@code forced} flag (see {@link BufferedSubscribedItem#isForced()}) used as the lock-free
+     * fast-path predicate in {@link #getItem(String)}: once set it is never reset, and a forced
+     * entry is eternal for the connection lifetime (per the SDK contract: after a successful {@code
+     * forceSubscription} no further {@code subscribe}/{@code unsubscribe} callbacks fire for the
+     * name).
+     *
+     * <p>Concurrency model: a per-name {@link ReentrantLock} serializes <em>structural</em>
+     * transitions on the entry for a given canonical name (install, activate, prune). The lock is
+     * <strong>not</strong> held across the call to {@code
+     * ItemEventListener.forceSubscription(name)}: under the SDK contract that call dispatches the
+     * Path-2 {@code subscribe(name, handle)} callback on a Server thread (not the calling poll
+     * thread) and blocks until it returns; holding the per-name lock across the call would deadlock
+     * with the Server thread's own attempt to acquire it from {@link
+     * #activateOrInstall(SubscriptionExpression, Object)}.
+     *
+     * <p>Entries are installed via two convergent paths:
+     *
+     * <ul>
+     *   <li><strong>Path 1 (organic).</strong> The Server calls {@code subscribe(name, handle)}
+     *       because a client expressed interest. {@code ForceableSubscriptionsHandler} routes
+     *       through {@link #activateOrInstall(SubscriptionExpression, Object)}, which under the
+     *       per-name lock installs a fresh {@link BufferedSubscribedItem} and immediately switches
+     *       it to direct-dispatch mode bound to the Server-allocated handle, then emits {@code
+     *       endOfSnapshot} on the new client subscription. The entry is unforced until the
+     *       record-processing thread first observes a record for the name (see {@link
+     *       #getItem(String)}).
+     *   <li><strong>Path 2 (record-driven).</strong> The record-processing thread calls {@link
+     *       #getItem(String)}; on a miss this installs a {@link BufferedSubscribedItem} placeholder
+     *       in queueing mode, releases the lock, and calls {@code forceSubscription(name)}. The
+     *       Server thread runs {@code subscribe(name, handle)}; the handler routes through {@link
+     *       #activateOrInstall(SubscriptionExpression, Object)}, which under the lock detects the
+     *       placeholder, drains it against the new handle, switches it to direct-dispatch mode, and
+     *       marks it forced. {@code endOfSnapshot} is skipped for this case (the virtual handle has
+     *       no client to receive it). When {@code forceSubscription} returns, the record-processing
+     *       thread re-reads the (now activated and forced) entry.
+     * </ul>
+     *
+     * <p>Forced entries are eternal. Unforced Path-1 entries are pruned on {@code unsubscribe} via
+     * {@link #removeIfUnforced(String)}; Path-2 placeholders are also unforced but cannot coexist
+     * with an organic {@code unsubscribe} per the SDK's per-name serialization contract, so this
+     * case does not arise in practice.
      */
-    public static class ForcedSubscribedItems implements SubscribedItems {
+    public static class ForceableSubscribedItems implements SubscribedItems {
 
-        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
-        private final Supplier<EventListener> listenerSupplier;
+        private final ItemEventListener itemEventListener;
+        private final Logger logger;
+        private final Map<String, BufferedSubscribedItem> items = new ConcurrentHashMap<>();
+        private final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
-        ForcedSubscribedItems(Supplier<EventListener> listenerSupplier) {
-            this.listenerSupplier = Objects.requireNonNull(listenerSupplier, "listenerSupplier");
+        ForceableSubscribedItems(ItemEventListener itemEventListener, Logger logger) {
+            this.itemEventListener = Objects.requireNonNull(itemEventListener, "itemEventListener");
+            this.logger = logger;
         }
 
-        @Override
-        public void addItem(SubscribedItem item) {
-            // No-op: items are created on demand by getItem() via forceSubscription.
+        private ReentrantLock lockFor(String name) {
+            return locks.computeIfAbsent(name, k -> new ReentrantLock());
         }
 
-        @Override
-        public Optional<SubscribedItem> removeItem(String itemName) {
-            SubscribedItem removed = items.remove(itemName);
-            if (removed != null) {
-                listenerSupplier.get().unforceSubscription(itemName);
+        /**
+         * Single install-or-activate primitive for the {@code subscribe(name, handle)} entry point.
+         * If a {@link BufferedSubscribedItem} placeholder is already present for the canonical name
+         * (Path-2 activation in flight, triggered by a record-processing-thread {@code
+         * forceSubscription}), drains the placeholder against the new handle, switches it to
+         * direct-dispatch mode, marks it forced, and returns {@code null}. Otherwise installs a
+         * fresh {@link BufferedSubscribedItem} already in direct-dispatch mode bound to the new
+         * handle (Path-1 organic install), emits {@code endOfSnapshot} on it, and returns the
+         * freshly installed entry.
+         *
+         * @param expression the subscription expression for the item
+         * @param handle the Server-allocated handle
+         * @return the freshly installed entry on Path-1 organic install, or {@code null} on Path-2
+         *     activation
+         */
+        public SubscribedItem activateOrInstall(SubscriptionExpression expression, Object handle) {
+            String canonicalName = expression.asCanonicalItemName();
+            ReentrantLock lock = lockFor(canonicalName);
+            lock.lock();
+            try {
+                BufferedSubscribedItem existing = items.get(canonicalName);
+                // Two mutually exclusive cases (per SDK contract C-serial, no concurrent
+                // subscribe/unsubscribe for the same name can race against this method):
+                //
+                //   (A) existing != null  --> Path-2 activation.
+                //       The entry is a placeholder previously installed by getItem() on the
+                //       record-processing thread (lock-held branch "true miss"), currently in
+                // queueing
+                //       mode with no handle bound. We are running on a Server thread inside
+                //       the forceSubscription(name) callback that getItem() triggered.
+                //       Action: bind the Server-allocated handle, switch the dispatcher to
+                //       direct-delivery (this drains any events queued in the meantime to
+                //       the new handle), and mark the entry forced (eternal). After this
+                //       method returns the Server unblocks getItem(), which then calls
+                //       markForced() again (idempotent, see getItem()). Returns null;
+                //       endOfSnapshot is NOT emitted (the virtual handle has no client
+                //       to receive it).
+                //
+                //   (B) existing == null  --> Path-1 organic install.
+                //       No record for `name` has been observed yet by a record-processing thread,
+                // so
+                //       getItem() never installed a placeholder. This is a plain on-demand
+                //       subscribe coming from the Server's normal subscription flow.
+                //       Action: create a fresh entry already bound to the handle and
+                //       already in direct-dispatch mode. It is left UNFORCED on purpose:
+                //       the first record-processing thread getItem(name) will promote it via the
+                //       hit-on-unforced branch (a forceSubscription no-op per C-fs-noop,
+                //       followed by markForced()). Emits endOfSnapshot on the fresh entry
+                //       (client subscription needs an end-of-snapshot signal) and returns it.
+                if (existing != null) {
+                    existing.enableEventsDelivery(handle, itemEventListener);
+                    existing.markForced();
+                    return null;
+                }
+                BufferedSubscribedItem fresh = Items.bufferedSubscribedFrom(canonicalName);
+                fresh.enableEventsDelivery(handle, itemEventListener);
+                items.put(canonicalName, fresh);
+                // Path-1 organic: emit end-of-snapshot for the new client subscription.
+                // Skipped on Path-2 (the early-return branch above): the virtual handle
+                // has no client to receive it, and the seed record is about to be
+                // dispatched against it as the first server-pinned snapshot value.
+                fresh.endOfSnapshot(itemEventListener);
+                return fresh;
+            } finally {
+                lock.unlock();
             }
-            return Optional.ofNullable(removed);
         }
 
         @Override
-        public SubscribedItem getItem(String itemName) {
-            return items.computeIfAbsent(
-                    itemName,
-                    name -> {
-                        listenerSupplier.get().forceSubscription(name);
-                        return new DirectSubscribedItem(name, name, Schema.nop());
-                    });
+        public BufferedSubscribedItem getItem(String itemName) {
+            // Lock-free fast path. Once an entry is forced it is eternal (per SDK contract
+            // C-eternal: no further subscribe/unsubscribe callbacks fire for the name) and
+            // its dispatcher is stable in direct-dispatch mode bound to a fixed handle, so
+            // subsequent poll-thread sightings can return it without locking.
+            BufferedSubscribedItem cached = items.get(itemName);
+            if (cached != null && cached.isForced()) {
+                return cached;
+            }
+
+            // Slow path. The per-name lock is held only across structural inspection /
+            // mutation; it is RELEASED across forceSubscription, because that call blocks
+            // until a Server-thread subscribe(name, handle) callback runs and that callback
+            // needs to acquire the same lock from activateOrInstall (holding it across the
+            // SDK call would self-deadlock).
+            ReentrantLock lock = lockFor(itemName);
+            lock.lock();
+            try {
+                cached = items.get(itemName);
+                // Three cases under the lock:
+                //
+                //   (0) cached != null && cached.isForced()  --> race lost (parallel modes).
+                //       In UNORDERED, ORDER_BY_PARTITION, or ORDER_BY_KEY modes, another
+                //       worker thread entered the slow path for the same name, installed
+                //       the placeholder, drove forceSubscription, and the Server-thread
+                //       callback marked the entry forced — all between our fast-path
+                //       volatile read and our lock acquisition. The entry is fully
+                //       activated and eternal; return it directly.
+                //
+                //   (1) cached == null  --> true miss (Path-2 start).
+                //       No subscribe callback has been processed for this name yet (this
+                //       is the first record sighting and there was no organic subscribe
+                //       in flight either). Install a placeholder in queueing mode (no
+                //       handle bound) so that any further records arriving on other worker
+                //       threads before the Server-thread callback runs are buffered.
+                //       After we release the lock, forceSubscription(name) will trigger
+                //       the Server-thread subscribe callback, which routes through
+                //       activateOrInstall() case (A) and binds the handle in place.
+                //
+                //   (2) cached != null && !cached.isForced()  --> hit-on-unforced (Path-1).
+                //       The entry was put into the map by a prior organic subscribe
+                //       (activateOrInstall() case (B)), or another worker thread installed
+                //       a placeholder whose forceSubscription callback has not yet
+                //       completed. The entry is not yet marked forced. We must still call
+                //       forceSubscription(name) for protocol uniformity; per C-fs-noop the
+                //       Server treats a second call for an already-subscribed name as a
+                //       no-op and does NOT fire a second subscribe callback. The post-lock
+                //       markForced() below promotes the entry (idempotent if the callback
+                //       races and marks it first).
+                if (cached != null && cached.isForced()) {
+                    return cached;
+                }
+                if (cached == null) {
+                    cached = Items.bufferedSubscribedFrom(itemName);
+                    items.put(itemName, cached);
+                }
+            } finally {
+                lock.unlock();
+            }
+
+            // Lock released. Drive the SDK protocol. Releasing the lock here is required
+            // for CORRECTNESS (deadlock avoidance), not performance: in case (1),
+            // forceSubscription blocks until the Server invokes subscribe(name, handle)
+            // on a separate Server thread (per SDK contract C-fs-blocks), and that
+            // callback routes into activateOrInstall(), which must acquire this same
+            // per-name lock. Holding the lock across forceSubscription would block the
+            // Server thread on lock() while the record-processing thread blocks on
+            // forceSubscription — a classic deadlock; ReentrantLock does not help because
+            // the two participants are different threads.
+            //
+            // Behavior depends on which lock-held case we came from:
+            //
+            //   - From case (1): forceSubscription blocks until the Server thread invokes
+            //     subscribe(name, handle) -> doSubscribe -> activateOrInstall
+            //     case (A), which acquires the per-name lock, binds the handle, switches
+            //     dispatch to direct, and marks the entry forced. By the time
+            //     forceSubscription returns, the entry is already forced; the markForced()
+            //     call below is therefore idempotent.
+            //
+            //   - From case (2): forceSubscription is a server-side no-op (per C-fs-noop)
+            //     and returns without firing any callback. If this thread is the first to
+            //     reach this point for the name, the entry is still unforced and the
+            //     markForced() call below promotes it. In a parallel race where another
+            //     thread's callback has already marked it forced, markForced() is
+            //     idempotent.
+            //
+            // `cached` is stable across this call: activateOrInstall mutates the existing
+            // entry in place rather than replacing it, and no concurrent remove can race
+            // (per C-serial, no organic unsubscribe can fire while we are in flight here).
+            Mode mode = itemEventListener.forceSubscription(itemName);
+            if (mode == null) {
+                logger.atWarn().log("Failed force subscription for item '{}'", itemName);
+            }
+            cached.markForced();
+            return cached;
+        }
+
+        /**
+         * Removes the entry for {@code itemName} if it has not yet been forced. Used by the
+         * forceable pipeline's {@code unsubscribe} to prune Path-1 entries that never received a
+         * record (and therefore were never promoted to eternal via {@code forceSubscription}).
+         * Forced entries are eternal and not removed.
+         *
+         * @param itemName the canonical item name
+         * @return {@code true} if the entry was removed; {@code false} otherwise
+         */
+        public boolean removeIfUnforced(String itemName) {
+            ReentrantLock lock = lockFor(itemName);
+            lock.lock();
+            try {
+                BufferedSubscribedItem existing = items.get(itemName);
+                if (existing == null || existing.isForced()) {
+                    return false;
+                }
+                items.remove(itemName);
+                return true;
+            } finally {
+                lock.unlock();
+            }
         }
 
         @Override
@@ -358,45 +480,36 @@ public class Items {
         }
 
         @Override
-        public void clear() {
-            items.clear();
-        }
-
-        /**
-         * Releases every forced item by invoking {@code unforceSubscription} on the resolved {@link
-         * EventListener} for each entry, then clears the map. Safe to call on shutdown; idempotent.
-         */
-        public void releaseAll() {
-            EventListener listener = listenerSupplier.get();
-            for (String itemName : items.keySet()) {
-                listener.unforceSubscription(itemName);
-            }
-            items.clear();
+        public Collection<BufferedSubscribedItem> values() {
+            return Collections.unmodifiableCollection(items.values());
         }
     }
 
     /**
      * Thread-safe implementation of {@link SubscribedItems} backed by a {@link ConcurrentHashMap}
-     * for explicit (on-demand) mode. Items must be added via {@link #addItem(SubscribedItem)}
-     * before they can be retrieved.
+     * for the on-demand mode. Items must be added via {@link #addItem(SubscribedItem)} before they
+     * can be retrieved.
      */
-    private static class ConcurrentSubscribedItems implements SubscribedItems {
+    public static class OnDemandSubscribedItems implements SubscribedItems {
 
-        private final Map<String, SubscribedItem> items = new ConcurrentHashMap<>();
+        private final Map<String, OnDemandSubscribedItem> items = new ConcurrentHashMap<>();
 
-        @Override
-        public void addItem(SubscribedItem item) {
-            items.put(item.asCanonicalItemName(), item);
+        /**
+         * Adds the given item to this collection, keyed by its canonical name.
+         *
+         * @param item the {@link OnDemandSubscribedItem} to add
+         */
+        public void addItem(OnDemandSubscribedItem item) {
+            items.put(item.canonicalName(), item);
         }
 
         @Override
+        public OnDemandSubscribedItem getItem(String itemName) {
+            return items.get(itemName);
+        }
+
         public Optional<SubscribedItem> removeItem(String itemName) {
             return Optional.ofNullable(items.remove(itemName));
-        }
-
-        @Override
-        public SubscribedItem getItem(String itemName) {
-            return items.get(itemName);
         }
 
         @Override
@@ -410,147 +523,55 @@ public class Items {
         }
 
         @Override
-        public void clear() {
-            items.clear();
+        public Collection<SubscribedItem> values() {
+            return Collections.unmodifiableCollection(items.values());
         }
     }
 
     /**
-     * A lightweight {@link SubscribedItem} implementation that delivers events directly via the
-     * interface default methods, without buffering.
+     * Default {@link SubscribedItem} implementation, used by the on-demand pipeline. The {@code
+     * itemHandle} is bound at construction and never changes.
      *
-     * <p>Unlike {@code BufferedSubscribedItem}, this implementation allocates no queue, lock, or
-     * consumer lambda — all event delivery goes straight to the {@link EventListener}.
-     *
-     * <p>Used in two scenarios:
-     *
-     * <ul>
-     *   <li>No-snapshot mode with an explicit server-provided item handle
-     *   <li>Implicit item snapshot strategy where the canonical name serves as the item handle
-     * </ul>
+     * <p>Equality is by canonical item name.
      */
-    private static class DirectSubscribedItem implements SubscribedItem {
+    public static class OnDemandSubscribedItem implements SubscribedItem {
 
-        private final Object itemHandle;
         private final String canonicalItemName;
         private final Schema schema;
-
-        DirectSubscribedItem(String canonicalItemName, Object itemHandle, Schema schema) {
-            this.itemHandle = itemHandle;
-            this.canonicalItemName = canonicalItemName;
-            this.schema = schema;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(itemHandle, canonicalItemName);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            return obj instanceof DirectSubscribedItem other
-                    && canonicalItemName.equals(other.canonicalItemName)
-                    && Objects.equals(itemHandle, other.itemHandle);
-        }
-
-        @Override
-        public String name() {
-            return canonicalItemName;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return itemHandle;
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public String asCanonicalItemName() {
-            return canonicalItemName;
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return false;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            // No-op: direct items do not manage snapshot state
-        }
-
-        @Override
-        public void enableEventsDelivery(EventListener listener) {
-            // No-op: direct items deliver events immediately via interface defaults
-        }
-    }
-
-    /**
-     * The default {@link SubscribedItem} implementation that buffers <em>every</em> event (snapshot
-     * or real-time) until delivery is unlocked via {@link #enableEventsDelivery(EventListener)}, at
-     * which point the buffered events are drained in insertion order — each preserving its original
-     * {@code isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
-     */
-    private static class BufferedSubscribedItem implements SubscribedItem {
-
-        /**
-         * Functional interface for dispatching an event with its {@code isSnapshot} flag.
-         * Implementations may either enqueue the event or deliver it directly to the listener.
-         */
-        @FunctionalInterface
-        private interface EventDispatcher {
-            void dispatch(Map<String, String> event, boolean isSnapshot, EventListener listener);
-        }
-
-        /** A buffered event together with its original {@code isSnapshot} flag. */
-        private record PendingEvent(Map<String, String> event, boolean isSnapshot) {}
-
         private final Object itemHandle;
-        private final String canonicalItemName;
-        private final Schema schema;
-        private volatile Queue<PendingEvent> pendingEvents;
-        private volatile EventDispatcher dispatcher;
-        private boolean snapshotFlag;
+        private boolean snapshotFlag = true;
 
-        BufferedSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.itemHandle = itemHandle;
+        OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
             this.canonicalItemName = expression.asCanonicalItemName();
             this.schema = expression.schema();
-            this.snapshotFlag = true;
-            this.pendingEvents = new ConcurrentLinkedQueue<>();
-            this.dispatcher =
-                    (event, isSnapshot, listener) -> {
-                        // Queue the event for later delivery, preserving its flag.
-                        pendingEvents.add(new PendingEvent(event, isSnapshot));
-                    };
+            this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(itemHandle, canonicalItemName);
+            return Objects.hash(canonicalItemName, itemHandle);
         }
 
         @Override
         public boolean equals(Object obj) {
             if (this == obj) return true;
-            return obj instanceof BufferedSubscribedItem other
+            return obj instanceof OnDemandSubscribedItem other
                     && canonicalItemName.equals(other.canonicalItemName)
-                    && Objects.equals(itemHandle, other.itemHandle);
+                    && itemHandle.equals(other.itemHandle);
+        }
+
+        @Override
+        public String canonicalName() {
+            return canonicalItemName;
+        }
+
+        public Object itemHandle() {
+            return itemHandle;
         }
 
         @Override
         public Schema schema() {
             return schema;
-        }
-
-        @Override
-        public Object itemHandle() {
-            return itemHandle;
         }
 
         @Override
@@ -564,75 +585,267 @@ public class Items {
         }
 
         @Override
-        public String asCanonicalItemName() {
-            return canonicalItemName;
+        public void sendEvent(
+                Map<String, String> event, ItemEventListener listener, boolean isSnapshot) {
+            listener.smartUpdate(itemHandle, event, isSnapshot);
         }
 
         @Override
-        public String name() {
-            return canonicalItemName;
-        }
-
-        private EventDispatcher directDispatcher() {
-            return (event, isSnapshot, listener) -> listener.update(this, event, isSnapshot);
+        public void clearSnapshot(ItemEventListener listener) {
+            listener.smartClearSnapshot(itemHandle);
         }
 
         @Override
-        public void enableEventsDelivery(EventListener listener) {
-            if (pendingEvents == null) {
-                // Already unlocked - no action needed
+        public void endOfSnapshot(ItemEventListener listener) {
+            listener.smartEndOfSnapshot(itemHandle);
+        }
+    }
+
+    /**
+     * {@link SubscribedItem} implementation that buffers <em>every</em> event (snapshot or
+     * real-time, including {@code clearSnapshot} and {@code endOfSnapshot} signals) until the item
+     * is activated via {@link #enableEventsDelivery(Object, ItemEventListener)}, at which point the
+     * buffered events are drained in insertion order — each preserving its original {@code
+     * isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
+     */
+    public static class BufferedSubscribedItem implements SubscribedItem {
+
+        /**
+         * Functional interface for dispatching an event with its {@code isSnapshot} flag.
+         * Implementations may either enqueue the event or deliver it directly to the listener.
+         */
+        private interface EventDispatcher {
+            void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener);
+
+            void clearSnapshot(ItemEventListener listener);
+
+            void endOfSnapshot(ItemEventListener listener);
+        }
+
+        /**
+         * {@link EventDispatcher} that delivers events directly to the {@link ItemEventListener},
+         * keyed by the bound {@code itemHandle}. Used after the item has been activated and is no
+         * longer buffering.
+         */
+        private static final class DirectEventDispatcher implements EventDispatcher {
+            private final Object itemHandle;
+
+            private DirectEventDispatcher(Object itemHandle) {
+                this.itemHandle = itemHandle;
+            }
+
+            @Override
+            public void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
+                listener.smartUpdate(itemHandle, event, isSnapshot);
+            }
+
+            @Override
+            public void clearSnapshot(ItemEventListener listener) {
+                listener.smartClearSnapshot(itemHandle);
+            }
+
+            @Override
+            public void endOfSnapshot(ItemEventListener listener) {
+                listener.smartEndOfSnapshot(itemHandle);
+            }
+        }
+
+        /**
+         * {@link EventDispatcher} that buffers every event into an internal {@link Queue} of {@link
+         * PendingEvent}s. Used while the item is in queueing mode, before a handle has been bound
+         * via {@link #enableEventsDelivery(Object, ItemEventListener)}. The queued events are
+         * drained in insertion order via {@link #drainTo(Object, ItemEventListener)} when the item
+         * is activated.
+         *
+         * <p>Concurrency: every dispatch method is {@code synchronized} on the dispatcher instance,
+         * and activation also synchronizes on the same instance to drain and swap the owner's
+         * dispatcher field atomically. A producer that already entered the synchronized region but
+         * raced behind activation re-reads the owner's dispatcher and routes the event to the
+         * post-activation {@link DirectEventDispatcher} instead of enqueueing into a queue that
+         * nobody will ever drain.
+         */
+        private static final class QueueingEventDispatcher implements EventDispatcher {
+
+            private final BufferedSubscribedItem owner;
+            private final Queue<PendingEvent> pendingEvents = new ArrayDeque<>();
+
+            QueueingEventDispatcher(BufferedSubscribedItem owner) {
+                this.owner = owner;
+            }
+
+            @Override
+            public synchronized void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.dispatchUpdate(event, isSnapshot, listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.update(event, isSnapshot));
+            }
+
+            @Override
+            public synchronized void clearSnapshot(ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.clearSnapshot(listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.clearSnapshot());
+            }
+
+            @Override
+            public synchronized void endOfSnapshot(ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.endOfSnapshot(listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.endOfSnapshot());
+            }
+
+            /**
+             * Polls every queued event and dispatches it to {@code listener} keyed by {@code
+             * handle}, preserving each event's original {@code isSnapshot} flag. The caller must
+             * hold {@code synchronized (this)}.
+             */
+            void drainTo(Object handle, ItemEventListener listener) {
+                assert Thread.holdsLock(this);
+                PendingEvent pending;
+                while ((pending = pendingEvents.poll()) != null) {
+                    switch (pending.type()) {
+                        case UPDATE ->
+                                listener.smartUpdate(handle, pending.event(), pending.isSnapshot());
+                        case CLEAR_SNAPSHOT -> listener.smartClearSnapshot(handle);
+                        case END_OF_SNAPSHOT -> listener.smartEndOfSnapshot(handle);
+                    }
+                }
+            }
+        }
+
+        /**
+         * A buffered event, tagged by {@link EventType} and carrying its {@code isSnapshot} flag
+         * for {@link EventType#UPDATE} entries.
+         */
+        private record PendingEvent(EventType type, Map<String, String> event, boolean isSnapshot) {
+
+            enum EventType {
+                UPDATE,
+                CLEAR_SNAPSHOT,
+                END_OF_SNAPSHOT
+            }
+
+            static PendingEvent update(Map<String, String> event, boolean isSnapshot) {
+                return new PendingEvent(EventType.UPDATE, event, isSnapshot);
+            }
+
+            static PendingEvent clearSnapshot() {
+                return new PendingEvent(EventType.CLEAR_SNAPSHOT, null, false);
+            }
+
+            static PendingEvent endOfSnapshot() {
+                return new PendingEvent(EventType.END_OF_SNAPSHOT, null, false);
+            }
+        }
+
+        private final String canonicalItemName;
+        private final Schema schema;
+        private volatile EventDispatcher dispatcher;
+        private volatile boolean forced;
+        private QueueingEventDispatcher queueing;
+        private boolean snapshotFlag = true;
+
+        BufferedSubscribedItem(SubscriptionExpression expression) {
+            this.canonicalItemName = expression.asCanonicalItemName();
+            this.schema = expression.schema();
+            this.queueing = new QueueingEventDispatcher(this);
+            this.dispatcher = queueing;
+        }
+
+        @Override
+        public String canonicalName() {
+            return canonicalItemName;
+        }
+
+        /**
+         * Activates this item for direct event delivery. Drains any events buffered while in
+         * queueing mode to the given {@link ItemEventListener} keyed by {@code itemHandle}, then
+         * switches to direct-dispatch mode for all subsequent events. If already activated, this
+         * method is a no-op.
+         *
+         * @param itemHandle the handle allocated by the Lightstreamer Server for this item
+         * @param listener the {@link ItemEventListener} to deliver drained and future events to
+         */
+        public void enableEventsDelivery(Object itemHandle, ItemEventListener listener) {
+            Objects.requireNonNull(itemHandle, "itemHandle");
+            QueueingEventDispatcher q = queueing;
+            if (q == null) {
+                // Already activated — nothing to do.
                 return;
             }
-            // Create a final dispatcher that flushes queue first, then switches to direct mode.
-            // This handles the race where a producer thread observes the buffering dispatcher and
-            // enqueues an event after the unlocking thread has already drained the queue.
-            ReentrantLock lock = new ReentrantLock();
-            EventDispatcher finalDispatcher =
-                    (event, isSnapshot, eventListener) -> {
-                        // First, drain any remaining events from the queue to maintain ordering.
-                        lock.lock();
-                        try {
-                            if (pendingEvents != null) {
-                                drainPendingEvents(eventListener);
-                                // Clear the queue reference to help GC (no longer needed).
-                                pendingEvents = null;
-                            }
-                        } finally {
-                            lock.unlock();
-                        }
-
-                        // Then deliver the current event directly.
-                        eventListener.update(this, event, isSnapshot);
-
-                        // After draining, switch to the direct dispatcher for optimal performance.
-                        dispatcher = directDispatcher();
-                    };
-
-            // Drain any pending events before switching.
-            drainPendingEvents(listener);
-
-            // Atomic switch to the self-draining dispatcher.
-            dispatcher = finalDispatcher;
-        }
-
-        private void drainPendingEvents(EventListener listener) {
-            PendingEvent pending;
-            // Drain all events from the queue, preserving each event's original flag.
-            while ((pending = pendingEvents.poll()) != null) {
-                listener.update(this, pending.event(), pending.isSnapshot());
+            // Drain and swap atomically under the queueing dispatcher's monitor. Any producer
+            // contending on the same monitor either finishes its enqueue before us (we drain it)
+            // or enters after the swap and re-routes to DirectEventDispatcher via the redirect
+            // check in QueueingEventDispatcher's synchronized methods.
+            synchronized (q) {
+                q.drainTo(itemHandle, listener);
+                dispatcher = new DirectEventDispatcher(itemHandle);
             }
+            // Drop the field reference. The QueueingEventDispatcher (with its empty queue) is now
+            // unreachable: producers that observed the swap route through DirectEventDispatcher
+            // and never look at this field again. At 1M items this releases ~150 MB of state.
+            queueing = null;
+        }
+
+        /**
+         * Marks this item as forced (i.e., promoted via {@code forceSubscription}). Used by {@link
+         * ForceableSubscribedItems} as the eternal-state marker; writers hold the per-name lock and
+         * the volatile write publishes the bit to the lock-free fast-path reader. The flag is
+         * monotonic.
+         */
+        void markForced() {
+            this.forced = true;
+        }
+
+        /**
+         * Returns whether this item has been forced. Safe to call without a lock: the field is
+         * {@code volatile} and monotonic ({@code true} is terminal).
+         */
+        boolean isForced() {
+            return forced;
         }
 
         @Override
-        public void sendRealtimeEvent(Map<String, String> event, EventListener listener) {
-            // Simple volatile read + call - no synchronization needed!
-            dispatcher.dispatch(event, false, listener);
+        public void sendEvent(
+                Map<String, String> event, ItemEventListener listener, boolean isSnapshot) {
+            dispatcher.dispatchUpdate(event, isSnapshot, listener);
         }
 
         @Override
-        public void sendSnapshotEvent(Map<String, String> event, EventListener listener) {
-            // Buffered like real-time events; drained in insertion order on unlock.
-            dispatcher.dispatch(event, true, listener);
+        public void clearSnapshot(ItemEventListener listener) {
+            dispatcher.clearSnapshot(listener);
+        }
+
+        @Override
+        public void endOfSnapshot(ItemEventListener listener) {
+            dispatcher.endOfSnapshot(listener);
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        @Override
+        public boolean isSnapshot() {
+            return snapshotFlag;
+        }
+
+        @Override
+        public void setSnapshot(boolean flag) {
+            this.snapshotFlag = flag;
         }
     }
 
@@ -646,12 +859,12 @@ public class Items {
     public interface ItemTemplates<K, V> {
 
         /**
-         * Checks whether any configured template matches the given item's schema.
+         * Checks whether any configured template matches the given schema.
          *
-         * @param item the {@link SubscribedItem} to test
+         * @param schema the {@link Schema} to test
          * @return {@code true} if at least one template matches, {@code false} otherwise
          */
-        boolean matches(SubscribedItem item);
+        boolean matches(Schema schema);
 
         /**
          * Returns extractors grouped by topic name.
@@ -681,10 +894,10 @@ public class Items {
          * Returns the set of topics that have at least one template matching the given item's
          * schema.
          *
-         * @param item the {@link SubscribedItem} to match against configured templates
-         * @return the set of topic names whose templates match the item
+         * @param schema the {@link Schema} to match against configured templates
+         * @return the set of topic names whose templates match the schema
          */
-        Set<String> topicsFor(SubscribedItem item);
+        Set<String> topicsFor(Schema schema);
 
         /**
          * Indicates whether regex-based topic matching is enabled.
@@ -723,8 +936,8 @@ public class Items {
             this.schema = extractor.schema();
         }
 
-        public boolean matches(SubscribedItem item) {
-            return schema.equals(item.schema());
+        public boolean matches(Schema schema) {
+            return this.schema.equals(schema);
         }
 
         CanonicalItemExtractor<K, V> extractor() {
@@ -769,8 +982,8 @@ public class Items {
         }
 
         @Override
-        public boolean matches(SubscribedItem item) {
-            return templates.stream().anyMatch(i -> i.matches(item));
+        public boolean matches(Schema schema) {
+            return templates.stream().anyMatch(i -> i.matches(schema));
         }
 
         @Override
@@ -788,9 +1001,9 @@ public class Items {
         }
 
         @Override
-        public Set<String> topicsFor(SubscribedItem item) {
+        public Set<String> topicsFor(Schema schema) {
             return templates.stream()
-                    .filter(t -> t.matches(item))
+                    .filter(t -> t.matches(schema))
                     .map(ItemTemplate::topic)
                     .collect(toSet());
         }
@@ -819,40 +1032,36 @@ public class Items {
     }
 
     /**
-     * Creates a buffered {@link SubscribedItem} using the input as both the subscription expression
-     * source and the item handle.
+     * Creates a {@link OnDemandSubscribedItem} bound to the given handle at construction time.
      *
-     * @param input the subscription expression string, also used as the item handle
-     * @return a new {@link SubscribedItem} that buffers real-time events until snapshot completes
-     * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
+     * @param canonicalName the canonical Lightstreamer item name (used as the entry key)
+     * @param itemHandle the handle allocated by the Lightstreamer Server
+     * @return a new {@link OnDemandSubscribedItem}
      */
-    public static SubscribedItem subscribedFrom(String input) throws ExpressionException {
-        return subscribedFrom(input, input);
+    public static OnDemandSubscribedItem onDemandSubscribedItem(
+            SubscriptionExpression expression, Object itemHandle) {
+        return new OnDemandSubscribedItem(expression, itemHandle);
     }
 
     /**
-     * Creates a buffered {@link SubscribedItem} from the given input and item handle.
+     * Creates a {@link BufferedSubscribedItem} from a canonical item name string.
      *
-     * @param input the subscription expression string
-     * @param itemHandle the handle object used by the Lightstreamer Server to identify the item
-     * @return a new {@link SubscribedItem} that buffers real-time events until snapshot completes
+     * @param canonicalName the canonical Lightstreamer item name
+     * @return a new {@link BufferedSubscribedItem}
      * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
      */
-    public static SubscribedItem subscribedFrom(String input, Object itemHandle)
-            throws ExpressionException {
-        return subscribedFrom(Expressions.Subscription(input), itemHandle);
+    public static BufferedSubscribedItem bufferedSubscribedFrom(String canonicalName) {
+        return new BufferedSubscribedItem(Expressions.Subscription(canonicalName));
     }
 
     /**
-     * Creates a {@code BufferedSubscribedItem} from a pre-parsed subscription expression and item
-     * handle.
+     * Creates a {@link BufferedSubscribedItem} from a pre-parsed subscription expression.
      *
      * @param expression the parsed {@link SubscriptionExpression}
-     * @param itemHandle the handle object used by the Lightstreamer Server to identify the item
-     * @return a new {@link SubscribedItem} wrapping the given expression
+     * @return a new {@code BufferedSubscribedItem}
      */
-    static SubscribedItem subscribedFrom(SubscriptionExpression expression, Object itemHandle) {
-        return new BufferedSubscribedItem(expression, itemHandle);
+    static BufferedSubscribedItem bufferedSubscribedFrom(SubscriptionExpression expression) {
+        return new BufferedSubscribedItem(expression);
     }
 
     /**
