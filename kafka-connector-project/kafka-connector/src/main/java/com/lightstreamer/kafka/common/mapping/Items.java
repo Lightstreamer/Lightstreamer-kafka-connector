@@ -566,10 +566,6 @@ public class Items {
             return canonicalItemName;
         }
 
-        public Object itemHandle() {
-            return itemHandle;
-        }
-
         @Override
         public Schema schema() {
             return schema;
@@ -905,9 +901,7 @@ public class Items {
          *
          * @return {@code true} if regex matching is enabled, {@code false} otherwise
          */
-        default boolean isRegexEnabled() {
-            return false;
-        }
+        boolean isRegexEnabled();
 
         /**
          * Returns the compiled subscription pattern when regex topic matching is enabled.
