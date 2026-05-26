@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
@@ -48,8 +49,10 @@ public class OnDemandSubscribedItemsTest {
 
     @Test
     public void shouldAddAndRetrieveSimpleItems() {
-        OnDemandSubscribedItem testItem1 = Items.onDemandSubscribedItem("item1", new Object());
-        OnDemandSubscribedItem testItem2 = Items.onDemandSubscribedItem("item2", new Object());
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
+        OnDemandSubscribedItem testItem2 =
+                Items.onDemandSubscribedFrom(Subscription("item2"), new Object());
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
         assertThat(subscribedItems.isEmpty()).isFalse();
@@ -69,7 +72,7 @@ public class OnDemandSubscribedItemsTest {
     @Test
     public void shouldAddAndRetrieveCanonicalItems() {
         OnDemandSubscribedItem testItem1 =
-                Items.onDemandSubscribedItem("item-[b=2,a=1]", new Object());
+                Items.onDemandSubscribedFrom(Subscription("item-[b=2,a=1]"), new Object());
         subscribedItems.addItem(testItem1);
 
         // Retrieve the item from its canonical representation
@@ -78,9 +81,10 @@ public class OnDemandSubscribedItemsTest {
 
     @Test
     public void shouldReplaceItemWhenAddingDuplicate() {
-        OnDemandSubscribedItem testItem1 = Items.onDemandSubscribedItem("item1", new Object());
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         OnDemandSubscribedItem testItem1Duplicate =
-                Items.onDemandSubscribedItem("item1", new Object());
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
 
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
@@ -102,7 +106,8 @@ public class OnDemandSubscribedItemsTest {
 
     @Test
     public void shouldRemoveExistingItem() {
-        OnDemandSubscribedItem testItem1 = Items.onDemandSubscribedItem("item1", new Object());
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
         Optional<SubscribedItem> removed = subscribedItems.removeItem("item1");
