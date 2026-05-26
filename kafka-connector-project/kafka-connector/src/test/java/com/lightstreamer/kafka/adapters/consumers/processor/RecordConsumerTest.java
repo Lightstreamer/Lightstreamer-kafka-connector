@@ -154,7 +154,7 @@ public class RecordConsumerTest {
     void subscribeTo(String itemName, SubscribedItems subscribedItems) {
         SubscriptionExpression subscription = Expressions.Subscription(itemName);
         if (subscribedItems instanceof OnDemandSubscribedItems onDemandSubscribedItems) {
-            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(subscription, new Object());
+            OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(subscription, new Object());
             onDemandSubscribedItems.addItem(item);
         } else if (subscribedItems instanceof ForceableSubscribedItems forceableSubscribedItems) {
             // In production, the Server thread calls activateOrInstall as the subscribe
@@ -163,9 +163,6 @@ public class RecordConsumerTest {
             // the item with a handle, simulating a Path-1 organic subscribe that has
             // already completed before any record arrives.
             forceableSubscribedItems.activateOrInstall(subscription, new Object());
-        } else {
-            throw new IllegalArgumentException(
-                    "Unsupported SubscribedItems type: " + subscribedItems);
         }
     }
 
