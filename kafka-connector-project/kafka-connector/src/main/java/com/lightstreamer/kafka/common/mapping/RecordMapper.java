@@ -572,7 +572,7 @@ final class MappedRecordImpl implements MappedRecord {
     // Singleton no-operation record with no item names and an empty fields map.
     static final MappedRecord NOPRecord = new MappedRecordImpl();
 
-    private final String[] items;
+    private final String[] canonicalItemNames;
     private final Supplier<Map<String, String>> fieldsMapSupplier;
 
     private boolean payloadNull;
@@ -606,21 +606,21 @@ final class MappedRecordImpl implements MappedRecord {
             String[] canonicalItemNames,
             Supplier<Map<String, String>> fieldsMap,
             boolean payloadNull) {
-        this.items = canonicalItemNames;
+        this.canonicalItemNames = canonicalItemNames;
         this.fieldsMapSupplier = fieldsMap;
         this.payloadNull = payloadNull;
     }
 
     @Override
     public String[] canonicalItemNames() {
-        return items;
+        return canonicalItemNames;
     }
 
     @Override
     public Set<SubscribedItem> route(SubscribedItems items) {
         Set<SubscribedItem> result = new HashSet<>();
 
-        for (String name : this.items) {
+        for (String name : this.canonicalItemNames) {
             SubscribedItem item = items.getItem(name);
             if (item != null) {
                 result.add(item);
@@ -641,7 +641,7 @@ final class MappedRecordImpl implements MappedRecord {
 
     @Override
     public String toString() {
-        String data = String.join(",", items);
+        String data = String.join(",", canonicalItemNames);
         return String.format(
                 "MappedRecord (canonicalItemNames=[%s], fieldsMap=%s)",
                 data, fieldsMapSupplier.get());
