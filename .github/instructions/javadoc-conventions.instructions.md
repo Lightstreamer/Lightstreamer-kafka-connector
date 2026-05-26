@@ -66,9 +66,22 @@ This document defines the Javadoc conventions adopted across the Kafka Connector
    */
   ```
 
+### Architectural Constraint
+
+- **Never use `{@link}`** to reference a type in a higher-level package (i.e., one that already
+  depends on the current package). Such a reference introduces a cyclic package dependency via the
+  import required by the Javadoc tag. Use `{@code FullyQualifiedName}` or just `{@code SimpleName}`
+  instead:
+  ```java
+  // In adapters/consumers/SubscriptionsHandler.java — do NOT link to adapters.KafkaConnectorDataAdapter
+  /**
+   * The result is used by {@code KafkaConnectorDataAdapter} to determine ...
+   */
+  ```
+
 ### Summary Rule
 
-> **First mention** of an _external_ type → `{@link}`.
+> **First mention** of an _external_ type → `{@link}` (unless it would create a cyclic dependency).
 > **Self-reference** or **repeated mention** → `{@code}`.
 > **Literals and code tokens** → always `{@code}`.
 
