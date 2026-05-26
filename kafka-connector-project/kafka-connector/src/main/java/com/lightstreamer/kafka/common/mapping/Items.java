@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
 import static java.util.Collections.emptySet;
 import static java.util.stream.Collectors.groupingBy;
@@ -295,7 +296,7 @@ public class Items {
          *     activation
          */
         public SubscribedItem activateOrInstall(SubscriptionExpression expression, Object handle) {
-            String canonicalName = expression.asCanonicalItemName();
+            String canonicalName = expression.canonicalItemName();
             ReentrantLock lock = lockFor(canonicalName);
             lock.lock();
             try {
@@ -333,7 +334,7 @@ public class Items {
                     existing.markForced();
                     return null;
                 }
-                BufferedSubscribedItem fresh = Items.bufferedSubscribedFrom(canonicalName);
+                BufferedSubscribedItem fresh = new BufferedSubscribedItem(expression);
                 fresh.enableEventsDelivery(handle, itemEventListener);
                 items.put(canonicalName, fresh);
                 // Path-1 organic: emit end-of-snapshot for the new client subscription.
@@ -401,7 +402,7 @@ public class Items {
                     return cached;
                 }
                 if (cached == null) {
-                    cached = Items.bufferedSubscribedFrom(itemName);
+                    cached = new BufferedSubscribedItem(Subscription(itemName));
                     items.put(itemName, cached);
                 }
             } finally {
@@ -542,7 +543,7 @@ public class Items {
         private boolean snapshotFlag = true;
 
         OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.canonicalItemName = expression.asCanonicalItemName();
+            this.canonicalItemName = expression.canonicalItemName();
             this.schema = expression.schema();
             this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
         }
@@ -758,7 +759,7 @@ public class Items {
         private boolean snapshotFlag = true;
 
         BufferedSubscribedItem(SubscriptionExpression expression) {
-            this.canonicalItemName = expression.asCanonicalItemName();
+            this.canonicalItemName = expression.canonicalItemName();
             this.schema = expression.schema();
             this.queueing = new QueueingEventDispatcher(this);
             this.dispatcher = queueing;
