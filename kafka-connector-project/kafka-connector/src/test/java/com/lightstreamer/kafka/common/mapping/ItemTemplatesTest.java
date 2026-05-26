@@ -32,9 +32,8 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
-import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.Schema;
@@ -105,21 +104,21 @@ public class ItemTemplatesTest {
                                 templateDefinition,
                                 template3,
                                 templateDefinition));
-        ItemTemplates<Object, Object> templates =
+        ItemTemplates<Object, Object> itemTemplates =
                 Items.templatesFrom(
                         TopicConfigurations.of(
                                 templateConfigs, List.of(testTopic1Mapping, testTopic2Mapping)),
                         Object());
         assertWithMessage("Templates object contains the expected topics")
-                .that(templates.topics())
+                .that(itemTemplates.topics())
                 .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
         assertWithMessage("Templates object has not regex enabled by default")
-                .that(templates.isRegexEnabled())
+                .that(itemTemplates.isRegexEnabled())
                 .isFalse();
 
         Map<String, Set<CanonicalItemExtractor<Object, Object>>> extractors =
-                templates.groupExtractors();
+                itemTemplates.groupExtractors();
         assertThat(extractors).hasSize(2);
         assertWithMessage("Only one extractor associated with TEST_TOPIC_1")
                 .that(extractors.get(TEST_TOPIC_1))
@@ -128,7 +127,7 @@ public class ItemTemplatesTest {
                 .that(extractors.get(TEST_TOPIC_1))
                 .containsExactly(
                         canonicalItemExtractor(Object(), Template("stock-#{index=KEY.attrib}")));
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+        assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
         assertWithMessage("Only one extractor associated with TEST_TOPIC_2")
@@ -138,26 +137,28 @@ public class ItemTemplatesTest {
                 .that(extractors.get(TEST_TOPIC_2))
                 .containsExactly(
                         canonicalItemExtractor(Object(), Template("stock-#{index=KEY.attrib}")));
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
+        assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_2))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        SubscribedItem item1 = Items.onDemandSubscribedItem("stock-[index=1]", new Object());
+        Schema item1Schema = Expressions.Subscription("stock-[index=1]").schema();
         assertWithMessage("The item matches at least a template")
-                .that(templates.matches(item1))
+                .that(itemTemplates.matches(item1Schema))
                 .isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
+        assertThat(itemTemplates.topicsFor(item1Schema))
+                .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
-        SubscribedItem item2 = Items.onDemandSubscribedItem("stock-[index=2]", new Object());
+        Schema item2Schema = Expressions.Subscription("stock-[index=2]").schema();
         assertWithMessage("The item matches at least a template")
-                .that(templates.matches(item2))
+                .that(itemTemplates.matches(item2Schema))
                 .isTrue();
-        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
+        assertThat(itemTemplates.topicsFor(item2Schema))
+                .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
-        SubscribedItem item3 = Items.onDemandSubscribedItem("anItem", new Object());
+        Schema item3Schema = Expressions.Subscription("anItem").schema();
         assertWithMessage("The item does not match any defined template")
-                .that(templates.matches(item3))
+                .that(itemTemplates.matches(item3Schema))
                 .isFalse();
-        assertThat(templates.topicsFor(item3)).isEmpty();
+        assertThat(itemTemplates.topicsFor(item3Schema)).isEmpty();
     }
 
     @Test
@@ -176,36 +177,34 @@ public class ItemTemplatesTest {
                 ItemTemplateConfigs.from(Map.of("template1", "stock-#{index=KEY.attrib}"));
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
 
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.groupExtractors()).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("stock", Set.of("index")),
                         Schema.from("simple-item-1", emptySet()));
 
-        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", new Object());
-        assertThat(templates.matches(item1)).isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
+        Schema item1Schema = Expressions.Subscription("simple-item-1").schema();
+        assertThat(itemTemplates.matches(item1Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item1Schema)).containsExactly(TEST_TOPIC_1);
 
-        OnDemandSubscribedItem item2 =
-                Items.onDemandSubscribedItem("stock-[index=1]", new Object());
-        assertThat(templates.matches(item2)).isTrue();
-        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
+        Schema item2Schema = Expressions.Subscription("stock-[index=1]").schema();
+        assertThat(itemTemplates.matches(item2Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item2Schema)).containsExactly(TEST_TOPIC_1);
 
-        OnDemandSubscribedItem item3 =
-                Items.onDemandSubscribedItem("stock-[index=2]", new Object());
-        assertThat(templates.matches(item3)).isTrue();
-        assertThat(templates.topicsFor(item3)).containsExactly(TEST_TOPIC_1);
+        Schema item3Schema = Expressions.Subscription("stock-[index=2]").schema();
+        assertThat(itemTemplates.matches(item3Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item3Schema)).containsExactly(TEST_TOPIC_1);
 
-        OnDemandSubscribedItem item4 = Items.onDemandSubscribedItem("simple-item-2", new Object());
-        assertThat(templates.matches(item4)).isFalse();
-        assertThat(templates.topicsFor(item4)).isEmpty();
+        Schema item4Schema = Expressions.Subscription("simple-item-2").schema();
+        assertThat(itemTemplates.matches(item4Schema)).isFalse();
+        assertThat(itemTemplates.topicsFor(item4Schema)).isEmpty();
 
-        OnDemandSubscribedItem item5 = Items.onDemandSubscribedItem("stock-[key=1]", new Object());
-        assertThat(templates.matches(item5)).isFalse();
-        assertThat(templates.topicsFor(item5)).isEmpty();
+        Schema item5Schema = Expressions.Subscription("stock-[key=1]").schema();
+        assertThat(itemTemplates.matches(item5Schema)).isFalse();
+        assertThat(itemTemplates.topicsFor(item5Schema)).isEmpty();
     }
 
     @Test
@@ -229,9 +228,9 @@ public class ItemTemplatesTest {
         assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(Schema.from("simple-item-1", emptySet()));
 
-        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", new Object());
-        assertThat(templates.matches(item1)).isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
+        Schema item1Schema = Expressions.Subscription("simple-item-1").schema();
+        assertThat(templates.matches(item1Schema)).isTrue();
+        assertThat(templates.topicsFor(item1Schema)).containsExactly(TEST_TOPIC_1);
     }
 
     @Test
@@ -251,21 +250,20 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(topicMapping));
 
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.topics()).containsExactly("stocks");
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get("stocks")).hasSize(1);
-        assertThat(templates.getExtractorSchemasByTopicName("stocks"))
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(itemTemplates.topics()).containsExactly("stocks");
+        assertThat(itemTemplates.groupExtractors()).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get("stocks")).hasSize(1);
+        assertThat(itemTemplates.getExtractorSchemasByTopicName("stocks"))
                 .containsExactly(Schema.from("stock", Set.of("index")));
 
-        OnDemandSubscribedItem item1 =
-                Items.onDemandSubscribedItem("stock-[index=1]", new Object());
-        assertThat(templates.matches(item1)).isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly("stocks");
+        Schema item1Schema = Expressions.Subscription("stock-[index=1]").schema();
+        assertThat(itemTemplates.matches(item1Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item1Schema)).containsExactly("stocks");
 
-        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("stock-[key=1]", new Object());
-        assertThat(templates.matches(item2)).isFalse();
-        assertThat(templates.topicsFor(item2)).isEmpty();
+        Schema item2Schema = Expressions.Subscription("stock-[key=1]").schema();
+        assertThat(itemTemplates.matches(item2Schema)).isFalse();
+        assertThat(itemTemplates.topicsFor(item2Schema)).isEmpty();
     }
 
     @Test
@@ -280,26 +278,27 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+        ItemTemplates<String, JsonNode> itemTemplates =
+                Items.templatesFrom(topicsConfig, JsonValue());
+        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.groupExtractors()).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("simple-item-1", emptySet()),
                         Schema.from("simple-item-2", emptySet()));
 
-        SubscribedItem item1 = Items.onDemandSubscribedItem("simple-item-1", "itemHandle1");
-        assertThat(templates.matches(item1)).isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
+        Schema item1Schema = Expressions.Subscription("simple-item-1").schema();
+        assertThat(itemTemplates.matches(item1Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item1Schema)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item2 = Items.onDemandSubscribedItem("simple-item-2", "itemHandle2");
-        assertThat(templates.matches(item2)).isTrue();
-        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
+        Schema item2Schema = Expressions.Subscription("simple-item-2").schema();
+        assertThat(itemTemplates.matches(item2Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item2Schema)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item3 = Items.onDemandSubscribedItem("simple-item-3", "itemHandle2");
-        assertThat(templates.matches(item3)).isFalse();
-        assertThat(templates.topicsFor(item3)).isEmpty();
+        Schema item3Schema = Expressions.Subscription("simple-item-3").schema();
+        assertThat(itemTemplates.matches(item3Schema)).isFalse();
+        assertThat(itemTemplates.topicsFor(item3Schema)).isEmpty();
     }
 
     @Test
@@ -325,26 +324,27 @@ public class ItemTemplatesTest {
 
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
-        assertThat(templates.groupExtractors()).hasSize(1);
-        assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
-        assertThat(templates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
+        ItemTemplates<String, JsonNode> itemTemplates =
+                Items.templatesFrom(topicsConfig, JsonValue());
+        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.groupExtractors()).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
+        assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
                 .containsExactly(
                         Schema.from("template-family", Set.of("topic", "info")),
                         Schema.from("template-relatives", Set.of("topic", "info1")));
 
-        SubscribedItem item1 =
-                Items.onDemandSubscribedItem(
-                        "template-family-[topic=" + TEST_TOPIC_1 + ",info=150]", "itemHandle1");
-        assertThat(templates.matches(item1)).isTrue();
-        assertThat(templates.topicsFor(item1)).containsExactly(TEST_TOPIC_1);
+        Schema item1Schema =
+                Expressions.Subscription("template-family-[topic=" + TEST_TOPIC_1 + ",info=150]")
+                        .schema();
+        assertThat(itemTemplates.matches(item1Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item1Schema)).containsExactly(TEST_TOPIC_1);
 
-        SubscribedItem item2 =
-                Items.onDemandSubscribedItem(
-                        "template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]", "itemHandle2");
-        assertThat(templates.matches(item2)).isTrue();
-        assertThat(templates.topicsFor(item2)).containsExactly(TEST_TOPIC_1);
+        Schema item2Schema =
+                Expressions.Subscription("template-relatives-[topic=" + TEST_TOPIC_1 + ",info1=-1]")
+                        .schema();
+        assertThat(itemTemplates.matches(item2Schema)).isTrue();
+        assertThat(itemTemplates.topicsFor(item2Schema)).containsExactly(TEST_TOPIC_1);
     }
 
     @Test
@@ -373,15 +373,16 @@ public class ItemTemplatesTest {
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(), List.of(orderMapping, pastOrderMapping));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
-        assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
-        assertThat(templates.groupExtractors()).hasSize(2);
-        assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
-        assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
+        ItemTemplates<String, JsonNode> itemTemplates =
+                Items.templatesFrom(topicsConfig, sSuppliers);
+        assertThat(itemTemplates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(itemTemplates.groupExtractors()).hasSize(2);
+        assertThat(itemTemplates.groupExtractors().get(newOrdersTopic)).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem subscribingItem = Items.onDemandSubscribedItem("orders", "");
-        assertThat(templates.matches(subscribingItem)).isTrue();
-        assertThat(templates.topicsFor(subscribingItem))
+        Schema subscribingItem = Expressions.Subscription("orders").schema();
+        assertThat(itemTemplates.matches(subscribingItem)).isTrue();
+        assertThat(itemTemplates.topicsFor(subscribingItem))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
     }
 
@@ -413,22 +414,23 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(orderMapping, pastOrderMapping));
 
-        ItemTemplates<String, JsonNode> templates = Items.templatesFrom(topicsConfig, sSuppliers);
-        assertThat(templates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
-        assertThat(templates.groupExtractors()).hasSize(2);
-        assertThat(templates.groupExtractors().get(newOrdersTopic)).hasSize(1);
-        assertThat(templates.groupExtractors().get(pastOrderTopic)).hasSize(1);
+        ItemTemplates<String, JsonNode> itemTemplates =
+                Items.templatesFrom(topicsConfig, sSuppliers);
+        assertThat(itemTemplates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(itemTemplates.groupExtractors()).hasSize(2);
+        assertThat(itemTemplates.groupExtractors().get(newOrdersTopic)).hasSize(1);
+        assertThat(itemTemplates.groupExtractors().get(pastOrderTopic)).hasSize(1);
 
-        SubscribedItem itemFilteringTopic1 =
-                Items.onDemandSubscribedItem("template-orders-[topic=new_orders]", "");
-        assertThat(templates.matches(itemFilteringTopic1)).isTrue();
-        assertThat(templates.topicsFor(itemFilteringTopic1))
+        Schema itemFilteringTopic1 =
+                Expressions.Subscription("template-orders-[topic=new_orders]").schema();
+        assertThat(itemTemplates.matches(itemFilteringTopic1)).isTrue();
+        assertThat(itemTemplates.topicsFor(itemFilteringTopic1))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
 
-        SubscribedItem itemFilteringTopic2 =
-                Items.onDemandSubscribedItem("template-orders-[topic=past_orders]", "");
-        assertThat(templates.matches(itemFilteringTopic2)).isTrue();
-        assertThat(templates.topicsFor(itemFilteringTopic2))
+        Schema itemFilteringTopic2 =
+                Expressions.Subscription("template-orders-[topic=past_orders]").schema();
+        assertThat(itemTemplates.matches(itemFilteringTopic2)).isTrue();
+        assertThat(itemTemplates.topicsFor(itemFilteringTopic2))
                 .containsExactly(newOrdersTopic, pastOrderTopic);
     }
 
@@ -436,8 +438,8 @@ public class ItemTemplatesTest {
     public void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.isRegexEnabled()).isFalse();
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(itemTemplates.isRegexEnabled()).isFalse();
     }
 
     @ParameterizedTest
@@ -445,12 +447,12 @@ public class ItemTemplatesTest {
     public void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.isRegexEnabled()).isEqualTo(regex);
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        assertThat(itemTemplates.isRegexEnabled()).isEqualTo(regex);
         if (regex) {
-            assertThat(templates.subscriptionPattern()).isPresent();
+            assertThat(itemTemplates.subscriptionPattern()).isPresent();
         } else {
-            assertThat(templates.subscriptionPattern()).isEmpty();
+            assertThat(itemTemplates.subscriptionPattern()).isEmpty();
         }
     }
 
@@ -460,8 +462,8 @@ public class ItemTemplatesTest {
                 TopicMappingConfig.fromDelimitedMappings("topic_\\d+", "item1");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(topicMapping), true);
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        Optional<Pattern> subscriptionPattern = templates.subscriptionPattern();
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        Optional<Pattern> subscriptionPattern = itemTemplates.subscriptionPattern();
         assertThat(subscriptionPattern.get().pattern()).isEqualTo("(?:topic_\\d+)");
     }
 
@@ -474,8 +476,8 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(), List.of(topicMapping1, topicMapping2), true);
-        ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        Optional<Pattern> subscriptionPattern = templates.subscriptionPattern();
+        ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
+        Optional<Pattern> subscriptionPattern = itemTemplates.subscriptionPattern();
         Pattern pattern = subscriptionPattern.get();
         assertThat(pattern.pattern()).isEqualTo("(?:topicA_\\d+)|(?:topicB_\\d+)");
 
@@ -507,10 +509,9 @@ public class ItemTemplatesTest {
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
 
-        SubscribedItem stockItem =
-                Items.onDemandSubscribedItem("stock-[symbol=AAPL]", new Object());
+        Schema stockItem = Expressions.Subscription("stock-[symbol=AAPL]").schema();
         assertThat(templates.topicsFor(stockItem)).containsExactly("stocks");
-        SubscribedItem userItem = Items.onDemandSubscribedItem("user-[id=42]", new Object());
+        Schema userItem = Expressions.Subscription("user-[id=42]").schema();
         assertThat(templates.topicsFor(userItem)).containsExactly("users");
     }
 }
