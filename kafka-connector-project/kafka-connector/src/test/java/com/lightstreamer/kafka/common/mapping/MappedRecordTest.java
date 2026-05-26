@@ -18,10 +18,13 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.test_utils.Mocks;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class MappedRecordTest {
@@ -96,17 +100,20 @@ public class MappedRecordTest {
 
         // This item should match the expandedTemplate 1: routable
         OnDemandSubscribedItem matchingItem1 =
-                Items.onDemandSubscribedItem(
-                        "schema1-[topic=aTopic,partition=aPartition]", new Object());
+                Items.onDemandSubscribedFrom(
+                        Subscription("schema1-[topic=aTopic,partition=aPartition]"), new Object());
         // This item should match the expandedTemplate 2: routable
         OnDemandSubscribedItem matchingItem2 =
-                Items.onDemandSubscribedItem("schema2-[key=aKey,value=aValue]", new Object());
+                Items.onDemandSubscribedFrom(
+                        Subscription("schema2-[key=aKey,value=aValue]"), new Object());
         // The following items should match no templates: non-routable
         OnDemandSubscribedItem notMatchingBindParameters =
-                Items.onDemandSubscribedItem(
-                        "schema1-[topic=anotherTopic,partition=anotherPartition]", new Object());
+                Items.onDemandSubscribedFrom(
+                        Subscription("schema1-[topic=anotherTopic,partition=anotherPartition]"),
+                        new Object());
         OnDemandSubscribedItem notMatchingSchema =
-                Items.onDemandSubscribedItem("schemaX-[key=aKey,value=aValue]", new Object());
+                Items.onDemandSubscribedFrom(
+                        Subscription("schemaX-[key=aKey,value=aValue]"), new Object());
 
         OnDemandSubscribedItems subscribedItems1 = SubscribedItems.onDemand();
         subscribedItems1.addItem(matchingItem1);
@@ -122,6 +129,24 @@ public class MappedRecordTest {
     }
 
     @Test
+    public void shouldRouteForcedParameterizedItems() {
+        String canonicalItemName = "schema1-[partition=aPartition,topic=aTopic]";
+        String canonicalItemName2 = "schema2-[key=aKey,value=aValue]";
+        String[] canonicalItemNames =
+                List.of(canonicalItemName, canonicalItemName2).toArray(new String[0]);
+
+        MappedRecordImpl record = new MappedRecordImpl(canonicalItemNames);
+        assertThat(record.fieldsMap()).isEmpty();
+        assertThat(record.isPayloadNull()).isTrue();
+
+        SubscribedItems subscribedItems1 =
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
+        Set<SubscribedItem> routed = record.route(subscribedItems1);
+        assertThat(routed.stream().map(SubscribedItem::canonicalName))
+                .containsExactly(canonicalItemName, canonicalItemName2);
+    }
+
+    @Test
     public void shouldRouteSimpleItems() {
         String canonicalItemName1 = "simple-item-1";
         String canonicalItemName2 = "simple-item-2";
@@ -132,15 +157,33 @@ public class MappedRecordTest {
         assertThat(record.isPayloadNull()).isTrue();
 
         OnDemandSubscribedItem matchingItem1 =
-                Items.onDemandSubscribedItem("simple-item-1", new Object());
+                Items.onDemandSubscribedFrom(Subscription("simple-item-1"), new Object());
         OnDemandSubscribedItem matchingItem2 =
-                Items.onDemandSubscribedItem("simple-item-2", new Object());
+                Items.onDemandSubscribedFrom(Subscription("simple-item-2"), new Object());
         OnDemandSubscribedItem notMatchingItem =
-                Items.onDemandSubscribedItem("simple-item-3", new Object());
+                Items.onDemandSubscribedFrom(Subscription("simple-item-3"), new Object());
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         subscribedItems.addItem(matchingItem1);
         subscribedItems.addItem(matchingItem2);
         subscribedItems.addItem(notMatchingItem);
         assertThat(record.route(subscribedItems)).containsExactly(matchingItem1, matchingItem2);
+    }
+
+    @Test
+    public void shouldRouteForcedSimpleItems() {
+        String canonicalItemName1 = "simple-item-1";
+        String canonicalItemName2 = "simple-item-2";
+        MappedRecordImpl record =
+                new MappedRecordImpl(
+                        List.of(canonicalItemName1, canonicalItemName2).toArray(new String[0]));
+        assertThat(record.fieldsMap()).isEmpty();
+        assertThat(record.isPayloadNull()).isTrue();
+
+        SubscribedItems forcedItems =
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
+        Set<SubscribedItem> routed = record.route(forcedItems);
+
+        assertThat(routed.stream().map(SubscribedItem::canonicalName))
+                .containsExactly(canonicalItemName1, canonicalItemName2);
     }
 }
