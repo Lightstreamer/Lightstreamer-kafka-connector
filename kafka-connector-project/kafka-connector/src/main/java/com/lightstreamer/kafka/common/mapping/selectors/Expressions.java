@@ -138,15 +138,51 @@ public class Expressions {
         }
     }
 
-    public record SubscriptionExpression(String prefix, SortedSet<Data> dataSet) {
+    /**
+     * A parsed subscription expression representing a Lightstreamer item name with its associated
+     * key-value data pairs. The {@link Schema} and canonical item name are eagerly computed at
+     * construction time and cached for repeated access.
+     */
+    public static final class SubscriptionExpression {
 
-        public Schema schema() {
-            return Schema.from(
-                    prefix, dataSet.stream().map(Data::name).collect(Collectors.toSet()));
+        private final String prefix;
+        private final SortedSet<Data> dataSet;
+        private final Schema schema;
+        private final String canonicalItemName;
+
+        /**
+         * Constructs a {@code SubscriptionExpression} from the given prefix and data set.
+         *
+         * @param prefix the item prefix
+         * @param dataSet the sorted set of key-value {@link Data} pairs
+         */
+        public SubscriptionExpression(String prefix, SortedSet<Data> dataSet) {
+            this.prefix = prefix;
+            this.dataSet = dataSet;
+            this.schema =
+                    Schema.from(
+                            prefix, dataSet.stream().map(Data::name).collect(Collectors.toSet()));
+            this.canonicalItemName = Data.buildItemName(dataSet.toArray(new Data[0]), prefix);
         }
 
-        public String asCanonicalItemName() {
-            return Data.buildItemName(dataSet.toArray(new Data[0]), prefix());
+        /** Returns the item prefix. */
+        public String prefix() {
+            return prefix;
+        }
+
+        /** Returns an unmodifiable view of the key-value {@link Data} pairs. */
+        public Set<Data> dataSet() {
+            return Collections.unmodifiableSet(dataSet);
+        }
+
+        /** Returns the {@link Schema} derived from this expression. */
+        public Schema schema() {
+            return schema;
+        }
+
+        /** Returns the canonical Lightstreamer item name for this expression. */
+        public String canonicalItemName() {
+            return canonicalItemName;
         }
     }
 
