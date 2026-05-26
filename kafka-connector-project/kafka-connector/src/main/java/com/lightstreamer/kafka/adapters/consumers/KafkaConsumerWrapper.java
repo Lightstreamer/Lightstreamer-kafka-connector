@@ -18,25 +18,23 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG;
-import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
 
+import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.common.listeners.EventListener;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.monitors.KafkaConnectorMonitor;
 import com.lightstreamer.kafka.common.monitors.Monitor;
-import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -190,121 +188,6 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    public enum DeserializationTiming {
-        DEFERRED,
-        EAGER
-    }
-
-    /**
-     * Encapsulates the deserialization strategy for Kafka records polled as raw bytes.
-     *
-     * <p>Subclasses define whether deserialization happens eagerly (at poll time) or is deferred
-     * (on first access). Use the {@link #forTiming(DeserializationTiming, DeserializerPair)}
-     * factory method to obtain the appropriate implementation.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    public abstract static class RecordDeserializationMode<K, V> {
-
-        protected final DeserializationTiming timing;
-        protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
-
-        RecordDeserializationMode(
-                DeserializationTiming timing, KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-            this.timing = timing;
-            this.deserializerPair = deserializerPair;
-        }
-
-        /**
-         * Converts raw polled records into a typed {@link RecordBatch}.
-         *
-         * @param records the raw records returned by {@link Consumer#poll(Duration)}
-         * @param joinable whether the batch should support synchronous join semantics
-         * @return a new {@link RecordBatch} containing the deserialized records
-         */
-        public abstract RecordBatch<K, V> toBatch(
-                ConsumerRecords<byte[], byte[]> records, boolean joinable);
-
-        /**
-         * Converts raw polled records into a non-joinable {@link RecordBatch}.
-         *
-         * @param records the raw records returned by {@link Consumer#poll(Duration)}
-         * @return a new {@link RecordBatch} containing the deserialized records
-         */
-        public RecordBatch<K, V> toBatch(ConsumerRecords<byte[], byte[]> records) {
-            return toBatch(records, false);
-        }
-
-        /**
-         * Returns the {@link DeserializationTiming} strategy used by this instance.
-         *
-         * @return the deserialization timing
-         */
-        public DeserializationTiming getTiming() {
-            return timing;
-        }
-
-        /**
-         * Creates a {@code RecordDeserializationMode} for the specified timing strategy.
-         *
-         * @param <K> the type of the key in the Kafka record
-         * @param <V> the type of the value in the Kafka record
-         * @param timing the {@link DeserializationTiming} to use
-         * @param deserializerPair the {@link DeserializerPair} for key and value deserialization
-         * @return a new {@code RecordDeserializationMode} instance
-         */
-        public static <K, V> RecordDeserializationMode<K, V> forTiming(
-                DeserializationTiming timing, DeserializerPair<K, V> deserializerPair) {
-            switch (timing) {
-                case DEFERRED:
-                    return new DeferredDeserializationMode<>(deserializerPair);
-                case EAGER:
-                    return new EagerDeserializationMode<>(deserializerPair);
-                default:
-                    throw new IllegalArgumentException("Unknown timing: " + timing);
-            }
-        }
-    }
-
-    /**
-     * A {@link RecordDeserializationMode} that defers deserialization until first record access.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    static class DeferredDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
-
-        DeferredDeserializationMode(KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-            super(DeserializationTiming.DEFERRED, deserializerPair);
-        }
-
-        @Override
-        public RecordBatch<K, V> toBatch(
-                ConsumerRecords<byte[], byte[]> records, boolean joinable) {
-            return RecordBatch.batchFromDeferred(records, deserializerPair, joinable);
-        }
-    }
-
-    /**
-     * A {@link RecordDeserializationMode} that deserializes records eagerly at poll time.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    static class EagerDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
-
-        EagerDeserializationMode(KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-            super(DeserializationTiming.EAGER, deserializerPair);
-        }
-
-        @Override
-        public RecordBatch<K, V> toBatch(
-                ConsumerRecords<byte[], byte[]> records, boolean joinable) {
-            return RecordBatch.batchFromEager(records, deserializerPair, joinable);
-        }
-    }
-
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     // Monitoring configuration
@@ -321,7 +204,9 @@ public class KafkaConsumerWrapper<K, V> {
     private final RecordDeserializationMode<K, V> deserializationMode;
     private final Monitor monitor;
     private final RecordConsumer<K, V> recordConsumer;
-    private final boolean groupConsumer;
+    private final SubscribedItems subscribedItems;
+    private final ItemEventListener eventListener;
+    private final boolean eagerLifecycle;
     private final ReentrantLock statusLock = new ReentrantLock();
     private volatile boolean closed = false;
 
@@ -336,55 +221,62 @@ public class KafkaConsumerWrapper<K, V> {
      *
      * @param connectionSpec the {@link ConnectionSpec} defining connection and processing settings
      * @param metadataListener the {@link MetadataListener} for force-unsubscription notifications
-     * @param eventListener the {@link EventListener} that receives dispatched record updates
-     * @param subscribedItems the {@link SubscribedItems} registry for routing records to items
-     * @param recordMapper the {@link RecordMapper} that maps raw records to canonical items
+     * @param eventListener the {@link ItemEventListener} that receives dispatched record updates
+     * @param subscribedItems the {@link SubscribedItems} registry for routing records to items and
+     *     broadcasting end-of-snapshot at catch-up completion
      * @param consumerFactory factory for the underlying Kafka {@link Consumer}
-     * @param groupConsumer {@code true} for a group-based consumer (subscribes to topics with
-     *     offset commits), {@code false} for a standalone consumer (assigns partitions manually
-     *     without offset commits)
+     * @param eagerLifecycle {@code true} for an eager consumer (seeks to beginning, performs
+     *     catch-up, then tails), {@code false} for an on-demand consumer (resumes from committed
+     *     offsets)
      * @throws KafkaException if the consumer cannot be instantiated
      */
     public KafkaConsumerWrapper(
             ConnectionSpec<K, V> connectionSpec,
             MetadataListener metadataListener,
-            EventListener eventListener,
+            ItemEventListener eventListener,
             SubscribedItems subscribedItems,
-            RecordMapper<K, V> recordMapper,
             Function<Properties, Consumer<byte[], byte[]>> consumerFactory,
-            boolean groupConsumer)
+            boolean eagerLifecycle)
             throws KafkaException {
         this.connectionSpec = connectionSpec;
         this.metadataListener = metadataListener;
+        this.subscribedItems = subscribedItems;
+        this.eventListener = eventListener;
         this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
-        // Instantiate the Kafka Consumer, stripping group.id for standalone consumers.
-        this.consumer = consumerFactory.apply(consumerProperties(groupConsumer));
+        this.consumer = consumerFactory.apply(this.connectionSpec.consumerProperties());
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
-        this.groupConsumer = groupConsumer;
+        this.eagerLifecycle = eagerLifecycle;
         this.offsetService =
-                groupConsumer
-                        ? OffsetService.commit(consumer, logger)
-                        : OffsetService.noCommit(logger);
+                eagerLifecycle
+                        ? OffsetService.seekingCommit(consumer, logger)
+                        : OffsetService.commit(consumer, logger);
         this.pollDuration = MAX_POLL_DURATION;
         this.deserializationMode =
-                new EagerDeserializationMode<>(this.connectionSpec.deserializerPair());
+                RecordDeserializationMode.forTiming(
+                        RecordDeserializationMode.DeserializationTiming.EAGER,
+                        this.connectionSpec.deserializerPair(),
+                        logger);
         this.monitor = newMonitor();
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
         Concurrency concurrency = this.connectionSpec.concurrency();
         this.recordConsumer =
-                RecordConsumer.<K, V>recordMapper(recordMapper)
+                RecordConsumer.<K, V>recordMapper(
+                                RecordMapper.from(
+                                        connectionSpec.itemTemplates(),
+                                        connectionSpec.fieldsExtractor()))
                         .subscribedItems(subscribedItems)
-                        .commandMode(this.connectionSpec.commandModeStrategy())
                         .eventListener(eventListener)
                         .offsetService(offsetService)
-                        .errorStrategy(this.connectionSpec.errorHandlingStrategy())
                         .logger(logger)
+                        .errorStrategy(this.connectionSpec.errorHandlingStrategy())
+                        .commandMode(this.connectionSpec.commandMode())
+                        .enableCatchUp(eagerLifecycle)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
                         .preferSingleThread(true)
@@ -399,25 +291,14 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private Monitor newMonitor() {
-        return new KafkaConnectorMonitor(this.connectionSpec.connectionName())
+        return new KafkaConnectorMonitor(connectionSpec.connectionName())
                 .withScrapeInterval(MONITOR_SCRAPE_INTERVAL)
                 .withDataPoints(MONITOR_DATA_POINTS)
                 .withLogReporter();
     }
 
     private String getProperty(String key) {
-        return this.connectionSpec.consumerProperties().getProperty(key);
-    }
-
-    private Properties consumerProperties(boolean groupConsumer) {
-        Properties props = this.connectionSpec.consumerProperties();
-        if (!groupConsumer) {
-            Properties standalone = new Properties();
-            standalone.putAll(props);
-            standalone.remove(GROUP_ID_CONFIG);
-            return standalone;
-        }
-        return props;
+        return connectionSpec.consumerProperties().getProperty(key);
     }
 
     /**
@@ -440,9 +321,9 @@ public class KafkaConsumerWrapper<K, V> {
                 return status;
             }
 
-            logger.atDebug().log("Starting initialization");
-            State state = this.init();
-            logger.atDebug().log("Initialization completed with state: {}", state);
+            logger.atInfo().log("Starting initialization");
+            State state = init();
+            logger.atInfo().log("Initialization completed with state: {}", state);
 
             if (state.initFailed()) {
                 // In case of failure, immediately return a failed status.
@@ -451,6 +332,7 @@ public class KafkaConsumerWrapper<K, V> {
                 return updateStatus(CompletableFuture.completedFuture(state));
             }
 
+            installShutdownHook();
             return updateStatus(CompletableFuture.supplyAsync(this::run, pool));
         } finally {
             statusLock.unlock();
@@ -458,15 +340,18 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private FutureStatus updateStatus(CompletableFuture<FutureStatus.State> stage) {
-        this.status = new FutureStatus(stage);
+        status = new FutureStatus(stage);
         return status;
     }
 
     private State init() {
         try {
-            boolean ready = groupConsumer ? subscribeToTopics() : assignPartitions();
+            boolean ready = subscribeToTopics();
+            if (ready && eagerLifecycle) {
+                catchUp();
+            }
             if (ready) {
-                this.monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
+                monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
                 return State.INITIALIZED;
             } else {
                 logger.atWarn().log("Initialization failed because no topics are available");
@@ -487,10 +372,10 @@ public class KafkaConsumerWrapper<K, V> {
      * @return {@code true} if at least one topic was subscribed, {@code false} otherwise
      */
     boolean subscribeToTopics() {
-        ItemTemplates<K, V> templates = this.connectionSpec.itemTemplates();
+        ItemTemplates<K, V> templates = connectionSpec.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
-            logger.debug("Subscribing to the requested pattern {}", pattern.pattern());
+            logger.atDebug().log("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
             return true;
         }
@@ -529,61 +414,58 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     /**
-     * Assigns all partitions of the configured topics and seeks to the beginning (eager lifecycle).
+     * Polls until the consumer position reaches or exceeds the end offsets captured during the
+     * initial partition assignment.
      *
-     * <p>Uses manual partition assignment ({@code assign()}) without a consumer group. No rebalance
-     * listener is registered. Regex-based topics are not supported in this path.
+     * <p>This method blocks the calling thread, ensuring the full topic state is materialized
+     * before the adapter signals readiness. Records polled during catch-up are processed through
+     * the standard {@link RecordConsumer} pipeline. The first poll triggers a rebalance which
+     * causes the {@link OffsetService} to seek partitions to the beginning and capture end offsets.
      *
-     * @return {@code true} if at least one partition was assigned, {@code false} otherwise
+     * <p><b>Note:</b> No shutdown hook is installed during catch-up. If SIGTERM arrives while this
+     * method is executing, the JVM halts abruptly without a graceful consumer close. This is
+     * acceptable because no clients are connected yet and the consumer always restarts from the
+     * beginning regardless of committed offsets.
      */
-    boolean assignPartitions() {
-        Set<String> topics = new HashSet<>(this.connectionSpec.itemTemplates().topics());
-        logger.atInfo().log("Assigning partitions for topics [{}]", topics);
-
-        Map<String, List<PartitionInfo>> listTopics = consumer.listTopics(Duration.ofMillis(30000));
-        Set<String> existingTopics = listTopics.keySet();
-        boolean notAllPresent = topics.retainAll(existingTopics);
-
-        if (topics.isEmpty()) {
-            logger.atWarn().log("Requested topics not found");
-            return false;
+    void catchUp() {
+        logger.atInfo().log("Starting catch-up phase until end offsets are reached");
+        Map<TopicPartition, Long> endOffsets = null;
+        while (!closed) {
+            ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
+            if (!records.isEmpty()) {
+                RecordBatch<K, V> batch = deserializationMode.toBatch(records);
+                recordConsumer.consumeBatch(batch);
+            }
+            // End offsets are captured once the first poll triggers the rebalance callback
+            if (endOffsets == null) {
+                endOffsets = offsetService.getCatchUpEndOffsets();
+            }
+            if (endOffsets != null && hasReachedEndOffsets(endOffsets)) {
+                recordConsumer.endCatchUp();
+                // Signal end-of-snapshot to the Server for every forced item. This
+                // transitions each item from snapshot delivery to real-time, allowing
+                // the Server to serve a complete initial snapshot to clients connecting
+                // after catch-up completes.
+                subscribedItems.forEach(item -> item.endOfSnapshot(eventListener));
+                logger.atInfo().log(
+                        "Catch-up phase completed — all partitions reached end offsets");
+                return;
+            }
         }
+    }
 
-        if (notAllPresent) {
-            String loggableTopics =
-                    topics.stream()
-                            .map(s -> "\"%s\"".formatted(s))
-                            .collect(Collectors.joining(","));
-            logger.atWarn()
-                    .log(
-                            "Actually assigning partitions for the following existing topics [{}]",
-                            loggableTopics);
+    private boolean hasReachedEndOffsets(Map<TopicPartition, Long> endOffsets) {
+        for (Map.Entry<TopicPartition, Long> entry : endOffsets.entrySet()) {
+            if (consumer.position(entry.getKey()) < entry.getValue()) {
+                return false;
+            }
         }
-
-        List<TopicPartition> partitions =
-                topics.stream()
-                        .flatMap(
-                                t ->
-                                        listTopics.get(t).stream()
-                                                .map(
-                                                        pi ->
-                                                                new TopicPartition(
-                                                                        pi.topic(),
-                                                                        pi.partition())))
-                        .toList();
-
-        consumer.assign(partitions);
-        consumer.seekToBeginning(partitions);
-        logger.atInfo().log("Assigned {} partitions, seeking to beginning", partitions.size());
         return true;
     }
 
     private State run() {
-        // Install the shutdown hook
-        installShutdownHook();
-        logger.atDebug().log("Shutdown hook set");
         try {
-            consumeForEver(this.recordConsumer::consumeBatch);
+            consumeForEver(recordConsumer::consumeBatch);
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
@@ -664,10 +546,10 @@ public class KafkaConsumerWrapper<K, V> {
                 doShutdown();
             }
 
-            if (this.hook != null) {
+            if (hook != null) {
                 logger.atDebug().log("Removing shutdown hook");
-                Runtime.getRuntime().removeShutdownHook(this.hook);
-                this.hook = null;
+                Runtime.getRuntime().removeShutdownHook(hook);
+                hook = null;
             }
             return updateStatus(CompletableFuture.completedFuture(State.SHUTDOWN));
         } finally {
