@@ -18,13 +18,13 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Data;
-import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -45,9 +45,9 @@ public class OnDemandSubscribedItemTest {
 
     @Test
     public void shouldCreateOnDemandSubscribedItemFromFactory() {
-        String expression = "item-[name=field1]";
+        SubscriptionExpression expression = Subscription("item-[name=field1]");
         Object handle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem(expression, handle);
+        OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(expression, handle);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo("item");
         assertThat(item.schema().keys()).containsExactly("name");
@@ -56,11 +56,11 @@ public class OnDemandSubscribedItemTest {
 
     @Test
     public void shouldNotCreateOnDemandSubscribedItemWithNullHandleFromFactory() {
-        String expression = "item-[name=field1]";
+        SubscriptionExpression expression = Subscription("item-[name=field1]");
         NullPointerException exception =
                 assertThrows(
                         NullPointerException.class,
-                        () -> Items.onDemandSubscribedItem(expression, null));
+                        () -> Items.onDemandSubscribedFrom(expression, null));
         assertThat(exception).hasMessageThat().contains("itemHandle");
     }
 
@@ -97,8 +97,7 @@ public class OnDemandSubscribedItemTest {
             Set<String> expectedKeys,
             String expectedCanonicalItemName) {
         Object handle = new Object();
-        OnDemandSubscribedItem item =
-                new OnDemandSubscribedItem(Expressions.Subscription(expression), handle);
+        OnDemandSubscribedItem item = new OnDemandSubscribedItem(Subscription(expression), handle);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
@@ -108,13 +107,11 @@ public class OnDemandSubscribedItemTest {
 
     @Test
     public void shouldNotCreateOnDemandSubscribedItemWithNullHandle() {
-        String expression = "item-[name=field1]";
+        SubscriptionExpression expression = Subscription("item-[name=field1]");
         NullPointerException exception =
                 assertThrows(
                         NullPointerException.class,
-                        () ->
-                                new OnDemandSubscribedItem(
-                                        Expressions.Subscription(expression), null));
+                        () -> new OnDemandSubscribedItem(expression, null));
         assertThat(exception).hasMessageThat().contains("itemHandle");
     }
 
@@ -266,9 +263,9 @@ public class OnDemandSubscribedItemTest {
 
     @Test
     public void shouldMaintainSnapshotFlagBehavior() {
-        String expression = "item-[name=field1]";
+        SubscriptionExpression expression = Subscription("item-[name=field1]");
         Object handle = new Object();
-        OnDemandSubscribedItem subscribedItem = Items.onDemandSubscribedItem(expression, handle);
+        OnDemandSubscribedItem subscribedItem = Items.onDemandSubscribedFrom(expression, handle);
 
         // Initially in snapshot mode
         assertThat(subscribedItem.isSnapshot()).isTrue();
