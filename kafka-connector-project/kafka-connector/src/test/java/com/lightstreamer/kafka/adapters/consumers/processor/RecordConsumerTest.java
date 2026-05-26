@@ -50,6 +50,8 @@ import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.monitors.Monitor;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
@@ -150,8 +152,9 @@ public class RecordConsumerTest {
     }
 
     void subscribeTo(String itemName, SubscribedItems subscribedItems) {
+        SubscriptionExpression subscription = Expressions.Subscription(itemName);
         if (subscribedItems instanceof OnDemandSubscribedItems onDemandSubscribedItems) {
-            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(itemName, new Object());
+            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(subscription, new Object());
             onDemandSubscribedItems.addItem(item);
         } else if (subscribedItems instanceof ForceableSubscribedItems forceableSubscribedItems) {
             // In production, the Server thread calls activateOrInstall as the subscribe
@@ -159,7 +162,7 @@ public class RecordConsumerTest {
             // organic client subscribe (Path-1). Here we invoke it directly to pre-register
             // the item with a handle, simulating a Path-1 organic subscribe that has
             // already completed before any record arrives.
-            forceableSubscribedItems.activateOrInstall(itemName, new Object());
+            forceableSubscribedItems.activateOrInstall(subscription, new Object());
         } else {
             throw new IllegalArgumentException(
                     "Unsupported SubscribedItems type: " + subscribedItems);
@@ -947,7 +950,7 @@ public class RecordConsumerTest {
         // inside forceSubscription (Path-2), binding a handle and switching the placeholder
         // to direct-dispatch mode. Here the mock listener's forceSubscription is a no-op, so
         // we must activate the entry manually before endCatchUp drains the buffered snapshot.
-        subscribedItems.activateOrInstall("item", new Object());
+        subscribedItems.activateOrInstall(Expressions.Subscription("item"), new Object());
 
         recordConsumer.endCatchUp();
 
