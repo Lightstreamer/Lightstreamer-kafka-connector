@@ -149,14 +149,14 @@ public class Items {
          * {@link OnDemandSubscribedItems#addItem(OnDemandSubscribedItem)} before they can be
          * retrieved.
          *
-         * @return a new {@link OnDemandSubscribedItems} instance
+         * @return a new {@code OnDemandSubscribedItems} instance
          */
         static OnDemandSubscribedItems onDemand() {
             return new OnDemandSubscribedItems();
         }
 
         /**
-         * Creates a {@link SubscribedItems} backing the forceable / forced-subscription snapshot
+         * Creates a {@code SubscribedItems} backing the forceable / forced-subscription snapshot
          * strategy. On a miss, {@link #getItem(String)} drives {@code
          * ItemEventListener.forceSubscription(name)} so the Server reentrantly binds a handle on
          * the entry; forced entries are eternal for the connection lifetime.
@@ -217,7 +217,7 @@ public class Items {
      * strategy, selected when {@code item.snapshot.mode = ENABLED}.
      *
      * <p>The map holds a single entry type, {@link BufferedSubscribedItem}, regardless of the path
-     * that installed it. A {@link BufferedSubscribedItem} starts in queueing mode (events
+     * that installed it. A {@code BufferedSubscribedItem} starts in queueing mode (events
      * accumulate in an internal queue) and switches to direct-dispatch mode the first time {@link
      * BufferedSubscribedItem#enableEventsDelivery(Object, ItemEventListener)} is called, which also
      * drains any queued events against the supplied handle. Each entry also carries a monotonic
@@ -242,13 +242,13 @@ public class Items {
      *   <li><strong>Path 1 (organic).</strong> The Server calls {@code subscribe(name, handle)}
      *       because a client expressed interest. {@code ForceableSubscriptionsHandler} routes
      *       through {@link #activateOrInstall(SubscriptionExpression, Object)}, which under the
-     *       per-name lock installs a fresh {@link BufferedSubscribedItem} and immediately switches
+     *       per-name lock installs a fresh {@code BufferedSubscribedItem} and immediately switches
      *       it to direct-dispatch mode bound to the Server-allocated handle, then emits {@code
      *       endOfSnapshot} on the new client subscription. The entry is unforced until the
      *       record-processing thread first observes a record for the name (see {@link
      *       #getItem(String)}).
      *   <li><strong>Path 2 (record-driven).</strong> The record-processing thread calls {@link
-     *       #getItem(String)}; on a miss this installs a {@link BufferedSubscribedItem} placeholder
+     *       #getItem(String)}; on a miss this installs a {@code BufferedSubscribedItem} placeholder
      *       in queueing mode, releases the lock, and calls {@code forceSubscription(name)}. The
      *       Server thread runs {@code subscribe(name, handle)}; the handler routes through {@link
      *       #activateOrInstall(SubscriptionExpression, Object)}, which under the lock detects the
@@ -285,7 +285,7 @@ public class Items {
          * (Path-2 activation in flight, triggered by a record-processing-thread {@code
          * forceSubscription}), drains the placeholder against the new handle, switches it to
          * direct-dispatch mode, marks it forced, and returns {@code null}. Otherwise installs a
-         * fresh {@link BufferedSubscribedItem} already in direct-dispatch mode bound to the new
+         * fresh {@code BufferedSubscribedItem} already in direct-dispatch mode bound to the new
          * handle (Path-1 organic install), emits {@code endOfSnapshot} on it, and returns the
          * freshly installed entry.
          *
@@ -487,8 +487,8 @@ public class Items {
 
     /**
      * Thread-safe implementation of {@link SubscribedItems} backed by a {@link ConcurrentHashMap}
-     * for the on-demand mode. Items must be added via {@link #addItem(SubscribedItem)} before they
-     * can be retrieved.
+     * for the on-demand mode. Items must be added via {@link #addItem(OnDemandSubscribedItem)}
+     * before they can be retrieved.
      */
     public static class OnDemandSubscribedItems implements SubscribedItems {
 
@@ -1034,9 +1034,9 @@ public class Items {
     /**
      * Creates a {@link OnDemandSubscribedItem} bound to the given handle at construction time.
      *
-     * @param canonicalName the canonical Lightstreamer item name (used as the entry key)
+     * @param expression the {@link SubscriptionExpression} for the item
      * @param itemHandle the handle allocated by the Lightstreamer Server
-     * @return a new {@link OnDemandSubscribedItem}
+     * @return a new {@code OnDemandSubscribedItem}
      */
     public static OnDemandSubscribedItem onDemandSubscribedItem(
             SubscriptionExpression expression, Object itemHandle) {
@@ -1047,21 +1047,11 @@ public class Items {
      * Creates a {@link BufferedSubscribedItem} from a canonical item name string.
      *
      * @param canonicalName the canonical Lightstreamer item name
-     * @return a new {@link BufferedSubscribedItem}
+     * @return a new {@code BufferedSubscribedItem}
      * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
      */
     public static BufferedSubscribedItem bufferedSubscribedFrom(String canonicalName) {
         return new BufferedSubscribedItem(Expressions.Subscription(canonicalName));
-    }
-
-    /**
-     * Creates a {@link BufferedSubscribedItem} from a pre-parsed subscription expression.
-     *
-     * @param expression the parsed {@link SubscriptionExpression}
-     * @return a new {@code BufferedSubscribedItem}
-     */
-    static BufferedSubscribedItem bufferedSubscribedFrom(SubscriptionExpression expression) {
-        return new BufferedSubscribedItem(expression);
     }
 
     /**
@@ -1072,7 +1062,7 @@ public class Items {
      * @param <V> the type of the value in the Kafka record
      * @param topicsConfig the {@link TopicConfigurations} defining topic-to-item mappings
      * @param sSuppliers the {@link KeyValueSelectorSuppliers} used to create extractors
-     * @return a new {@link ItemTemplates} instance covering all configured topic mappings
+     * @return a new {@code ItemTemplates} instance covering all configured topic mappings
      * @throws ExtractionException if an extractor cannot be created from the configuration
      */
     public static <K, V> ItemTemplates<K, V> templatesFrom(
