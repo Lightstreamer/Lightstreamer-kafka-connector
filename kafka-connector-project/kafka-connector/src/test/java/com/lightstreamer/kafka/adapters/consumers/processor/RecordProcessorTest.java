@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.canonicalItemExtractor;
 import static com.lightstreamer.kafka.common.mapping.selectors.DataExtractors.namedFieldsExtractor;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
@@ -202,7 +203,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle1 = new Object();
-        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("item1", itemHandle1);
+        OnDemandSubscribedItem item1 =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle1);
         subscribedItems.addItem(item1);
 
         processor.process(record);
@@ -218,7 +220,8 @@ public class RecordProcessorTest {
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
-        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("item2", itemHandle2);
+        OnDemandSubscribedItem item2 =
+                Items.onDemandSubscribedItem(Subscription("item2"), itemHandle2);
         subscribedItems.addItem(item2);
 
         processor.process(record);
@@ -249,11 +252,11 @@ public class RecordProcessorTest {
 
         // Simulate the forced subscription to "item1" triggered by the record processing
         Object itemHandle1 = new Object();
-        subscribedItems.activateOrInstall("item1", itemHandle1);
+        subscribedItems.activateOrInstall(Subscription("item1"), itemHandle1);
 
         // Simulate the forced subscription to "item2" triggered by the record processing
         Object itemHandle2 = new Object();
-        subscribedItems.activateOrInstall("item2", itemHandle2);
+        subscribedItems.activateOrInstall(Subscription("item2"), itemHandle2);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
         assertThat(this.eventListener.getEvents())
@@ -273,7 +276,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item3", new Object());
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item3"), new Object());
         subscribedItems.addItem(item);
 
         processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
@@ -294,18 +298,19 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item3", new Object());
-        subscribedItems.activateOrInstall("item3", item);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item3"), new Object());
+        subscribedItems.activateOrInstall(Subscription("item3"), item);
 
         processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
 
         // Simulate the forced subscription to "item1" triggered by the record processing
         Object itemHandle1 = new Object();
-        subscribedItems.activateOrInstall("item1", itemHandle1);
+        subscribedItems.activateOrInstall(Subscription("item1"), itemHandle1);
 
         // Simulate the forced subscription to "item2" triggered by the record processing
         Object itemHandle2 = new Object();
-        subscribedItems.activateOrInstall("item2", itemHandle2);
+        subscribedItems.activateOrInstall(Subscription("item2"), itemHandle2);
 
         // Verify that the update has been routed only for the forced subscriptions "item1" and
         // "item2", but not for the unexpected "item3"
@@ -342,7 +347,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle1 = new Object();
-        OnDemandSubscribedItem item1 = Items.onDemandSubscribedItem("item1", itemHandle1);
+        OnDemandSubscribedItem item1 =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle1);
         subscribedItems.addItem(item1);
 
         processor.process(record);
@@ -356,7 +362,8 @@ public class RecordProcessorTest {
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
-        OnDemandSubscribedItem item2 = Items.onDemandSubscribedItem("item2", itemHandle2);
+        OnDemandSubscribedItem item2 =
+                Items.onDemandSubscribedItem(Subscription("item2"), itemHandle2);
         subscribedItems.addItem(item2);
 
         processor.process(record);
@@ -382,7 +389,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         subscribedItems.addItem(item);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
@@ -412,7 +420,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), new Object());
         subscribedItems.addItem(item);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
@@ -434,7 +443,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), new Object());
         subscribedItems.addItem(item);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, key, "ADD");
@@ -456,7 +466,8 @@ public class RecordProcessorTest {
                         ProcessUpdatesStrategy.commandStrategy());
 
         // Subscribe to "item1" and process the record
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", new Object());
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), new Object());
         subscribedItems.addItem(item);
 
         KafkaRecord<String, String> record = Records.KafkaRecord(TEST_TOPIC, "aKey", command);
@@ -478,7 +489,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -504,7 +516,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -531,7 +544,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         assertThat(item.isSnapshot()).isTrue();
         subscribedItems.addItem(item);
 
@@ -559,7 +573,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1"
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         subscribedItems.addItem(item);
 
         // Process a record containing a regular command
@@ -622,7 +637,8 @@ public class RecordProcessorTest {
 
         // Subscribe to "item1"
         Object itemHandle = new Object();
-        OnDemandSubscribedItem item = Items.onDemandSubscribedItem("item1", itemHandle);
+        OnDemandSubscribedItem item =
+                Items.onDemandSubscribedItem(Subscription("item1"), itemHandle);
         subscribedItems.addItem(item);
 
         // Process a record containing a regular command
