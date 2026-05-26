@@ -373,7 +373,7 @@ public class BenchmarksUtils {
                             .toArray(String[]::new);
             for (int i = 0; i < numOfSubscriptions; i++) {
                 OnDemandSubscribedItem item =
-                        Items.onDemandSubscribedItem(Subscription(items[i]), new Object());
+                        Items.onDemandSubscribedFrom(Subscription(items[i]), new Object());
                 subscribedItems.addItem(item);
             }
             return subscribedItems;
@@ -570,7 +570,7 @@ public class BenchmarksUtils {
                     };
             SubscriptionExpression input =
                     Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
-            OnDemandSubscribedItem item = Items.onDemandSubscribedItem(input, new Object());
+            OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(input, new Object());
             subscribedItems.addItem(item);
         }
         return subscribedItems;
