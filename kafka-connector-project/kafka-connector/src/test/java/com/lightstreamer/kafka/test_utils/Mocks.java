@@ -336,6 +336,12 @@ public class Mocks {
 
         private final List<Throwable> failures = Collections.synchronizedList(new ArrayList<>());
 
+        private java.util.function.Consumer<String> forceSubscriptionAction = name -> {};
+
+        public void setForceSubscriptionAction(java.util.function.Consumer<String> action) {
+            this.forceSubscriptionAction = action;
+        }
+
         @Override
         public void smartUpdate(Object handle, Map event, boolean isSnapshot) {
             events.add(new EventCall(EventCall.EventType.UPDATE, handle, event, isSnapshot));
@@ -360,8 +366,8 @@ public class Mocks {
 
         @Override
         public Mode forceSubscription(String itemName) {
-            // No-op for this mock, but could be extended to record forced subscriptions if needed
-            return null;
+            forceSubscriptionAction.accept(itemName);
+            return Mode.MERGE;
         }
 
         @Override
@@ -415,6 +421,7 @@ public class Mocks {
 
         public void reset() {
             events.clear();
+            forceSubscriptionAction = name -> {};
             failures.clear();
         }
 
