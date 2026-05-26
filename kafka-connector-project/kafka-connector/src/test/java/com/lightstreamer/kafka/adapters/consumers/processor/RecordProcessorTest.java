@@ -26,6 +26,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
@@ -51,6 +52,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.Logger;
 
 import java.util.List;
 import java.util.Map;
@@ -59,6 +61,7 @@ import java.util.stream.Stream;
 public class RecordProcessorTest {
 
     private static final String TEST_TOPIC = "topic";
+    private static final Logger logger = LogFactory.getLogger("TestConnection");
 
     private static Builder<String, String> builder() {
         return RecordMapper.<String, String>builder();
@@ -239,7 +242,7 @@ public class RecordProcessorTest {
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, null);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
         RecordProcessor<String, String> processor =
                 processor(
                         mapper,
@@ -289,7 +292,7 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotProcessUnexpectedSubscriptionWithForcedSubscription() {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, null);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
         RecordProcessor<String, String> processor =
                 processor(
                         defaultMapper(),
