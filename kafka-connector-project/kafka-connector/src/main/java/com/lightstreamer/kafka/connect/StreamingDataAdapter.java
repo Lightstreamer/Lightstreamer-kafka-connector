@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.connect.common.RecordSender;
@@ -163,15 +164,17 @@ public final class StreamingDataAdapter implements RecordSender {
     public void subscribe(String item) throws SubscriptionException, FailureException {
         logger.info("Trying subscription to item [{}]", item);
         try {
-            OnDemandSubscribedItem newItem =
-                    Items.onDemandSubscribedItem(Expressions.Subscription(item), item);
-            if (!itemTemplates.matches(newItem.schema())) {
-                logger.warn("Item [{}] does not match any defined item templates", newItem);
+            SubscriptionExpression subscription = Expressions.Subscription(item);
+            if (!itemTemplates.matches(subscription.schema())) {
+                logger.warn(
+                        "Item [{}] does not match any defined item templates",
+                        subscription.canonicalItemName());
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
-            logger.info("Subscribed to item [{}]", item);
+            OnDemandSubscribedItem newItem = Items.onDemandSubscribedFrom(subscription, item);
             subscribed.addItem(newItem);
+            logger.info("Subscribed to item [{}]", item);
             if (itemsCounter.addAndGet(1) == 1) {
                 setDownstreamUpdater(this::update);
             }
