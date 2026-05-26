@@ -31,7 +31,10 @@ import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.KafkaException;
@@ -192,6 +195,26 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         @Override
+        public final void subscribe(String item, Object itemHandle) throws SubscriptionException {
+            try {
+                SubscriptionExpression expression = Expressions.Subscription(item);
+                Schema schema = expression.schema();
+                if (!configSpec.itemTemplates().matches(schema)) {
+                    throw new SubscriptionException(
+                            "Item does not match any defined item templates");
+                }
+                doSubscribe(expression, itemHandle);
+                logger.atInfo().log("Subscribed to item [{}]", expression.asCanonicalItemName());
+            } catch (ExpressionException e) {
+                logger.atError().setCause(e).log();
+                throw new SubscriptionException(e.getMessage());
+            }
+        }
+
+        abstract void doSubscribe(SubscriptionExpression expression, Object handle)
+                throws SubscriptionException;
+
+        @Override
         public void setListener(ItemEventListener listener) {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
@@ -205,7 +228,7 @@ public interface SubscriptionsHandler<K, V> {
          * Subclasses initialize the {@link ItemEventListener} and perform any mode-specific setup
          * (e.g., initializing a snapshot strategy or starting the consumer).
          *
-         * @param listener the non-null {@link ItemEventListener} provided by Lightstreamer
+         * @param listener the non-null {@code ItemEventListener} provided by Lightstreamer
          */
         protected void doSetListener(ItemEventListener listener) {}
 
@@ -215,7 +238,7 @@ public interface SubscriptionsHandler<K, V> {
          * @param eagerLifecycle {@code true} for an eager consumer, {@code false} for on-demand
          * @param subscribedItems the {@link SubscribedItems} collection the consumer should route
          *     records into
-         * @return a new {@link KafkaConsumerWrapper} instance
+         * @return a new {@code KafkaConsumerWrapper} instance
          * @throws KafkaException if the consumer cannot be created
          */
         protected KafkaConsumerWrapper<K, V> newConsumer(
@@ -272,18 +295,10 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         @Override
-        public void subscribe(String item, Object itemHandle) throws SubscriptionException {
+        void doSubscribe(SubscriptionExpression expression, Object handle)
+                throws SubscriptionException {
             try {
-                OnDemandSubscribedItem newItem = Items.onDemandSubscribedItem(item, itemHandle);
-                if (!configSpec.itemTemplates().matches(newItem)) {
-                    logger.atWarn()
-                            .log("Item [{}] does not match any defined item templates", item);
-                    throw new SubscriptionException(
-                            "Item does not match any defined item templates");
-                }
-
-                logger.atInfo().log("Subscribed to item [{}]", item);
-
+                OnDemandSubscribedItem newItem = Items.onDemandSubscribedItem(expression, handle);
                 subscribedItems.addItem(newItem);
                 incrementAndMaybeStartConsuming(newItem);
             } catch (ExpressionException e) {
@@ -464,23 +479,12 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         @Override
-        public void subscribe(String item, Object itemHandle) throws SubscriptionException {
-            SubscribedItem newItem = Items.onDemandSubscribedItem(item, itemHandle);
-            if (!configSpec.itemTemplates().matches(newItem)) {
-                throw new SubscriptionException("Item does not match any defined item templates");
-            }
-            logger.atInfo().log("Subscribed to item [{}]", item);
-            // Atomic install-or-activate. Returns the freshly installed entry on Path-1
-            // organic install; null on Path-2 (the poll thread reached this name first via
-            // getItem and is currently blocked in forceSubscription waiting for us).
-            SubscribedItem installed = subscribedItems.activateOrInstall(item, itemHandle);
-            if (installed != null) {
-                // Path-1 organic: emit end-of-snapshot for the new client subscription on
-                // the actual stored entry (same handle as newItem). Skipped on Path-2: the
-                // virtual handle has no client to receive it, and the seed record is about
-                // to be dispatched against it as the first server-pinned snapshot value.
-                installed.endOfSnapshot(getEventListener());
-            }
+        void doSubscribe(SubscriptionExpression expression, Object handle)
+                throws SubscriptionException {
+            // Atomic install-or-activate: installs a fresh entry and emits endOfSnapshot on
+            // Path-1 (organic); on Path-2 activates the existing placeholder installed by the
+            // poll thread (currently blocked in forceSubscription waiting for us).
+            subscribedItems.activateOrInstall(expression, handle);
         }
 
         @Override
