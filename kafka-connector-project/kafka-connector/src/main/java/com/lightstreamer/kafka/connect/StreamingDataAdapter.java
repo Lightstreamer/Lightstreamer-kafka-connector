@@ -89,7 +89,7 @@ public final class StreamingDataAdapter implements RecordSender {
 
     static final DownstreamUpdater NOP_UPDATER =
             records -> {
-                logger.debug("Skipping record");
+                logger.atDebug().log("Skipping record");
             };
 
     // Instance fields (final → volatile → plain)
@@ -131,7 +131,6 @@ public final class StreamingDataAdapter implements RecordSender {
     StreamingDataAdapter(DataAdapterConfig config, DownstreamUpdater nopUpdater) {
         this.itemTemplates = config.itemTemplates();
         this.recordMapper = RecordMapper.from(itemTemplates, config.fieldsExtractor());
-
         this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
         this.reporter = errantRecordReporter(config.context());
         this.updater = nopUpdater;
@@ -144,7 +143,7 @@ public final class StreamingDataAdapter implements RecordSender {
     @Override
     public void init(Map<String, String> parameters, String configFile)
             throws DataProviderException {
-        logger.info("Init parameter from Remote Proxy Adapter: {}", parameters);
+        logger.atInfo().log("Init parameter from Remote Proxy Adapter: {}", parameters);
         this.initParameters = Collections.unmodifiableMap(parameters);
     }
 
@@ -152,7 +151,7 @@ public final class StreamingDataAdapter implements RecordSender {
     public void setListener(ItemEventListener eventListener) {
         // The listener is set before any subscribe is called and never changes.
         this.listener = eventListener;
-        logger.info("ItemEventListener set");
+        logger.atInfo().log("ItemEventListener set");
     }
 
     @Override
@@ -162,24 +161,25 @@ public final class StreamingDataAdapter implements RecordSender {
 
     @Override
     public void subscribe(String item) throws SubscriptionException, FailureException {
-        logger.info("Trying subscription to item [{}]", item);
+        logger.atInfo().log("Trying subscription to item [{}]", item);
         try {
             SubscriptionExpression subscription = Expressions.Subscription(item);
             if (!itemTemplates.matches(subscription.schema())) {
-                logger.warn(
-                        "Item [{}] does not match any defined item templates",
-                        subscription.canonicalItemName());
+                logger.atWarn()
+                        .log(
+                                "Item [{}] does not match any defined item templates",
+                                subscription.canonicalItemName());
                 throw new SubscriptionException("Item does not match any defined item templates");
             }
 
             OnDemandSubscribedItem newItem = Items.onDemandSubscribedFrom(subscription, item);
             subscribed.addItem(newItem);
-            logger.info("Subscribed to item [{}]", item);
+            logger.atInfo().log("Subscribed to item [{}]", item);
             if (itemsCounter.addAndGet(1) == 1) {
                 setDownstreamUpdater(this::update);
             }
         } catch (ExpressionException e) {
-            logger.error("", e);
+            logger.atError().setCause(e).log();
             throw new SubscriptionException(e.getMessage());
         }
     }
@@ -204,7 +204,7 @@ public final class StreamingDataAdapter implements RecordSender {
     @Override
     public Map<TopicPartition, OffsetAndMetadata> preCommit(
             Map<TopicPartition, OffsetAndMetadata> offsets) {
-        logger.info("PreCommit phase, current offset: {}", currentOffsets);
+        logger.atInfo().log("PreCommit phase, current offset: {}", currentOffsets);
         return currentOffsets;
     }
 
@@ -213,12 +213,13 @@ public final class StreamingDataAdapter implements RecordSender {
             // May be null if DLQ is not enabled.
             ErrantRecordReporter errantRecordReporter = context.errantRecordReporter();
             if (errantRecordReporter != null) {
-                logger.info("Errant record reporter not configured.");
+                logger.atInfo().log("Errant record reporter not configured.");
             }
             return errantRecordReporter;
         } catch (NoClassDefFoundError | NoSuchMethodError e) {
-            logger.warn(
-                    "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
+            logger.atWarn()
+                    .log(
+                            "Apache Kafka versions prior to 2.6 do not support the errant record reporter.");
             return null;
         }
     }
@@ -284,44 +285,44 @@ public final class StreamingDataAdapter implements RecordSender {
     }
 
     private void handleValueException(SinkRecord record, ValueException ve) {
-        logger.warn("Error while extracting record: {}", ve.getMessage());
-        logger.warn("Applying the {} strategy", errorHandlingStrategy);
+        logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
+        logger.atWarn().log("Applying the {} strategy", errorHandlingStrategy);
         switch (errorHandlingStrategy) {
             case IGNORE_AND_CONTINUE -> {
-                logger.warn("Ignoring the error and continuing");
+                logger.atWarn().log("Ignoring the error and continuing");
                 saveOffsets(record);
             }
             case FORWARD_TO_DLQ -> {
                 if (this.reporter != null) {
-                    logger.warn("Forwarding the error to DLQ");
+                    logger.atWarn().log("Forwarding the error to DLQ");
                     reporter.report(record, ve);
                     saveOffsets(record);
                 } else {
-                    logger.warn("Since no DQL has been configured, terminating task");
+                    logger.atWarn().log("Since no DQL has been configured, terminating task");
                     throw new ConnectException("No DQL, terminating task", ve);
                 }
             }
             case TERMINATE_TASK -> {
-                logger.error("Terminating task");
+                logger.atError().log("Terminating task");
                 throw new ConnectException("Terminating task", ve);
             }
         }
     }
 
     private void updateRecord(SinkRecord record) throws ValueException {
-        logger.debug("Mapping incoming Kafka record");
-        logger.trace("Kafka record: {}", record.toString());
+        logger.atDebug().log("Mapping incoming Kafka record");
+        logger.atTrace().log("Kafka record: {}", record.toString());
         MappedRecord mappedRecord = recordMapper.map(KafkaRecord.from(record));
-        logger.debug("Mapped Kafka record");
+        logger.atDebug().log("Mapped Kafka record");
 
         Set<SubscribedItem> routable = mappedRecord.route(subscribed);
 
-        logger.debug("Filtering updates");
+        logger.atDebug().log("Filtering updates");
         Map<String, String> updates = mappedRecord.fieldsMap();
 
-        logger.info("Routing record to {} items", routable.size());
+        logger.atInfo().log("Routing record to {} items", routable.size());
         for (SubscribedItem sub : routable) {
-            logger.debug("Sending updates: {}", updates);
+            logger.atDebug().log("Sending updates: {}", updates);
             listener.update(sub.canonicalName(), updates, false);
         }
 
