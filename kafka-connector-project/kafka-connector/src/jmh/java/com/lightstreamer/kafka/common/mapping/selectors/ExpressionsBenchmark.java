@@ -87,14 +87,14 @@ public class ExpressionsBenchmark {
      * representation.
      *
      * <p>This benchmark measures the execution time of the {@link Expressions#Subscription(String)}
-     * method combined with the {@link #asCanonicalItemName()} operation on the resulting expression
+     * method combined with the {@link #canonicalItemName()} operation on the resulting expression
      * object.
      *
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
     @Benchmark
     public void subscriptionAsCanonicalItemName(Blackhole bh) {
-        String result = Expressions.Subscription(testString).asCanonicalItemName();
+        String result = Expressions.Subscription(testString).canonicalItemName();
         bh.consume(result);
     }
 
