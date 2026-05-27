@@ -216,7 +216,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // registered, so joinCurrentState() resolves to the corresponding failure status.
         assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_SUBSCRIPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
@@ -229,7 +229,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
     }
 
     @Test
@@ -243,7 +243,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // after the internal consumer has been created and the subscription registered, so
         // joinCurrentState() resolves to the corresponding failure status.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
         assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_EXCEPTION);
 
         // Yet the item is still registered.
@@ -257,7 +257,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
     }
 
     @Test
@@ -269,7 +269,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // The exception while connecting to the broker causes an immediate forced unsubscription,
         // without even creating the internal consumer, so joinCurrentState() remains empty.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
         assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
 
         // Yet the item is still registered.
@@ -294,7 +294,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // joinCurrentState() resolves to the corresponding failure status.
         assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_BY_EXCEPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
@@ -307,7 +307,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
-        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
     }
 
     static Stream<Arguments> commandModes() {
@@ -319,8 +319,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
     @ParameterizedTest
     @MethodSource("commandModes")
-    public void shouldGetSnapshotAvailability(CommandMode commandMode, boolean expected)
-            throws SubscriptionException {
+    public void shouldGetSnapshotAvailability(CommandMode commandMode, boolean expected) {
         init(false, false, false, commandMode, "aTopic");
         assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
     }
