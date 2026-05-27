@@ -23,6 +23,7 @@ import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
@@ -38,6 +39,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
+import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -278,7 +280,7 @@ public interface SubscriptionsHandler<K, V> {
         private final ReentrantLock consumerLock = new ReentrantLock();
 
         private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
-        private FutureStatus futureStatus; // guarded by consumerLock
+        private FutureStatus lastFutureStatus; // guarded by consumerLock
         private int itemsCount; // guarded by consumerLock
         private OnDemandSubscribedItems subscribedItems;
 
@@ -322,7 +324,7 @@ public interface SubscriptionsHandler<K, V> {
                     logger.atInfo().log("Consumer not yet initialized, creating a new one...");
                     consumer = newConsumer(false, subscribedItems); // May throw KafkaException
                     logger.atInfo().log("New consumer connecting and subscribing...");
-                    futureStatus = consumer.start(pool);
+                    lastFutureStatus = consumer.start(pool);
                 } else {
                     logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
@@ -362,7 +364,6 @@ public interface SubscriptionsHandler<K, V> {
                         logger.atInfo().log("Stopping consumer...");
                         consumer.shutdown();
                         consumer = null;
-                        futureStatus = null;
                         logger.atInfo().log("Consumer stopped");
                     } else {
                         logger.atDebug().log("Consumer was not initialized, nothing to do");
@@ -381,20 +382,39 @@ public interface SubscriptionsHandler<K, V> {
         public boolean isConsuming() {
             consumerLock.lock();
             try {
-                return consumer != null && !futureStatus.isStateAvailable();
+                return consumer != null && !lastFutureStatus.isStateAvailable();
             } finally {
                 consumerLock.unlock();
             }
         }
 
-        // Only for testing purposes
-        OnDemandSubscribedItems getSubscribedItems() {
-            return subscribedItems;
+        /**
+         * Returns the latest lifecycle state for testing, waiting for it to be resolved when a
+         * status is available.
+         *
+         * <p>This method is intended only for tests.
+         *
+         * @return the resolved lifecycle {@link State}, or {@code Optional.empty()} if the consumer
+         *     has never been started
+         */
+        Optional<State> joinCurrentState() {
+            FutureStatus statusToRead;
+            consumerLock.lock();
+            try {
+                if (lastFutureStatus == null) {
+                    return Optional.empty();
+                }
+                statusToRead = lastFutureStatus;
+            } finally {
+                consumerLock.unlock();
+            }
+
+            return Optional.of(statusToRead.join());
         }
 
         // Only for testing purposes
-        FutureStatus getFutureStatus() {
-            return futureStatus;
+        OnDemandSubscribedItems getSubscribedItems() {
+            return subscribedItems;
         }
 
         // Only for testing purposes
