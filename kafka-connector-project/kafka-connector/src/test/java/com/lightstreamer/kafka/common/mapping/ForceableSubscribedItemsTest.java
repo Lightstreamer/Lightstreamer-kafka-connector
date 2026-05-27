@@ -18,6 +18,9 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.CS;
+import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.EOS;
+import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -32,7 +35,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Unit tests for {@link ForceableSubscribedItems}.
@@ -226,6 +235,95 @@ public class ForceableSubscribedItemsTest {
     }
 
     /**
+     * Concurrent hit-on-unforced promotion: two callers race on the same organic Path-1 entry and
+     * converge to one forced instance.
+     */
+    @Test
+    public void shouldCoverConcurrentCase2HitOnUnforcedPromotion() throws Exception {
+        final String itemName = "path1-race-[k=v]";
+        final Object itemHandle = new Object();
+
+        BufferedSubscribedItem unforced =
+                items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+        assertThat(unforced.isForced()).isFalse();
+
+        CountDownLatch callbackEntered = new CountDownLatch(2);
+        CountDownLatch allowReturn = new CountDownLatch(1);
+        AtomicInteger forceCalls = new AtomicInteger(0);
+
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (!itemName.equals(name)) {
+                        return;
+                    }
+                    forceCalls.incrementAndGet();
+                    callbackEntered.countDown();
+                    try {
+                        boolean released = allowReturn.await(3, TimeUnit.SECONDS);
+                        assertThat(released).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        CountDownLatch startGate = new CountDownLatch(1);
+        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<Throwable> firstError = new AtomicReference<>();
+        AtomicReference<Throwable> secondError = new AtomicReference<>();
+
+        Thread t1 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                firstRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                firstError.set(t);
+                            }
+                        },
+                        "forceable-hit-unforced-race-1");
+
+        Thread t2 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                secondRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                secondError.set(t);
+                            }
+                        },
+                        "forceable-hit-unforced-race-2");
+
+        t1.start();
+        t2.start();
+        startGate.countDown();
+
+        assertThat(callbackEntered.await(3, TimeUnit.SECONDS)).isTrue();
+        allowReturn.countDown();
+
+        t1.join(TimeUnit.SECONDS.toMillis(3));
+        t2.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(t1.isAlive()).isFalse();
+        assertThat(t2.isAlive()).isFalse();
+        assertThat(firstError.get()).isNull();
+        assertThat(secondError.get()).isNull();
+
+        BufferedSubscribedItem first = firstRef.get();
+        BufferedSubscribedItem second = secondRef.get();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+        assertThat(first).isSameInstanceAs(second);
+        assertThat(first).isSameInstanceAs(unforced);
+        assertThat(first.isForced()).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(forceCalls.get()).isEqualTo(2);
+    }
+
+    /**
      * Path-2 (forceable) case (0): Multiple fast-path reads on a forced entry return the same
      * instance without locking.
      */
@@ -257,5 +355,465 @@ public class ForceableSubscribedItemsTest {
         assertThat(listener.getSmartEndOfSnapshotCalls()).isEmpty();
     }
 
-    // Concurrent test cases to be added in a separate phase
+    /*
+     * Concurrent race catalog mapping:
+     * - shouldCoverConcurrentSameNameConvergenceBoundedForceCalls:
+     *   same-name concurrent getItem (general convergence, bounded forceSubscription count).
+     * - shouldCoverConcurrentCase2HitOnUnforcedPromotion:
+     *   case (2) hit-on-unforced under concurrent callers.
+     * - shouldCoverConcurrentActivationRaceWithOrderedQueuedDrain:
+     *   activation race with pre-activation buffered UPDATE/CS/EOS/UPDATE drain ordering.
+     * - shouldCoverConcurrentActivationBoundaryWithoutLossOrDuplication:
+     *   producer traffic spanning queueing-to-direct transition (no loss/duplication).
+     * - shouldCoverConcurrentCase1BothCallersReachSlowPathBeforeActivation:
+     *   deterministic race-lost setup where both callers cross slow path before activation.
+     * - shouldCoverConcurrentCase0FastPathWhileFirstCallerUnwinds:
+     *   mixed timing interleaving: first caller still unwinding, second caller uses fast path.
+     */
+
+    /**
+     * Concurrent same-name getItem calls converge to one forced entry and never duplicate the map
+     * entry.
+     */
+    @Test
+    public void shouldCoverConcurrentSameNameConvergenceBoundedForceCalls() throws Exception {
+        final String itemName = "race-[k=v]";
+        final Object itemHandle = new Object();
+
+        AtomicInteger forceCalls = new AtomicInteger(0);
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (itemName.equals(name)) {
+                        forceCalls.incrementAndGet();
+                        items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+                    }
+                });
+
+        CountDownLatch startGate = new CountDownLatch(1);
+        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<Throwable> firstError = new AtomicReference<>();
+        AtomicReference<Throwable> secondError = new AtomicReference<>();
+
+        Thread t1 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                firstRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                firstError.set(t);
+                            }
+                        },
+                        "forceable-getItem-race-1");
+
+        Thread t2 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                secondRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                secondError.set(t);
+                            }
+                        },
+                        "forceable-getItem-race-2");
+
+        t1.start();
+        t2.start();
+        startGate.countDown();
+
+        t1.join(TimeUnit.SECONDS.toMillis(3));
+        t2.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(t1.isAlive()).isFalse();
+        assertThat(t2.isAlive()).isFalse();
+        assertThat(firstError.get()).isNull();
+        assertThat(secondError.get()).isNull();
+
+        BufferedSubscribedItem first = firstRef.get();
+        BufferedSubscribedItem second = secondRef.get();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+        assertThat(first).isSameInstanceAs(second);
+        assertThat(first.isForced()).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(items.getItem(itemName)).isSameInstanceAs(first);
+        assertThat(forceCalls.get()).isAtLeast(1);
+        assertThat(forceCalls.get()).isAtMost(2);
+    }
+
+    /**
+     * Concurrent activation race: events queued before handle binding are drained in insertion
+     * order on activation and delivered against the bound handle.
+     */
+    @Test
+    public void shouldCoverConcurrentActivationRaceWithOrderedQueuedDrain() throws Exception {
+        final String itemName = "queue-race-[k=v]";
+        final Object itemHandle = new Object();
+        final CountDownLatch activationEntered = new CountDownLatch(1);
+        final CountDownLatch allowActivation = new CountDownLatch(1);
+
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (!itemName.equals(name)) {
+                        return;
+                    }
+                    activationEntered.countDown();
+                    try {
+                        boolean released = allowActivation.await(3, TimeUnit.SECONDS);
+                        assertThat(released).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+                });
+
+        AtomicReference<BufferedSubscribedItem> resultRef = new AtomicReference<>();
+        AtomicReference<Throwable> errorRef = new AtomicReference<>();
+        Thread getterThread =
+                new Thread(
+                        () -> {
+                            try {
+                                resultRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                errorRef.set(t);
+                            }
+                        },
+                        "forceable-activation-race-getter");
+
+        getterThread.start();
+        assertThat(activationEntered.await(3, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        BufferedSubscribedItem placeholder =
+                (BufferedSubscribedItem) items.values().iterator().next();
+
+        Map<String, String> firstUpdate = Map.of("seq", "1");
+        Map<String, String> secondUpdate = Map.of("seq", "2");
+
+        placeholder.sendEvent(firstUpdate, listener, true);
+        placeholder.clearSnapshot(listener);
+        placeholder.endOfSnapshot(listener);
+        placeholder.sendEvent(secondUpdate, listener, false);
+
+        // While activation is blocked, events stay buffered and are not dispatched yet.
+        assertThat(listener.getEvents()).isEmpty();
+
+        allowActivation.countDown();
+        getterThread.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(getterThread.isAlive()).isFalse();
+        assertThat(errorRef.get()).isNull();
+
+        BufferedSubscribedItem forced = resultRef.get();
+        assertThat(forced).isNotNull();
+        assertThat(forced.isForced()).isTrue();
+
+        List<com.lightstreamer.kafka.test_utils.Mocks.EventCall> calls = listener.getEvents();
+        assertThat(calls).hasSize(4);
+
+        assertThat(calls.get(0).type()).isEqualTo(UPDATE);
+        assertThat(calls.get(0).handle()).isEqualTo(itemHandle);
+        assertThat(calls.get(0).event()).isEqualTo(firstUpdate);
+        assertThat(calls.get(0).isSnapshot()).isTrue();
+
+        assertThat(calls.get(1).type()).isEqualTo(CS);
+        assertThat(calls.get(1).handle()).isEqualTo(itemHandle);
+
+        assertThat(calls.get(2).type()).isEqualTo(EOS);
+        assertThat(calls.get(2).handle()).isEqualTo(itemHandle);
+
+        assertThat(calls.get(3).type()).isEqualTo(UPDATE);
+        assertThat(calls.get(3).handle()).isEqualTo(itemHandle);
+        assertThat(calls.get(3).event()).isEqualTo(secondUpdate);
+        assertThat(calls.get(3).isSnapshot()).isFalse();
+    }
+
+    /**
+     * Concurrent producer activity across activation transition preserves delivery: no event is
+     * lost or duplicated while switching from queueing to direct dispatch.
+     */
+    @Test
+    public void shouldCoverConcurrentActivationBoundaryWithoutLossOrDuplication() throws Exception {
+        final String itemName = "boundary-race-[k=v]";
+        final Object itemHandle = new Object();
+        final int eventCount = 100;
+
+        final CountDownLatch activationEntered = new CountDownLatch(1);
+        final CountDownLatch allowActivation = new CountDownLatch(1);
+        final CountDownLatch firstHalfProduced = new CountDownLatch(1);
+        final CountDownLatch allowSecondHalf = new CountDownLatch(1);
+
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (!itemName.equals(name)) {
+                        return;
+                    }
+                    activationEntered.countDown();
+                    try {
+                        boolean released = allowActivation.await(3, TimeUnit.SECONDS);
+                        assertThat(released).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+                });
+
+        AtomicReference<BufferedSubscribedItem> getterResult = new AtomicReference<>();
+        AtomicReference<Throwable> getterError = new AtomicReference<>();
+        Thread getterThread =
+                new Thread(
+                        () -> {
+                            try {
+                                getterResult.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                getterError.set(t);
+                            }
+                        },
+                        "forceable-boundary-race-getter");
+
+        getterThread.start();
+        assertThat(activationEntered.await(3, TimeUnit.SECONDS)).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        BufferedSubscribedItem placeholder =
+                (BufferedSubscribedItem) items.values().iterator().next();
+
+        AtomicReference<Throwable> producerError = new AtomicReference<>();
+        Thread producerThread =
+                new Thread(
+                        () -> {
+                            try {
+                                for (int i = 0; i < eventCount; i++) {
+                                    placeholder.sendEvent(
+                                            Map.of("seq", Integer.toString(i)),
+                                            listener,
+                                            i < (eventCount / 2));
+                                    if (i == (eventCount / 2) - 1) {
+                                        firstHalfProduced.countDown();
+                                        boolean released =
+                                                allowSecondHalf.await(3, TimeUnit.SECONDS);
+                                        assertThat(released).isTrue();
+                                    }
+                                }
+                            } catch (Throwable t) {
+                                producerError.set(t);
+                            }
+                        },
+                        "forceable-boundary-race-producer");
+
+        producerThread.start();
+        assertThat(firstHalfProduced.await(3, TimeUnit.SECONDS)).isTrue();
+
+        // Release activation and second-half production together to span the transition.
+        allowActivation.countDown();
+        allowSecondHalf.countDown();
+
+        producerThread.join(TimeUnit.SECONDS.toMillis(3));
+        getterThread.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(producerThread.isAlive()).isFalse();
+        assertThat(getterThread.isAlive()).isFalse();
+        assertThat(producerError.get()).isNull();
+        assertThat(getterError.get()).isNull();
+
+        BufferedSubscribedItem forced = getterResult.get();
+        assertThat(forced).isNotNull();
+        assertThat(forced.isForced()).isTrue();
+
+        List<com.lightstreamer.kafka.test_utils.Mocks.EventCall> calls = listener.getEvents();
+        assertThat(calls).hasSize(eventCount);
+        for (int i = 0; i < eventCount; i++) {
+            var call = calls.get(i);
+            assertThat(call.type()).isEqualTo(UPDATE);
+            assertThat(call.handle()).isEqualTo(itemHandle);
+            assertThat(call.event()).isEqualTo(Map.of("seq", Integer.toString(i)));
+            assertThat(call.isSnapshot()).isEqualTo(i < (eventCount / 2));
+        }
+    }
+
+    /**
+     * Deterministic race-lost scenario: both callers pass the slow path before activation, then
+     * converge to the same forced entry once activation is released.
+     */
+    @Test
+    public void shouldCoverConcurrentCase1BothCallersReachSlowPathBeforeActivation()
+            throws Exception {
+        final String itemName = "slow-path-race-[k=v]";
+        final Object itemHandle = new Object();
+
+        CountDownLatch callbackEntered = new CountDownLatch(2);
+        CountDownLatch allowActivation = new CountDownLatch(1);
+        AtomicInteger forceCalls = new AtomicInteger(0);
+
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (!itemName.equals(name)) {
+                        return;
+                    }
+                    forceCalls.incrementAndGet();
+                    callbackEntered.countDown();
+                    try {
+                        boolean released = allowActivation.await(3, TimeUnit.SECONDS);
+                        assertThat(released).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+                });
+
+        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<Throwable> firstError = new AtomicReference<>();
+        AtomicReference<Throwable> secondError = new AtomicReference<>();
+        CountDownLatch startGate = new CountDownLatch(1);
+
+        Thread t1 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                firstRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                firstError.set(t);
+                            }
+                        },
+                        "forceable-slow-path-race-1");
+
+        Thread t2 =
+                new Thread(
+                        () -> {
+                            try {
+                                startGate.await();
+                                secondRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                secondError.set(t);
+                            }
+                        },
+                        "forceable-slow-path-race-2");
+
+        t1.start();
+        t2.start();
+        startGate.countDown();
+
+        assertThat(callbackEntered.await(3, TimeUnit.SECONDS)).isTrue();
+        assertThat(items.size()).isEqualTo(1); // Single placeholder while activation is blocked.
+
+        allowActivation.countDown();
+
+        t1.join(TimeUnit.SECONDS.toMillis(3));
+        t2.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(t1.isAlive()).isFalse();
+        assertThat(t2.isAlive()).isFalse();
+        assertThat(firstError.get()).isNull();
+        assertThat(secondError.get()).isNull();
+
+        BufferedSubscribedItem first = firstRef.get();
+        BufferedSubscribedItem second = secondRef.get();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+        assertThat(first).isSameInstanceAs(second);
+        assertThat(first.isForced()).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(forceCalls.get()).isEqualTo(2);
+    }
+
+    /**
+     * Mixed timing interleaving: while thread-1 is still inside forceSubscription after activation,
+     * thread-2 should observe the forced entry via fast path and avoid a second forceSubscription
+     * call.
+     */
+    @Test
+    public void shouldCoverConcurrentCase0FastPathWhileFirstCallerUnwinds() throws Exception {
+        final String itemName = "mixed-race-[k=v]";
+        final Object itemHandle = new Object();
+
+        CountDownLatch callbackEntered = new CountDownLatch(1);
+        CountDownLatch allowActivation = new CountDownLatch(1);
+        CountDownLatch activated = new CountDownLatch(1);
+        CountDownLatch allowCallbackReturn = new CountDownLatch(1);
+        AtomicInteger forceCalls = new AtomicInteger(0);
+
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if (!itemName.equals(name)) {
+                        return;
+                    }
+                    forceCalls.incrementAndGet();
+                    callbackEntered.countDown();
+                    try {
+                        assertThat(allowActivation.await(3, TimeUnit.SECONDS)).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
+                    activated.countDown();
+                    try {
+                        assertThat(allowCallbackReturn.await(3, TimeUnit.SECONDS)).isTrue();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+
+        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<Throwable> firstError = new AtomicReference<>();
+        Thread firstThread =
+                new Thread(
+                        () -> {
+                            try {
+                                firstRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                firstError.set(t);
+                            }
+                        },
+                        "forceable-mixed-race-1");
+
+        firstThread.start();
+        assertThat(callbackEntered.await(3, TimeUnit.SECONDS)).isTrue();
+
+        // Activate in callback, but keep first caller blocked before callback return.
+        allowActivation.countDown();
+        assertThat(activated.await(3, TimeUnit.SECONDS)).isTrue();
+
+        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<Throwable> secondError = new AtomicReference<>();
+        Thread secondThread =
+                new Thread(
+                        () -> {
+                            try {
+                                secondRef.set(items.getItem(itemName));
+                            } catch (Throwable t) {
+                                secondError.set(t);
+                            }
+                        },
+                        "forceable-mixed-race-2");
+
+        secondThread.start();
+        secondThread.join(TimeUnit.SECONDS.toMillis(3));
+        assertThat(secondThread.isAlive()).isFalse();
+        assertThat(secondError.get()).isNull();
+
+        // Unblock callback and let first caller complete.
+        allowCallbackReturn.countDown();
+        firstThread.join(TimeUnit.SECONDS.toMillis(3));
+
+        assertThat(firstThread.isAlive()).isFalse();
+        assertThat(firstError.get()).isNull();
+
+        BufferedSubscribedItem first = firstRef.get();
+        BufferedSubscribedItem second = secondRef.get();
+        assertThat(first).isNotNull();
+        assertThat(second).isNotNull();
+        assertThat(first).isSameInstanceAs(second);
+        assertThat(first.isForced()).isTrue();
+
+        assertThat(items.size()).isEqualTo(1);
+        assertThat(forceCalls.get()).isEqualTo(1);
+    }
+
+    // Concurrent test cases focus on getItem/activation races.
 }
