@@ -72,9 +72,8 @@ public interface SubscriptionsHandler<K, V> {
      * @param item the item name to unsubscribe from
      * @return {@code true} if the item was unsubscribed, {@code false} if the item was not
      *     subscribed
-     * @throws SubscriptionException if the unsubscription fails
      */
-    boolean unsubscribe(String item) throws SubscriptionException;
+    boolean unsubscribe(String item);
 
     /**
      * Returns whether the given item supports snapshot delivery. The result is used by {@code
@@ -83,7 +82,6 @@ public interface SubscriptionsHandler<K, V> {
      *
      * @param itemName the name of the item to check
      * @return {@code true} if the item supports snapshot delivery, {@code false} otherwise
-     * @throws SubscriptionException if the item does not match any configured templates
      */
     boolean isSnapshotAvailable(String itemName);
 
