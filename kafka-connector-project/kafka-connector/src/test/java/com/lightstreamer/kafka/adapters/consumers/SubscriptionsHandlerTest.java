@@ -295,11 +295,6 @@ public class SubscriptionsHandlerTest {
         }
 
         @Override
-        public boolean isConsuming() {
-            return false;
-        }
-
-        @Override
         void doSubscribe(SubscriptionExpression expression, Object handle)
                 throws SubscriptionException {
             if (subscribeCallback != null) {
