@@ -6,6 +6,14 @@ applyTo: "**/src/test/**/*.java"
 
 This document defines the unit test conventions adopted across the Kafka Connector codebase.
 
+## Class Visibility
+
+All test classes must be declared `public`:
+
+```java
+public class MyConnectorTest { ... }
+```
+
 ## Test Method Visibility
 
 All test methods must be declared `public`:
