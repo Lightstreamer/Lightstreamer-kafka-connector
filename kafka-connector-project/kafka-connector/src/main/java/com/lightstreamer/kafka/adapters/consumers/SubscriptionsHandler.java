@@ -154,6 +154,12 @@ public interface SubscriptionsHandler<K, V> {
 
         public SubscriptionsHandler<K, V> build() {
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
+            if (connectionSpec.commandMode().manageSnapshot() && itemSnapshotEnabled) {
+                throw new IllegalStateException(
+                        "Invalid configuration: command mode "
+                                + connectionSpec.commandMode()
+                                + " is not compatible with item snapshot enablement");
+            }
             if (metadataListener == null)
                 throw new IllegalStateException("MetadataListener not set");
             if (consumerFactory == null) throw new IllegalStateException("ConsumerFactory not set");
