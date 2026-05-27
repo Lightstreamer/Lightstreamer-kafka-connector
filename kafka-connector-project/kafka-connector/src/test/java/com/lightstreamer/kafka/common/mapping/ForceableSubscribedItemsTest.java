@@ -52,7 +52,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *       forced (eternal) entries are not removed.
  * </ul>
  */
-class ForceableSubscribedItemsTest {
+public class ForceableSubscribedItemsTest {
 
     private ForceableSubscribedItems items;
     private MockItemEventListener listener;
