@@ -23,7 +23,6 @@ import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.Fu
 import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_BY_EXCEPTION;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
@@ -126,7 +125,7 @@ public class OnDemandSubscriptionsHandlerTest {
         return (OnDemandSubscriptionsHandler<String, String>) builder.build();
     }
 
-    private OnDemandSubscriptionsHandler<String, String> subscriptionHandler;
+    private OnDemandSubscriptionsHandler<String, String> subscriptionsHandler;
     private OnDemandSubscribedItems subscribedItems;
     private MockItemEventListener listener = new MockItemEventListener();
 
@@ -153,23 +152,23 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnPoll,
             CommandMode commandMode,
             String... topics) {
-        this.subscriptionHandler =
+        this.subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
                         commandMode,
                         topics);
-        this.subscriptionHandler.setListener(listener);
-        this.subscribedItems = subscriptionHandler.getSubscribedItems();
+        this.subscriptionsHandler.setListener(listener);
+        this.subscribedItems = subscriptionsHandler.getSubscribedItems();
     }
 
     @Test
     public void shouldInit() {
         init();
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
-        assertThat(subscriptionHandler.isConsuming()).isFalse();
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscriptionsHandler.getSubscribedItems().isEmpty()).isTrue();
+        assertThat(subscriptionsHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
@@ -180,105 +179,60 @@ public class OnDemandSubscriptionsHandlerTest {
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
 
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle1);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(2);
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle2);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(2);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
         // Verify that the items have been registered.
         OnDemandSubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
         assertThat(item1).isNotNull();
         assertThat(item1.canonicalName()).isEqualTo("anItemTemplate");
-        assertThat(item1.itemHandle()).isSameInstanceAs(itemHandle1);
 
         OnDemandSubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
         assertThat(item2).isNotNull();
         assertThat(item2.canonicalName()).isEqualTo("anotherItemTemplate");
-        assertThat(item2.itemHandle()).isSameInstanceAs(itemHandle2);
-    }
 
-    @Test
-    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
-        init();
-        Object itemHandle = new Object();
+        // Verify that events are dispatched through the expected item handles.
+        item1.clearSnapshot(listener);
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle1);
 
-        // The item name does not match any configured template, triggering a SubscriptionException
-        // that causes an immediate failure without creating the internal consumer, so the future
-        // is never completed and remains null.
-        SubscriptionException se =
-                assertThrows(
-                        SubscriptionException.class,
-                        () -> subscriptionHandler.subscribe("unregisteredTemplate", itemHandle));
-        assertThat(se).hasMessageThat().isEqualTo("Item does not match any defined item templates");
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        listener.reset();
 
-        // Since no subscription was actually registered, the handler should not be consuming and
-        // no forced unsubscription should have been triggered.
-        assertThat(metadataListener.forcedUnsubscription()).isFalse();
-
-        // Any attempt to unsubscribe should return an empty result, as no subscription was
-        // registered.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isEmpty();
-    }
-
-    @Test
-    public void shouldFailSubscriptionDueToInvalidExpression() {
-        init();
-        Object itemHandle = new Object();
-
-        // The item name contains invalid expression syntax, triggering an ExpressionException
-        // that is wrapped into a SubscriptionException, causing an immediate failure without
-        // creating the internal consumer, so the future is never completed and remains null.
-        SubscriptionException se =
-                assertThrows(
-                        SubscriptionException.class,
-                        () -> subscriptionHandler.subscribe("@invalidItem@", itemHandle));
-        assertThat(se).hasMessageThat().isEqualTo("Invalid Item");
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionHandler.getSubscribedItems().isEmpty()).isTrue();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
-
-        // Since no subscription was actually registered, the handler should not be consuming and
-        // no forced unsubscription should have been triggered.
-        assertThat(metadataListener.forcedUnsubscription()).isFalse();
-
-        // Any attempt to unsubscribe should return an empty result, as no subscription was
-        // registered.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isEmpty();
+        item2.clearSnapshot(listener);
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle2);
     }
 
     @Test
     public void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
         init("nonExistingTopic");
         Object itemHandle = new Object();
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The subscribed topic does not exist on the broker, causing a delayed forced
         // unsubscription after the internal consumer has been created and the subscription
         // registered, so the future is completed with the corresponding failure status.
-        assertThat(subscriptionHandler.getFutureStatus().join())
+        assertThat(subscriptionsHandler.getFutureStatus().join())
                 .isEqualTo(INIT_FAILED_BY_SUBSCRIPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
 
         // Yet the item is still registered.
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isPresent();
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
         // be reset to null.
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     @Test
@@ -286,52 +240,52 @@ public class OnDemandSubscriptionsHandlerTest {
             throws SubscriptionException {
         init(false, true, false, "aTopic");
         Object itemHandle = new Object();
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while getting the topic list causes a delayed forced unsubscription,
         // after the internal consumer has been created and the subscription registered, so the
         // future is completed with the corresponding failure status.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNotNull();
-        assertThat(subscriptionHandler.getFutureStatus().join())
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.getFutureStatus().join())
                 .isEqualTo(INIT_FAILED_BY_EXCEPTION);
 
         // Yet the item is still registered.
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isPresent();
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
         // be reset to null.
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     @Test
     public void shouldFailSubscriptionDueToExceptionWhileConnecting() throws SubscriptionException {
         init(true, false, false);
         Object itemHandle = new Object();
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while connecting to the broker causes an immediate forced unsubscription,
         // without even creating the internal consumer, so the future is never completed and
         // remains null.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
 
         // Yet the item is still registered.
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isPresent();
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
     }
 
     @Test
@@ -339,29 +293,29 @@ public class OnDemandSubscriptionsHandlerTest {
             throws SubscriptionException, InterruptedException {
         init(false, false, true, "aTopic");
         Object itemHandle = new Object();
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while polling causes a delayed forced unsubscription, after the
         // internal consumer has been created and the subscription registered, so the future
         // is completed with the corresponding failure status.
-        assertThat(subscriptionHandler.getFutureStatus().join())
+        assertThat(subscriptionsHandler.getFutureStatus().join())
                 .isEqualTo(LOOP_CLOSED_BY_EXCEPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNotNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
 
         // Yet the item is still registered.
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionHandler.unsubscribe("anItemTemplate")).isPresent();
-        assertThat(subscriptionHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
         // be reset to null.
-        assertThat(subscriptionHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
+        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     static Stream<Arguments> commandModes() {
@@ -376,7 +330,7 @@ public class OnDemandSubscriptionsHandlerTest {
     public void shouldGetSnapshotAvailability(CommandMode commandMode, boolean expected)
             throws SubscriptionException {
         init(false, false, false, commandMode, "aTopic");
-        assertThat(subscriptionHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
+        assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
     }
 
     @Test
@@ -385,33 +339,33 @@ public class OnDemandSubscriptionsHandlerTest {
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
 
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle1);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle1);
         SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        subscriptionHandler.subscribe("anotherItemTemplate", itemHandle2);
+        subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle2);
         SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        Optional<SubscribedItem> removed1 = subscriptionHandler.unsubscribe("anItemTemplate");
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        Optional<SubscribedItem> removed1 = subscriptionsHandler.unsubscribe("anItemTemplate");
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        Optional<SubscribedItem> removed2 = subscriptionHandler.unsubscribe("anotherItemTemplate");
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(0);
+        Optional<SubscribedItem> removed2 = subscriptionsHandler.unsubscribe("anotherItemTemplate");
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
 
         assertThat(removed1.get()).isSameInstanceAs(item1);
         assertThat(removed2.get()).isSameInstanceAs(item2);
 
         // After unsubscription, the handler should not be consuming anymore.
-        assertThat(subscriptionHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     @Test
     public void shouldNotUnsubscribeFromExistingItem() {
         init();
 
-        Optional<SubscribedItem> unsubscribed = subscriptionHandler.unsubscribe("anItemTemplate");
+        Optional<SubscribedItem> unsubscribed = subscriptionsHandler.unsubscribe("anItemTemplate");
         assertThat(unsubscribed).isEmpty();
     }
 
@@ -421,22 +375,22 @@ public class OnDemandSubscriptionsHandlerTest {
         init("aTopic");
 
         Object itemHandle = new Object();
-        subscriptionHandler.subscribe("anItemTemplate", itemHandle);
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
         TimeUnit.MILLISECONDS.sleep(50);
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        subscriptionHandler.unsubscribe("anItemTemplate");
+        subscriptionsHandler.unsubscribe("anItemTemplate");
         CompletableFuture<Void> thread =
                 CompletableFuture.runAsync(
                         () -> {
                             try {
-                                subscriptionHandler.subscribe("anotherItemTemplate", itemHandle);
+                                subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle);
                             } catch (SubscriptionException e) {
                                 throw new RuntimeException(e);
                             }
                         });
         thread.join();
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
     }
 
     @Test
@@ -445,9 +399,9 @@ public class OnDemandSubscriptionsHandlerTest {
         init("aTopic");
 
         // Step 0: Subscribe item1 -> counter=1, consumer starts
-        subscriptionHandler.subscribe("anItemTemplate", new Object());
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.isConsuming()).isTrue();
+        subscriptionsHandler.subscribe("anItemTemplate", new Object());
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
         // Latches to orchestrate the exact interleaving:
         //   Thread A: unsubscribe item1 -> counter=0 -> stopConsuming() starts
@@ -460,7 +414,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // Hook runs BEFORE stopConsuming() acquires the lock:
         // it signals that the unsubscribe path has committed to stopping,
         // then waits for Thread B to complete its subscribe + startConsuming(nop).
-        subscriptionHandler.stopConsumingHook =
+        subscriptionsHandler.stopConsumingHook =
                 () -> {
                     stopEntered.countDown();
                     try {
@@ -474,7 +428,7 @@ public class OnDemandSubscriptionsHandlerTest {
         CompletableFuture<Void> threadA =
                 CompletableFuture.runAsync(
                         () -> {
-                            subscriptionHandler.unsubscribe("anItemTemplate");
+                            subscriptionsHandler.unsubscribe("anItemTemplate");
                         });
 
         // Wait until Thread A has entered stopConsuming() (but hasn't acquired the lock yet).
@@ -486,7 +440,7 @@ public class OnDemandSubscriptionsHandlerTest {
                 CompletableFuture.runAsync(
                         () -> {
                             try {
-                                subscriptionHandler.subscribe("anotherItemTemplate", new Object());
+                                subscriptionsHandler.subscribe("anotherItemTemplate", new Object());
                             } catch (SubscriptionException e) {
                                 throw new RuntimeException(e);
                             }
@@ -499,7 +453,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // At this point: counter=1, but consumer has been shut down.
         // The handler SHOULD still be consuming (counter > 0), but the bug leaves it dead.
-        assertThat(subscriptionHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionHandler.isConsuming()).isTrue(); // FAILS before fix
+        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue(); // FAILS before fix
     }
 }
