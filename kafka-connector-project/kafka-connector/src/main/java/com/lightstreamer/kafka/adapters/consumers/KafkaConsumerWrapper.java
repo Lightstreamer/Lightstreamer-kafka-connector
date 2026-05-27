@@ -136,7 +136,7 @@ public class KafkaConsumerWrapper<K, V> {
          * Checks if the Kafka consumer is currently connected.
          *
          * <p>This method verifies both that the connection state has been determined (future is
-         * completed) and that the actual state is CONNECTED.
+         * completed) and that the actual state is {@link State#CONNECTED CONNECTED}.
          *
          * @return {@code true} if the consumer is connected to Kafka, {@code false} otherwise
          */
@@ -211,6 +211,8 @@ public class KafkaConsumerWrapper<K, V> {
     private volatile boolean closed = false;
 
     private volatile Thread hook;
+    // Volatile publishes the latest lifecycle future to the shutdown-hook thread, which reads it
+    // without taking statusLock in doShutdown().
     private volatile FutureStatus status;
 
     /**
@@ -483,7 +485,8 @@ public class KafkaConsumerWrapper<K, V> {
                         () -> {
                             logger.atInfo().log("Invoked shutdown hook");
                             doShutdown();
-                        });
+                        },
+                        "KafkaConnector Shutdown Hook");
         Runtime.getRuntime().addShutdownHook(hook);
     }
 
