@@ -35,7 +35,6 @@ import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandS
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
@@ -54,7 +53,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -226,7 +224,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
@@ -256,7 +254,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
@@ -284,7 +282,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
     }
 
@@ -309,7 +307,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
-        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isPresent();
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the future should
@@ -340,22 +338,20 @@ public class OnDemandSubscriptionsHandlerTest {
         Object itemHandle2 = new Object();
 
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle1);
-        SubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
         subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle2);
-        SubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        Optional<SubscribedItem> removed1 = subscriptionsHandler.unsubscribe("anItemTemplate");
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
+        assertThat(subscribedItems.getItem("anItemTemplate")).isNull();
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-        Optional<SubscribedItem> removed2 = subscriptionsHandler.unsubscribe("anotherItemTemplate");
+        assertThat(subscriptionsHandler.unsubscribe("anotherItemTemplate")).isTrue();
+        assertThat(subscribedItems.getItem("anotherItemTemplate")).isNull();
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
-
-        assertThat(removed1.get()).isSameInstanceAs(item1);
-        assertThat(removed2.get()).isSameInstanceAs(item2);
+        assertThat(subscriptionsHandler.isConsuming()).isFalse();
 
         // After unsubscription, the handler should not be consuming anymore.
         assertThat(subscriptionsHandler.getFutureStatus()).isNull();
@@ -364,9 +360,7 @@ public class OnDemandSubscriptionsHandlerTest {
     @Test
     public void shouldNotUnsubscribeFromExistingItem() {
         init();
-
-        Optional<SubscribedItem> unsubscribed = subscriptionsHandler.unsubscribe("anItemTemplate");
-        assertThat(unsubscribed).isEmpty();
+        assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }
 
     @Test
