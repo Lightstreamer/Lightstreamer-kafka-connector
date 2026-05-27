@@ -185,6 +185,11 @@ public interface SubscriptionsHandler<K, V> {
         protected final Logger logger;
         protected final ExecutorService pool;
 
+        protected final ReentrantLock consumerLock = new ReentrantLock();
+
+        protected KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
+        protected FutureStatus lifecycleStatus; // guarded by consumerLock
+
         protected ItemEventListener eventListener;
 
         /** Constructs the shared infrastructure from the given builder. */
@@ -258,6 +263,50 @@ public interface SubscriptionsHandler<K, V> {
                     consumerFactory,
                     eagerLifecycle);
         }
+
+        @Override
+        public final boolean isConsuming() {
+            consumerLock.lock();
+            try {
+                return consumer != null && !lifecycleStatus.isStateAvailable();
+            } finally {
+                consumerLock.unlock();
+            }
+        }
+
+        /**
+         * Returns the latest lifecycle state for testing, waiting for it to be resolved when a
+         * status is available.
+         *
+         * <p>This method is intended only for tests.
+         *
+         * @return the resolved lifecycle {@link State}, or {@code Optional.empty()} if the consumer
+         *     has never been started
+         */
+        Optional<State> joinCurrentState() {
+            FutureStatus statusToRead;
+            consumerLock.lock();
+            try {
+                if (lifecycleStatus == null) {
+                    return Optional.empty();
+                }
+                statusToRead = lifecycleStatus;
+            } finally {
+                consumerLock.unlock();
+            }
+
+            return Optional.of(statusToRead.join());
+        }
+
+        // Only for testing purposes
+        boolean isConsumerActive() {
+            consumerLock.lock();
+            try {
+                return consumer != null;
+            } finally {
+                consumerLock.unlock();
+            }
+        }
     }
 
     /**
@@ -283,10 +332,6 @@ public interface SubscriptionsHandler<K, V> {
         // decrementAndMaybeStopConsuming()
         Runnable stopConsumingHook = () -> {};
 
-        private final ReentrantLock consumerLock = new ReentrantLock();
-
-        private KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
-        private FutureStatus lastFutureStatus; // guarded by consumerLock
         private int itemsCount; // guarded by consumerLock
         private OnDemandSubscribedItems subscribedItems;
 
@@ -330,7 +375,7 @@ public interface SubscriptionsHandler<K, V> {
                     logger.atInfo().log("Consumer not yet initialized, creating a new one...");
                     consumer = newConsumer(false, subscribedItems); // May throw KafkaException
                     logger.atInfo().log("New consumer connecting and subscribing...");
-                    lastFutureStatus = consumer.start(pool);
+                    lifecycleStatus = consumer.start(pool);
                 } else {
                     logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
@@ -384,55 +429,6 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        @Override
-        public boolean isConsuming() {
-            consumerLock.lock();
-            try {
-                return consumer != null && !lastFutureStatus.isStateAvailable();
-            } finally {
-                consumerLock.unlock();
-            }
-        }
-
-        /**
-         * Returns the latest lifecycle state for testing, waiting for it to be resolved when a
-         * status is available.
-         *
-         * <p>This method is intended only for tests.
-         *
-         * @return the resolved lifecycle {@link State}, or {@code Optional.empty()} if the consumer
-         *     has never been started
-         */
-        Optional<State> joinCurrentState() {
-            FutureStatus statusToRead;
-            consumerLock.lock();
-            try {
-                if (lastFutureStatus == null) {
-                    return Optional.empty();
-                }
-                statusToRead = lastFutureStatus;
-            } finally {
-                consumerLock.unlock();
-            }
-
-            return Optional.of(statusToRead.join());
-        }
-
-        // Only for testing purposes
-        OnDemandSubscribedItems getSubscribedItems() {
-            return subscribedItems;
-        }
-
-        // Only for testing purposes
-        boolean isConsumerActive() {
-            consumerLock.lock();
-            try {
-                return consumer != null;
-            } finally {
-                consumerLock.unlock();
-            }
-        }
-
         // Only for testing purposes
         int getItemsCounter() {
             consumerLock.lock();
@@ -441,6 +437,11 @@ public interface SubscriptionsHandler<K, V> {
             } finally {
                 consumerLock.unlock();
             }
+        }
+
+        // Only for testing purposes
+        OnDemandSubscribedItems getSubscribedItems() {
+            return subscribedItems;
         }
     }
 
@@ -468,8 +469,6 @@ public interface SubscriptionsHandler<K, V> {
      */
     class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
-        private volatile KafkaConsumerWrapper<K, V> consumer;
-        private volatile FutureStatus futureStatus;
         private ForceableSubscribedItems subscribedItems;
 
         /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
@@ -489,13 +488,25 @@ public interface SubscriptionsHandler<K, V> {
 
         /** Starts the Kafka consumer eagerly. Called once during initialization. */
         private void startConsuming() {
-            logger.atInfo().log("Starting consumer eagerly for implicit item snapshot...");
-            consumer = newConsumer(true, subscribedItems);
-            futureStatus = consumer.start(pool);
-            if (futureStatus.initFailed()) {
-                throw new KafkaException("Consumer initialization failed: " + futureStatus.join());
+            consumerLock.lock();
+            try {
+                logger.atInfo().log(
+                        "Starting consumer eagerly for forced subscriptions support...");
+                try {
+                    consumer = newConsumer(true, subscribedItems);
+                } catch (KafkaException ke) {
+                    logger.atError().setCause(ke).log("Unable to connect to Kafka");
+                    throw ke;
+                }
+                lifecycleStatus = consumer.start(pool);
+                if (lifecycleStatus.initFailed()) {
+                    throw new KafkaException(
+                            "Consumer initialization failed: " + lifecycleStatus.join());
+                }
+                logger.atInfo().log("Consumer started");
+            } finally {
+                consumerLock.unlock();
             }
-            logger.atInfo().log("Consumer started");
         }
 
         @Override
@@ -520,11 +531,6 @@ public interface SubscriptionsHandler<K, V> {
         @Override
         public boolean isSnapshotAvailable(String itemName) {
             return true;
-        }
-
-        @Override
-        public boolean isConsuming() {
-            return consumer != null && !futureStatus.isStateAvailable();
         }
     }
 }
