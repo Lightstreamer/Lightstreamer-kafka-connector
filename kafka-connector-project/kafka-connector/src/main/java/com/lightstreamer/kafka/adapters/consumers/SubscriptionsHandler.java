@@ -38,7 +38,6 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -69,10 +68,11 @@ public interface SubscriptionsHandler<K, V> {
      * remain.
      *
      * @param item the item name to unsubscribe from
-     * @return the removed {@link SubscribedItem}, or empty if the item was not subscribed
+     * @return {@code true} if the item was unsubscribed, {@code false} if the item was not
+     *     subscribed
      * @throws SubscriptionException if the unsubscription fails
      */
-    Optional<SubscribedItem> unsubscribe(String item) throws SubscriptionException;
+    boolean unsubscribe(String item) throws SubscriptionException;
 
     /**
      * Returns whether the given item supports snapshot delivery. The result is used by {@code
@@ -337,13 +337,13 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         @Override
-        public Optional<SubscribedItem> unsubscribe(String item) {
-            Optional<SubscribedItem> removedItem = subscribedItems.removeItem(item);
-            if (removedItem.isPresent()) {
+        public boolean unsubscribe(String item) {
+            boolean removed = subscribedItems.removeItem(item).isPresent();
+            if (removed) {
                 decrementAndMaybeStopConsuming();
             }
 
-            return removedItem;
+            return removed;
         }
 
         /**
@@ -482,14 +482,13 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         @Override
-        public Optional<SubscribedItem> unsubscribe(String item) {
+        public boolean unsubscribe(String item) {
             // Forced (Path-2) entries are eternal: the eager consumer keeps feeding them so any
             // future client subscription receives the current state as a snapshot. Path-1 entries
             // that never received a record (and therefore were never promoted to eternal via
             // forceSubscription) are pruned here so the map does not accumulate stale entries
             // carrying handles the SDK has already torn down.
-            subscribedItems.removeIfUnforced(item);
-            return Optional.empty();
+            return subscribedItems.removeIfUnforced(item);
         }
 
         @Override
