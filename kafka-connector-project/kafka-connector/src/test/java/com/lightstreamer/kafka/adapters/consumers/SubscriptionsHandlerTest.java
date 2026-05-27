@@ -31,7 +31,6 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpe
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AbstractSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
@@ -42,7 +41,6 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -267,8 +265,8 @@ public class SubscriptionsHandlerTest {
         }
 
         @Override
-        public Optional<SubscribedItem> unsubscribe(String item) throws SubscriptionException {
-            return Optional.empty();
+        public boolean unsubscribe(String item) throws SubscriptionException {
+            return false;
         }
 
         @Override
