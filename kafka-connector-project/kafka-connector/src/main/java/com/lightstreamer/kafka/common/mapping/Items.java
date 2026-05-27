@@ -295,7 +295,8 @@ public class Items {
          * @return the freshly installed entry on Path-1 organic install, or {@code null} on Path-2
          *     activation
          */
-        public SubscribedItem activateOrInstall(SubscriptionExpression expression, Object handle) {
+        public BufferedSubscribedItem activateOrInstall(
+                SubscriptionExpression expression, Object handle) {
             String canonicalName = expression.canonicalItemName();
             ReentrantLock lock = lockFor(canonicalName);
             lock.lock();
@@ -414,7 +415,7 @@ public class Items {
             // forceSubscription blocks until the Server invokes subscribe(name, handle)
             // on a separate Server thread (per SDK contract C-fs-blocks), and that
             // callback routes into activateOrInstall(), which must acquire this same
-            // per-name lock. Holding the lock across forceSubscription would block the
+            // per-name l0ock. Holding the lock across forceSubscription would block the
             // Server thread on lock() while the record-processing thread blocks on
             // forceSubscription — a classic deadlock; ReentrantLock does not help because
             // the two participants are different threads.
