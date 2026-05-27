@@ -424,10 +424,10 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         // Only for testing purposes
-        KafkaConsumerWrapper<K, V> getConsumerWrapper() {
+        boolean isConsumerActive() {
             consumerLock.lock();
             try {
-                return consumer;
+                return consumer != null;
             } finally {
                 consumerLock.unlock();
             }
@@ -525,11 +525,6 @@ public interface SubscriptionsHandler<K, V> {
         @Override
         public boolean isConsuming() {
             return consumer != null && !futureStatus.isStateAvailable();
-        }
-
-        // Only for testing purposes
-        FutureStatus getFutureStatus() {
-            return futureStatus;
         }
     }
 }
