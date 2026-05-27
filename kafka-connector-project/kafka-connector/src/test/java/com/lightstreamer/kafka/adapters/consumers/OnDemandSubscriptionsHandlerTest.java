@@ -21,6 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_BY_EXCEPTION;
 import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
 import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_BY_EXCEPTION;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_BY_SHUTDOWN;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
@@ -212,9 +213,8 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // The subscribed topic does not exist on the broker, causing a delayed forced
         // unsubscription after the internal consumer has been created and the subscription
-        // registered, so the future is completed with the corresponding failure status.
-        assertThat(subscriptionsHandler.getFutureStatus().join())
-                .isEqualTo(INIT_FAILED_BY_SUBSCRIPTION);
+        // registered, so joinCurrentState() resolves to the corresponding failure status.
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_SUBSCRIPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
 
@@ -227,10 +227,9 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
-        // After unsubscription, the handler should not be consuming anymore and the future should
-        // be reset to null.
+        // After unsubscription, the handler should not be consuming anymore and the consumer
+        // wrapper should be released.
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     @Test
@@ -241,12 +240,11 @@ public class OnDemandSubscriptionsHandlerTest {
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while getting the topic list causes a delayed forced unsubscription,
-        // after the internal consumer has been created and the subscription registered, so the
-        // future is completed with the corresponding failure status.
+        // after the internal consumer has been created and the subscription registered, so
+        // joinCurrentState() resolves to the corresponding failure status.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
-        assertThat(subscriptionsHandler.getFutureStatus().join())
-                .isEqualTo(INIT_FAILED_BY_EXCEPTION);
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_EXCEPTION);
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
@@ -257,10 +255,9 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
-        // After unsubscription, the handler should not be consuming anymore and the future should
-        // be reset to null.
+        // After unsubscription, the handler should not be consuming anymore and the consumer
+        // wrapper should be released.
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     @Test
@@ -270,11 +267,10 @@ public class OnDemandSubscriptionsHandlerTest {
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while connecting to the broker causes an immediate forced unsubscription,
-        // without even creating the internal consumer, so the future is never completed and
-        // remains null.
+        // without even creating the internal consumer, so joinCurrentState() remains empty.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
@@ -294,10 +290,9 @@ public class OnDemandSubscriptionsHandlerTest {
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
 
         // The exception while polling causes a delayed forced unsubscription, after the
-        // internal consumer has been created and the subscription registered, so the future
-        // is completed with the corresponding failure status.
-        assertThat(subscriptionsHandler.getFutureStatus().join())
-                .isEqualTo(LOOP_CLOSED_BY_EXCEPTION);
+        // internal consumer has been created and the subscription registered, so
+        // joinCurrentState() resolves to the corresponding failure status.
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_BY_EXCEPTION);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNotNull();
 
@@ -310,10 +305,9 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
 
-        // After unsubscription, the handler should not be consuming anymore and the future should
-        // be reset to null.
+        // After unsubscription, the handler should not be consuming anymore and the consumer
+        // wrapper should be released.
         assertThat(subscriptionsHandler.getConsumerWrapper()).isNull();
-        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
     }
 
     static Stream<Arguments> commandModes() {
@@ -354,7 +348,7 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
 
         // After unsubscription, the handler should not be consuming anymore.
-        assertThat(subscriptionsHandler.getFutureStatus()).isNull();
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_BY_SHUTDOWN);
     }
 
     @Test
