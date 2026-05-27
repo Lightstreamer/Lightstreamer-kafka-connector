@@ -19,7 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -30,7 +29,6 @@ import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
-import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExpressionException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
@@ -77,7 +75,7 @@ public interface SubscriptionsHandler<K, V> {
     Optional<SubscribedItem> unsubscribe(String item) throws SubscriptionException;
 
     /**
-     * Returns whether the given item supports snapshot delivery. The result is used by {@link
+     * Returns whether the given item supports snapshot delivery. The result is used by {@code
      * KafkaConnectorDataAdapter} to determine if a subscription should be treated as a snapshot
      * subscription (Path-2) or a regular subscription (Path-1).
      *
@@ -173,23 +171,20 @@ public interface SubscriptionsHandler<K, V> {
      */
     abstract class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
-        protected final ConnectionSpec<K, V> configSpec;
+        protected final ConnectionSpec<K, V> connectionSpec;
         protected final MetadataListener metadataListener;
         protected final Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
         protected final Logger logger;
-        protected final RecordMapper<K, V> recordMapper;
         protected final ExecutorService pool;
 
         protected ItemEventListener eventListener;
 
         /** Constructs the shared infrastructure from the given builder. */
         AbstractSubscriptionsHandler(Builder<K, V> builder) {
-            this.configSpec = builder.connectionSpec;
+            this.connectionSpec = builder.connectionSpec;
             this.metadataListener = builder.metadataListener;
             this.consumerFactory = builder.consumerFactory;
-            this.logger = LogFactory.getLogger(configSpec.connectionName());
-            this.recordMapper =
-                    RecordMapper.from(configSpec.itemTemplates(), configSpec.fieldsExtractor());
+            this.logger = LogFactory.getLogger(connectionSpec.connectionName());
             this.pool =
                     Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
         }
@@ -199,12 +194,12 @@ public interface SubscriptionsHandler<K, V> {
             try {
                 SubscriptionExpression expression = Expressions.Subscription(item);
                 Schema schema = expression.schema();
-                if (!configSpec.itemTemplates().matches(schema)) {
+                if (!connectionSpec.itemTemplates().matches(schema)) {
                     throw new SubscriptionException(
                             "Item does not match any defined item templates");
                 }
                 doSubscribe(expression, itemHandle);
-                logger.atInfo().log("Subscribed to item [{}]", expression.asCanonicalItemName());
+                logger.atInfo().log("Subscribed to item [{}]", expression.canonicalItemName());
             } catch (ExpressionException e) {
                 logger.atError().setCause(e).log();
                 throw new SubscriptionException(e.getMessage());
@@ -215,7 +210,7 @@ public interface SubscriptionsHandler<K, V> {
                 throws SubscriptionException;
 
         @Override
-        public void setListener(ItemEventListener listener) {
+        public final void setListener(ItemEventListener listener) {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
@@ -245,14 +240,13 @@ public interface SubscriptionsHandler<K, V> {
                 boolean eagerLifecycle, SubscribedItems subscribedItems) throws KafkaException {
             if (eventListener == null) {
                 throw new RuntimeException(
-                        "EventListener must be set before starting the consumer");
+                        "ItemEventListener must be set before starting the consumer");
             }
             return new KafkaConsumerWrapper<>(
-                    configSpec,
+                    connectionSpec,
                     metadataListener,
                     eventListener,
                     subscribedItems,
-                    recordMapper,
                     consumerFactory,
                     eagerLifecycle);
         }
@@ -298,7 +292,7 @@ public interface SubscriptionsHandler<K, V> {
         void doSubscribe(SubscriptionExpression expression, Object handle)
                 throws SubscriptionException {
             try {
-                OnDemandSubscribedItem newItem = Items.onDemandSubscribedItem(expression, handle);
+                OnDemandSubscribedItem newItem = Items.onDemandSubscribedFrom(expression, handle);
                 subscribedItems.addItem(newItem);
                 incrementAndMaybeStartConsuming(newItem);
             } catch (ExpressionException e) {
@@ -309,7 +303,7 @@ public interface SubscriptionsHandler<K, V> {
 
         @Override
         public boolean isSnapshotAvailable(String itemName) {
-            return configSpec.commandMode().manageSnapshot();
+            return connectionSpec.commandMode().manageSnapshot();
         }
 
         /**
