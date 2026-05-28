@@ -166,13 +166,13 @@ public class OnDemandSubscriptionsHandlerTest {
     public void shouldInit() {
         init();
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
-        assertThat(subscriptionsHandler.getSubscribedItems().isEmpty()).isTrue();
+        assertThat(subscribedItems.isEmpty()).isTrue();
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
         assertThat(metadataListener.forcedUnsubscription()).isFalse();
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException, InterruptedException {
+    public void shouldSubscribe() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle1 = new Object();
@@ -220,12 +220,12 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscribedItems.size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
@@ -248,12 +248,12 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscribedItems.size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
@@ -274,17 +274,16 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscribedItems.size()).isEqualTo(0);
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhilePolling()
-            throws SubscriptionException, InterruptedException {
+    public void shouldFailSubscriptionDueToExceptionWhilePolling() throws SubscriptionException {
         init(false, false, true, "aTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -298,12 +297,12 @@ public class OnDemandSubscriptionsHandlerTest {
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
 
         // Following the forced unsubscription, the Kernel will call unsubscribe to clean up the
         // item.
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
-        assertThat(subscriptionsHandler.getSubscribedItems().size()).isEqualTo(0);
+        assertThat(subscribedItems.size()).isEqualTo(0);
 
         // After unsubscription, the handler should not be consuming anymore and the consumer
         // wrapper should be released.
@@ -338,12 +337,12 @@ public class OnDemandSubscriptionsHandlerTest {
 
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isTrue();
         assertThat(subscribedItems.getItem("anItemTemplate")).isNull();
-        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
+        assertThat(subscribedItems.size()).isEqualTo(1);
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
         assertThat(subscriptionsHandler.unsubscribe("anotherItemTemplate")).isTrue();
         assertThat(subscribedItems.getItem("anotherItemTemplate")).isNull();
-        assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
+        assertThat(subscribedItems.size()).isEqualTo(0);
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
 
         // After unsubscription, the handler should not be consuming anymore.
@@ -357,13 +356,11 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldHandleSubscriptionBeforeShutdownCompletes()
-            throws SubscriptionException, InterruptedException {
+    public void shouldHandleSubscriptionBeforeShutdownCompletes() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
-        TimeUnit.MILLISECONDS.sleep(50);
         assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
         subscriptionsHandler.unsubscribe("anItemTemplate");
