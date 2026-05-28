@@ -285,7 +285,7 @@ public class SubscriptionsHandlerTest {
         }
 
         @Override
-        public boolean unsubscribe(String item) throws SubscriptionException {
+        public boolean unsubscribe(String item) {
             return false;
         }
 
