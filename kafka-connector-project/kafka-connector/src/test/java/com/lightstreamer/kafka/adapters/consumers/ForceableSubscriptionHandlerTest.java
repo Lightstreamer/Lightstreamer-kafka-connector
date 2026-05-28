@@ -18,25 +18,15 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
-
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
-import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
-import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
-import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
-import com.lightstreamer.kafka.common.records.KafkaRecord;
-import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.Mocks;
-import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
-import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
-import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
@@ -45,12 +35,23 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.function.Function;
+import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
+import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
+import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
+import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
+import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 public class ForceableSubscriptionHandlerTest {
 
@@ -173,11 +174,19 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
+    public void shouldFailInitDueToExceptionWhileConnecting() {
+        KafkaException ke =
+                assertThrows(KafkaException.class, () -> init(true, false, false, "aTopic"));
+        assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
+        assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
+    }
+
+    @Test
     public void shouldFailInitDueToNonExistingTopics() {
         KafkaException ke = assertThrows(KafkaException.class, () -> init("nonExistingTopic"));
         assertThat(ke)
                 .hasMessageThat()
-                .contains("Consumer initialization failed: INIT_FAILED_BY_SUBSCRIPTION");
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_SUBSCRIPTION");
         assertThat(subscriptionsHandler.joinCurrentState())
                 .hasValue(FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION);
     }
@@ -188,60 +197,53 @@ public class ForceableSubscriptionHandlerTest {
                 assertThrows(KafkaException.class, () -> init(false, true, false, "aTopic"));
         assertThat(ke)
                 .hasMessageThat()
-                .contains("Consumer initialization failed: INIT_FAILED_BY_EXCEPTION");
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_EXCEPTION");
         assertThat(subscriptionsHandler.joinCurrentState())
                 .hasValue(FutureStatus.State.INIT_FAILED_BY_EXCEPTION);
-    }
-
-    @Test
-    public void shouldFailInitDueToExceptionWhileConnecting() {
-        KafkaException ke =
-                assertThrows(KafkaException.class, () -> init(true, false, false, "aTopic"));
-        assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
-        assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
     }
 
     @Test
     public void shouldFailInitDueToExceptionWhilePolling() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, false, true, "aTopic"));
-        assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
-        assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
+        assertThat(ke)
+                .hasMessageThat()
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_EXCEPTION");
+        assertThat(subscriptionsHandler.joinCurrentState())
+                .hasValue(FutureStatus.State.INIT_FAILED_BY_EXCEPTION);
     }
 
-    // @Test
-    // public void shouldSubscribe() throws SubscriptionException, InterruptedException {
-    //     init("aTopic");
+    @Test
+    public void shouldSubscribe() throws SubscriptionException {
+        init("aTopic");
 
-    //     Object itemHandle1 = new Object();
-    //     Object itemHandle2 = new Object();
+        Object itemHandle1 = new Object();
+        Object itemHandle2 = new Object();
 
-    //     subscriptionsHandler.subscribe("anItemTemplate", itemHandle1);
-    //     assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
-    //     assertThat(subscriptionsHandler.isConsuming()).isTrue();
+        subscriptionsHandler.subscribe("anItemTemplate", itemHandle1);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-    //     subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle2);
-    //     assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(2);
-    //     assertThat(subscriptionsHandler.isConsuming()).isTrue();
+        subscriptionsHandler.subscribe("anotherItemTemplate", itemHandle2);
+        assertThat(subscriptionsHandler.isConsuming()).isTrue();
 
-    //     // Verify that the items have been registered.
-    //     OnDemandSubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
-    //     assertThat(item1).isNotNull();
-    //     assertThat(item1.canonicalName()).isEqualTo("anItemTemplate");
+        // Verify that the items have been registered.
+        OnDemandSubscribedItem item1 = subscribedItems.getItem("anItemTemplate");
+        assertThat(item1).isNotNull();
+        assertThat(item1.canonicalName()).isEqualTo("anItemTemplate");
 
-    //     OnDemandSubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
-    //     assertThat(item2).isNotNull();
-    //     assertThat(item2.canonicalName()).isEqualTo("anotherItemTemplate");
+        OnDemandSubscribedItem item2 = subscribedItems.getItem("anotherItemTemplate");
+        assertThat(item2).isNotNull();
+        assertThat(item2.canonicalName()).isEqualTo("anotherItemTemplate");
 
-    //     // Verify that events are dispatched through the expected item handles.
-    //     item1.clearSnapshot(listener);
-    //     assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle1);
+        // Verify that events are dispatched through the expected item handles.
+        item1.clearSnapshot(listener);
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle1);
 
-    //     listener.reset();
+        listener.reset();
 
-    //     item2.clearSnapshot(listener);
-    //     assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle2);
-    // }
+        item2.clearSnapshot(listener);
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle2);
+    }
 
     // @Test
     // public void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
