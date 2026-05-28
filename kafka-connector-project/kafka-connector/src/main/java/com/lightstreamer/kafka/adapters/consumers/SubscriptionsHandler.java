@@ -331,7 +331,7 @@ public interface SubscriptionsHandler<K, V> {
         Runnable stopConsumingHook = () -> {};
 
         private int itemsCount; // guarded by consumerLock
-        private OnDemandSubscribedItems subscribedItems;
+        private final OnDemandSubscribedItems subscribedItems;
 
         /** Constructs an {@code OnDemandSubscriptionsHandler} from the given builder. */
         OnDemandSubscriptionsHandler(Builder<K, V> builder) {
@@ -374,6 +374,12 @@ public interface SubscriptionsHandler<K, V> {
                     consumer = newConsumer(false, subscribedItems); // May throw KafkaException
                     logger.atInfo().log("New consumer connecting and subscribing...");
                     lifecycleStatus = consumer.start(pool);
+                    if (lifecycleStatus.initFailed()) {
+                        logger.atError()
+                                .log("Consumer initialization failed: {}", lifecycleStatus.join());
+                        metadataListener.forceUnsubscriptionAll();
+                    }
+
                 } else {
                     logger.atDebug().log("Consumer is already consuming events, nothing to do");
                 }
@@ -480,10 +486,6 @@ public interface SubscriptionsHandler<K, V> {
             startConsuming();
         }
 
-        ItemEventListener getEventListener() {
-            return eventListener;
-        }
-
         /** Starts the Kafka consumer eagerly. Called once during initialization. */
         private void startConsuming() {
             consumerLock.lock();
@@ -529,6 +531,11 @@ public interface SubscriptionsHandler<K, V> {
         @Override
         public boolean isSnapshotAvailable(String itemName) {
             return true;
+        }
+
+        // Only for testing purposes
+        ForceableSubscribedItems getSubscribedItems() {
+            return subscribedItems;
         }
     }
 }
