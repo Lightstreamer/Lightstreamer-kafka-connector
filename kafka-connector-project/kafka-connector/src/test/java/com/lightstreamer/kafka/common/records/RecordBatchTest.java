@@ -60,21 +60,22 @@ public class RecordBatchTest {
         int partitions = 2;
         int totalRecords = 20;
         ConsumerRecords<byte[], byte[]> consumerRecords =
-                Records.generateRecords("topic", totalRecords, List.of(), partitions);
-        RecordBatch<String, String> eager =
+                Records.generateRecords("topic", totalRecords, List.of("key1", "key2"), partitions);
+        RecordBatch<String, String> batch =
                 RecordBatch.batchFromDeferred(consumerRecords, deserializerPair, joinable);
 
+        assertThat(batch.isJoinable()).isEqualTo(joinable);
         if (joinable) {
-            assertThat(eager).isInstanceOf(JoinableRecordBatch.class);
+            assertThat(batch).isInstanceOf(JoinableRecordBatch.class);
         } else {
-            assertThat(eager).isInstanceOf(NotifyingRecordBatch.class);
+            assertThat(batch).isInstanceOf(NotifyingRecordBatch.class);
         }
 
         // Verify total size
-        assertThat(eager.count()).isEqualTo(totalRecords);
-        assertThat(eager.isEmpty()).isFalse();
+        assertThat(batch.count()).isEqualTo(totalRecords);
+        assertThat(batch.isEmpty()).isFalse();
 
-        List<KafkaRecord<String, String>> records = eager.getRecords();
+        List<KafkaRecord<String, String>> records = batch.getRecords();
 
         // Verify records per partition
         for (int p = 0; p < partitions; p++) {
@@ -91,16 +92,17 @@ public class RecordBatchTest {
                 assertThat(record.partition()).isEqualTo(p);
                 assertThat(record.offset()).isEqualTo(o);
                 assertThat(record.topic()).isEqualTo("topic");
-                assertThat(record.getBatch()).isSameInstanceAs(eager);
+                assertThat(record.getBatch()).isSameInstanceAs(batch);
+
+                // Verify deferred deserialization (key and value are cached after first access)
+                String key = record.key();
+                assertThat(key).isEqualTo("key" + (p + 1));
+                assertThat(record.key()).isSameInstanceAs(key);
+                String value = record.value();
+                assertThat(value).isEqualTo("key" + (p + 1) + "-" + (o + 1));
+                assertThat(record.value()).isSameInstanceAs(value);
             }
         }
-
-        // Verify deferred deserialization (key and value are cached after first access)
-        KafkaRecord<String, String> firstRecord = records.get(0);
-        String key = firstRecord.key();
-        assertThat(firstRecord.key()).isSameInstanceAs(key);
-        String value = firstRecord.value();
-        assertThat(firstRecord.value()).isSameInstanceAs(value);
     }
 
     @ParameterizedTest
@@ -109,21 +111,23 @@ public class RecordBatchTest {
         int partitions = 2;
         int totalRecords = 20;
         ConsumerRecords<byte[], byte[]> consumerRecords =
-                Records.generateRecords("topic", totalRecords, List.of(), partitions);
-        RecordBatch<String, String> eager =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, joinable);
+                Records.generateRecords("topic", totalRecords, List.of("key1", "key2"), partitions);
+        RecordBatch<String, String> batch =
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, joinable, (record, ex) -> {});
 
+        assertThat(batch.isJoinable()).isEqualTo(joinable);
         if (joinable) {
-            assertThat(eager).isInstanceOf(JoinableRecordBatch.class);
+            assertThat(batch).isInstanceOf(JoinableRecordBatch.class);
         } else {
-            assertThat(eager).isInstanceOf(NotifyingRecordBatch.class);
+            assertThat(batch).isInstanceOf(NotifyingRecordBatch.class);
         }
 
         // Verify total size
-        assertThat(eager.count()).isEqualTo(totalRecords);
-        assertThat(eager.isEmpty()).isFalse();
+        assertThat(batch.count()).isEqualTo(totalRecords);
+        assertThat(batch.isEmpty()).isFalse();
 
-        List<KafkaRecord<String, String>> records = eager.getRecords();
+        List<KafkaRecord<String, String>> records = batch.getRecords();
 
         // Verify records per partition
         for (int p = 0; p < partitions; p++) {
@@ -140,7 +144,13 @@ public class RecordBatchTest {
                 assertThat(record.partition()).isEqualTo(p);
                 assertThat(record.offset()).isEqualTo(o);
                 assertThat(record.topic()).isEqualTo("topic");
-                assertThat(record.getBatch()).isSameInstanceAs(eager);
+                assertThat(record.getBatch()).isSameInstanceAs(batch);
+
+                // Verify deferred deserialization (key and value are cached after first access)
+                String key = record.key();
+                assertThat(key).isEqualTo("key" + (p + 1));
+                String value = record.value();
+                assertThat(value).isEqualTo("key" + (p + 1) + "-" + (o + 1));
             }
         }
     }
@@ -158,7 +168,8 @@ public class RecordBatchTest {
         assertThat(emptyBatchFromDeferred.getRecords()).isEmpty();
 
         RecordBatch<String, String> emptyBatchFromEager =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, joinable);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, joinable, (record, ex) -> {});
         assertThat(emptyBatchFromEager.count()).isEqualTo(0);
         assertThat(emptyBatchFromEager.isEmpty()).isTrue();
         assertThat(emptyBatchFromEager.getRecords()).isEmpty();
@@ -170,37 +181,50 @@ public class RecordBatchTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, joinable);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, joinable, (record, ex) -> {});
 
         AtomicBoolean completed = new AtomicBoolean(false);
         RecordBatchListener listener = recordBatch -> completed.set(true);
-        assertThat(completed.get()).isFalse();
 
         // Process records one by one
         for (int i = 0; i < 5; i++) {
+            // Batch should not be marked complete until all records are processed
             assertThat(completed.get()).isFalse();
             batch.recordProcessed(listener);
         }
 
         // After all records are processed, completion should be notified
         assertThat(completed.get()).isTrue();
+        // Verify that join does not block after completion
+        assertThat(shouldTimeout(() -> batch.join())).isFalse();
     }
 
     @Test
-    public void shouldJoinDefaultBatch() {
+    public void shouldNotJoinUntilAllRecordsProcessed() {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
 
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, false, (record, ex) -> {});
+
+        AtomicBoolean completed = new AtomicBoolean(false);
+        RecordBatchListener listener = recordBatch -> completed.set(true);
 
         // Process records one by one
-        for (int i = 0; i < 5; i++) {
-            batch.recordProcessed(recordBatch -> {});
+        for (int i = 0; i < 4; i++) {
+            batch.recordProcessed(listener);
         }
 
-        // Joining should complete immediately as all records are processed
+        // Since this is a non-joinable batch, join should not block
+        // and completion should not be notified until all records are processed
         batch.join();
+        assertThat(completed.get()).isFalse();
+
+        // Now process the final record and verify completion is notified
+        batch.recordProcessed(listener);
+        assertThat(completed.get()).isTrue();
     }
 
     @Test
@@ -208,7 +232,8 @@ public class RecordBatchTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, true, (record, ex) -> {});
 
         // Start join on a separate thread
         CompletableFuture<Void> joinFuture = CompletableFuture.runAsync(batch::join);
@@ -233,7 +258,8 @@ public class RecordBatchTest {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, false);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, false, (record, ex) -> {});
 
         // Start join on a separate thread
         CompletableFuture<Void> joinFuture = CompletableFuture.runAsync(batch::join);
@@ -348,7 +374,9 @@ public class RecordBatchTest {
         SerializationException ex =
                 assertThrows(
                         SerializationException.class,
-                        () -> RecordBatch.batchFromEager(consumerRecords, failPair, joinable));
+                        () ->
+                                RecordBatch.batchFromEager(
+                                        consumerRecords, failPair, joinable, null));
         assertThat(ex.getMessage()).isEqualTo("Immediate failure");
     }
 
@@ -365,7 +393,6 @@ public class RecordBatchTest {
 
     static Stream<Arguments> consumerRecords() {
         return Stream.of(
-
                 // Target size smaller than actual records
                 Arguments.of(0, Records.generateRecords("topic", 1, List.of("a", "b"))),
                 Arguments.of(1, Records.generateRecords("topic", 2, List.of("a", "b"))),
