@@ -45,7 +45,7 @@ import java.util.concurrent.CountDownLatch;
  * @param <V> the type of the record value
  * @see NotifyingRecordBatch
  */
-public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
+public final class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
 
     private final CountDownLatch latch;
 
@@ -62,6 +62,11 @@ public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
     }
 
     @Override
+    public boolean isJoinable() {
+        return true;
+    }
+
+    @Override
     void shrink() {
         int skipped = count() - getRecords().size();
         super.shrink();
@@ -72,8 +77,8 @@ public class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> {
     }
 
     @Override
-    public void recordProcessed(RecordBatchListener monitor) {
-        super.recordProcessed(monitor);
+    public void recordProcessed(RecordBatchListener listener) {
+        super.recordProcessed(listener);
         latch.countDown();
     }
 
