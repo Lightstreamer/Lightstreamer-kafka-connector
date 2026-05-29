@@ -43,13 +43,14 @@ abstract sealed class KafkaConsumerRecord<K, V> implements KafkaRecord<K, V>
     /** The underlying Kafka consumer record with byte array key and value. */
     protected final ConsumerRecord<byte[], byte[]> record;
 
+    /** The batch this record belongs to, or {@code null} if standalone. */
     protected final @Nullable RecordBatch<K, V> batch;
 
     /**
-     * Constructs a {@link KafkaConsumerRecord} with the given consumer record.
+     * Constructs a {@code KafkaConsumerRecord} with the given consumer record.
      *
      * @param record the raw Kafka consumer record
-     * @param batch the batch this record belongs to
+     * @param batch the batch this record belongs to, or {@code null} if standalone
      */
     KafkaConsumerRecord(ConsumerRecord<byte[], byte[]> record, @Nullable RecordBatch<K, V> batch) {
         this.record = record;
