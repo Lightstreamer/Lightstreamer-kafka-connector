@@ -115,6 +115,15 @@ public interface RecordBatch<K, V> {
     boolean isEmpty();
 
     /**
+     * Checks whether this batch supports synchronous waiting via {@link #join()}.
+     *
+     * @return {@code true} if this batch supports {@link #join()}, {@code false} otherwise
+     */
+    default boolean isJoinable() {
+        return false;
+    }
+
+    /**
      * Returns the list of all records in this batch.
      *
      * @return a list of {@link KafkaRecord}s in this batch
@@ -145,61 +154,6 @@ public interface RecordBatch<K, V> {
      *     mismatch)
      */
     void validate();
-
-    /**
-     * Converts a batch of Kafka consumer records to a {@code RecordBatch} with eager
-     * deserialization.
-     *
-     * <p>Deserialization is performed immediately during batch creation, which allows early error
-     * detection but requires more upfront processing for all records. The returned batch does not
-     * support synchronous waiting via {@link #join()}.
-     *
-     * <p>Any record that fails deserialization causes the entire batch to fail with a {@link
-     * SerializationException}.
-     *
-     * @param <K> the type of the deserialized key
-     * @param <V> the type of the deserialized value
-     * @param consumerRecords the consumer records batch to convert
-     * @param deserializerPair the pair of deserializers for keys and values
-     * @return a non-joinable {@code RecordBatch} with eagerly deserialized keys and values
-     * @throws SerializationException if any record's key or value cannot be deserialized
-     * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean, BiConsumer)
-     * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
-     */
-    static <K, V> RecordBatch<K, V> batchFromEager(
-            ConsumerRecords<byte[], byte[]> consumerRecords,
-            DeserializerPair<K, V> deserializerPair) {
-        return batchFromEager(consumerRecords, deserializerPair, false, null);
-    }
-
-    /**
-     * Converts a batch of Kafka consumer records to a {@code RecordBatch} with eager
-     * deserialization.
-     *
-     * <p>Deserialization is performed immediately during batch creation. The {@code joinable}
-     * parameter controls whether the returned batch supports synchronous waiting via {@link
-     * #join()}.
-     *
-     * <p>Any record that fails deserialization causes the entire batch to fail with a {@link
-     * SerializationException}.
-     *
-     * @param <K> the type of the deserialized key
-     * @param <V> the type of the deserialized value
-     * @param consumerRecords the consumer records batch to convert
-     * @param deserializerPair the pair of deserializers for keys and values
-     * @param joinable if {@code true}, the returned batch supports {@link #join()}; if {@code
-     *     false}, {@link #join()} returns immediately
-     * @return a {@code RecordBatch} with eagerly deserialized keys and values
-     * @throws SerializationException if any record's key or value cannot be deserialized
-     * @see #batchFromEager(ConsumerRecords, DeserializerPair, boolean, BiConsumer)
-     * @see KafkaRecord#fromEager(ConsumerRecord, DeserializerPair, RecordBatch)
-     */
-    static <K, V> RecordBatch<K, V> batchFromEager(
-            ConsumerRecords<byte[], byte[]> consumerRecords,
-            DeserializerPair<K, V> deserializerPair,
-            boolean joinable) {
-        return batchFromEager(consumerRecords, deserializerPair, joinable, null);
-    }
 
     /**
      * Converts a batch of Kafka consumer records to a {@code RecordBatch} with eager
@@ -275,29 +229,6 @@ public interface RecordBatch<K, V> {
         }
 
         return batch;
-    }
-
-    /**
-     * Converts a batch of Kafka consumer records to a {@code RecordBatch} with deferred
-     * deserialization.
-     *
-     * <p>Deserialization is performed lazily when individual records are accessed, and results are
-     * cached for subsequent accesses. This approach reduces upfront processing cost but extends
-     * object lifetimes in memory. The returned batch does not support synchronous waiting via
-     * {@link #join()}.
-     *
-     * @param <K> the type of the deserialized key
-     * @param <V> the type of the deserialized value
-     * @param consumerRecords the consumer records batch to convert
-     * @param deserializerPair the pair of deserializers for keys and values
-     * @return a non-joinable {@code RecordBatch} with deferred deserialization of keys and values
-     * @see #batchFromDeferred(ConsumerRecords, DeserializerPair, boolean)
-     * @see KafkaRecord#fromDeferred(ConsumerRecord, DeserializerPair, RecordBatch)
-     */
-    static <K, V> RecordBatch<K, V> batchFromDeferred(
-            ConsumerRecords<byte[], byte[]> consumerRecords,
-            KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-        return batchFromDeferred(consumerRecords, deserializerPair, false);
     }
 
     /**
