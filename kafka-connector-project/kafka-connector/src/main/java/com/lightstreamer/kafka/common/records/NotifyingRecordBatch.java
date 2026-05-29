@@ -65,7 +65,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * @param record the raw Kafka consumer record
      * @param deserializerPair the deserializers for key and value
      */
-    void addEagerRecord(
+    final void addEagerRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
         this.records.add(KafkaRecord.fromEager(record, deserializerPair, this));
@@ -79,29 +79,29 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * @param record the raw Kafka consumer record
      * @param deserializerPair the deserializers for key and value
      */
-    void addDeferredRecord(
+    final void addDeferredRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
         this.records.add(KafkaRecord.fromDeferred(record, deserializerPair, this));
     }
 
     @Override
-    public List<KafkaRecord<K, V>> getRecords() {
+    public final List<KafkaRecord<K, V>> getRecords() {
         return records;
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return recordCount == 0;
     }
 
     @Override
-    public int count() {
+    public final int count() {
         return recordCount;
     }
 
     @Override
-    public void validate() {
+    public final void validate() {
         if (records.size() != recordCount) {
             throw new IllegalStateException(
                     "Expected " + recordCount + " records but got " + records.size());
@@ -119,9 +119,9 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
     }
 
     @Override
-    public void recordProcessed(RecordBatchListener monitor) {
+    public void recordProcessed(RecordBatchListener listener) {
         if (processedCount.incrementAndGet() == recordCount) {
-            monitor.onBatchComplete(this);
+            listener.onBatchComplete(this);
         }
     }
 }
