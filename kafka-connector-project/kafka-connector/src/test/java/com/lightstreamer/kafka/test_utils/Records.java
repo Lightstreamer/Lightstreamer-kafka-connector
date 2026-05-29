@@ -39,7 +39,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.sink.SinkRecord;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -211,12 +210,12 @@ public class Records {
         List<ConsumerRecord<byte[], byte[]>> records = new ArrayList<>();
         Map<String, Integer> eventCounter = new HashMap<>();
         Map<Integer, Integer> offsetCounter = new HashMap<>();
-        SecureRandom secureRandom = new SecureRandom();
 
         Serializer<String> keySerializer = String().serializer();
         Serializer<String> valueSerializer = String().serializer();
 
         // Generate the records list
+        int keyIndexCounter = 0;
         for (int i = 0; i < numOfRecords; i++) {
             String recordKey = null;
             String recordValue;
@@ -224,8 +223,8 @@ public class Records {
             int partition;
 
             if (keys.size() > 0) {
-                // Select randomly one of the passed keys
-                int index = secureRandom.nextInt(keys.size());
+                // Select a key from the provided list in a round-robin fashion
+                int index = keyIndexCounter++ % keys.size();
                 recordKey = keys.get(index);
                 eventCounterKey = recordKey;
                 // Generate a value by adding a counter suffix to the key: key "a" -> value
