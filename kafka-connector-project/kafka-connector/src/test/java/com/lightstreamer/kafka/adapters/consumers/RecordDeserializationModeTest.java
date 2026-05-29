@@ -79,13 +79,39 @@ public class RecordDeserializationModeTest {
     @MethodSource("deserializationModes")
     public void shouldCreateBatchWithCorrectTimingAndRecordType(
             RecordDeserializationMode<String, String> mode, DeserializationTiming expectedTiming) {
+        // Verify that the mode returns the correct deserialization timing
         assertThat(mode.getTiming()).isEqualTo(expectedTiming);
 
+        // Create a sample ConsumerRecords with 5 records
+        int numOfRecords = 5;
         ConsumerRecords<byte[], byte[]> consumerRecords =
-                Records.generateRecords("topic", 5, List.of(), 2);
+                Records.generateRecords("topic", numOfRecords, List.of("key1", "key2"), 2);
 
+        // A batch is created as non-joinable by default, regardless of deserialization timing
         RecordBatch<String, String> batch = mode.toBatch(consumerRecords);
-        assertThat(batch.count()).isEqualTo(5);
+        verifyBatch(numOfRecords, expectedTiming, false, batch);
+
+        // Verify that batch creation with explicit joinable flag set to false
+        batch = mode.toBatch(consumerRecords, false);
+        verifyBatch(numOfRecords, expectedTiming, false, batch);
+
+        // Verify that batch creation with explicit joinable flag set to true
+        batch = mode.toBatch(consumerRecords, true);
+        verifyBatch(numOfRecords, expectedTiming, true, batch);
+
+        // Verify empty records handling
+        ConsumerRecords<byte[], byte[]> emptyRecords = new ConsumerRecords<>(Map.of());
+        batch = mode.toBatch(emptyRecords);
+        assertThat(batch.isEmpty()).isTrue();
+    }
+
+    private void verifyBatch(
+            int numOfRecord,
+            DeserializationTiming expectedTiming,
+            boolean expectedJoinable,
+            RecordBatch<String, String> batch) {
+        assertThat(batch.isJoinable()).isEqualTo(expectedJoinable);
+        assertThat(batch.count()).isEqualTo(numOfRecord);
 
         Class<?> expectedType =
                 expectedTiming == DeserializationTiming.EAGER
@@ -94,40 +120,5 @@ public class RecordDeserializationModeTest {
         for (KafkaRecord<String, String> record : batch.getRecords()) {
             assertThat(record).isInstanceOf(expectedType);
         }
-
-        // Verify empty records handling
-        ConsumerRecords<byte[], byte[]> emptyRecords = new ConsumerRecords<>(Map.of());
-
-        batch = mode.toBatch(emptyRecords);
-        assertThat(batch.isEmpty()).isTrue();
-    }
-
-    //     @ParameterizedTest
-    //     @EnumSource(DeserializationTiming.class)
-    //     public void shouldCreateJoinableBatch(DeserializationTiming timing) {
-    //         RecordDeserializationMode<String, String> mode =
-    //                 RecordDeserializationMode.forTiming(timing, deserializerPair, logger);
-
-    //         ConsumerRecords<byte[], byte[]> consumerRecords =
-    //                 Records.generateRecords("topic", 3, List.of());
-
-    //         RecordBatch<String, String> batch = mode.toBatch(consumerRecords, true);
-    //         assertThat(batch.count()).isEqualTo(3);
-
-    //         Class<?> expectedType =
-    //                 timing == DeserializationTiming.EAGER
-    //                         ? EagerKafkaConsumerRecord.class
-    //                         : DeferredKafkaConsumerRecord.class;
-    //         for (KafkaRecord<String, String> record : batch.getRecords()) {
-    //             assertThat(record).isInstanceOf(expectedType);
-    //         }
-    //     }
-
-    @Test
-    public void shouldThrowOnInvalidTiming() {
-        // Ensure the default case throws
-        // (This is a safety net; can't actually trigger with the current enum values,
-        // but verifies the switch statement's default branch)
-        assertThat(DeserializationTiming.values()).hasLength(2);
     }
 }
