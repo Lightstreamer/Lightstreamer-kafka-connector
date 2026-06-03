@@ -384,7 +384,9 @@ public class KafkaConsumerWrapper<K, V> {
                 monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
                 return State.INITIALIZED;
             } else {
-                logger.atWarn().log("Initialization failed because no topics are available");
+                logger.atWarn()
+                        .log(
+                                "Initialization failed because the requested topics were not found on the broker");
                 return State.INIT_FAILED_BY_SUBSCRIPTION;
             }
         } catch (RuntimeException e) {
