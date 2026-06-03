@@ -22,7 +22,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
@@ -64,7 +63,7 @@ import java.util.stream.Collectors;
  *
  * <p>Instances are created in a {@link FutureStatus.State#CONNECTED CONNECTED} state and transition
  * through {@link FutureStatus.State#INITIALIZED INITIALIZED} to one of the terminal states via
- * {@link #start(ExecutorService)} and {@link #shutdown()}.
+ * {@link #start(ExecutorService, java.util.function.Consumer)} and {@link #shutdown()}.
  *
  * @param <K> the type of the key in the Kafka record
  * @param <V> the type of the value in the Kafka record
@@ -108,7 +107,7 @@ public class KafkaConsumerWrapper<K, V> {
             }
         }
 
-        private CompletableFuture<State> futureState;
+        private final CompletableFuture<State> futureState;
 
         private FutureStatus(CompletableFuture<State> futureState) {
             this.futureState = futureState;
@@ -188,6 +187,16 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
+    enum SubscriptionOutcome {
+        NONE,
+        TOPICS,
+        PATTERN;
+
+        boolean isSuccessful() {
+            return !this.equals(NONE);
+        }
+    }
+
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     // Monitoring configuration
@@ -196,7 +205,6 @@ public class KafkaConsumerWrapper<K, V> {
     private static final Duration MONITOR_LOG_REPORTING_INTERVAL = Duration.ofSeconds(3);
 
     private final ConnectionSpec<K, V> connectionSpec;
-    private final MetadataListener metadataListener;
     private final Logger logger;
     private final Consumer<byte[], byte[]> consumer;
     private final OffsetService offsetService;
@@ -210,6 +218,11 @@ public class KafkaConsumerWrapper<K, V> {
     private final ReentrantLock statusLock = new ReentrantLock();
     private volatile boolean closed = false;
 
+    // Captures the exception that terminated the poll loop, published to the loop-closed callback
+    // registered in updateStatus(). Written in run() before the loop future completes normally with
+    // LOOP_CLOSED_BY_EXCEPTION, establishing a happens-before with the callback invocation.
+    private volatile KafkaException pollFailureCause;
+
     private volatile Thread hook;
     // Volatile publishes the latest lifecycle future to the shutdown-hook thread, which reads it
     // without taking statusLock in doShutdown().
@@ -219,10 +232,9 @@ public class KafkaConsumerWrapper<K, V> {
      * Creates a new {@code KafkaConsumerWrapper} and establishes a connection to the Kafka broker.
      *
      * <p>The consumer is instantiated immediately via the given supplier but does not start polling
-     * until {@link #start(ExecutorService)} is called.
+     * until {@link #start(ExecutorService, java.util.function.Consumer)} is called.
      *
      * @param connectionSpec the {@link ConnectionSpec} defining connection and processing settings
-     * @param metadataListener the {@link MetadataListener} for force-unsubscription notifications
      * @param eventListener the {@link ItemEventListener} that receives dispatched record updates
      * @param subscribedItems the {@link SubscribedItems} registry for routing records to items and
      *     broadcasting end-of-snapshot at catch-up completion
@@ -234,14 +246,12 @@ public class KafkaConsumerWrapper<K, V> {
      */
     public KafkaConsumerWrapper(
             ConnectionSpec<K, V> connectionSpec,
-            MetadataListener metadataListener,
             ItemEventListener eventListener,
             SubscribedItems subscribedItems,
             Function<Properties, Consumer<byte[], byte[]>> consumerFactory,
             boolean eagerLifecycle)
             throws KafkaException {
         this.connectionSpec = connectionSpec;
-        this.metadataListener = metadataListener;
         this.subscribedItems = subscribedItems;
         this.eventListener = eventListener;
         this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
@@ -312,14 +322,19 @@ public class KafkaConsumerWrapper<K, V> {
      * failed status is returned immediately.
      *
      * @param pool the {@link ExecutorService} to run the consuming loop on
+     * @param onLoopClosedByException callback invoked with the {@link KafkaException} that
+     *     terminated the consuming loop when the loop closes in the {@link
+     *     FutureStatus.State#LOOP_CLOSED_BY_EXCEPTION LOOP_CLOSED_BY_EXCEPTION} state
      * @return the {@link FutureStatus} representing the outcome of the start attempt
      */
-    public FutureStatus start(ExecutorService pool) {
+    public FutureStatus start(
+            ExecutorService pool, java.util.function.Consumer<Throwable> onLoopClosedByException) {
         statusLock.lock();
         try {
             if (!status.isConnected()) {
                 logger.atError()
-                        .log("The current consumer's state does not allow starting the loop");
+                        .log(
+                                "The current consumer's internal state does not allow starting the loop");
                 return status;
             }
 
@@ -330,15 +345,28 @@ public class KafkaConsumerWrapper<K, V> {
             if (state.initFailed()) {
                 // In case of failure, immediately return a failed status.
                 closeConsumer();
-                metadataListener.forceUnsubscriptionAll();
                 return updateStatus(CompletableFuture.completedFuture(state));
             }
 
             installShutdownHook();
-            return updateStatus(CompletableFuture.supplyAsync(this::run, pool));
+            return updateStatus(
+                    CompletableFuture.supplyAsync(this::run, pool), onLoopClosedByException);
         } finally {
             statusLock.unlock();
         }
+    }
+
+    private FutureStatus updateStatus(
+            CompletableFuture<FutureStatus.State> stage,
+            java.util.function.Consumer<Throwable> onLoopClosedByException) {
+        CompletableFuture<State> whenComplete =
+                stage.whenComplete(
+                        (state, t) -> {
+                            if (state == State.LOOP_CLOSED_BY_EXCEPTION) {
+                                onLoopClosedByException.accept(pollFailureCause);
+                            }
+                        });
+        return updateStatus(whenComplete);
     }
 
     private FutureStatus updateStatus(CompletableFuture<FutureStatus.State> stage) {
@@ -348,11 +376,11 @@ public class KafkaConsumerWrapper<K, V> {
 
     private State init() {
         try {
-            boolean ready = subscribeToTopics();
-            if (ready && eagerLifecycle) {
+            SubscriptionOutcome subscription = trySubscribe();
+            if (subscription.isSuccessful() && eagerLifecycle) {
                 catchUp();
             }
-            if (ready) {
+            if (subscription.isSuccessful()) {
                 monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
                 return State.INITIALIZED;
             } else {
@@ -366,20 +394,21 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     /**
-     * Subscribes to topics using the consumer group protocol (on-demand lifecycle).
+     * Subscribes the consumer to the configured topics or topic pattern.
      *
      * <p>Supports both regex-based and literal topic subscriptions. The {@link OffsetService} is
      * registered as the {@link org.apache.kafka.clients.consumer.ConsumerRebalanceListener}.
      *
-     * @return {@code true} if at least one topic was subscribed, {@code false} otherwise
+     * @return the {@link SubscriptionOutcome} describing how the subscription was performed, or
+     *     {@link SubscriptionOutcome#NONE} if no topics were available to subscribe to
      */
-    boolean subscribeToTopics() {
+    SubscriptionOutcome trySubscribe() {
         ItemTemplates<K, V> templates = connectionSpec.itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
             logger.atDebug().log("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
-            return true;
+            return SubscriptionOutcome.PATTERN;
         }
         // Original requested topics.
         Set<String> topics = new HashSet<>(templates.topics());
@@ -394,10 +423,10 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atDebug().log("Existing topics on Kafka: [{}]", existingTopics);
         boolean notAllPresent = topics.retainAll(existingTopics);
 
-        // Can't subscribe at all. Force unsubscription and exit the loop.
+        // Can't subscribe at all.
         if (topics.isEmpty()) {
             logger.atWarn().log("Requested topics not found");
-            return false;
+            return SubscriptionOutcome.NONE;
         }
 
         // Just warn that not all requested topics can be subscribed.
@@ -412,7 +441,7 @@ public class KafkaConsumerWrapper<K, V> {
                             loggableTopics);
         }
         consumer.subscribe(topics, offsetService);
-        return true;
+        return SubscriptionOutcome.TOPICS;
     }
 
     /**
@@ -471,7 +500,7 @@ public class KafkaConsumerWrapper<K, V> {
         } catch (WakeupException e) {
             logger.atDebug().log("Kafka Consumer woken up");
         } catch (KafkaException e) {
-            metadataListener.forceUnsubscriptionAll();
+            this.pollFailureCause = e;
             return State.LOOP_CLOSED_BY_EXCEPTION;
         } finally {
             closeConsumer();
@@ -508,11 +537,11 @@ public class KafkaConsumerWrapper<K, V> {
             } catch (KafkaException ke) {
                 // Includes SerializationException (a KafkaException subclass) thrown during eager
                 // deserialization: treated as fatal, causing connector shutdown
-                logger.atError().setCause(ke).log("Unrecoverable exception during poll");
+                logger.atError().setCause(ke).log("Unrecoverable exception during polling");
                 throw ke;
             } catch (Exception e) {
-                logger.atError().setCause(e).log("Unexpected exception during poll");
-                throw new KafkaException("Unexpected exception during poll", e);
+                logger.atError().setCause(e).log("Unexpected exception during polling");
+                throw new KafkaException("Unexpected exception during polling", e);
             }
         }
     }
