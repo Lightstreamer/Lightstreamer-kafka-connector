@@ -30,6 +30,7 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpe
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AbstractSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
@@ -50,62 +51,73 @@ import java.util.function.Consumer;
 
 public class SubscriptionsHandlerTest {
 
-    private ConnectionSpec<String, String> makeConnectionSpec() {
-        return makeConnectionSpec(CommandMode.DISABLED);
-    }
-
-    private ConnectionSpec<String, String> makeConnectionSpec(CommandMode commandMode) {
-        return new ConnectionSpec<>(
-                "TestConnection",
-                new Properties(),
-                ItemTemplatesUtils.itemTemplates("aTopic", "anItemTemplate,anotherItemTemplate"),
-                ItemTemplatesUtils.fieldsExtractor(),
-                new KafkaRecord.DeserializerPair<>(
-                        OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
-                        OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer()),
-                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                commandMode,
-                new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
-    }
-
     @Test
     public void shouldNotBuildSubscriptionsHandler() {
         IllegalStateException ise =
                 assertThrows(
                         IllegalStateException.class,
                         () -> SubscriptionsHandler.<String, String>builder().build());
+        assertThat(ise).hasMessageThat().isEqualTo("ConsumerFactory not set");
+
+        ise =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                SubscriptionsHandler.<String, String>builder()
+                                        .withConsumerFactory(MockConsumer.factory())
+                                        .build());
         assertThat(ise).hasMessageThat().isEqualTo("ConnectionSpec not set");
 
         ise =
                 assertThrows(
                         IllegalStateException.class,
-                        () -> {
-                            SubscriptionsHandler.<String, String>builder()
-                                    .withConnectionSpec(makeConnectionSpec())
-                                    .build();
-                        });
-        assertThat(ise).hasMessageThat().isEqualTo("MetadataListener not set");
-
+                        () ->
+                                SubscriptionsHandler.<String, String>builder()
+                                        .withConnectionSpec(
+                                                makeConnectionSpec(CommandMode.EXPLICIT))
+                                        .withConsumerFactory(MockConsumer.factory())
+                                        .withItemSnapshotEnabled(true)
+                                        .build());
+        assertThat(ise)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Invalid configuration: command mode EXPLICIT is not compatible with item snapshot enablement");
         ise =
                 assertThrows(
                         IllegalStateException.class,
-                        () -> {
-                            SubscriptionsHandler.<String, String>builder()
-                                    .withConnectionSpec(makeConnectionSpec())
-                                    .withMetadataListener(new Mocks.MockMetadataListener())
-                                    .build();
-                        });
-        assertThat(ise).hasMessageThat().isEqualTo("ConsumerFactory not set");
+                        () ->
+                                SubscriptionsHandler.<String, String>builder()
+                                        .withConnectionSpec(makeConnectionSpec())
+                                        .withConsumerFactory(MockConsumer.factory())
+                                        .build());
+
+        assertThat(ise).hasMessageThat().isEqualTo("MetadataListener not set");
     }
 
     @ParameterizedTest
     @EnumSource(CommandMode.class)
     public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeDisabled(
             CommandMode commandMode) {
-        SubscriptionsHandler<String, String> subscriptionsHandler = builder(commandMode).build();
+        SubscriptionsHandler<String, String> subscriptionsHandler =
+                builder(commandMode).withMetadataListener(new Mocks.MockMetadataListener()).build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
+        assertThat(
+                        ((OnDemandSubscriptionsHandler<String, String>) subscriptionsHandler)
+                                .isConsuming())
+                .isFalse();
+
+        subscriptionsHandler =
+                builder(commandMode)
+                        .withMetadataListener(new Mocks.MockMetadataListener())
+                        .withItemSnapshotEnabled(false)
+                        .build();
+        assertThat(subscriptionsHandler)
+                .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
+        assertThat(
+                        ((OnDemandSubscriptionsHandler<String, String>) subscriptionsHandler)
+                                .isConsuming())
+                .isFalse();
     }
 
     @ParameterizedTest
@@ -119,19 +131,6 @@ public class SubscriptionsHandlerTest {
                 builder(commandMode).withItemSnapshotEnabled(true).build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.ForceableSubscriptionsHandler.class);
-    }
-
-    @Test
-    public void
-            shouldNotBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabledAndCommandModeExplicit() {
-        IllegalStateException ise =
-                assertThrows(
-                        IllegalStateException.class,
-                        () -> builder(CommandMode.EXPLICIT).withItemSnapshotEnabled(true).build());
-        assertThat(ise)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Invalid configuration: command mode EXPLICIT is not compatible with item snapshot enablement");
     }
 
     @Test
@@ -256,8 +255,25 @@ public class SubscriptionsHandlerTest {
     private Builder<String, String> builder(CommandMode commandMode) {
         return SubscriptionsHandler.<String, String>builder()
                 .withConnectionSpec(makeConnectionSpec(commandMode))
-                .withMetadataListener(new Mocks.MockMetadataListener())
                 .withConsumerFactory(MockConsumer.factory());
+    }
+
+    private static ConnectionSpec<String, String> makeConnectionSpec() {
+        return makeConnectionSpec(CommandMode.DISABLED);
+    }
+
+    private static ConnectionSpec<String, String> makeConnectionSpec(CommandMode commandMode) {
+        return new ConnectionSpec<>(
+                "TestConnection",
+                new Properties(),
+                ItemTemplatesUtils.itemTemplates("aTopic", "anItemTemplate,anotherItemTemplate"),
+                ItemTemplatesUtils.fieldsExtractor(),
+                new KafkaRecord.DeserializerPair<>(
+                        OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
+                        OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer()),
+                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                commandMode,
+                new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
     }
 
     static class TestSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
