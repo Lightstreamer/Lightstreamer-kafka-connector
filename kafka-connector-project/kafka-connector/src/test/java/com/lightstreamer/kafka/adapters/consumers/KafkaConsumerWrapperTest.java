@@ -374,6 +374,32 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
+    public void shouldCatchUp() {
+        String topic = "topic";
+        TopicPartition partition0 = new TopicPartition(topic, 0);
+        TopicPartition partition1 = new TopicPartition(topic, 1);        
+
+        // A rebalance must be scheduled to later use the subscribe method
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+
+        // Set the start offset for each partition
+        updateBeginAndEndOffsets(Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 10L, partition1, 10L));
+
+        // Generate then simulated records to be polled from the mocked consumer
+        ConsumerRecords<byte[], byte[]> records =
+                Records.generateRecords(topic, 20, List.of("a", "b"), 2);
+        // The first poll will return the simulated records
+        mockConsumer.schedulePollTask(
+                () -> records.forEach(record -> mockConsumer.addRecord(record)));
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapper(Collections.singleton("topic"), false, true);
+        wrapper.trySubscribe();
+        wrapper.catchUp();
+
+    }
+
+    @Test
     public void shouldNotStartDueToNotExistingTopic() {
         ExecutorService executorService = Executors.newSingleThreadExecutor();
         // Create a wrapper for a topic that doesn't exist on the broker
@@ -839,5 +865,10 @@ public class KafkaConsumerWrapperTest {
         } else {
             mockConsumer.updateEndOffsets(offsets);
         }
+    }
+
+    private void updateBeginAndEndOffsets(Map<TopicPartition, Long> beginOffsets, Map<TopicPartition, Long> endOffsets) {
+        mockConsumer.updateBeginningOffsets(beginOffsets);
+        mockConsumer.updateEndOffsets(endOffsets);
     }
 }
