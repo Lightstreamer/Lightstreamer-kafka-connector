@@ -613,7 +613,7 @@ public class BenchmarksUtils {
             recordsMap.get(tp).add(consumerRecord);
         }
 
-        return new ConsumerRecords<>(recordsMap);
+        return new ConsumerRecords<>(recordsMap, Map.of());
     }
 
     @SuppressWarnings("unchecked")
