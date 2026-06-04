@@ -69,7 +69,8 @@ class CommitOffsetService implements OffsetService {
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
         logger.atInfo().log("Revoked partitions {}", partitions);
         if (consumerShuttingDown.get()) {
-            logger.atInfo().log("Consumer is shutting down, skipping commit on revoked partitions");
+            logger.atInfo().log(
+                    "Kafka consumer is shutting down, skipping commit on revoked partitions");
         } else {
             commitSync();
         }
