@@ -260,6 +260,6 @@ public class Records {
                                 groupingBy(
                                         record -> new TopicPartition(topic, record.partition()),
                                         mapping(Function.identity(), toList())));
-        return new ConsumerRecords<>(partitionsToRecords);
+        return new ConsumerRecords<>(partitionsToRecords, Map.of());
     }
 }
