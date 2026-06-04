@@ -423,7 +423,7 @@ public class RecordBatchTest {
                         consumerRecord(tp, 2, "poison", "value3"),
                         consumerRecord(tp, 3, "good3", "value4"),
                         consumerRecord(tp, 4, "good4", "value5"));
-        return new ConsumerRecords<>(Map.of(tp, records));
+        return new ConsumerRecords<>(Map.of(tp, records), Map.of());
     }
 
     private ConsumerRecord<byte[], byte[]> consumerRecord(
