@@ -100,7 +100,7 @@ public class RecordDeserializationModeTest {
         verifyBatch(numOfRecords, expectedTiming, true, batch);
 
         // Verify empty records handling
-        ConsumerRecords<byte[], byte[]> emptyRecords = new ConsumerRecords<>(Map.of());
+        ConsumerRecords<byte[], byte[]> emptyRecords = new ConsumerRecords<>(Map.of(), Map.of());
         batch = mode.toBatch(emptyRecords);
         assertThat(batch.isEmpty()).isTrue();
     }
