@@ -595,8 +595,8 @@ public class RecordConsumerSupport {
      * monitoring, and error handling.
      *
      * <p>Subclasses implement {@link #consumeRecordBatch(RecordBatch)} to define how records are
-     * dispatched to the {@link RecordProcessor}, and optionally override {@link #doEndCatchUp()} to
-     * handle the catch-up to realtime transition.
+     * dispatched to the {@link RecordProcessor}, and optionally override {@link
+     * #onCatchUpComplete()} to handle the catch-up to realtime transition.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -611,7 +611,7 @@ public class RecordConsumerSupport {
         protected volatile Throwable firstFailure = null;
 
         private final RecordErrorHandlingStrategy errorStrategy;
-        private final boolean enableCatchUp;
+        private final boolean catchUpEnabled;
         private final Meters.Counter receivedRecordCounter;
         private final Meters.Counter processedRecordCounter;
         private final OffsetService offsetService;
@@ -623,7 +623,7 @@ public class RecordConsumerSupport {
             this.recordProcessor = builder.processor;
             this.logger = builder.logger;
             this.errorStrategy = builder.errorStrategy;
-            this.enableCatchUp = builder.enableCatchUp;
+            this.catchUpEnabled = builder.enableCatchUp;
             this.monitor = builder.monitor;
 
             // Enforce usage of the same logger
@@ -696,20 +696,33 @@ public class RecordConsumerSupport {
             return monitor;
         }
 
-        public final boolean enableCatchUp() {
-            return enableCatchUp;
+        @Override
+        public final boolean isCatchUpEnabled() {
+            return catchUpEnabled;
+        }
+
+        /**
+         * The snapshot-mode flag a consumer starts with. Catch-up replays the initial snapshot, so
+         * when catch-up is enabled records begin in snapshot mode and flip to realtime in {@link
+         * #onCatchUpComplete()}.
+         *
+         * @return {@code true} if records should initially be sent as snapshot, {@code false}
+         *     otherwise
+         */
+        protected final boolean initialSnapshotMode() {
+            return catchUpEnabled;
         }
 
         @Override
         public final void endCatchUp() {
-            if (!enableCatchUp) {
+            if (!isCatchUpEnabled()) {
                 throw new IllegalStateException(
                         "endCatchUp() called but catch-up processing is not enabled");
             }
-            doEndCatchUp();
+            onCatchUpComplete();
         }
 
-        void doEndCatchUp() {
+        void onCatchUpComplete() {
             // Default: nothing, subclasses can override
         }
 
@@ -784,7 +797,7 @@ public class RecordConsumerSupport {
 
         SingleThreadedRecordConsumer(StartBuildingProcessorBuilderImpl<K, V> builder) {
             super(builder);
-            this.sendAsSnapshot = builder.enableCatchUp;
+            this.sendAsSnapshot = initialSnapshotMode();
         }
 
         @Override
@@ -825,7 +838,7 @@ public class RecordConsumerSupport {
         }
 
         @Override
-        void doEndCatchUp() {
+        void onCatchUpComplete() {
             this.sendAsSnapshot = false;
         }
     }
@@ -842,7 +855,8 @@ public class RecordConsumerSupport {
         private static final String POOL_NAME = "Ring buffer processor pool";
         private static final int RING_BUFFER_CAPACITY = 5192;
 
-        // Sentinel marker used by endCatchUp() to signal workers to count down the barrier.
+        // Sentinel marker pushed by onCatchUpComplete() to signal workers to count down the
+        // barrier and exit their loop.
         private static final KafkaRecord<?, ?> FLUSH_SENTINEL =
                 new KafkaRecord<>() {
                     public Object key() {
@@ -926,7 +940,7 @@ public class RecordConsumerSupport {
                 logger.atDebug().log(
                         "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
                 final int threadIndex = i;
-                ringBufferPool.submit(() -> processRingBuffer(threadIndex, enableCatchUp()));
+                ringBufferPool.submit(() -> processRingBuffer(threadIndex, initialSnapshotMode()));
             }
         }
 
@@ -1038,7 +1052,7 @@ public class RecordConsumerSupport {
 
         @Override
         @SuppressWarnings("unchecked")
-        void doEndCatchUp() {
+        void onCatchUpComplete() {
             // Send sentinel to each worker, causing them to exit their loop
             CountDownLatch barrier = new CountDownLatch(actualThreads);
             this.flushBarrier = barrier;
