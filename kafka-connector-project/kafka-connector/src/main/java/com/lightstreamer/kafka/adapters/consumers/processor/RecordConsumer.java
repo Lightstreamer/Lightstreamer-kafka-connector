@@ -316,7 +316,7 @@ public interface RecordConsumer<K, V> {
      *
      * @return {@code true} if catch-up mode is enabled, {@code false} otherwise
      */
-    boolean enableCatchUp();
+    boolean isCatchUpEnabled();
 
     /**
      * Returns the number of worker threads used by this consumer.
