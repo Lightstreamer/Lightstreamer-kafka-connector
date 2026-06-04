@@ -98,6 +98,9 @@ public class KafkaConsumerWrapper<K, V> {
             /** The consuming loop exited normally due to shutdown. */
             LOOP_CLOSED_BY_SHUTDOWN,
 
+            /** The loop is closed because it was woken up by shutdown. */
+            LOOP_CLOSED_BY_WAKEUP,
+
             /** The loop is in a shutdown state. */
             SHUTDOWN;
 
@@ -344,7 +347,7 @@ public class KafkaConsumerWrapper<K, V> {
 
             if (state.initFailed()) {
                 // In case of failure, immediately return a failed status.
-                closeConsumer();
+                cleanUpResources();
                 return updateStatus(CompletableFuture.completedFuture(state));
             }
 
@@ -500,12 +503,13 @@ public class KafkaConsumerWrapper<K, V> {
         try {
             consumeForEver(recordConsumer::consumeBatch);
         } catch (WakeupException e) {
-            logger.atDebug().log("Kafka Consumer woken up");
+            logger.atDebug().log("Internal Kafka client woken up");
+            return State.LOOP_CLOSED_BY_WAKEUP;
         } catch (KafkaException e) {
             this.pollFailureCause = e;
             return State.LOOP_CLOSED_BY_EXCEPTION;
         } finally {
-            closeConsumer();
+            cleanUpResources();
         }
         return State.LOOP_CLOSED_BY_SHUTDOWN;
     }
@@ -529,12 +533,14 @@ public class KafkaConsumerWrapper<K, V> {
                 getProperty(MAX_POLL_RECORDS_CONFIG));
         while (!closed) {
             try {
+                logger.atInfo().log("Polling for records...");
                 ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
                 recordConsumer.accept(batch);
+                logger.atInfo().log("Polled and processed a batch of records {}", batch.count());
             } catch (WakeupException we) {
                 // Rethrow before the KafkaException catch (WakeupException extends KafkaException)
-                logger.atDebug().log("Kafka Consumer woken up during poll");
+                logger.atDebug().log("Kafka consumer woken up during poll");
                 throw we;
             } catch (KafkaException ke) {
                 // Includes SerializationException (a KafkaException subclass) thrown during eager
@@ -572,8 +578,8 @@ public class KafkaConsumerWrapper<K, V> {
             }
 
             if (status.isConnected()) {
-                // Never started — no async thread to join, just close resources
-                closeConsumer();
+                // Never started — no async thread to join, just clean up resources
+                cleanUpResources();
             } else if (!status.initFailed() && !status.isClosed()) {
                 // Init failure and loop exit already cleaned up — only doShutdown if loop is still
                 // running
@@ -594,15 +600,15 @@ public class KafkaConsumerWrapper<K, V> {
     private void doShutdown() {
         logger.atInfo().log("Shutting down Kafka consumer");
         closed = true;
-        logger.atDebug().log("Waking up consumer");
+        logger.atInfo().log("Waking up internal Kafka client");
         consumer.wakeup();
-        logger.atDebug().log("Consumer woken up, waiting for graceful thread completion");
+        logger.atInfo().log("Waiting for graceful thread completion");
         status.join();
         logger.atInfo().log("Kafka consumer shut down");
     }
 
-    private void closeConsumer() {
-        logger.atDebug().log("Start closing Kafka Consumer");
+    private void cleanUpResources() {
+        logger.atInfo().log("Start closing internal resources");
         recordConsumer.close();
         // Ensure that all pending offsets are committed
         offsetService.onConsumerShutdown();
@@ -610,7 +616,7 @@ public class KafkaConsumerWrapper<K, V> {
         consumer.close();
         // Stop the monitor
         this.monitor.stop();
-        logger.atDebug().log("Kafka Consumer closed");
+        logger.atInfo().log("Internal resources closed");
     }
 
     // Only for testing purposes
