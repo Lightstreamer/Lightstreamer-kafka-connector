@@ -583,7 +583,7 @@ public class KafkaConsumerWrapperTest {
         // An end-of-snapshot call follows the snapshot updates
         assertThat(events.get(22).type()).isEqualTo(EventCall.EventType.EOS);
         // The last 2 events are real-time updates
-        assertThat(events.subList(23, 24).stream().allMatch(Predicate.not(EventCall::isSnapshot)))
+        assertThat(events.subList(23, 25).stream().allMatch(Predicate.not(EventCall::isSnapshot)))
                 .isTrue();
     }
 
