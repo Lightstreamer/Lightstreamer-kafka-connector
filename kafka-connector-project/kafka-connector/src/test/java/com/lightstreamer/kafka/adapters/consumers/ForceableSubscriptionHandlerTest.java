@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_ON_ERROR;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,16 +29,13 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWi
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
-import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
-import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
@@ -58,7 +56,9 @@ public class ForceableSubscriptionHandlerTest {
     // Configured broker topic.
     private static final String TOPIC = "aTopic";
 
-    private final MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
+    private ForceableSubscriptionsHandler<String, String> subscriptionsHandler;
+    private MockItemEventListener listener = new MockItemEventListener();
+    private MockConsumer consumer;
 
     private ForceableSubscriptionsHandler<String, String> mkSubscriptionsHandler(
             boolean exceptionOnConnection,
@@ -94,7 +94,7 @@ public class ForceableSubscriptionHandlerTest {
                         throw new KafkaException("Simulated Exception");
                     }
 
-                    MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
+                    consumer = new MockConsumer(StrategyType.EARLIEST.toString());
 
                     if (exceptionOnListTopics) {
                         consumer.setListTopicException(
@@ -124,13 +124,9 @@ public class ForceableSubscriptionHandlerTest {
                 SubscriptionsHandler.<String, String>builder()
                         .withConnectionSpec(spec)
                         .withConsumerFactory(factory)
-                        .withMetadataListener(metadataListener)
                         .withItemSnapshotEnabled(true);
         return (ForceableSubscriptionsHandler<String, String>) builder.build();
     }
-
-    private ForceableSubscriptionsHandler<String, String> subscriptionsHandler;
-    private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String templateTopic) {
         init(false, false, false, templateTopic);
@@ -153,7 +149,9 @@ public class ForceableSubscriptionHandlerTest {
     @Test
     public void shouldInit() {
         init(TOPIC);
-        assertThat(subscriptionsHandler.isConsuming()).isTrue();
+        // Unavailable state is expected while the consumer is performing the infinite polling loop
+        // in the background
+        assertThat(subscriptionsHandler.getLifecycleStatus().isStateAvailable()).isFalse();
     }
 
     @Test
@@ -167,9 +165,6 @@ public class ForceableSubscriptionHandlerTest {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(true, false, false, TOPIC));
         assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
-        assertThat(subscriptionsHandler.joinCurrentState()).isEmpty();
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
     }
 
     @Test
@@ -177,9 +172,7 @@ public class ForceableSubscriptionHandlerTest {
         KafkaException ke = assertThrows(KafkaException.class, () -> init("nonExistingTopic"));
         assertThat(ke)
                 .hasMessageThat()
-                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_SUBSCRIPTION");
-        assertThat(subscriptionsHandler.joinCurrentState())
-                .hasValue(FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION);
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_MISSING_TOPICS");
     }
 
     @Test
@@ -188,26 +181,33 @@ public class ForceableSubscriptionHandlerTest {
                 assertThrows(KafkaException.class, () -> init(false, true, false, TOPIC));
         assertThat(ke)
                 .hasMessageThat()
-                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_EXCEPTION");
-        assertThat(subscriptionsHandler.joinCurrentState())
-                .hasValue(FutureStatus.State.INIT_FAILED_BY_EXCEPTION);
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_ERROR");
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhilePolling() {
+    public void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, false, true, TOPIC));
         assertThat(ke)
                 .hasMessageThat()
-                .isEqualTo("Consumer initialization failed: INIT_FAILED_BY_EXCEPTION");
-        assertThat(subscriptionsHandler.joinCurrentState())
-                .hasValue(FutureStatus.State.INIT_FAILED_BY_EXCEPTION);
-        assertThat(subscriptionsHandler.isConsuming()).isFalse();
-        assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
-        assertThat(metadataListener.forcedUnsubscription()).isTrue();
+                .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_ERROR");
+        assertThat(listener.getFailures()).isEmpty();
+    }
+
+    @Test
+    public void shouldFailInitDueToExceptionWhilePolling() {
+        init(false, false, false, TOPIC);
+
+        // Simulate exception while polling after initialization (including catch-up) completes
+        // successfully.
+        consumer.setPollException(new KafkaException("Simulated Exception while polling"));
+
+        assertThat(subscriptionsHandler.getLifecycleStatus().join())
+                .isEqualTo(LOOP_CLOSED_ON_ERROR);
+        assertThat(listener.getFailures()).hasSize(1);
+        assertThat(listener.getFailures().get(0))
+                .hasMessageThat()
+                .isEqualTo("Simulated Exception while polling");
     }
 
     @Test
