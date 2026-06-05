@@ -47,6 +47,7 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 
+import java.lang.reflect.Field;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,6 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 public class Mocks {
@@ -62,11 +64,42 @@ public class Mocks {
     public static class MockConsumer
             extends org.apache.kafka.clients.consumer.MockConsumer<byte[], byte[]> {
 
+        // Reflective handle to the inherited (private) wakeup flag. The parent MockConsumer
+        // declares both poll() and wakeup() as synchronized, so a wakeup() call blocks until any
+        // in-progress poll() releases the consumer monitor. A long-running scheduled poll task
+        // would therefore delay the wakeup signal until after the consume loop has already
+        // observed its 'closed' flag, masking the WakeupException. The real KafkaConsumer never
+        // blocks wakeup() on poll(), so the override below sets the flag directly, without the
+        // monitor, to faithfully reproduce that behavior.
+        private static final Field WAKEUP_FIELD;
+
+        static {
+            try {
+                WAKEUP_FIELD =
+                        org.apache.kafka.clients.consumer.MockConsumer.class.getDeclaredField(
+                                "wakeup");
+                WAKEUP_FIELD.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
+
         private RuntimeException commitException;
         private KafkaException listTopicException;
 
         public MockConsumer(String strategyType) {
             super(strategyType);
+        }
+
+        @Override
+        public void wakeup() {
+            // Non-synchronized wakeup: sets the inherited flag without acquiring the consumer
+            // monitor, so it cannot be blocked by an in-progress poll().
+            try {
+                ((AtomicBoolean) WAKEUP_FIELD.get(this)).set(true);
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("Unable to access MockConsumer wakeup flag", e);
+            }
         }
 
         public void setCommitException(RuntimeException exception) {
