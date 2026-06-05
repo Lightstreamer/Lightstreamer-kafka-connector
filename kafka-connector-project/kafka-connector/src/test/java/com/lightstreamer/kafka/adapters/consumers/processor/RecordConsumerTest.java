@@ -87,7 +87,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -274,7 +273,7 @@ public class RecordConsumerTest {
         // Default values
         assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
         assertThat(parallelRecordConsumer.ordering()).hasValue(ORDER_BY_PARTITION);
-        assertThat(parallelRecordConsumer.enableCatchUp()).isFalse();
+        assertThat(parallelRecordConsumer.isCatchUpEnabled()).isFalse();
         assertThat(parallelRecordConsumer.errorStrategy()).isEqualTo(IGNORE_AND_CONTINUE);
         assertThat(recordConsumer.monitor()).isNull();
 
@@ -388,7 +387,7 @@ public class RecordConsumerTest {
         // Non-default values
         assertThat(rc.errorStrategy()).isEqualTo(error);
 
-        assertThat(rc.enableCatchUp()).isEqualTo(enableCatchUp);
+        assertThat(rc.isCatchUpEnabled()).isEqualTo(enableCatchUp);
 
         // These are the only strict conditions to get a SingleThreadedRecordConsumer,
         // otherwise a ParallelRecordConsumer is created even if preferSingleThread is true
@@ -645,7 +644,8 @@ public class RecordConsumerTest {
 
             for (int i = 0; i < iterations; i++) {
                 RecordBatch<String, String> batch =
-                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                        RecordBatch.batchFromEager(
+                                consumerRecords, deserializerPair, true, (record, ex) -> {});
                 recordConsumer.consumeBatch(batch);
                 batch.join();
                 List<Event> events =
@@ -707,7 +707,8 @@ public class RecordConsumerTest {
                                 });
         recordsOnTopic1.forEach(action);
         recordsOnTopic2.forEach(action);
-        ConsumerRecords<byte[], byte[]> consumerRecords = new ConsumerRecords<>(recordsByPartition);
+        ConsumerRecords<byte[], byte[]> consumerRecords =
+                new ConsumerRecords<>(recordsByPartition, Map.of());
 
         MockItemEventListener testListener = new MockItemEventListener();
 
@@ -734,7 +735,8 @@ public class RecordConsumerTest {
 
             for (int i = 0; i < iterations; i++) {
                 RecordBatch<String, String> batch =
-                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                        RecordBatch.batchFromEager(
+                                consumerRecords, deserializerPair, true, (record, ex) -> {});
                 recordConsumer.consumeBatch(batch);
                 batch.join();
                 List<Event> events =
@@ -804,7 +806,8 @@ public class RecordConsumerTest {
 
             for (int i = 0; i < iterations; i++) {
                 RecordBatch<String, String> batch =
-                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                        RecordBatch.batchFromEager(
+                                consumerRecords, deserializerPair, true, (record, ex) -> {});
                 recordConsumer.consumeBatch(batch);
                 batch.join();
                 List<Event> events =
@@ -858,7 +861,8 @@ public class RecordConsumerTest {
 
             for (int i = 0; i < iterations; i++) {
                 RecordBatch<String, String> batch =
-                        RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                        RecordBatch.batchFromEager(
+                                consumerRecords, deserializerPair, true, (record, ex) -> {});
                 recordConsumer.consumeBatch(batch);
                 batch.join();
                 List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
@@ -904,7 +908,8 @@ public class RecordConsumerTest {
                             false);
 
             RecordBatch<String, String> batch =
-                    RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                    RecordBatch.batchFromEager(
+                            consumerRecords, deserializerPair, true, (record, ex) -> {});
             recordConsumer.consumeBatch(batch);
             batch.join();
             List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
@@ -941,7 +946,8 @@ public class RecordConsumerTest {
                         true);
 
         RecordBatch<String, String> snapshotBatch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, false);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, false, (record, ex) -> {});
         recordConsumer.consumeBatch(snapshotBatch);
         // In production, the Server thread runs activateOrInstall as the subscribe callback
         // inside forceSubscription (Path-2), binding a handle and switching the placeholder
@@ -959,7 +965,10 @@ public class RecordConsumerTest {
 
         RecordBatch<String, String> updateBatch =
                 RecordBatch.batchFromEager(
-                        generateRecords("topic", 20, List.of("key"), 4), deserializerPair, true);
+                        generateRecords("topic", 20, List.of("key"), 4),
+                        deserializerPair,
+                        true,
+                        (record, ex) -> {});
         recordConsumer.consumeBatch(updateBatch);
         updateBatch.join();
         List<EventCall> updates = testListener.getEvents();
@@ -1007,7 +1016,8 @@ public class RecordConsumerTest {
                         .build();
 
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, true, (record, ex) -> {});
         if (numOfThreads == 1) {
             assertThrows(KafkaException.class, () -> recordConsumer.consumeBatch(batch));
         } else {
@@ -1062,7 +1072,8 @@ public class RecordConsumerTest {
                         .build();
 
         RecordBatch<String, String> batch =
-                RecordBatch.batchFromEager(consumerRecords, deserializerPair, true);
+                RecordBatch.batchFromEager(
+                        consumerRecords, deserializerPair, true, (record, ex) -> {});
         if (numOfThreads == 1) {
             if (exception instanceof ValueException) {
                 // No exception should be thrown
@@ -1110,47 +1121,6 @@ public class RecordConsumerTest {
                         groupingBy(
                                 e -> String.valueOf(e.topic() + "-" + e.partition()),
                                 mapping(Event::offset, toList())));
-    }
-
-    /**
-     * Creates a consumer function that builds {@code Event} objects from a map of strings. The
-     * consumer function processes Kafka record information and adds new {@code Event} instances to
-     * the provided list.
-     *
-     * @param events the list where constructed {@code Event} objects will be stored
-     * @return A Consumer that processes maps containing Kafka record information with the following
-     *     keys:
-     *     <pre>
-     *     - "topic": The Kafka topic
-     *     - "key": The record key
-     *     - "value": The record value, expected to be a string containing the key and a counter suffix (e.g., "a-3" -> "3")
-     *     - "partition": The Kafka partition number
-     *     - "offset": The record offset in the partition
-     *     </pre>
-     *     The consumer will create an Event object using these values along with the current thread
-     *     name and add it to the provided events list.
-     */
-    private static BiConsumer<Map<String, String>, Boolean> buildEvent(List<Event> events) {
-        return (map, isSnapshot) -> {
-            String topic = map.get("topic");
-            // Get the key
-            String key = map.get("key");
-            // Extract the position from the value: "a-3" -> "3"
-            int position = extractNumberedSuffix(map.get("value"));
-            // Get the partition
-            String partition = map.get("partition");
-            // Get the offset
-            String offset = map.get("offset");
-            // Create and add the event
-            events.add(
-                    new Event(
-                            topic,
-                            key,
-                            position,
-                            Integer.parseInt(partition),
-                            Long.parseLong(offset),
-                            Thread.currentThread().getName()));
-        };
     }
 
     /**
