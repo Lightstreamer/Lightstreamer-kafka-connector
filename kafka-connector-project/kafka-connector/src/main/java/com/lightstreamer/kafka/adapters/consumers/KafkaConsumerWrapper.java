@@ -24,6 +24,7 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
@@ -86,27 +87,33 @@ public class KafkaConsumerWrapper<K, V> {
             /** The loop is initialized, ready to consume records. */
             INITIALIZED,
 
-            /** The init stage failed because of subscription issues. */
-            INIT_FAILED_BY_SUBSCRIPTION,
+            /** The init stage failed because the requested topics were not found on the broker. */
+            INIT_FAILED_ON_MISSING_TOPICS,
 
-            /** The init stage failed because of an exception. */
-            INIT_FAILED_BY_EXCEPTION,
+            /**
+             * The init stage failed because an unexpected exception propagated out of the
+             * initialization cycle.
+             */
+            INIT_FAILED_ON_ERROR,
 
-            /** The loop is closed because of an exception. */
-            LOOP_CLOSED_BY_EXCEPTION,
+            /**
+             * The consuming loop terminated because an unexpected exception propagated out of the
+             * poll/processing cycle.
+             */
+            LOOP_CLOSED_ON_ERROR,
 
-            /** The consuming loop exited normally due to shutdown. */
-            LOOP_CLOSED_BY_SHUTDOWN,
-
-            /** The loop is closed because it was woken up by shutdown. */
-            LOOP_CLOSED_BY_WAKEUP,
+            /**
+             * The consuming loop exited gracefully because a pending {@code wakeup()} unwound an
+             * in-progress {@code poll()} with a {@code WakeupException}.
+             */
+            LOOP_CLOSED_ON_WAKEUP,
 
             /** The loop is in a shutdown state. */
             SHUTDOWN;
 
             public boolean initFailed() {
-                return this.equals(INIT_FAILED_BY_SUBSCRIPTION)
-                        || this.equals(INIT_FAILED_BY_EXCEPTION);
+                return this.equals(INIT_FAILED_ON_MISSING_TOPICS)
+                        || this.equals(INIT_FAILED_ON_ERROR);
             }
         }
 
@@ -154,20 +161,6 @@ public class KafkaConsumerWrapper<K, V> {
          */
         public boolean initFailed() {
             return futureState.isDone() && futureState.join().initFailed();
-        }
-
-        /**
-         * Checks whether the consuming loop has exited, either normally or due to an exception.
-         *
-         * @return {@code true} if the loop has closed, {@code false} otherwise
-         */
-        public boolean isClosed() {
-            if (!futureState.isDone()) {
-                return false;
-            }
-            State state = futureState.join();
-            return state.equals(State.LOOP_CLOSED_BY_EXCEPTION)
-                    || state.equals(State.LOOP_CLOSED_BY_SHUTDOWN);
         }
 
         /**
@@ -219,11 +212,10 @@ public class KafkaConsumerWrapper<K, V> {
     private final ItemEventListener eventListener;
     private final boolean eagerLifecycle;
     private final ReentrantLock statusLock = new ReentrantLock();
-    private volatile boolean closed = false;
 
     // Captures the exception that terminated the poll loop, published to the loop-closed callback
     // registered in updateStatus(). Written in run() before the loop future completes normally with
-    // LOOP_CLOSED_BY_EXCEPTION, establishing a happens-before with the callback invocation.
+    // LOOP_CLOSED_ON_ERROR, establishing a happens-before with the callback invocation.
     private volatile KafkaException pollFailureCause;
 
     private volatile Thread hook;
@@ -327,7 +319,7 @@ public class KafkaConsumerWrapper<K, V> {
      * @param pool the {@link ExecutorService} to run the consuming loop on
      * @param onLoopClosedByException callback invoked with the {@link KafkaException} that
      *     terminated the consuming loop when the loop closes in the {@link
-     *     FutureStatus.State#LOOP_CLOSED_BY_EXCEPTION LOOP_CLOSED_BY_EXCEPTION} state
+     *     FutureStatus.State#LOOP_CLOSED_ON_ERROR LOOP_CLOSED_ON_ERROR} state
      * @return the {@link FutureStatus} representing the outcome of the start attempt
      */
     public FutureStatus start(
@@ -365,7 +357,7 @@ public class KafkaConsumerWrapper<K, V> {
         CompletableFuture<State> whenComplete =
                 stage.whenComplete(
                         (state, t) -> {
-                            if (state == State.LOOP_CLOSED_BY_EXCEPTION) {
+                            if (state == State.LOOP_CLOSED_ON_ERROR) {
                                 onLoopClosedByException.accept(pollFailureCause);
                             }
                         });
@@ -390,11 +382,11 @@ public class KafkaConsumerWrapper<K, V> {
                 logger.atWarn()
                         .log(
                                 "Initialization failed because the requested topics were not found on the broker");
-                return State.INIT_FAILED_BY_SUBSCRIPTION;
+                return State.INIT_FAILED_ON_MISSING_TOPICS;
             }
         } catch (RuntimeException e) {
             logger.atWarn().setCause(e).log("Initialization failed because of an exception");
-            return State.INIT_FAILED_BY_EXCEPTION;
+            return State.INIT_FAILED_ON_ERROR;
         }
     }
 
@@ -466,7 +458,7 @@ public class KafkaConsumerWrapper<K, V> {
     void catchUp() {
         logger.atInfo().log("Starting catch-up phase until end offsets are reached");
         Map<TopicPartition, Long> endOffsets = null;
-        while (!closed) {
+        while (true) {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
             if (!records.isEmpty()) {
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records);
@@ -504,14 +496,13 @@ public class KafkaConsumerWrapper<K, V> {
             consumeForEver(recordConsumer::consumeBatch);
         } catch (WakeupException e) {
             logger.atDebug().log("Internal Kafka client woken up");
-            return State.LOOP_CLOSED_BY_WAKEUP;
         } catch (KafkaException e) {
             this.pollFailureCause = e;
-            return State.LOOP_CLOSED_BY_EXCEPTION;
+            return State.LOOP_CLOSED_ON_ERROR;
         } finally {
             cleanUpResources();
         }
-        return State.LOOP_CLOSED_BY_SHUTDOWN;
+        return State.LOOP_CLOSED_ON_WAKEUP;
     }
 
     private void installShutdownHook() {
@@ -531,13 +522,15 @@ public class KafkaConsumerWrapper<K, V> {
                 "Starting polling forever with poll timeout of {} ms and max.poll.records {}",
                 pollDuration.toMillis(),
                 getProperty(MAX_POLL_RECORDS_CONFIG));
-        while (!closed) {
+        while (true) {
             try {
-                logger.atInfo().log("Polling for records...");
                 ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
                 recordConsumer.accept(batch);
-                logger.atInfo().log("Polled and processed a batch of records {}", batch.count());
+                if (!batch.isEmpty()) {
+                    logger.atInfo().log(
+                            "Polled and processed a batch of records {}", batch.count());
+                }
             } catch (WakeupException we) {
                 // Rethrow before the KafkaException catch (WakeupException extends KafkaException)
                 logger.atDebug().log("Kafka consumer woken up during poll");
@@ -580,9 +573,9 @@ public class KafkaConsumerWrapper<K, V> {
             if (status.isConnected()) {
                 // Never started — no async thread to join, just clean up resources
                 cleanUpResources();
-            } else if (!status.initFailed() && !status.isClosed()) {
-                // Init failure and loop exit already cleaned up — only doShutdown if loop is still
-                // running
+            } else if (!status.isStateAvailable()) {
+                // Only doShutdown if the loop is still running (future not yet resolved); init
+                // failure and loop exit have already cleaned up their own resources
                 doShutdown();
             }
 
@@ -599,7 +592,6 @@ public class KafkaConsumerWrapper<K, V> {
 
     private void doShutdown() {
         logger.atInfo().log("Shutting down Kafka consumer");
-        closed = true;
         logger.atInfo().log("Waking up internal Kafka client");
         consumer.wakeup();
         logger.atInfo().log("Waiting for graceful thread completion");
