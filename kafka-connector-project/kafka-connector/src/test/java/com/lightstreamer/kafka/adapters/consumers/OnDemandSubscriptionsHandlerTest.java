@@ -18,10 +18,10 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_BY_EXCEPTION;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_BY_SUBSCRIPTION;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_BY_EXCEPTION;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_BY_SHUTDOWN;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_ON_ERROR;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.INIT_FAILED_ON_MISSING_TOPICS;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_ON_ERROR;
+import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State.LOOP_CLOSED_ON_WAKEUP;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
@@ -214,7 +214,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // The subscribed topic does not exist on the broker, causing a delayed forced
         // unsubscription after the internal consumer has been created and the subscription
         // registered, so joinCurrentState() resolves to the corresponding failure status.
-        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_SUBSCRIPTION);
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_ON_MISSING_TOPICS);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
 
@@ -244,7 +244,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // joinCurrentState() resolves to the corresponding failure status.
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
-        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_BY_EXCEPTION);
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(INIT_FAILED_ON_ERROR);
 
         // Yet the item is still registered.
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(1);
@@ -291,7 +291,7 @@ public class OnDemandSubscriptionsHandlerTest {
         // The exception while polling causes a delayed forced unsubscription, after the
         // internal consumer has been created and the subscription registered, so
         // joinCurrentState() resolves to the corresponding failure status.
-        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_BY_EXCEPTION);
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_ON_ERROR);
         assertThat(metadataListener.forcedUnsubscription()).isTrue();
         assertThat(subscriptionsHandler.isConsumerActive()).isTrue();
 
@@ -346,7 +346,7 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.isConsuming()).isFalse();
 
         // After unsubscription, the handler should not be consuming anymore.
-        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_BY_SHUTDOWN);
+        assertThat(subscriptionsHandler.joinCurrentState()).hasValue(LOOP_CLOSED_ON_WAKEUP);
     }
 
     @Test
