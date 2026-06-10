@@ -27,6 +27,7 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
@@ -75,8 +76,9 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                         new KafkaConnectorDataAdapterOpts(
                                 connectorConfig.getAdapterName(),
                                 connectorConfig.isEnabled(),
-                                connectorConfig.isAutoCommandMode()
-                                        || connectorConfig.isExplicitCommandMode()));
+                                !connectorConfig
+                                        .getEvaluateCommandMode()
+                                        .equals(EvaluateCommandMode.DISABLED)));
 
         this.logger.atInfo().log("Configuring Kafka Connector");
         this.subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
@@ -136,14 +138,12 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void subscribe(
             @Nonnull String itemName, @Nonnull Object itemHandle, boolean needsIterator)
             throws SubscriptionException, FailureException {
-        logger.info("Trying subscription to item [{}]", itemName);
         subscriptionsHandler.subscribe(itemName, itemHandle);
     }
 
     @Override
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
-        logger.info("Unsubscribing from item [{}]", itemName);
         subscriptionsHandler.unsubscribe(itemName);
     }
 }
