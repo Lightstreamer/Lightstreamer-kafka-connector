@@ -149,10 +149,10 @@ public interface SubscriptionsHandler<K, V> {
             }
 
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
-            if (connectionSpec.commandMode().manageSnapshot() && itemSnapshotEnabled) {
+            if (connectionSpec.evaluateCommandMode().manageSnapshot() && itemSnapshotEnabled) {
                 throw new IllegalStateException(
                         "Invalid configuration: command mode "
-                                + connectionSpec.commandMode()
+                                + connectionSpec.evaluateCommandMode()
                                 + " is not compatible with item snapshot enablement");
             }
             if (itemSnapshotEnabled) {
@@ -309,7 +309,7 @@ public interface SubscriptionsHandler<K, V> {
 
         @Override
         public boolean isSnapshotAvailable(String itemName) {
-            return connectionSpec.commandMode().manageSnapshot();
+            return connectionSpec.evaluateCommandMode().manageSnapshot();
         }
 
         /**
