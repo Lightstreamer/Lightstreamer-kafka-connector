@@ -17,12 +17,12 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode.DISABLED;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode.DISABLED;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
 import static com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy.ORDER_BY_PARTITION;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.CommandEvents.Command;
@@ -105,7 +105,7 @@ public class RecordConsumerSupport {
         protected OrderStrategy orderStrategy = ORDER_BY_PARTITION;
         protected boolean preferSingleThread = false;
         protected boolean enableCatchUp = false;
-        protected CommandMode commandMode = DISABLED;
+        protected EvaluateCommandMode commandMode = DISABLED;
         protected RecordErrorHandlingStrategy errorStrategy = IGNORE_AND_CONTINUE;
         protected Monitor monitor;
 
@@ -179,13 +179,17 @@ public class RecordConsumerSupport {
             super(parentBuilder);
         }
 
-        public WithOptionalsImpl<K, V> errorStrategy(RecordErrorHandlingStrategy strategy) {
-            parentBuilder.errorStrategy = Objects.requireNonNull(strategy, "ErrorStrategy not set");
+        @Override
+        public WithOptionals<K, V> errorStrategy(RecordErrorHandlingStrategy errorStrategy) {
+            parentBuilder.errorStrategy =
+                    Objects.requireNonNull(errorStrategy, "ErrorStrategy not set");
             return this;
         }
 
-        public WithOptionalsImpl<K, V> commandMode(CommandMode strategy) {
-            parentBuilder.commandMode = Objects.requireNonNull(strategy, "CommandMode not set");
+        @Override
+        public WithOptionals<K, V> evaluateCommandMode(EvaluateCommandMode commandMode) {
+            parentBuilder.commandMode =
+                    Objects.requireNonNull(commandMode, "EvaluateCommandMode not set");
             return this;
         }
 
@@ -227,7 +231,7 @@ public class RecordConsumerSupport {
             }
 
             ProcessUpdatesStrategy processUpdatesStrategy =
-                    ProcessUpdatesStrategy.fromCommandMode(parentBuilder.commandMode);
+                    ProcessUpdatesStrategy.fromEvaluateCommandMode(parentBuilder.commandMode);
 
             this.parentBuilder.processor =
                     new RecordProcessorImpl<>(
@@ -239,7 +243,8 @@ public class RecordConsumerSupport {
             if (parentBuilder.threads != 1
                     && !processUpdatesStrategy.type().allowConcurrentProcessing()) {
                 throw new IllegalArgumentException(
-                        "Command mode does not support parallel processing");
+                        "Command mode [%s] does not support parallel processing"
+                                .formatted(parentBuilder.commandMode));
             }
 
             if (parentBuilder.threads == 1 && parentBuilder.preferSingleThread) {
@@ -253,7 +258,7 @@ public class RecordConsumerSupport {
      * Strategy for dispatching mapped record updates to {@link SubscribedItem} instances.
      *
      * @see DefaultUpdatesStrategy
-     * @see CommandProcessUpdatesStrategy
+     * @see ExplicitCommandModeProcessUpdatesStrategy
      * @see AutoCommandModeProcessUpdatesStrategy
      */
     interface ProcessUpdatesStrategy {
@@ -261,15 +266,17 @@ public class RecordConsumerSupport {
         // Static factory methods
 
         /**
-         * Creates a {@code ProcessUpdatesStrategy} corresponding to the given {@link CommandMode}.
+         * Creates a {@code ProcessUpdatesStrategy} corresponding to the given {@link
+         * EvaluateCommandMode}.
          *
-         * @param commandMode the command mode configuration
+         * @param evaluateCommandMode the command mode configuration
          * @return the matching strategy implementation
          */
-        static ProcessUpdatesStrategy fromCommandMode(CommandMode commandMode) {
-            return switch (commandMode) {
+        static ProcessUpdatesStrategy fromEvaluateCommandMode(
+                EvaluateCommandMode evaluateCommandMode) {
+            return switch (evaluateCommandMode) {
                 case DISABLED -> defaultStrategy();
-                case EXPLICIT -> commandStrategy();
+                case EXPLICIT -> explicitCommandModeStrategy();
                 case AUTO -> autoCommandModeStrategy();
             };
         }
@@ -284,12 +291,12 @@ public class RecordConsumerSupport {
         }
 
         /**
-         * Creates a strategy that enforces command mode semantics on all updates.
+         * Creates a strategy that enforces explicit command mode semantics on all updates.
          *
-         * @return a new {@link CommandProcessUpdatesStrategy}
+         * @return a new {@link ExplicitCommandModeProcessUpdatesStrategy}
          */
-        static ProcessUpdatesStrategy commandStrategy() {
-            return new CommandProcessUpdatesStrategy();
+        static ProcessUpdatesStrategy explicitCommandModeStrategy() {
+            return new ExplicitCommandModeProcessUpdatesStrategy();
         }
 
         /**
@@ -429,10 +436,8 @@ public class RecordConsumerSupport {
         }
     }
 
-    /** Strategy that enforces strict command mode semantics, validating and routing commands. */
-    static final class CommandProcessUpdatesStrategy extends DefaultUpdatesStrategy {
-
-        CommandProcessUpdatesStrategy() {}
+    /** Strategy that enforces explicit command mode semantics, validating and routing commands. */
+    static final class ExplicitCommandModeProcessUpdatesStrategy extends DefaultUpdatesStrategy {
 
         @Override
         public void sendUpdates(
@@ -453,7 +458,7 @@ public class RecordConsumerSupport {
 
             Command cmd = command.get();
             for (SubscribedItem sub : routable) {
-                getLogger().atDebug().log("Enforce COMMAND mode semantic of records read");
+                getLogger().atDebug().log("Enforce explicit COMMAND mode semantic of records read");
 
                 if (cmd.isControlFlag()) {
                     handleControlFlag(cmd, sub, listener);
@@ -533,7 +538,7 @@ public class RecordConsumerSupport {
 
         @Override
         public ProcessUpdatesType type() {
-            return ProcessUpdatesType.COMMAND;
+            return ProcessUpdatesType.EXPLICIT_COMMAND_MODE;
         }
     }
 
