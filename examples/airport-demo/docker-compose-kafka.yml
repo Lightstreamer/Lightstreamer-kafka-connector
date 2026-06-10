@@ -83,7 +83,7 @@ configs:
               <param name="map.Flights.to">flights-board</param>
 
               <!-- Enable support for COMMAND mode. -->
-              <param name="fields.evaluate.as.command.enable">true</param>
+              <param name="fields.evaluate.command.mode">EXPLICIT</param>
 
               <!-- Extraction of the record value attributes mapped to corresponding field names. -->
               <param name="field.key">#{KEY}</param>
