@@ -22,6 +22,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CHAR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATE_COMMAND_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
@@ -52,7 +53,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_M
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -117,10 +118,7 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
             "fields.map.non.scalar.values.enable";
 
-    public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
-            "fields.evaluate.as.command.enable";
-
-    public static final String FIELDS_AUTO_COMMAND_MODE_ENABLE = "fields.auto.command.mode.enable";
+    public static final String FIELDS_EVALUATE_COMMAND_MODE = "fields.evaluate.command.mode";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -258,17 +256,11 @@ public final class ConnectorConfig extends AbstractConfig {
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
                         .add(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
+                                FIELDS_EVALUATE_COMMAND_MODE,
                                 false,
                                 false,
-                                BOOL,
-                                defaultValue("false"))
-                        .add(
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                false,
-                                false,
-                                BOOL,
-                                defaultValue("false"))
+                                EVALUATE_COMMAND_MODE,
+                                defaultValue(EvaluateCommandMode.DISABLED.toString()))
                         .add(RECORD_KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -437,6 +429,7 @@ public final class ConnectorConfig extends AbstractConfig {
     private final List<TopicMappingConfig> topicMappings;
 
     private FieldConfigs fieldConfigs;
+    private RecordErrorHandlingStrategy effectiveErrorStrategy;
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
@@ -461,7 +454,8 @@ public final class ConnectorConfig extends AbstractConfig {
         checkSchemaConfig(true);
         checkSchemaConfig(false);
         checkTopicMappingRegex();
-        checkCommandMode();
+        checkEvaluateCommandMode();
+        resolveRecordErrorStrategy();
     }
 
     private void checkSchemaConfig(boolean isKey) {
@@ -518,37 +512,79 @@ public final class ConnectorConfig extends AbstractConfig {
                         });
     }
 
-    private void checkCommandMode() {
-        if (isAutoCommandMode()) {
-            checkCommandKey();
-            return;
-        }
+    private void checkEvaluateCommandMode() {
+        EvaluateCommandMode evaluateCommandMode = getEvaluateCommandMode();
+        switch (evaluateCommandMode) {
+            case DISABLED -> {
+                // No specific requirement for no command mode
+            }
+            case AUTO -> {
+                checkCommandKey(EvaluateCommandMode.AUTO);
+                if (isItemSnapshotEnabled()) {
+                    throw new ConfigException(
+                            "Parameter [%s] set to [%s] requires [%s] to be [false]"
+                                    .formatted(
+                                            FIELDS_EVALUATE_COMMAND_MODE,
+                                            EvaluateCommandMode.AUTO,
+                                            ITEM_SNAPSHOT_ENABLE));
+                }
+            }
 
-        if (isExplicitCommandMode()) {
-            if (getRecordConsumeWithNumThreads() != 1) {
-                throw new ConfigException(
-                        "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
-                                .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
-            }
-            checkCommandKey();
-            if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
-                throw new ConfigException(
-                        "Command mode requires a command field. Parameter [%s] must be set"
-                                .formatted("field.command"));
-            }
-            if (isItemSnapshotEnabled()) {
-                throw new ConfigException(
-                        "Item snapshot does not allow command mode. Parameter [%s] must be set to [false]"
-                                .formatted(ITEM_SNAPSHOT_ENABLE));
+            case EXPLICIT -> {
+                if (getRecordConsumeWithNumThreads() != 1) {
+                    throw new ConfigException(
+                            "Parameter [%s] set to [%s] requires [%s] to be [1]"
+                                    .formatted(
+                                            FIELDS_EVALUATE_COMMAND_MODE,
+                                            EvaluateCommandMode.EXPLICIT,
+                                            RECORD_CONSUME_WITH_NUM_THREADS));
+                }
+                checkCommandKey(EvaluateCommandMode.EXPLICIT);
+                if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
+                    throw new ConfigException(
+                            "Parameter [%s] set to [%s] requires [fields.command] to be set"
+                                    .formatted(
+                                            FIELDS_EVALUATE_COMMAND_MODE,
+                                            EvaluateCommandMode.EXPLICIT));
+                }
+                if (isItemSnapshotEnabled()) {
+                    throw new ConfigException(
+                            "Parameter [%s] set to [%s] requires [%s] to be [false]"
+                                    .formatted(
+                                            FIELDS_EVALUATE_COMMAND_MODE,
+                                            EvaluateCommandMode.EXPLICIT,
+                                            ITEM_SNAPSHOT_ENABLE));
+                }
             }
         }
     }
 
-    private void checkCommandKey() {
+    private void checkCommandKey(EvaluateCommandMode mode) {
         if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
             throw new ConfigException(
-                    "Command mode requires a key field. Parameter [%s] must be set"
-                            .formatted("field.key"));
+                    "Parameter [%s] set to [%s] requires [fields.key] to be set"
+                            .formatted(FIELDS_EVALUATE_COMMAND_MODE, mode));
+        }
+    }
+
+    /**
+     * Resolves the effective record-extraction error strategy.
+     *
+     * <p>The eager pipeline activated by {@code item.snapshot.enable=true} cannot be restarted by a
+     * client reconnect: a terminated eager consumer would leave the Server's item store permanently
+     * stale. A configured {@link RecordErrorHandlingStrategy#FORCE_UNSUBSCRIPTION
+     * FORCE_UNSUBSCRIPTION} is therefore overridden to {@link
+     * RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE}.
+     */
+    private void resolveRecordErrorStrategy() {
+        RecordErrorHandlingStrategy configured =
+                RecordErrorHandlingStrategy.valueOf(
+                        get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+        if (isItemSnapshotEnabled()
+                && configured == RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION) {
+            this.effectiveErrorStrategy = RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+        } else {
+            this.effectiveErrorStrategy = configured;
         }
     }
 
@@ -652,42 +688,27 @@ public final class ConnectorConfig extends AbstractConfig {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
     }
 
-    public boolean isExplicitCommandMode() {
-        return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
-    }
-
-    public boolean isAutoCommandMode() {
-        return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
-    }
-
-    /**
-     * Returns the resolved {@link CommandMode} based on the auto and explicit command flags.
-     *
-     * @return the active {@link CommandMode}
-     */
-    public CommandMode getCommandMode() {
-        return CommandMode.from(isAutoCommandMode(), isExplicitCommandMode());
-    }
-
     public final RecordConsumeFrom getRecordConsumeFrom() {
         return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
+    public final EvaluateCommandMode getEvaluateCommandMode() {
+        return EvaluateCommandMode.valueOf(
+                get(FIELDS_EVALUATE_COMMAND_MODE, EVALUATE_COMMAND_MODE, false));
+    }
+
     /**
-     * Returns the error handling strategy for record extraction failures.
+     * Returns the effective error-handling strategy for record-extraction failures, as resolved
+     * during post-validation.
      *
-     * <p>When item snapshot is enabled, this always returns {@link
-     * RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE} regardless of the
-     * configured value.
+     * <p>When {@code item.snapshot.enable=true} a configured {@code FORCE_UNSUBSCRIPTION} is
+     * substituted by {@link RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE};
+     * see {@link #resolveRecordErrorStrategy()} for the rationale.
      *
      * @return the active {@link RecordErrorHandlingStrategy}
      */
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
-        if (isItemSnapshotEnabled()) {
-            return RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
-        }
-        return RecordErrorHandlingStrategy.valueOf(
-                get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+        return effectiveErrorStrategy;
     }
 
     public final RecordConsumeWithOrderStrategy getRecordConsumeWithOrderStrategy() {
