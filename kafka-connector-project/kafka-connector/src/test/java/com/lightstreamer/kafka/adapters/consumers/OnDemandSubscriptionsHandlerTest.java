@@ -27,7 +27,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -69,7 +69,7 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
-            CommandMode commandMode,
+            EvaluateCommandMode commandMode,
             String... topics) {
 
         Properties properties = new Properties();
@@ -129,7 +129,7 @@ public class OnDemandSubscriptionsHandlerTest {
     private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
-        init(false, false, false, CommandMode.DISABLED, topics);
+        init(false, false, false, EvaluateCommandMode.DISABLED, topics);
     }
 
     void init(
@@ -141,7 +141,7 @@ public class OnDemandSubscriptionsHandlerTest {
                 exceptionOnConnection,
                 exceptionOnListTopics,
                 exceptionOnPoll,
-                CommandMode.DISABLED,
+                EvaluateCommandMode.DISABLED,
                 topics);
     }
 
@@ -149,7 +149,7 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
-            CommandMode commandMode,
+            EvaluateCommandMode commandMode,
             String... topics) {
         this.subscriptionsHandler =
                 mkSubscriptionsHandler(
@@ -311,14 +311,14 @@ public class OnDemandSubscriptionsHandlerTest {
 
     static Stream<Arguments> commandModes() {
         return Stream.of(
-                Arguments.of(CommandMode.DISABLED, false),
-                Arguments.of(CommandMode.EXPLICIT, true),
-                Arguments.of(CommandMode.AUTO, false));
+                Arguments.of(EvaluateCommandMode.DISABLED, false),
+                Arguments.of(EvaluateCommandMode.EXPLICIT, true),
+                Arguments.of(EvaluateCommandMode.AUTO, false));
     }
 
     @ParameterizedTest
     @MethodSource("commandModes")
-    public void shouldGetSnapshotAvailability(CommandMode commandMode, boolean expected) {
+    public void shouldGetSnapshotAvailability(EvaluateCommandMode commandMode, boolean expected) {
         init(false, false, false, commandMode, "aTopic");
         assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
     }
