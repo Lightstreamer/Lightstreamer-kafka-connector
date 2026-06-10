@@ -18,8 +18,7 @@
 package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -178,8 +177,8 @@ public class AdapterSetTest {
         connectorDataAdapter2.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
-                                ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 "field.key",
                                 "#{KEY}",
                                 "field.command",
@@ -193,8 +192,8 @@ public class AdapterSetTest {
         connectorDataAdapter3.init(
                 ConnectorConfigProvider.minimalConfigWith(
                         Map.of(
-                                ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
+                                ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE,
+                                "AUTO",
                                 "field.key",
                                 "#{KEY}")),
                 adapterDir.toFile());
@@ -337,8 +336,8 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.DISTINCT,
                         Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 "field.key",
                                 "#{KEY}",
                                 "field.command",
@@ -347,8 +346,8 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.MERGE,
                         Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 "field.key",
                                 "#{KEY}",
                                 "field.command",
@@ -357,8 +356,8 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.RAW,
                         Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 "field.key",
                                 "#{KEY}",
                                 "field.command",
@@ -367,8 +366,8 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.COMMAND,
                         Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 "field.key",
                                 "#{KEY}",
                                 "field.command",
@@ -377,19 +376,19 @@ public class AdapterSetTest {
                 // Test with usage of command mode through "fields.auto.command.mode.enable"
                 Arguments.of(
                         Mode.DISTINCT,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.MERGE,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.RAW,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.COMMAND,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
+                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
                         true));
     }
 
