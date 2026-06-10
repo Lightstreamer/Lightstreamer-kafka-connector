@@ -24,7 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Options;
@@ -189,17 +189,9 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldGetCommandMode() {
-        assertThat(CommandMode.from(true, false)).isEqualTo(CommandMode.AUTO);
-        assertThat(CommandMode.from(true, true)).isEqualTo(CommandMode.AUTO);
-        assertThat(CommandMode.from(false, true)).isEqualTo(CommandMode.EXPLICIT);
-        assertThat(CommandMode.from(false, false)).isEqualTo(CommandMode.DISABLED);
-    }
-
-    @Test
     public void shouldCommandModeManageSnapshot() {
-        assertThat(CommandMode.AUTO.manageSnapshot()).isFalse();
-        assertThat(CommandMode.EXPLICIT.manageSnapshot()).isTrue();
-        assertThat(CommandMode.DISABLED.manageSnapshot()).isFalse();
+        assertThat(EvaluateCommandMode.AUTO.manageSnapshot()).isFalse();
+        assertThat(EvaluateCommandMode.EXPLICIT.manageSnapshot()).isTrue();
+        assertThat(EvaluateCommandMode.DISABLED.manageSnapshot()).isFalse();
     }
 }
