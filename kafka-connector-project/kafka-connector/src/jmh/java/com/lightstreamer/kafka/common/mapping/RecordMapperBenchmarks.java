@@ -92,7 +92,7 @@ public class RecordMapperBenchmarks {
             ConnectionSpec<String, V> config =
                     (ConnectionSpec<String, V>) configurator.connectionSpec();
             this.subscribedItems =
-                    BenchmarksUtils.subscriptions(
+                    BenchmarksUtils.onDemandSubscriptions(
                             numOfSubscriptions, new FakeEventListener(bh), numOfTemplateParams);
 
             // Generate the test records.
