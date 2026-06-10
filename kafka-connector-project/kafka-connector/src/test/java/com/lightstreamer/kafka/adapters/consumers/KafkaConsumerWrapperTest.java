@@ -23,7 +23,7 @@ import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.Su
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -137,7 +137,7 @@ public class KafkaConsumerWrapperTest {
                 topicsBroker,
                 trowExceptionWhileCheckingExistingTopic,
                 false,
-                CommandMode.DISABLED,
+                EvaluateCommandMode.DISABLED,
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                 2,
                 RecordConsumeWithOrderStrategy.UNORDERED,
@@ -148,7 +148,7 @@ public class KafkaConsumerWrapperTest {
             Set<String> topicsBroker,
             boolean trowExceptionWhileCheckingExistingTopic,
             boolean enableSubscriptionPattern,
-            CommandMode commandMode,
+            EvaluateCommandMode commandMode,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy,
@@ -191,7 +191,7 @@ public class KafkaConsumerWrapperTest {
 
     private ConnectionSpec<String, String> makeConnectionSpec(
             boolean enableSubscriptionPattern,
-            CommandMode commandMode,
+            EvaluateCommandMode commandMode,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy) {
@@ -216,7 +216,7 @@ public class KafkaConsumerWrapperTest {
                         // threads
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         // expectedParallelism
                         false,
@@ -227,16 +227,16 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        CommandMode.EXPLICIT,
+                        EvaluateCommandMode.EXPLICIT,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         false,
                         OrderStrategy.ORDER_BY_PARTITION,
-                        ProcessUpdatesType.COMMAND,
+                        ProcessUpdatesType.EXPLICIT_COMMAND_MODE,
                         false),
                 Arguments.of(
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.ORDER_BY_KEY,
@@ -245,7 +245,7 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.UNORDERED,
@@ -254,7 +254,7 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        CommandMode.AUTO,
+                        EvaluateCommandMode.AUTO,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.UNORDERED,
@@ -267,7 +267,7 @@ public class KafkaConsumerWrapperTest {
     public void shouldCreateWrapper(
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
-            CommandMode commandMode,
+            EvaluateCommandMode commandMode,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean expectedParallelism,
             OrderStrategy expectedOrderStrategy,
@@ -344,7 +344,7 @@ public class KafkaConsumerWrapperTest {
                         Set.of("topic", "topic2"),
                         false,
                         enableSubscriptionToPattern,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
@@ -379,7 +379,7 @@ public class KafkaConsumerWrapperTest {
                         availableTopicsOnBroker,
                         false,
                         false,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
