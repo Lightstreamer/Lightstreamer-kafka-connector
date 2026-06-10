@@ -99,7 +99,7 @@ public class RecordProcessorTest {
         }
     }
 
-    private static RecordMapper<String, String> mapperForCommandMode() {
+    private static RecordMapper<String, String> mapperForExplicitCommandMode() {
         try {
             return builder()
                     .addCanonicalItemExtractor(
@@ -384,11 +384,12 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
-        assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND);
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
+        assertThat(processor.processUpdatesType())
+                .isEqualTo(ProcessUpdatesType.EXPLICIT_COMMAND_MODE);
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
@@ -417,10 +418,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         OnDemandSubscribedItem item =
@@ -440,10 +441,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         OnDemandSubscribedItem item =
@@ -463,10 +464,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         OnDemandSubscribedItem item =
@@ -485,10 +486,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
@@ -512,10 +513,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
@@ -540,10 +541,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1" and process the record
         Object itemHandle = new Object();
@@ -569,10 +570,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1"
         Object itemHandle = new Object();
@@ -633,10 +634,10 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForCommandMode(),
+                        mapperForExplicitCommandMode(),
                         this.eventListener,
                         subscribedItems,
-                        ProcessUpdatesStrategy.commandStrategy());
+                        ProcessUpdatesStrategy.explicitCommandModeStrategy());
 
         // Subscribe to "item1"
         Object itemHandle = new Object();
