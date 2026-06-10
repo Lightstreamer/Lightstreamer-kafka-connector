@@ -24,7 +24,6 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
-import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
@@ -53,6 +52,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -282,7 +282,7 @@ public class KafkaConsumerWrapper<K, V> {
                         .offsetService(offsetService)
                         .logger(logger)
                         .errorStrategy(this.connectionSpec.errorHandlingStrategy())
-                        .commandMode(this.connectionSpec.commandMode())
+                        .evaluateCommandMode(this.connectionSpec.evaluateCommandMode())
                         .enableCatchUp(eagerLifecycle)
                         .threads(concurrency.threads())
                         .ordering(OrderStrategy.from(concurrency.orderStrategy()))
@@ -458,11 +458,14 @@ public class KafkaConsumerWrapper<K, V> {
     void catchUp() {
         logger.atInfo().log("Starting catch-up phase until end offsets are reached");
         Map<TopicPartition, Long> endOffsets = null;
+        AtomicLong totalCaughtUpRecords = new AtomicLong();
+        long startTime = System.currentTimeMillis();
         while (true) {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
             if (!records.isEmpty()) {
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records);
                 recordConsumer.consumeBatch(batch);
+                totalCaughtUpRecords.addAndGet(batch.count());
             }
             // End offsets are captured once the first poll triggers the rebalance callback
             if (endOffsets == null) {
@@ -475,8 +478,12 @@ public class KafkaConsumerWrapper<K, V> {
                 // the Server to serve a complete initial snapshot to clients connecting
                 // after catch-up completes.
                 subscribedItems.forEach(item -> item.endOfSnapshot(eventListener));
+                long endTime = System.currentTimeMillis();
                 logger.atInfo().log(
-                        "Catch-up phase completed — all partitions reached end offsets");
+                        "Catch-up phase completed, total records caught up: {}, total subscriptions forced: {}, duration: {} ms",
+                        totalCaughtUpRecords.get(),
+                        subscribedItems.size(),
+                        endTime - startTime);
                 return;
             }
         }
@@ -527,10 +534,6 @@ public class KafkaConsumerWrapper<K, V> {
                 ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records, false);
                 recordConsumer.accept(batch);
-                if (!batch.isEmpty()) {
-                    logger.atInfo().log(
-                            "Polled and processed a batch of records {}", batch.count());
-                }
             } catch (WakeupException we) {
                 // Rethrow before the KafkaException catch (WakeupException extends KafkaException)
                 logger.atDebug().log("Kafka consumer woken up during poll");
