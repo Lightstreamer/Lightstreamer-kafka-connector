@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
@@ -40,8 +40,7 @@ import java.util.function.Function;
  * Consumes {@link RecordBatch} instances, dispatching each record to a {@link RecordProcessor}
  * according to the configured error handling and ordering strategies.
  *
- * <p>Instances are created via a step builder starting from {@link #recordMapper(RecordMapper)} or
- * {@link #recordProcessor(RecordProcessor)}.
+ * <p>Instances are created via a step builder starting from {@link #recordMapper(RecordMapper)}.
  *
  * @param <K> the type of the key in the Kafka record
  * @param <V> the type of the value in the Kafka record
@@ -91,8 +90,25 @@ public interface RecordConsumer<K, V> {
 
         /** Determines how updates are dispatched to subscribed items. */
         enum ProcessUpdatesType {
+            /**
+             * Standard dispatch with no COMMAND-mode synthesis: each record is delivered as an
+             * update event, leaving interpretation to the subscription mode (e.g. {@code MERGE},
+             * {@code DISTINCT}, {@code RAW}).
+             */
             DEFAULT,
-            COMMAND,
+
+            /**
+             * Explicit COMMAND-mode dispatch: the record's extracted fields drive the {@code
+             * command} column (e.g. {@code ADD}/{@code UPDATE}/{@code DELETE}) directly. Concurrent
+             * processing is disabled to preserve per-key command ordering.
+             */
+            EXPLICIT_COMMAND_MODE,
+
+            /**
+             * Auto COMMAND-mode dispatch: the connector synthesizes the {@code command} column
+             * automatically (typically {@code ADD}/{@code UPDATE}, with {@code DELETE} on
+             * tombstones). Concurrent processing remains allowed.
+             */
             AUTO_COMMAND_MODE;
 
             /**
@@ -101,7 +117,7 @@ public interface RecordConsumer<K, V> {
              * @return {@code true} if concurrent processing is allowed, {@code false} otherwise
              */
             boolean allowConcurrentProcessing() {
-                return this != COMMAND;
+                return this != EXPLICIT_COMMAND_MODE;
             }
         }
 
@@ -140,12 +156,12 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for configuring a {@link RecordProcessor}.
+     * Builder step for setting the {@link SubscribedItems}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
      */
-    public interface StartBuildingProcessor<K, V> {
+    interface StartBuildingProcessor<K, V> {
 
         /**
          * Sets the subscribed items for the processor.
@@ -174,12 +190,12 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for configuring a {@link RecordConsumer}.
+     * Builder step for setting the {@link OffsetService}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
      */
-    public interface WithEventListener<K, V> {
+    interface WithEventListener<K, V> {
 
         /**
          * Sets the {@link OffsetService} for offset management.
@@ -226,10 +242,10 @@ public interface RecordConsumer<K, V> {
         /**
          * Sets the command mode for update dispatch.
          *
-         * @param commandMode the {@link CommandMode} to apply
+         * @param evaluateCommandMode the {@link EvaluateCommandMode} to apply
          * @return this builder step
          */
-        WithOptionals<K, V> commandMode(CommandMode commandMode);
+        WithOptionals<K, V> evaluateCommandMode(EvaluateCommandMode evaluateCommandMode);
 
         /**
          * Enables or disables the catch-up phase for this consumer.
