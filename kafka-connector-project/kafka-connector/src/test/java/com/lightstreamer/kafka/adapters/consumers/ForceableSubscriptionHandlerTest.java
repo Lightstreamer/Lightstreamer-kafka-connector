@@ -24,7 +24,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -85,7 +85,7 @@ public class ForceableSubscriptionHandlerTest {
                                         .valueSelectorSupplier()
                                         .deserializer()),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        CommandMode.DISABLED,
+                        EvaluateCommandMode.DISABLED,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
