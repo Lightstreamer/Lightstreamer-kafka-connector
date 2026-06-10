@@ -75,6 +75,9 @@ public class RecordConsumerBenchmark {
     @State(Scope.Thread)
     public static class Plan<V> {
 
+        @Param({"ON_DEMAND", "BUFFERED"})
+        String subscriptionType;
+
         @Param({"JSON", "PROTOBUF"})
         String type;
 
@@ -134,8 +137,11 @@ public class RecordConsumerBenchmark {
 
             // Make the RecordConsumer.
             this.subscribedItems =
-                    BenchmarksUtils.subscriptions(
-                            numOfSubscriptions, listener, numOfTemplateParams);
+                    "ON_DEMAND".equals(subscriptionType)
+                            ? BenchmarksUtils.onDemandSubscriptions(
+                                    numOfSubscriptions, listener, numOfTemplateParams)
+                            : BenchmarksUtils.forceableSubscriptions(
+                                    numOfSubscriptions, listener, numOfTemplateParams);
             this.recordConsumer =
                     RecordConsumer.recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
@@ -175,6 +181,9 @@ public class RecordConsumerBenchmark {
         static String TOPIC = "ltest";
 
         static String[] TOPICS = {TOPIC};
+
+        @Param({"ON_DEMAND", "BUFFERED"})
+        String subscriptionType;
 
         @Param({"1"})
         int threads;
@@ -225,7 +234,10 @@ public class RecordConsumerBenchmark {
                     BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
-            this.subscribedItems = priceInfoRecords.subscriptions(numOfSubscriptions, listener);
+            this.subscribedItems =
+                    "ON_DEMAND".equals(subscriptionType)
+                            ? priceInfoRecords.onDemandSubscriptions(numOfSubscriptions, listener)
+                            : priceInfoRecords.forceableSubscriptions(numOfSubscriptions, listener);
 
             this.recordConsumer =
                     RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
