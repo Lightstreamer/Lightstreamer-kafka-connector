@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
@@ -37,7 +37,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -206,7 +206,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.DISABLED);
+        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.DISABLED);
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
@@ -224,7 +224,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic2.to", "item-template.template1");
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
-        updatedConfigs.put(ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE, "AUTO");
         updatedConfigs.put("field.key", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
@@ -267,7 +267,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.AUTO);
+        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.AUTO);
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
@@ -284,7 +284,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
-        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE, "true");
+        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE, "EXPLICIT");
         updatedConfigs.put("field.key", "#{VALUE.key}");
         updatedConfigs.put("field.command", "#{VALUE.command}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
@@ -320,7 +320,7 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
 
-        assertThat(connectionSpec.commandMode()).isEqualTo(CommandMode.EXPLICIT);
+        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.EXPLICIT);
     }
 
     @Test
@@ -368,12 +368,12 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(ints = {-1, 2})
-    public void shouldNotCreateDueToIncompatibleCommandModeAndParallelism(int threads) {
+    public void shouldNotCreateDueToIncompatibleEvaluateCommandModeAndParallelism(int threads) {
         Map<String, String> config =
                 minimalConfigWith(
                         Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "EXPLICIT",
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 String.valueOf(threads)));
         ConfigException ce =
@@ -383,7 +383,7 @@ public class ConnectorConfiguratorTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
-                        "Command mode requires exactly one consumer thread. Parameter [record.consume.with.num.threads] must be set to [1]");
+                        "Parameter [fields.evaluate.command.mode] set to [EXPLICIT] requires [record.consume.with.num.threads] to be [1]");
     }
 
     @ParameterizedTest
