@@ -17,7 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -26,7 +26,7 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import java.util.Properties;
 
-/** Holds the configuration records that define how a Kafka consumer connection is set up. */
+/** Namespace for the immutable specification records that describe a Kafka consumer connection. */
 public interface ConsumerSettings {
 
     /**
@@ -41,8 +41,8 @@ public interface ConsumerSettings {
      * @param fieldsExtractor extracts field values from deserialized records
      * @param deserializerPair key and value deserializers for raw Kafka records
      * @param errorHandlingStrategy how deserialization or extraction errors are handled
-     * @param commandMode COMMAND mode behavior ({@code EXPLICIT}, {@code AUTO}, or {@code
-     *     DISABLED})
+     * @param evaluateCommandMode the {@link EvaluateCommandMode} behavior for this connection
+     *     ({@code EXPLICIT}, {@code AUTO}, or {@code DISABLED})
      * @param concurrency thread count and ordering strategy for record processing
      */
     record ConnectionSpec<K, V>(
@@ -52,7 +52,7 @@ public interface ConsumerSettings {
             FieldsExtractor<K, V> fieldsExtractor,
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             RecordErrorHandlingStrategy errorHandlingStrategy,
-            CommandMode commandMode,
+            EvaluateCommandMode evaluateCommandMode,
             Concurrency concurrency) {
 
         /**
