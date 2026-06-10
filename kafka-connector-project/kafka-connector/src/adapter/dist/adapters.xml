@@ -10,30 +10,32 @@
 <!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
-        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a
-             custom implementation by extending this class. -->
+        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to 
+             provide a custom implementation by extending this class. -->
         <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
 
-        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
+        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment 
+             folder LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
 
-    <!-- Mandatory. The Kafka Connector allows the configuration of different independent connections to different Kafka
-         broker/clusters.
+    <!-- Mandatory. The Kafka Connector allows the configuration of different independent 
+         connections to different Kafka broker/clusters.
 
-         Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
-         configuration must be provided.
+         Every single connection is configured via the definition of its own Lightstreamer Data 
+         Adapter. At least one connection configuration must be provided.
 
-         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several
-         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
-         configuration.
+         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal 
+         Kafka Consumer, several configuration settings in the Data Adapter are identical to those 
+         required by the usual Kafka Consumer configuration.
 
-         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the connection name, which will
-         be used by the Clients to request real-time data from this specific Kafka connection through a Subscription object.
+         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the 
+         connection name, which will be used by the Clients to request real-time data from this 
+         specific Kafka connection through a Subscription object.
 
-         The connection name is also used to group all logging messages belonging to the same connection.
+         The connection name is also used to group all logging messages belonging to the same 
+         connection.
 
          Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
     <data_provider name="QuickStart">
@@ -42,29 +44,35 @@
         <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
         <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
 
-        <!-- Optional. Enable this connection configuration. Can be one of the following:
+        <!-- Optional. Enables this connection configuration. Can be one of the following:
+
              - true
              - false
 
-             If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
+             If disabled, Lightstreamer Server will automatically deny every subscription made to 
+             this connection.
 
              Default value: true. -->
         <!--
         <param name="enable">false</param>
         -->
 
-        <!-- Mandatory. The Kafka Cluster bootstrap server endpoint expressed as the list of host/port pairs used to
-             establish the initial connection.
+        <!-- Mandatory. The Kafka Cluster bootstrap server endpoint expressed as the list of 
+             host/port pairs used to establish the initial connection.
 
-             The parameter sets the value of the "bootstrap.servers" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers for more details.
+             The parameter sets the value of the "bootstrap.servers" key to configure the internal 
+             Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_bootstrap.servers 
+             for more details.
         -->
         <param name="bootstrap.servers">broker:29092</param>
 
         <!-- Optional. The name of the consumer group this connection belongs to.
 
-             The parameter sets the value of the "group.id" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id for more details.
+             The parameter sets the value of the "group.id" key to configure the internal Kafka 
+             Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id 
+             for more details.
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
@@ -73,10 +81,11 @@
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
 
-        <!-- A TCP secure connection to Kafka is configured through parameters with
-             the "encryption" prefix. -->
+        <!-- A TCP secure connection to Kafka is configured through parameters with the "encryption"
+             prefix. -->
 
-        <!-- Optional. Enable encryption of this connection. Can be one of the following:
+        <!-- Optional. Enables encryption of this connection. Can be one of the following:
+
              - true
              - false
 
@@ -86,6 +95,7 @@
         -->
 
         <!-- Optional. The SSL protocol to be used. Can be one of the following:
+
              - TLSv1.2
              - TLSv1.3
 
@@ -108,7 +118,8 @@
         <param name="encryption.cipher.suites">TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,TLS_RSA_WITH_AES_256_CBC_SHA</param>
         -->
 
-        <!-- Optional. Enable hostname verification. Can be one of the following:
+        <!-- Optional. Enables hostname verification. Can be one of the following:
+
              - true
              - false
 
@@ -125,6 +136,7 @@
         -->
 
         <!-- Optional. The type of the trust store. Can be one of the following:
+
              - JKS
              - PKCS12
 
@@ -141,7 +153,8 @@
         <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
         -->
 
-        <!-- Optional. Enable a key store. Can be one of the following:
+        <!-- Optional. Enables a key store. Can be one of the following:
+
              - true
              - false
 
@@ -159,12 +172,14 @@
         -->
 
         <!-- Mandatory if key store is enabled. The path of the key store file, relative to
-             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as an absolute path. -->
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as
+             an absolute path. -->
         <!--
         <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
         -->
 
         <!-- Optional. The type of the key store. Can be one of the following:
+
              - JKS
              - PKCS12
 
@@ -175,8 +190,8 @@
 
         <!-- Optional. The password of the key store.
 
-             If not set, checking the integrity of the key store file configured
-             will not be possible. -->
+             If not set, checking the integrity of the key store file configured will not be 
+             possible. -->
         <!--
         <param name="encryption.keystore.password">kafka-connector-password</param>
         -->
@@ -191,8 +206,9 @@
         <!-- Broker authentication is configured through parameters with the
              "authentication" prefix. -->
 
-        <!-- Optional. Enable the authentication of this connection against the Kafka Cluster.
+        <!-- Optional. Enables the authentication of this connection against the Kafka Cluster.
              Can be one of the following:
+
              - true
              - false
 
@@ -215,8 +231,8 @@
         <param name="authentication.mechanism">SCRAM-SHA-256</param>
         -->
 
-        <!-- In the case of "PLAIN", "SCRAM-SHA-256", and "SCRAM-SHA-512" mechanisms, the credentials must be configured
-             through the following mandatory parameters:
+        <!-- In the case of "PLAIN", "SCRAM-SHA-256", and "SCRAM-SHA-512" mechanisms, the 
+             credentials must be configured through the following mandatory parameters:
 
         <param name="authentication.username">authorized-kafka-user</param>
         <param name="authentication.password">authorized-kafka-user-password</param>
@@ -224,9 +240,11 @@
 
         <!-- ##### GSSAPI Authentication settings ##### -->
 
-        <!-- When this mechanism is specified, you can configure the following authentication parameters: -->
+        <!-- When this mechanism is specified, you can configure the following authentication 
+             parameters: -->
 
-        <!-- Optional. Enable the use of a keytab. Can be one of the following:
+        <!-- Optional. Enables the use of a keytab. Can be one of the following:
+
              - true
              - false
 
@@ -236,12 +254,14 @@
         -->
 
         <!-- Mandatory if keytab is enabled. The path to the keytab file, relative to
-             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as an absolute path. -->
+             the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>), or as
+             an absolute path. -->
         <!--
         <param name="authentication.gssapi.key.tab.path">gssapi/kafka-connector.keytab</param>
         -->
 
-        <!-- Optional. Enable storage of the principal key. Can be one of the following:
+        <!-- Optional. Enables storage of the principal key. Can be one of the following:
+
              - true
              - false
 
@@ -260,7 +280,8 @@
         <param name="authentication.gssapi.principal">kafka-connector-1@LIGHTSTREAMER.COM</param>
         -->
 
-        <!-- Optional. Enable the use of a ticket cache. Can be one of the following:
+        <!-- Optional. Enables the use of a ticket cache. Can be one of the following:
+
              - true
              - false
 
@@ -271,35 +292,37 @@
 
         <!-- ##### IAM Authentication settings ##### -->
 
-        <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming for Apache Kafka (MSK)
-             clusters through IAM access control.
+        <!-- The AWS_MSK_IAM authentication mechanism enables access to Amazon Managed Streaming 
+             for Apache Kafka (MSK) clusters through IAM access control.
 
-             When specified, the following parameters will be part of the authentication configuration:
+             When specified, the following parameters will be part of the authentication 
+             configuration:
         -->
 
-        <!-- Optional. The name of the AWS credential profile to use for authentication. These profiles are defined in
-             the AWS shared credentials file.
+        <!-- Optional. The name of the AWS credential profile to use for authentication. These 
+             profiles are defined in the AWS shared credentials file.
         -->
         <!--
         <param name="authentication.iam.credential.profile.name">msk_client<param>
         -->
 
-        <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for
-             authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+        <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector 
+             should assume for authentication with MSK. Use this when you want the connector to 
+             assume a specific role with temporary credentials.
         -->
         <!--
         <param name="authentication.iam.role.arn">arn:aws:iam::123456789012:role/msk_client_role</param>
         -->
 
-        <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the session for the
-             assumed IAM role.
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. The name of the 
+             session for the assumed IAM role.
         -->
         <!--
         <param name="authentication.iam.role.session.name">consumer</param>
         -->
 
-        <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the AWS region of the STS
-             endpoint to use when assuming the IAM role.
+        <!-- Optional but only effective when "authentication.iam.role.arn" is set. Specifies the 
+             AWS region of the STS endpoint to use when assuming the IAM role.
         -->
         <!--
         <param name="authentication.iam.sts.region">us-west-1</param>
@@ -309,48 +332,59 @@
 
         <!-- Optional. Specifies where to start consuming events from. Can be one of the following:
 
-             - LATEST: Start consuming events from the end of the topic partition.
              - EARLIEST: Start consuming events from the beginning of the topic partition.
+             - LATEST:   Start consuming events from the end of the topic partition.
 
-             The parameter sets the value of the "auto.offset.reset"  key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset for more details.
+
+             The parameter sets the value of the "auto.offset.reset"  key to configure the internal 
+             Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset 
+             for more details.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
 
         <!-- Optional. The maximum number of records fetched in each polling cycle.
 
-             The parameter sets the value of the "max.poll.records" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records for more details.
+             The parameter sets the value of the "max.poll.records" key to configure the internal 
+             Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.records 
+             for more details.
 
              Default value: 500. -->
         <!--
         <param name="record.consume.with.max.poll.records">500</param>
         -->
 
-        <!-- Optional. The timeout used to detect client failures when using Kafka's group management facility.
+        <!-- Optional. The timeout used to detect client failures when using Kafka's group 
+             management facility.
 
-             The parameter sets the value of the "session.timeout.ms" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms for more details.
+             The parameter sets the value of the "session.timeout.ms" key to configure the internal 
+             Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms 
+             for more details.
 
              Default value: 45000. -->
         <!--
         <param name="record.consume.with.session.timeout.ms">30000</param>
         -->
 
-        <!-- Optional. The maximum delay between invocations of poll() when using consumer group management.
-             This places an upper bound on the amount of time that the consumer can be idle before fetching more records.
+        <!-- Optional. The maximum delay between invocations of poll() when using consumer group 
+             management. This places an upper bound on the amount of time that the consumer can be 
+             idle before  fetching more records.
 
-             The parameter sets the value of the "max.poll.interval.ms" key to configure the internal Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms for more details.
+             The parameter sets the value of the "max.poll.interval.ms" key to configure the 
+             internal Kafka Consumer.
+             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms 
+             for more details.
 
              Default value: 30000. -->
         <!--
         <param name="record.consume.with.max.poll.interval.ms">50000</param>
         -->
 
-        <!-- Optional. The number of threads to be used for concurrent processing of the
-             incoming deserialized records. If set to -1, the number of threads will be automatically
+        <!-- Optional. The number of threads to be used for concurrent processing of the incoming 
+             deserialized records. If set to -1, the number of threads will be  automatically 
              determined based on the number of available CPU cores.
 
              Default value: 1. -->
@@ -358,21 +392,23 @@
         <param name="record.consume.with.num.threads">4</param>
         -->
 
-        <!-- Optional but only effective when "record.consume.with.num.threads" is set to a value greater than 1 (which includes the default value).
-             The order strategy to be used for concurrent processing of the incoming
-             deserialized records. Can be one of the following:
+        <!-- Optional but only effective when "record.consume.with.num.threads" is set to a value 
+             greater than 1 (which includes the default value). The order strategy to be used for
+             concurrent processing of the incoming deserialized records. Can be one of the 
+             following:
 
              - ORDER_BY_PARTITION: Maintain the order of records within each partition.
-             - ORDER_BY_KEY: Maintain the order among the records sharing the same key.
-             - UNORDERED: Provide no ordering guarantees.
+             - ORDER_BY_KEY:       Maintain the order among the records sharing the same key.
+             - UNORDERED:          Provide no ordering guarantees.
 
              Default value: ORDER_BY_PARTITION. -->
         <!--
         <param name="record.consume.with.order.strategy">ORDER_BY_KEY</param>
         -->
 
-        <!-- Optional. The format to be used to deserialize respectively the key and value of a Kafka record.
-             Can be one of the following:
+        <!-- Optional. The format to be used to deserialize respectively the key and value of a 
+             Kafka record. Can be one of the following:
+
              - AVRO
              - JSON
              - PROTOBUF
@@ -393,25 +429,29 @@
         <param name="record.key.evaluator.type">INTEGER</param>
         <param name="record.value.evaluator.type">JSON</param>
 
-        <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and no Schema Registry is enabled. The path of the local schema
-             (or binary descriptor) file, relative to the deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) or as an absolute path, for
-             message validation respectively of the key and the value. -->
+        <!-- Mandatory if evaluator type is set to "AVRO" or "PROTOBUF" and no Schema Registry is 
+             enabled. The path of the local schema (or binary descriptor) file, relative to the 
+             deployment folder (LS_HOME/adapters/lightstreamer-kafka-connector-<version>) or as an 
+             absolute path, for message validation respectively of the key and the value. -->
         <!--
         <param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
         -->
 
-        <!-- Mandatory when the evaluator type is set to "PROTOBUF" and a binary descriptor file is provided through the "record.key/value.evaluator.schema.path"
-             parameters. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+        <!-- Mandatory when the evaluator type is set to "PROTOBUF" and a binary descriptor file is 
+             provided through the "record.key/value.evaluator.schema.path" parameters. Specifies the
+             name of the Protobuf message type to be used for deserializing the key and value of a 
+             Kafka record.
         -->
         <!--
         <param name="record.key.evaluator.protobuf.message.type">aMessageTypeForKey</param>
         <param name="record.value.evaluator.protobuf.message.type">aMessageTypeForValue</param>
         -->
 
-        <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema paths are provided.
-             Enable the use of a Schema Registry for validation respectively of the key and value.
-             Can be one of the following:
+        <!-- Mandatory when the evaluator type is set to "AVRO" or "PROTOBUF" and no local schema 
+             paths are provided. Enables the use of a Schema Registry for validation respectively of
+             the key and value. Can be one of the following:
+
              - true
              - false
 
@@ -422,7 +462,8 @@
         -->
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
-             Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
+             Specifies the symbol used to separate keys from values in a record key (or record 
+             value) serialized in the KVP format.
 
              Default value: "=".
         -->
@@ -432,7 +473,8 @@
         -->
 
         <!-- Optional but only effective when "record.key/value.evaluator.type" is set to "KVP".
-             Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
+             Specifies the symbol used to separate multiple key-value pairs in a record key (or 
+             record value) serialized in the KVP format.
 
              Default value: ",".
         -->
@@ -441,10 +483,10 @@
         <param name="record.value.evaluator.kvp.pairs.separator">;</param>
         -->
 
-        <!-- Optional. The error handling strategy to be used if an error occurs while extracting data from incoming
-             deserialized records.
-             Can be one of the following:
-             - IGNORE_AND_CONTINUE: Ignore the error and continue to process the next record.
+        <!-- Optional. The error handling strategy to be used if an error occurs while extracting 
+             data from incoming deserialized records. Can be one of the following:
+
+             - IGNORE_AND_CONTINUE:  Ignore the error and continue to process the next record.
              - FORCE_UNSUBSCRIPTION: Stop processing records and force unsubscription of the items
                                      requested by all the Lightstreamer clients subscribed to this connection.
 
@@ -456,9 +498,10 @@
         <!-- ##### RECORD ROUTING SETTINGS ##### -->
 
         <!-- Multiple and Optional. Define an item template expression, which is made of:
+
              - ITEM_PREFIX: the prefix of the item name
-             - BINDABLE_EXPRESSIONS: a sequence of bindable extraction expressions. See documentation at:
-             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate_name
+             - BINDABLE_EXPRESSIONS: a sequence of bindable extraction expressions. See 
+               documentation at: https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#filtered-record-routing-item-templatetemplate_name
         -->
         <!--
         <param name="item-template.TEMPLATE_NAME">ITEM_PREFIX-BINDABLE_EXPRESSIONS</param>
@@ -485,22 +528,38 @@
         <param name="map.aTopicName.to">item-template.template-name1,item1,item-template.template-name2,item2,...</param>
         -->
         <param name="map.stocks.to">item-template.stock</param>
+        <param name="map.stocks2.to">IBM,APPLE</param>
 
-        <!-- Optional. Enable the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be treated as a regular expression
-             rather than of a literal topic name.
+        <!-- Optional. Enables the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be 
+             treated as a regular expression rather than of a literal topic name.
         -->
         <!--
-        <parm name="map.regex.enable">true</param>
+        <param name="map.regex.enable">true</param>
         -->
+
+        <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
+
+        <!-- Optional. The snapshot delivery mode for subscribed items. Controls how the initial
+             state is delivered to Lightstreamer clients upon subscription. Can be one of the 
+             following:
+
+             - DISABLED: No snapshot is delivered; clients receive only real-time updates.
+             - IMPLICIT: The main consumer reads from the beginning of all configured topic
+                         partitions; every record is both delivered as a real-time update and
+                         contributes to the implicit snapshot.
+
+             Default value: DISABLED. -->
+        <param name="item.snapshot.enable">false</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
         <!-- Multiple and Mandatory. Maps the value extracted through "extraction_expression" to
-             field FIELD_NAME. The expression is written in the Data Extraction Language. See documentation at:
-             https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfield_name
+             field FIELD_NAME. The expression is written in the Data Extraction Language. See 
+             documentation at: https://github.com/lightstreamer/Lightstreamer-kafka-connector?tab=readme-ov-file#record-mapping-fieldfield_name
 
-             Dynamic Field Discovery: Use wildcards in both parameter name (field.*) and extraction expression
-             to automatically discover and map field names at runtime from the record structure. For example:
+             Dynamic Field Discovery: Use wildcards in both parameter name (field.*) and extraction 
+             expression to automatically discover and map field names at runtime from the record 
+             structure. For example:
 
              <param name="field.*">#{VALUE.*}</param>
              <param name="field.*">#{KEY.*}</param>
@@ -533,8 +592,11 @@
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
 
-        <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's value will simply be omitted from the update sent to
-             Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. Can be one of the following:
+        <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's 
+             value will simply be omitted from the update sent to Lightstreamer clients, while other 
+             successfully mapped fields from the same record will still be delivered. Can be one of 
+             the following:
+
              - true
              - false
 
@@ -543,12 +605,14 @@
         <param name="fields.skip.failed.mapping.enable">true</param>
         -->
 
-        <!-- Optional. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
+        <!-- Optional. Enabling this parameter allows mapping of non-scalar values to Lightstreamer 
+             fields.
              For example, in the following mapping:
 
              <param name="field.structured">#{VALUE.complexAttribute}</param>
 
-             the value of "complexAttribute" will be mapped as generic text (e.g. JSON string) to the "structured" Lightstreamer field.
+             the value of "complexAttribute" will be mapped as generic text (e.g. JSON string) to 
+             the "structured" Lightstreamer field.
 
              Can be one of the following:
              - true
@@ -559,54 +623,51 @@
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
 
-        <!-- Optional but ineffective if "fields.auto.command.mode.enable" is enabled. Enables support for the COMMAND mode.
-             A Kafka record must be structured to allow the Kafka Connector to map the values for the "key" and "command" fields:
-             - "key": Identifies the unique key for each element in the list generated from the item.
-             - "command": Specifies the operation ("ADD", "UPDATE", "DELETE") to be performed on the item.
+        <!-- Optional. Controls COMMAND-mode handling. In COMMAND mode, a single Lightstreamer item
+             is managed as a dynamic list (or table), which is modified through the following 
+             operations:
 
-             For example:
+             - "ADD":    Insert a new element into the item.
+             - "UPDATE": Modify an existing element of the item.
+             - "DELETE": Remove an existing element from the item.
 
-             <param name="fields.evaluate.as.command.enable">true</param>
-             <param name="field.key">#{KEY}</param>
-             <param name="field.command">#{VALUE.command}</param>
+             This parameter selects how the connector produces those operations. Can be one of the 
+             following:
 
-             When "key" is set to "snapshot", the command can be one of the following:
-             - "CS": Clears the current snapshot.
-             - "EOS": Marks the end of the snapshot.
+             - DISABLED: No COMMAND-mode handling.
+             - EXPLICIT: The Kafka record carries the operation. The connector reads the values 
+                         of the mandatory "key" and "command" fields from the record:
 
-             The parameter can be one of the following:
-             - true
-             - false
+                         - "key":     Identifies the unique element in the list.
+                         - "command": One of "ADD" / "UPDATE" / "DELETE".
 
-             Default value: false. -->
+                         For example:
+
+                           <param name="fields.evaluate.command.mode">EXPLICIT</param>
+                           <param name="field.key">#{KEY}</param>
+                           <param name="field.command">#{VALUE.command}</param>
+
+                         When "key" is set to "snapshot", "command" must instead be one of:
+
+                         - "CS":  Clears the current snapshot.
+                         - "EOS": Marks the end of the snapshot.
+
+             - AUTO:     The Kafka record does not carry the operation; the connector synthesises
+                         the "command" field for every update. You only map "key", and the connector
+                         picks the operation from the record state:
+
+                         - "ADD":    The mapped key has not been seen before on this item.
+                         - "UPDATE": The mapped key has already been seen on this item.
+                         - "DELETE": The record has a null payload (tombstone record).
+
+                         For example:
+
+                           <param name="fields.evaluate.command.mode">AUTO</param>
+                           <param name="field.key">#{KEY}</param>
+
+             Default value: DISABLED. -->
         <!--
-        <param name="fields.evaluate.as.command.enable">true</param>
-        -->
-
-        <!-- Optional. Enables automatic COMMAND mode support by generating appropriate command operations for Lightstreamer items
-             without requiring your Kafka records to contain explicit command fields.
-
-             When enabled, the connector:
-
-             - Automatically adds a Lightstreamer command field to each update
-             - Assigns the appropriate command value based on the record state:
-               - "ADD": For records with a new mapped key (not previously processed)
-               - "UPDATE": For records with a mapped key that has been previously processed
-               - "DELETE": For records with a null message payload (tombstone records)
-
-             You only need to map the "key" field from your record structure.
-             For example:
-
-             <param name="fields.auto.command.mode.enable">true</param>
-             <param name="field.key">#{KEY}</param>
-
-             The parameter can be one of the following:
-             - true
-             - false
-
-             Default value: false. -->
-        <!---
-        <param name="fields.auto.command.mode.enable">true</param>
+        <param name="fields.evaluate.command.mode">EXPLICIT</param>
         -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
@@ -614,15 +675,15 @@
         <!-- Optional. Specifies the Schema Registry provider to use. Can be one of the following:
 
              - CONFLUENT: Use the Confluent Schema Registry.
-             - AZURE: Use the Azure Schema Registry.
+             - AZURE:     Use the Azure Schema Registry.
 
              Default value: CONFLUENT. -->
         <!--
         <param name="schema.registry.provider">CONFLUENT</param>
         -->
 
-        <!-- Mandatory if a Schema Registry is enabled. The URL of the Schema Registry endpoint (either Confluent
-             Schema Registry or Azure Schema Registry).
+        <!-- Mandatory if a Schema Registry is enabled. The URL of the Schema Registry endpoint 
+             (either Confluent Schema Registry or Azure Schema Registry).
 
              An encrypted connection is enabled by specifying the "https" protocol. -->
         <!-- Example for the Confluent Schema Registry:
@@ -634,7 +695,9 @@
 
         <!-- ##### Confluent Schema Registry settings ##### -->
 
-        <!-- Optional. Enable Basic HTTP authentication of this connection against the Schema Registry. Can be one of the following:
+        <!-- Optional. Enables Basic HTTP authentication of this connection against the Schema 
+             Registry. Can be one of the following:
+
              - true
              - false
 
@@ -649,8 +712,8 @@
         <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
         -->
 
-        <!-- The following parameters have the same meaning as the homologous ones defined in
-             the ENCRYPTION SETTINGS section. -->
+        <!-- The following parameters have the same meaning as the homologous ones defined in the 
+             ENCRYPTION SETTINGS section. -->
 
         <!-- Set general encryption settings -->
         <!--
@@ -660,14 +723,16 @@
         <param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
         -->
 
-        <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
+        <!-- If required, configure the trust store to trust the Confluent Schema Registry 
+             certificates -->
         <!--
         <param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
         <param name="schema.registry.confluent.encryption.truststore.type">JKS</param>
         <param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
         -->
 
-        <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
+        <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key
+             store -->
         <!--
         <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
         <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
@@ -678,24 +743,24 @@
 
         <!-- ##### Azure Schema Registry settings ##### -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID assigned to the application
-             registered in Microsoft Entra ID with appropriate permissions to access the Schema Registry. -->
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Application (client) ID assigned
+             to the application registered in Microsoft Entra ID with appropriate permissions to 
+             access the Schema Registry. -->
         <!--
         <param name="schema.registry.azure.client.id">11111111-2222-3333-4444-555555555555</param>
         -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the Microsoft Entra ID tenant
-             where the application is registered. -->
+        <!-- Mandatory if the Azure Schema Registry is enabled. The Directory (tenant) ID of the
+             Microsoft Entra ID tenant where the application is registered. -->
         <!--
         <param name="schema.registry.azure.tenant.id">aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee</param>
         -->
 
-        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the application registered
-             in Microsoft Entra ID. -->
+        <!-- Mandatory if the Azure Schema Registry is enabled. The client secret value of the 
+             application registered in Microsoft Entra ID. -->
         <!--
         <param name="schema.registry.azure.client.secret">your-azure-client-secret-value</param>
         -->
-
 
     </data_provider>
 
