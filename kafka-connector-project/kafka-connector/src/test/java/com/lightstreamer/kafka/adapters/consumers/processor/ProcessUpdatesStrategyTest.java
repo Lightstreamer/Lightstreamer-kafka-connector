@@ -19,11 +19,11 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.AutoCommandModeProcessUpdatesStrategy;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.DefaultUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ExplicitCommandModeProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ public class ProcessUpdatesStrategyTest {
     @ParameterizedTest
     @EnumSource(ProcessUpdatesType.class)
     public void shouldProcessUpdatesTypeAllowConcurrentProcessing(ProcessUpdatesType type) {
-        if (type == ProcessUpdatesType.COMMAND) {
+        if (type == ProcessUpdatesType.EXPLICIT_COMMAND_MODE) {
             assertThat(type.allowConcurrentProcessing()).isFalse();
         } else {
             assertThat(type.allowConcurrentProcessing()).isTrue();
@@ -50,10 +50,10 @@ public class ProcessUpdatesStrategyTest {
     }
 
     @Test
-    public void shouldCreateCommandStrategy() {
-        ProcessUpdatesStrategy strategy = ProcessUpdatesStrategy.commandStrategy();
-        assertThat(strategy).isInstanceOf(CommandProcessUpdatesStrategy.class);
-        assertThat(strategy.type()).isEqualTo(ProcessUpdatesType.COMMAND);
+    public void shouldCreateExplicitCommandModeStrategy() {
+        ProcessUpdatesStrategy strategy = ProcessUpdatesStrategy.explicitCommandModeStrategy();
+        assertThat(strategy).isInstanceOf(ExplicitCommandModeProcessUpdatesStrategy.class);
+        assertThat(strategy.type()).isEqualTo(ProcessUpdatesType.EXPLICIT_COMMAND_MODE);
     }
 
     @Test
@@ -64,17 +64,18 @@ public class ProcessUpdatesStrategyTest {
     }
 
     @ParameterizedTest
-    @EnumSource(CommandMode.class)
-    public void shouldCreateFromCommandModeStrategy(CommandMode commandMode) {
-        ProcessUpdatesStrategy strategy1 = ProcessUpdatesStrategy.fromCommandMode(commandMode);
+    @EnumSource(EvaluateCommandMode.class)
+    public void shouldCreateFromEvaluateCommandMode(EvaluateCommandMode commandMode) {
+        ProcessUpdatesStrategy strategy1 =
+                ProcessUpdatesStrategy.fromEvaluateCommandMode(commandMode);
         switch (commandMode) {
             case AUTO:
                 assertThat(strategy1).isInstanceOf(AutoCommandModeProcessUpdatesStrategy.class);
                 assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.AUTO_COMMAND_MODE);
                 break;
             case EXPLICIT:
-                assertThat(strategy1).isInstanceOf(CommandProcessUpdatesStrategy.class);
-                assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.COMMAND);
+                assertThat(strategy1).isInstanceOf(ExplicitCommandModeProcessUpdatesStrategy.class);
+                assertThat(strategy1.type()).isEqualTo(ProcessUpdatesType.EXPLICIT_COMMAND_MODE);
                 break;
             case DISABLED:
                 assertThat(strategy1).isInstanceOf(DefaultUpdatesStrategy.class);
