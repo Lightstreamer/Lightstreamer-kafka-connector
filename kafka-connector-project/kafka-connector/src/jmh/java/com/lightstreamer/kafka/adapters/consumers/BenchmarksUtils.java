@@ -37,6 +37,7 @@ import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeDeseriali
 import com.lightstreamer.kafka.adapters.mapping.selectors.protobuf.DynamicMessageDeserializers;
 import com.lightstreamer.kafka.benchmarks.PriceInfo;
 import com.lightstreamer.kafka.common.mapping.Items;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -111,9 +112,7 @@ public class BenchmarksUtils {
         }
 
         @Override
-        public void smartEndOfSnapshot(Object handle) {
-            throw new UnsupportedOperationException("Unimplemented method 'endOfSnapshot'");
-        }
+        public void smartEndOfSnapshot(Object handle) {}
 
         @Override
         public void smartClearSnapshot(Object handle) {
@@ -132,7 +131,7 @@ public class BenchmarksUtils {
 
         @Override
         public Mode forceSubscription(String item) {
-            throw new UnsupportedOperationException("Unimplemented method 'forceSubscription'");
+            return Mode.MERGE;
         }
 
         @Override
@@ -363,7 +362,7 @@ public class BenchmarksUtils {
                     .build();
         }
 
-        public OnDemandSubscribedItems subscriptions(
+        public OnDemandSubscribedItems onDemandSubscriptions(
                 int numOfSubscriptions, ItemEventListener listener) {
             OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
 
@@ -375,6 +374,20 @@ public class BenchmarksUtils {
                 OnDemandSubscribedItem item =
                         Items.onDemandSubscribedFrom(Subscription(items[i]), new Object());
                 subscribedItems.addItem(item);
+            }
+            return subscribedItems;
+        }
+
+        public ForceableSubscribedItems forceableSubscriptions(
+                int numOfSubscriptions, ItemEventListener listener) {
+            ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
+
+            String[] items =
+                    IntStream.range(0, numOfSubscriptions)
+                            .mapToObj(i -> String.format("ltest-[key=META250801P00680%03d]", i))
+                            .toArray(String[]::new);
+            for (int i = 0; i < numOfSubscriptions; i++) {
+                subscribedItems.activateOrInstall(Subscription(items[i]), new Object());
             }
             return subscribedItems;
         }
@@ -553,7 +566,7 @@ public class BenchmarksUtils {
                 .build();
     }
 
-    public static SubscribedItems subscriptions(
+    public static SubscribedItems onDemandSubscriptions(
             int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         for (int i = 0; i < subscriptions; i++) {
@@ -572,6 +585,28 @@ public class BenchmarksUtils {
                     Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
             OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(input, new Object());
             subscribedItems.addItem(item);
+        }
+        return subscribedItems;
+    }
+
+    public static SubscribedItems forceableSubscriptions(
+            int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
+        for (int i = 0; i < subscriptions; i++) {
+            String key = String.valueOf(i);
+
+            Object[] params =
+                    switch (numOfTemplateParams) {
+                        case 1 -> new Object[] {key};
+                        case 2 -> new Object[] {key, key};
+                        case 3 -> new Object[] {key, key, key + "-son"};
+                        default ->
+                                throw new IllegalArgumentException(
+                                        "Invalid subscription number: " + numOfTemplateParams);
+                    };
+            SubscriptionExpression input =
+                    Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
+            subscribedItems.activateOrInstall(input, new Object());
         }
         return subscribedItems;
     }
