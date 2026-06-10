@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.config.specs;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
@@ -153,6 +154,8 @@ public class ConfigsSpec {
         BOOL(Options.booleans()) {},
 
         EVALUATOR(Options.evaluatorTypes()),
+
+        EVALUATE_COMMAND_MODE(Options.evaluateCommandModes()),
 
         CONSUME_FROM(Options.consumeEventsFrom()),
 
@@ -475,6 +478,10 @@ public class ConfigsSpec {
 
         static Options evaluatorTypes() {
             return new Options(EvaluatorType.names());
+        }
+
+        static Options evaluateCommandModes() {
+            return new Options(EvaluateCommandMode.names());
         }
 
         static Options errorStrategies() {
