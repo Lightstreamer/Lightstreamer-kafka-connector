@@ -23,7 +23,7 @@ import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -74,7 +74,7 @@ public class SubscriptionsHandlerTest {
                         () ->
                                 SubscriptionsHandler.<String, String>builder()
                                         .withConnectionSpec(
-                                                makeConnectionSpec(CommandMode.EXPLICIT))
+                                                makeConnectionSpec(EvaluateCommandMode.EXPLICIT))
                                         .withConsumerFactory(MockConsumer.factory())
                                         .withItemSnapshotEnabled(true)
                                         .build());
@@ -95,9 +95,9 @@ public class SubscriptionsHandlerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(CommandMode.class)
+    @EnumSource(EvaluateCommandMode.class)
     public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeDisabled(
-            CommandMode commandMode) {
+            EvaluateCommandMode commandMode) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(commandMode).withMetadataListener(new Mocks.MockMetadataListener()).build();
         assertThat(subscriptionsHandler)
@@ -122,11 +122,11 @@ public class SubscriptionsHandlerTest {
 
     @ParameterizedTest
     @EnumSource(
-            value = CommandMode.class,
+            value = EvaluateCommandMode.class,
             names = {"DISABLED", "AUTO"},
             mode = EnumSource.Mode.INCLUDE)
     public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled(
-            CommandMode commandMode) {
+            EvaluateCommandMode commandMode) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(commandMode).withItemSnapshotEnabled(true).build();
         assertThat(subscriptionsHandler)
@@ -249,20 +249,21 @@ public class SubscriptionsHandlerTest {
     }
 
     private Builder<String, String> builder() {
-        return builder(CommandMode.DISABLED);
+        return builder(EvaluateCommandMode.DISABLED);
     }
 
-    private Builder<String, String> builder(CommandMode commandMode) {
+    private Builder<String, String> builder(EvaluateCommandMode commandMode) {
         return SubscriptionsHandler.<String, String>builder()
                 .withConnectionSpec(makeConnectionSpec(commandMode))
                 .withConsumerFactory(MockConsumer.factory());
     }
 
     private static ConnectionSpec<String, String> makeConnectionSpec() {
-        return makeConnectionSpec(CommandMode.DISABLED);
+        return makeConnectionSpec(EvaluateCommandMode.DISABLED);
     }
 
-    private static ConnectionSpec<String, String> makeConnectionSpec(CommandMode commandMode) {
+    private static ConnectionSpec<String, String> makeConnectionSpec(
+            EvaluateCommandMode commandMode) {
         return new ConnectionSpec<>(
                 "TestConnection",
                 new Properties(),
