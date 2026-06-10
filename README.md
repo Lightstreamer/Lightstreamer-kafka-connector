@@ -1598,9 +1598,9 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
-#### Evaluate As Command (`fields.evaluate.as.command.enable`)
+#### Evaluate Command Mode (`fields.evaluate.command.mode`)
 
-_Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-mode-fieldsautocommandmodeenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
+_Optional_. Controls _COMMAND_-mode handling. In _COMMAND_ mode, a single Lightstreamer item is managed as a dynamic list (or table), which can be modified through the following operations:
 
 - **`ADD`**: Insert a new element into the item.
 - **`UPDATE`**: Modify an existing element of the item.
@@ -1609,65 +1609,51 @@ _Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-m
 To utilize _COMMAND_ mode, the Lightstreamer Broker requires the following mandatory field names in the item's schema:
 
 - **`key`**: Identifies the unique key for each element in the list generated from the item.
-- **`command`**: Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
+- **`command`**: Carries the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item. Depending on the `fields.evaluate.command.mode` setting below, this field is either mapped explicitly from the Kafka record or synthesised by the connector.
 
-A Kafka record must be structured to allow the Kafka Connector to map the values for the `key` and `command` fields. For example:
+This parameter selects how the connector produces those operations. Can be one of the following:
 
-```xml
-<param name="fields.evaluate.as.command.enable">true</param>
-<param name="field.key">#{KEY}</param>
-<param name="field.command">#{VALUE.command}</param>
-...
-```
+- **`DISABLED`**: No _COMMAND_-mode handling.
 
-> [!TIP]
-> The `key` and `command` fields can be mapped from any part of the Kafka record structure.
+- **`EXPLICIT`**: The Kafka record carries the operation. The connector reads the values of the mandatory `key` and `command` fields from the record. For example:
 
-Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
+  ```xml
+  <param name="fields.evaluate.command.mode">EXPLICIT</param>
+  <param name="field.key">#{KEY}</param>
+  <param name="field.command">#{VALUE.command}</param>
+  ...
+  ```
 
-- `key` must contain the special value `snapshot`.
-- `command` can contain:
-  - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+  > [!TIP]
+  > The `key` and `command` fields can be mapped from any part of the Kafka record structure.
+
+  Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
+
+  - `key` must contain the special value `snapshot`.
+  - `command` must instead be one of:
+    - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
+    - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+
+- **`AUTO`**: The Kafka record does not carry the operation; the connector synthesises the `command` field for every update. You only map `key`, and the connector picks the operation from the record state:
+
+  - **`ADD`**: The mapped key has not been seen before on this item.
+  - **`UPDATE`**: The mapped key has already been seen on this item.
+  - **`DELETE`**: The record has a null payload (_tombstone record_).
+
+  For example:
+
+  ```xml
+  <param name="fields.evaluate.command.mode">AUTO</param>
+  <param name="field.key">#{KEY}</param>
+  ...
+  ```
+
+  > [!TIP]
+  > The `key` field can be mapped from any part of the Kafka record structure.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
-
-##### Auto Command Mode (`fields.auto.command.mode.enable`)
-
-_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
-
-When enabled, the connector:
-
-- Automatically adds a Lightstreamer command field to each update.
-- Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed).
-  - **`UPDATE`**: For records with a mapped key that has been previously processed.
-  - **`DELETE`**: For records with a null message payload (_tombstone records_).
-
-You only need to map the `key` field from your record structure. For example:
-
-```xml
-<param name="fields.auto.command.mode.enable">true</param>
-<param name="field.key">#{KEY}</param>
-...
-```
-
-> [!TIP]
-> The `key` field can be mapped from any part of the Kafka record structure.
-
-This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
-
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
+Default value: `DISABLED`.
 
 ### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
