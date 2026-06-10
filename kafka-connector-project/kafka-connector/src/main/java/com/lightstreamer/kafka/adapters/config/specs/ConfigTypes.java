@@ -248,23 +248,17 @@ public interface ConfigTypes {
         }
     }
 
-    enum CommandMode {
+    enum EvaluateCommandMode {
         DISABLED,
         EXPLICIT,
         AUTO;
 
-        public static CommandMode from(boolean auto, boolean explicit) {
-            if (auto) {
-                return AUTO;
-            }
-            if (explicit) {
-                return EXPLICIT;
-            }
-            return DISABLED;
-        }
-
         public boolean manageSnapshot() {
             return this == EXPLICIT;
+        }
+
+        public static Set<String> names() {
+            return enumNames(values());
         }
     }
 
