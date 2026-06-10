@@ -119,7 +119,7 @@ public class ConnectorConfigurator {
                 fieldsExtractor,
                 deserializerPair,
                 config.getRecordExtractionErrorHandlingStrategy(),
-                config.getCommandMode(),
+                config.getEvaluateCommandMode(),
                 new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));
