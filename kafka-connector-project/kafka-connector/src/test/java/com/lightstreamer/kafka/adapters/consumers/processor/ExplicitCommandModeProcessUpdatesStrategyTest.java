@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.adapters.consumers.processor;
 import static com.google.common.truth.Truth.assertThat;
 
 import com.lightstreamer.kafka.adapters.consumers.processor.CommandEvents.Command;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.CommandProcessUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ExplicitCommandModeProcessUpdatesStrategy;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class CommandProcessUpdatesStrategyTest {
+public class ExplicitCommandModeProcessUpdatesStrategyTest {
 
     @ParameterizedTest
     @EnumSource(names = {"CS", "EOS"})
@@ -74,7 +74,8 @@ public class CommandProcessUpdatesStrategyTest {
                     snapshot   | <NOCOMMAND> | false
                     """)
     void shouldCheckValidInput(String key, String command, boolean expected) {
-        CommandProcessUpdatesStrategy commandStrategy = new CommandProcessUpdatesStrategy();
+        ExplicitCommandModeProcessUpdatesStrategy commandStrategy =
+                new ExplicitCommandModeProcessUpdatesStrategy();
         Map<String, String> input = new HashMap<>();
         switch (key) {
             case "<NOKEY>" -> {}
