@@ -628,7 +628,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, logger)
+                    () -> SubscribedItems.forceable(testListener, false, logger)
                 };
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
             SubscribedItems subscribedItems = supplier.get();
@@ -717,7 +717,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, logger)
+                    () -> SubscribedItems.forceable(testListener, false, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -789,7 +789,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, logger)
+                    () -> SubscribedItems.forceable(testListener, false, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -844,7 +844,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, logger)
+                    () -> SubscribedItems.forceable(testListener, false, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -892,7 +892,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, logger)
+                    () -> SubscribedItems.forceable(testListener, false, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -934,7 +934,8 @@ public class RecordConsumerTest {
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(testListener, logger);
+        ForceableSubscribedItems subscribedItems =
+                SubscribedItems.forceable(testListener, false, logger);
 
         recordConsumer =
                 mkRecordConsumer(
