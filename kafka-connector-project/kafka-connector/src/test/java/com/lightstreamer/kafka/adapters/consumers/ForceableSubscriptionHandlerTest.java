@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -124,7 +125,7 @@ public class ForceableSubscriptionHandlerTest {
                 SubscriptionsHandler.<String, String>builder()
                         .withConnectionSpec(spec)
                         .withConsumerFactory(factory)
-                        .withItemSnapshotEnabled(true);
+                        .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.MERGE);
         return (ForceableSubscriptionsHandler<String, String>) builder.build();
     }
 
