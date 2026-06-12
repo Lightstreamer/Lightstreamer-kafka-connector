@@ -140,7 +140,7 @@ public class MappedRecordTest {
         assertThat(record.isPayloadNull()).isTrue();
 
         SubscribedItems subscribedItems1 =
-                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), false, null);
         Set<SubscribedItem> routed = record.route(subscribedItems1);
         assertThat(routed.stream().map(SubscribedItem::canonicalName))
                 .containsExactly(canonicalItemName, canonicalItemName2);
@@ -180,7 +180,7 @@ public class MappedRecordTest {
         assertThat(record.isPayloadNull()).isTrue();
 
         SubscribedItems forcedItems =
-                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), false, null);
         Set<SubscribedItem> routed = record.route(forcedItems);
 
         assertThat(routed.stream().map(SubscribedItem::canonicalName))
