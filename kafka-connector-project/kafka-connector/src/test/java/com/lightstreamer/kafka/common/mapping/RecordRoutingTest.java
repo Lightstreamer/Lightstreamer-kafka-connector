@@ -18,6 +18,7 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleGenericRecordProvider;
 import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
@@ -65,17 +66,21 @@ public class RecordRoutingTest {
                         List.of(TEST_TOPIC_1),
                         "item",
                         // Routable item
-                        List.of(Items.onDemandSubscribedItem("item", "handle1")),
+                        List.of(Items.onDemandSubscribedFrom(Subscription("item"), "handle1")),
                         // Non-routable item
-                        List.of(Items.onDemandSubscribedItem("otherItem", "handle2"))),
+                        List.of(
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("otherItem"), "handle2"))),
                 // Many-to-One
                 arguments(
                         List.of(TEST_TOPIC_1, TEST_TOPIC_2),
                         "item",
                         // Routable item
-                        List.of(Items.onDemandSubscribedItem("item", "handle1")),
+                        List.of(Items.onDemandSubscribedFrom(Subscription("item"), "handle1")),
                         // Non-routable item
-                        List.of(Items.onDemandSubscribedItem("otherItem", "handle2"))));
+                        List.of(
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("otherItem"), "handle2"))));
     }
 
     @ParameterizedTest
@@ -118,8 +123,10 @@ public class RecordRoutingTest {
                                 // Routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=key,value=value,topic=topic]", "handle1")
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription(
+                                                        "item-[key=key,value=value,topic=topic]"),
+                                                "handle1")
                                         // Items.subscribedItem(
                                         //         "item-[value=value,topic=topic,key=key]",
                                         //         "handle2")
@@ -127,8 +134,9 @@ public class RecordRoutingTest {
                                 // Routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=key,value=value,topic=anotherTopic]",
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription(
+                                                        "item-[key=key,value=value,topic=anotherTopic]"),
                                                 "handle1")
                                         // Items.subscribedItem(
                                         //         "item-[topic=anotherTopic,value=value,key=key]",
@@ -138,30 +146,39 @@ public class RecordRoutingTest {
                                 // Non-routable items for TEST_TOPIC_1
                                 TEST_TOPIC_1,
                                 List.of(
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=key,value=value,topic=anotherTopic]",
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription(
+                                                        "item-[key=key,value=value,topic=anotherTopic]"),
                                                 "handle1"),
-                                        Items.onDemandSubscribedItem("item", "handle3"),
-                                        Items.onDemandSubscribedItem("item-[key=key]", "handle4"),
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=anotherKey]", "handle5"),
-                                        Items.onDemandSubscribedItem(
-                                                "item-[value=anotherValue]", "handle6"),
-                                        Items.onDemandSubscribedItem("nonRoutable", new Object())),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item"), "handle3"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[key=key]"), "handle4"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[key=anotherKey]"), "handle5"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[value=anotherValue]"),
+                                                "handle6"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("nonRoutable"), new Object())),
                                 // Non-routable items for TEST_TOPIC_2
                                 TEST_TOPIC_2,
                                 List.of(
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=key,value=value,topic=topic]",
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription(
+                                                        "item-[key=key,value=value,topic=topic]"),
                                                 "handle1"),
-                                        Items.onDemandSubscribedItem("item", "handle3"),
-                                        Items.onDemandSubscribedItem("item-[key=key]", "handle4"),
-                                        Items.onDemandSubscribedItem(
-                                                "item-[key=anotherKey]", "handle5"),
-                                        Items.onDemandSubscribedItem(
-                                                "item-[value=anotherValue]", "handle6"),
-                                        Items.onDemandSubscribedItem(
-                                                "nonRoutable", new Object())))));
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item"), "handle3"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[key=key]"), "handle4"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[key=anotherKey]"), "handle5"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("item-[value=anotherValue]"),
+                                                "handle6"),
+                                        Items.onDemandSubscribedFrom(
+                                                Subscription("nonRoutable"), new Object())))));
     }
 
     @ParameterizedTest
@@ -208,15 +225,19 @@ public class RecordRoutingTest {
                             """,
                         List.of("user-#{firstName=VALUE.name,lastName=VALUE.surname}"),
                         List.of(
-                                Items.onDemandSubscribedItem(
-                                        "user-[firstName=James,lastName=Kirk]", new Object())),
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("user-[firstName=James,lastName=Kirk]"),
+                                        new Object())),
                         List.of(
-                                Items.onDemandSubscribedItem("item", new Object()),
-                                Items.onDemandSubscribedItem("item-[key=key]", new Object()),
-                                Items.onDemandSubscribedItem("item-[key=anotherKey]", new Object()),
-                                Items.onDemandSubscribedItem(
-                                        "item-[value=anotherValue]", new Object()),
-                                Items.onDemandSubscribedItem("nonRoutable", new Object()))));
+                                Items.onDemandSubscribedFrom(Subscription("item"), new Object()),
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("item-[key=key]"), new Object()),
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("item-[key=anotherKey]"), new Object()),
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("item-[value=anotherValue]"), new Object()),
+                                Items.onDemandSubscribedFrom(
+                                        Subscription("nonRoutable"), new Object()))));
     }
 
     @ParameterizedTest
@@ -273,8 +294,8 @@ public class RecordRoutingTest {
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
         OnDemandSubscribedItem subscribedItem =
-                Items.onDemandSubscribedItem(subscribingItemName, new Object());
-        assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
+                Items.onDemandSubscribedFrom(Subscription(subscribingItemName), new Object());
+        assertThat(templates.matches(subscribedItem.schema())).isEqualTo(canSubscribe);
 
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         subscribedItems.addItem(subscribedItem);
@@ -311,8 +332,8 @@ public class RecordRoutingTest {
                                 .add("header-key2", "header-value2".getBytes()));
         MappedRecord mapped = mapper.map(incomingRecord);
         OnDemandSubscribedItem subscribedItem =
-                Items.onDemandSubscribedItem(subscribingItemName, new Object());
-        assertThat(templates.matches(subscribedItem)).isEqualTo(canSubscribe);
+                Items.onDemandSubscribedFrom(Subscription(subscribingItemName), new Object());
+        assertThat(templates.matches(subscribedItem.schema())).isEqualTo(canSubscribe);
 
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         subscribedItems.addItem(subscribedItem);
