@@ -380,7 +380,8 @@ public class BenchmarksUtils {
 
         public ForceableSubscribedItems forceableSubscriptions(
                 int numOfSubscriptions, ItemEventListener listener) {
-            ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
+            ForceableSubscribedItems subscribedItems =
+                    SubscribedItems.forceable(listener, false, null);
 
             String[] items =
                     IntStream.range(0, numOfSubscriptions)
@@ -591,7 +592,7 @@ public class BenchmarksUtils {
 
     public static SubscribedItems forceableSubscriptions(
             int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, false, null);
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
 
