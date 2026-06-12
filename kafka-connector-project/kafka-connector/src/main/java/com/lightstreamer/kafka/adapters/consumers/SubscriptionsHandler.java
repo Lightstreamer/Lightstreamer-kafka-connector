@@ -21,6 +21,7 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
@@ -118,7 +119,7 @@ public interface SubscriptionsHandler<K, V> {
         private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
         private ConnectionSpec<K, V> connectionSpec;
         private MetadataListener metadataListener;
-        private boolean itemSnapshotEnabled = false;
+        private ItemSnapshotEnabledMode itemSnapshotMode = ItemSnapshotEnabledMode.NONE;
 
         private Builder() {}
 
@@ -138,8 +139,9 @@ public interface SubscriptionsHandler<K, V> {
             return this;
         }
 
-        public Builder<K, V> withItemSnapshotEnabled(boolean itemSnapshotEnabled) {
-            this.itemSnapshotEnabled = itemSnapshotEnabled;
+        public Builder<K, V> withItemSnapshotEnabledMode(
+                ItemSnapshotEnabledMode itemSnapshotEnabledMode) {
+            this.itemSnapshotMode = itemSnapshotEnabledMode;
             return this;
         }
 
@@ -149,13 +151,14 @@ public interface SubscriptionsHandler<K, V> {
             }
 
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
-            if (connectionSpec.evaluateCommandMode().manageSnapshot() && itemSnapshotEnabled) {
+            if (connectionSpec.evaluateCommandMode().manageSnapshot()
+                    && itemSnapshotMode != ItemSnapshotEnabledMode.NONE) {
                 throw new IllegalStateException(
                         "Invalid configuration: command mode "
                                 + connectionSpec.evaluateCommandMode()
                                 + " is not compatible with item snapshot enablement");
             }
-            if (itemSnapshotEnabled) {
+            if (itemSnapshotMode != ItemSnapshotEnabledMode.NONE) {
                 return new ForceableSubscriptionsHandler<>(this);
             }
             if (metadataListener == null) {
@@ -473,17 +476,21 @@ public interface SubscriptionsHandler<K, V> {
      */
     class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
+        private boolean singleSnapshotInCatchUp;
         private ForceableSubscribedItems subscribedItems;
         private FutureStatus lifecycleStatus;
 
         /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
         ForceableSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
+            this.singleSnapshotInCatchUp =
+                    builder.itemSnapshotMode.equals(ItemSnapshotEnabledMode.MERGE);
         }
 
         @Override
         protected void doSetListener(ItemEventListener listener) {
-            this.subscribedItems = SubscribedItems.forceable(listener, logger);
+            this.subscribedItems =
+                    SubscribedItems.forceable(listener, singleSnapshotInCatchUp, logger);
             startConsuming();
         }
 
