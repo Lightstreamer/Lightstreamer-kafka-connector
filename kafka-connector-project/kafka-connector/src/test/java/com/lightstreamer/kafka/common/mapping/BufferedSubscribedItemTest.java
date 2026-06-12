@@ -56,13 +56,13 @@ public class BufferedSubscribedItemTest {
     public void setUp() throws Exception {
         this.eventListener = new MockItemEventListener();
         this.subscribedItem =
-                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"));
+                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"), false);
     }
 
     @Test
     public void shouldCreateBufferedSubscribedItemFromFactory() {
         String expression = "item-[name=field1]";
-        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression);
+        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression, false);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo("item");
         assertThat(item.schema().keys()).containsExactly("name");
@@ -102,12 +102,73 @@ public class BufferedSubscribedItemTest {
             Set<String> expectedKeys,
             String expectedCanonicalItemName) {
         BufferedSubscribedItem item =
-                new BufferedSubscribedItem(Expressions.Subscription(expression));
+                new BufferedSubscribedItem(Expressions.Subscription(expression), false);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
         assertThat(item.canonicalName()).isEqualTo(expectedCanonicalItemName);
         assertThat(item.equals(item)).isTrue();
+    }
+
+    static Stream<Arguments> snapshotGateScenarios() {
+        // Each scenario drives BufferedSubscribedItem with a tiny action DSL:
+        //   'T' -> sendEvent(..., isSnapshot=true)
+        //   'F' -> sendEvent(..., isSnapshot=false)
+        // expectedFlags is parallel to the actions ('1'=snapshot, '0'=realtime).
+        return Stream.of(
+                // Queueing-dispatcher path: events arrive before activation, drain after.
+                // With the gate active, only the first snapshot wins.
+                arguments("queueing dispatcher: gate active", true, false, "TTT", "100"),
+                // Direct-dispatcher path: events arrive after activation. Same gate result,
+                // proving the gate fires regardless of which dispatcher is active.
+                arguments("direct dispatcher: gate active", true, true, "TTT", "100"),
+                // Gate disabled (DISTINCT/COMMAND): every isSnapshot=true is preserved.
+                arguments("gate disabled: all snapshots preserved", false, true, "TTT", "111"),
+                // Interleaved realtime events short-circuit before the CAS, so they must
+                // not consume the snapshot slot: the next isSnapshot=true still wins.
+                arguments(
+                        "gate active: realtime does not consume slot", true, true, "FTFT", "0100"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("snapshotGateScenarios")
+    public void shouldGateSnapshotFlagAccordingToSingleSnapshotInCatchUp(
+            String name,
+            boolean singleSnapshotInCatchUp,
+            boolean activateBeforeSends,
+            String actions,
+            String expectedFlags) {
+        BufferedSubscribedItem item =
+                new BufferedSubscribedItem(
+                        Expressions.Subscription("item"), singleSnapshotInCatchUp);
+        Object handle = new Object();
+        if (activateBeforeSends) {
+            item.enableEventsDelivery(handle, eventListener);
+        }
+
+        int seq = 0;
+        for (char action : actions.toCharArray()) {
+            switch (action) {
+                case 'T' ->
+                        item.sendEvent(Map.of("seq", String.valueOf(seq++)), eventListener, true);
+                case 'F' ->
+                        item.sendEvent(Map.of("seq", String.valueOf(seq++)), eventListener, false);
+                default -> throw new IllegalArgumentException("Unknown action: " + action);
+            }
+        }
+
+        if (!activateBeforeSends) {
+            item.enableEventsDelivery(handle, eventListener);
+        }
+
+        List<EventCall> events = eventListener.getEvents();
+        assertThat(events).hasSize(expectedFlags.length());
+        for (int i = 0; i < expectedFlags.length(); i++) {
+            EventCall call = events.get(i);
+            assertThat(call.event()).isEqualTo(Map.of("seq", String.valueOf(i)));
+            assertThat(call.type()).isEqualTo(EventCall.EventType.UPDATE);
+            assertThat(call.isSnapshot()).isEqualTo(expectedFlags.charAt(i) == '1');
+        }
     }
 
     @Test
@@ -431,19 +492,5 @@ public class BufferedSubscribedItemTest {
 
         // Verify that the item is marked as forced.
         assertThat(subscribedItem.isForced()).isTrue();
-    }
-
-    @Test
-    public void shouldMaintainSnapshotFlagBehavior() {
-        // Initially in snapshot mode.
-        assertThat(subscribedItem.isSnapshot()).isTrue();
-
-        // Change flag.
-        subscribedItem.setSnapshot(false);
-        assertThat(subscribedItem.isSnapshot()).isFalse();
-
-        // Change back.
-        subscribedItem.setSnapshot(true);
-        assertThat(subscribedItem.isSnapshot()).isTrue();
     }
 }
