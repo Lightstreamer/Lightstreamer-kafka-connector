@@ -176,7 +176,7 @@ public class KafkaConsumerWrapperTest {
         // Create the SubscribedItems
         this.subscribedItems =
                 eagerLifecycle
-                        ? SubscribedItems.forceable(itemEventListener, logger)
+                        ? SubscribedItems.forceable(itemEventListener, false, logger)
                         : SubscribedItems.onDemand();
 
         KafkaConsumerWrapper<String, String> wrapper =
