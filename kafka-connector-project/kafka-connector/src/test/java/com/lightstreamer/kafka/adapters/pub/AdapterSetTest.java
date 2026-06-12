@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -124,12 +125,16 @@ public class AdapterSetTest {
         Optional<KafkaConnectorDataAdapterOpts> connector1 =
                 connectorMetadataAdapter.lookUp("CONNECTOR");
         assertThat(connector1).isPresent();
-        assertThat(connector1.get().dataAdapterName()).isEqualTo("CONNECTOR");
+        KafkaConnectorDataAdapterOpts kafkaConnectorDataAdapterOpts = connector1.get();
+        assertThat(kafkaConnectorDataAdapterOpts.dataAdapterName()).isEqualTo("CONNECTOR");
+        assertThat(kafkaConnectorDataAdapterOpts.enabled()).isTrue();
 
         Optional<KafkaConnectorDataAdapterOpts> connector2 =
                 connectorMetadataAdapter.lookUp("CONNECTOR2");
         assertThat(connector2).isPresent();
-        assertThat(connector2.get().dataAdapterName()).isEqualTo("CONNECTOR2");
+        KafkaConnectorDataAdapterOpts kafkaConnectorDataAdapterOpts2 = connector2.get();
+        assertThat(kafkaConnectorDataAdapterOpts2.dataAdapterName()).isEqualTo("CONNECTOR2");
+        assertThat(kafkaConnectorDataAdapterOpts2.enabled()).isTrue();
     }
 
     @Test
@@ -204,7 +209,7 @@ public class AdapterSetTest {
         connectorDataAdapter4.setConsumerFactory(this.getConsumer());
         connectorDataAdapter4.init(
                 ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(ConnectorConfig.ITEM_SNAPSHOT_ENABLE, "true")),
+                        Map.of(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "MERGE")),
                 adapterDir.toFile());
         // Here we don't call setListener because snapshot availability should not depend on it, but
         // rather on the configuration only
@@ -332,7 +337,7 @@ public class AdapterSetTest {
                 Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
                 Arguments.of(Mode.RAW, Collections.emptyMap(), true),
                 // Test with usage of command mode through
-                // "fields.evaluate.as.command.enable"
+                // "field.command.mode=EXPLICIT"
                 Arguments.of(
                         Mode.DISTINCT,
                         Map.of(
@@ -373,7 +378,7 @@ public class AdapterSetTest {
                                 "field.command",
                                 "#{VALUE}"),
                         true),
-                // Test with usage of command mode through "fields.auto.command.mode.enable"
+                // Test with usage of command mode through "fields.command.mode=AUTO"
                 Arguments.of(
                         Mode.DISTINCT,
                         Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
@@ -389,6 +394,19 @@ public class AdapterSetTest {
                 Arguments.of(
                         Mode.COMMAND,
                         Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
+                        true),
+                // Test with usage of "item.snapshot.enabled.mode"
+                Arguments.of(Mode.DISTINCT, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), true),
+                Arguments.of(Mode.MERGE, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), true),
+                Arguments.of(
+                        Mode.COMMAND,
+                        Map.of(
+                                ITEM_SNAPSHOT_ENABLED_MODE,
+                                "COMMAND",
+                                FIELDS_EVALUATE_COMMAND_MODE,
+                                "AUTO",
+                                "field.key",
+                                "#{KEY}"),
                         true));
     }
 
