@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -41,13 +42,16 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 public class SubscriptionsHandlerTest {
 
@@ -76,7 +80,7 @@ public class SubscriptionsHandlerTest {
                                         .withConnectionSpec(
                                                 makeConnectionSpec(EvaluateCommandMode.EXPLICIT))
                                         .withConsumerFactory(MockConsumer.factory())
-                                        .withItemSnapshotEnabled(true)
+                                        .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.MERGE)
                                         .build());
         assertThat(ise)
                 .hasMessageThat()
@@ -110,7 +114,7 @@ public class SubscriptionsHandlerTest {
         subscriptionsHandler =
                 builder(commandMode)
                         .withMetadataListener(new Mocks.MockMetadataListener())
-                        .withItemSnapshotEnabled(false)
+                        .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.NONE)
                         .build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
@@ -120,15 +124,22 @@ public class SubscriptionsHandlerTest {
                 .isFalse();
     }
 
+    static Stream<Arguments> provideCommandModesForForceableHandler() {
+        return Stream.of(
+                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.MERGE),
+                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.DISTINCT),
+                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.COMMAND),
+                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.MERGE),
+                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.DISTINCT),
+                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.COMMAND));
+    }
+
     @ParameterizedTest
-    @EnumSource(
-            value = EvaluateCommandMode.class,
-            names = {"DISABLED", "AUTO"},
-            mode = EnumSource.Mode.INCLUDE)
+    @MethodSource("provideCommandModesForForceableHandler")
     public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled(
-            EvaluateCommandMode commandMode) {
+            EvaluateCommandMode commandMode, ItemSnapshotEnabledMode snapshotMode) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
-                builder(commandMode).withItemSnapshotEnabled(true).build();
+                builder(commandMode).withItemSnapshotEnabledMode(snapshotMode).build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.ForceableSubscriptionsHandler.class);
     }
