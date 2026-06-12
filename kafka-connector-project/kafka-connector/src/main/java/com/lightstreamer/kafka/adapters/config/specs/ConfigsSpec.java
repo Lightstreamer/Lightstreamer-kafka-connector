@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.config.specs;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
@@ -162,6 +163,8 @@ public class ConfigsSpec {
         ERROR_STRATEGY(Options.errorStrategies()),
 
         ORDER_STRATEGY(Options.orderStrategies()),
+
+        SNAPSHOT_ENABLED_MODE(Options.itemSnapshotEnabledMode()),
 
         SCHEMA_REGISTRY_PROVIDER(Options.schemaRegistryProviders()),
 
@@ -482,6 +485,10 @@ public class ConfigsSpec {
 
         static Options evaluateCommandModes() {
             return new Options(EvaluateCommandMode.names());
+        }
+
+        static Options itemSnapshotEnabledMode() {
+            return new Options(ItemSnapshotEnabledMode.names());
         }
 
         static Options errorStrategies() {
