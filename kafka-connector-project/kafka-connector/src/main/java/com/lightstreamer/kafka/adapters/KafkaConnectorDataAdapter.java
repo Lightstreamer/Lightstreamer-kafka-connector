@@ -27,7 +27,6 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
@@ -76,9 +75,8 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                         new KafkaConnectorDataAdapterOpts(
                                 connectorConfig.getAdapterName(),
                                 connectorConfig.isEnabled(),
-                                !connectorConfig
-                                        .getEvaluateCommandMode()
-                                        .equals(EvaluateCommandMode.DISABLED)));
+                                connectorConfig.getSubscriptionMode(),
+                                connectorConfig.getItemSnapshotDistinctLength()));
 
         this.logger.atInfo().log("Configuring Kafka Connector");
         this.subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
@@ -100,7 +98,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                 .withConnectionSpec(connectionSpec)
                 .withMetadataListener(metadataListener)
                 .withConsumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
-                .withItemSnapshotEnabled(connectorConfig.isItemSnapshotEnabled())
+                .withItemSnapshotEnabledMode(connectorConfig.getItemSnapshotMode())
                 .build();
     }
 
