@@ -242,7 +242,8 @@ public class RecordProcessorTest {
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
+        ForceableSubscribedItems subscribedItems =
+                SubscribedItems.forceable(eventListener, false, logger);
         RecordProcessor<String, String> processor =
                 processor(
                         mapper,
@@ -292,7 +293,8 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotProcessUnexpectedSubscriptionWithForcedSubscription() {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
+        ForceableSubscribedItems subscribedItems =
+                SubscribedItems.forceable(eventListener, false, logger);
         RecordProcessor<String, String> processor =
                 processor(
                         defaultMapper(),
