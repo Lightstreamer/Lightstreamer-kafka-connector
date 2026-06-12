@@ -374,6 +374,10 @@ public class ConnectorConfiguratorTest {
                         Map.of(
                                 FIELDS_EVALUATE_COMMAND_MODE,
                                 "EXPLICIT",
+                                "field.key",
+                                "#{KEY}",
+                                "field.command",
+                                "#{VALUE}",
                                 RECORD_CONSUME_WITH_NUM_THREADS,
                                 String.valueOf(threads)));
         ConfigException ce =
