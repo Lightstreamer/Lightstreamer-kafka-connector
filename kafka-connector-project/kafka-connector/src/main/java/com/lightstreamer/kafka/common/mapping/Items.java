@@ -52,6 +52,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -164,12 +165,18 @@ public class Items {
          *
          * @param itemEventListener the {@link ItemEventListener} used to drive {@code
          *     forceSubscription} and to deliver events
+         * @param singleSnapshotInCatchUp {@code true} to deliver only the first catch-up record
+         *     with {@code isSnapshot=true} and downgrade subsequent catch-up records to {@code
+         *     isSnapshot=false} (MERGE single-state snapshot semantics); {@code false} to preserve
+         *     the {@code isSnapshot} flag as-is (DISTINCT/COMMAND multi-event snapshot)
          * @param logger the {@link Logger} for recording force-subscription events and errors
          * @return a new {@link ForceableSubscribedItems} instance
          */
         static ForceableSubscribedItems forceable(
-                ItemEventListener itemEventListener, Logger logger) {
-            return new ForceableSubscribedItems(itemEventListener, logger);
+                ItemEventListener itemEventListener,
+                boolean singleSnapshotInCatchUp,
+                Logger logger) {
+            return new ForceableSubscribedItems(itemEventListener, singleSnapshotInCatchUp, logger);
         }
 
         /**
@@ -270,9 +277,14 @@ public class Items {
         private final Logger logger;
         private final Map<String, BufferedSubscribedItem> items = new ConcurrentHashMap<>();
         private final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
+        private final boolean singleSnapshotInCatchUp;
 
-        ForceableSubscribedItems(ItemEventListener itemEventListener, Logger logger) {
+        ForceableSubscribedItems(
+                ItemEventListener itemEventListener,
+                boolean singleSnapshotInCatchUp,
+                Logger logger) {
             this.itemEventListener = Objects.requireNonNull(itemEventListener, "itemEventListener");
+            this.singleSnapshotInCatchUp = singleSnapshotInCatchUp;
             this.logger = logger;
         }
 
@@ -335,7 +347,8 @@ public class Items {
                     existing.markForced();
                     return null;
                 }
-                BufferedSubscribedItem fresh = new BufferedSubscribedItem(expression);
+                BufferedSubscribedItem fresh =
+                        new BufferedSubscribedItem(expression, singleSnapshotInCatchUp);
                 fresh.enableEventsDelivery(handle, itemEventListener);
                 items.put(canonicalName, fresh);
                 // Path-1 organic: emit end-of-snapshot for the new client subscription.
@@ -388,7 +401,7 @@ public class Items {
                 //       After we release the lock, forceSubscription(name) will trigger
                 //       the Server-thread subscribe callback, which routes through
                 //       activateOrInstall() case (A) and binds the handle in place.
-                //
+                // ItemSnapshotEnabledMode
                 //   (2) cached != null && !cached.isForced()  --> hit-on-unforced (Path-1).
                 //       The entry was put into the map by a prior organic subscribe
                 //       (activateOrInstall() case (B)), or another worker thread installed
@@ -403,7 +416,9 @@ public class Items {
                     return cached;
                 }
                 if (cached == null) {
-                    cached = new BufferedSubscribedItem(Subscription(itemName));
+                    cached =
+                            new BufferedSubscribedItem(
+                                    Subscription(itemName), singleSnapshotInCatchUp);
                     items.put(itemName, cached);
                 }
             } finally {
@@ -415,7 +430,7 @@ public class Items {
             // forceSubscription blocks until the Server invokes subscribe(name, handle)
             // on a separate Server thread (per SDK contract C-fs-blocks), and that
             // callback routes into activateOrInstall(), which must acquire this same
-            // per-name l0ock. Holding the lock across forceSubscription would block the
+            // per-name lock. Holding the lock across forceSubscription would block the
             // Server thread on lock() while the record-processing thread blocks on
             // forceSubscription — a classic deadlock; ReentrantLock does not help because
             // the two participants are different threads.
@@ -605,6 +620,13 @@ public class Items {
      * is activated via {@link #enableEventsDelivery(Object, ItemEventListener)}, at which point the
      * buffered events are drained in insertion order — each preserving its original {@code
      * isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
+     *
+     * <p>When constructed with {@code singleSnapshotInCatchUp=true} (MERGE single-state snapshot
+     * semantics), {@link #sendEvent(Map, ItemEventListener, boolean)} also gates the {@code
+     * isSnapshot} flag: only the first {@code isSnapshot=true} event observed over the lifetime of
+     * this item is dispatched as snapshot; subsequent {@code isSnapshot=true} events are downgraded
+     * to {@code isSnapshot=false}. With {@code singleSnapshotInCatchUp=false} (DISTINCT/COMMAND),
+     * the flag is passed through unchanged.
      */
     public static class BufferedSubscribedItem implements SubscribedItem {
 
@@ -750,14 +772,24 @@ public class Items {
 
         private final String canonicalItemName;
         private final Schema schema;
+        // True for MERGE subscriptions, which carry single-state snapshot semantics:
+        // only the first catch-up record is delivered as snapshot, later catch-up
+        // records are downgraded to real-time updates. False for DISTINCT/COMMAND,
+        // whose snapshot is a multi-event sequence and must be preserved as-is.
+        private final boolean singleSnapshotInCatchUp;
+        // When singleSnapshotInCatchUp is enabled: the first snapshot event wins the
+        // CAS and is dispatched as snapshot; subsequent isSnapshot=true events for
+        // this item are downgraded to isSnapshot=false.
+        private final AtomicBoolean firstSnapshotSent = new AtomicBoolean(false);
         private volatile EventDispatcher dispatcher;
         private volatile boolean forced;
         private QueueingEventDispatcher queueing;
         private boolean snapshotFlag = true;
 
-        BufferedSubscribedItem(SubscriptionExpression expression) {
+        BufferedSubscribedItem(SubscriptionExpression expression, boolean singleSnapshotInCatchUp) {
             this.canonicalItemName = expression.canonicalItemName();
             this.schema = expression.schema();
+            this.singleSnapshotInCatchUp = singleSnapshotInCatchUp;
             this.queueing = new QueueingEventDispatcher(this);
             this.dispatcher = queueing;
         }
@@ -818,7 +850,11 @@ public class Items {
         @Override
         public void sendEvent(
                 Map<String, String> event, ItemEventListener listener, boolean isSnapshot) {
-            dispatcher.dispatchUpdate(event, isSnapshot, listener);
+            boolean effectiveSnapshot =
+                    isSnapshot
+                            && (!singleSnapshotInCatchUp
+                                    || firstSnapshotSent.compareAndSet(false, true));
+            dispatcher.dispatchUpdate(event, effectiveSnapshot, listener);
         }
 
         @Override
@@ -1044,11 +1080,17 @@ public class Items {
      * Creates a {@link BufferedSubscribedItem} from a canonical item name string.
      *
      * @param canonicalName the canonical Lightstreamer item name
+     * @param singleSnapshotInCatchUp {@code true} to deliver only the first catch-up record with
+     *     {@code isSnapshot=true} and downgrade subsequent catch-up records to {@code
+     *     isSnapshot=false} (MERGE single-state snapshot semantics); {@code false} to preserve the
+     *     {@code isSnapshot} flag as-is (DISTINCT/COMMAND multi-event snapshot)
      * @return a new {@code BufferedSubscribedItem}
      * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
      */
-    public static BufferedSubscribedItem bufferedSubscribedFrom(String canonicalName) {
-        return new BufferedSubscribedItem(Expressions.Subscription(canonicalName));
+    public static BufferedSubscribedItem bufferedSubscribedFrom(
+            String canonicalName, boolean singleSnapshotInCatchUp) {
+        return new BufferedSubscribedItem(
+                Expressions.Subscription(canonicalName), singleSnapshotInCatchUp);
     }
 
     /**
