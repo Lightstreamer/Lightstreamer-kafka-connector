@@ -70,7 +70,7 @@ public class ForceableSubscribedItemsTest {
     public void setUp() {
         final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         listener = new MockItemEventListener();
-        items = Items.SubscribedItems.forceable(listener, logger);
+        items = Items.SubscribedItems.forceable(listener, false, logger);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ForceableSubscribedItemsTest {
         final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         assertThrows(
                 NullPointerException.class,
-                () -> Items.SubscribedItems.forceable(null, logger),
+                () -> Items.SubscribedItems.forceable(null, false, logger),
                 "listener cannot be null");
     }
 
@@ -134,12 +134,12 @@ public class ForceableSubscribedItemsTest {
     public void shouldAddItemPath1Organic() {
         final Object itemHandle = new Object();
 
-        BufferedSubscribedItem added =
+        BufferedSubscribedItem subscribedItem =
                 items.activateOrInstall(
                         Expressions.Subscription("stock-[symbol=AAPL]"), itemHandle);
-        assertThat(added).isNotNull();
-        assertThat(added.canonicalName()).isEqualTo("stock-[symbol=AAPL]");
-        assertThat(added.isForced()).isFalse(); // Path-1 entries start unforced
+        assertThat(subscribedItem).isNotNull();
+        assertThat(subscribedItem.canonicalName()).isEqualTo("stock-[symbol=AAPL]");
+        assertThat(subscribedItem.isForced()).isFalse(); // Path-1 entries start unforced
         assertThat(items.size()).isEqualTo(1);
 
         // endOfSnapshot should be emitted for the fresh Path-1 entry
@@ -147,7 +147,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(listener.getSmartEndOfSnapshotCalls().get(0)).isEqualTo(itemHandle);
 
         // Path-1 activation also binds direct dispatch to itemHandle.
-        added.clearSnapshot(listener);
+        subscribedItem.clearSnapshot(listener);
         assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle);
     }
 
@@ -174,10 +174,10 @@ public class ForceableSubscribedItemsTest {
                 });
 
         // getItem on miss installs placeholder and triggers forceSubscription
-        BufferedSubscribedItem item = items.getItem("orders-[k=v]");
-        assertThat(item).isNotNull();
-        assertThat(item.canonicalName()).isEqualTo("orders-[k=v]");
-        assertThat(item.isForced()).isTrue();
+        BufferedSubscribedItem subscribedItem = items.getItem("orders-[k=v]");
+        assertThat(subscribedItem).isNotNull();
+        assertThat(subscribedItem.canonicalName()).isEqualTo("orders-[k=v]");
+        assertThat(subscribedItem.isForced()).isTrue();
         assertThat(forceSubscriptionCalled.get()).isTrue();
         assertThat(items.size()).isEqualTo(1);
 
@@ -185,7 +185,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(listener.getSmartEndOfSnapshotCalls()).isEmpty();
 
         // Path-2 activation switches the placeholder to direct dispatch bound to itemHandle.
-        item.clearSnapshot(listener);
+        subscribedItem.clearSnapshot(listener);
         assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle);
     }
 
