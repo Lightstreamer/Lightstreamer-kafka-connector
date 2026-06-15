@@ -330,7 +330,9 @@
 
         <!-- ##### RECORD PROCESSING SETTINGS ##### -->
 
-        <!-- Optional. Specifies where to start consuming events from. Can be one of the following:
+        <!-- Optional but ineffective when "item.snapshot.enabled.mode" is set to any value other 
+             than "NONE". Specifies where to start consuming events from. Can be one of the 
+             following:
 
              - EARLIEST: Start consuming events from the beginning of the topic partition.
              - LATEST:   Start consuming events from the end of the topic partition.
@@ -340,6 +342,12 @@
              Kafka Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset 
              for more details.
+
+             When snapshot management is active, the connector manages partition positions 
+             explicitly: newly assigned partitions are always seeked to the beginning (so that 
+             the snapshot replay covers the full topic history), and re-assigned partitions 
+             resume from their committed offset. See the "Snapshot Management" section in the 
+             README for details.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
@@ -483,17 +491,17 @@
         <param name="record.value.evaluator.kvp.pairs.separator">;</param>
         -->
 
-        <!-- Optional. The error handling strategy to be used if an error occurs while extracting 
-             data from incoming deserialized records. Can be one of the following:
+        <!-- Optional but forced to "IGNORE_AND_CONTINUE" when "item.snapshot.enabled.mode" is set 
+             to any value other than "NONE". The error handling strategy to be used if an error 
+             occurs while extracting data from incoming deserialized records. Can be one of the 
+             following:
 
              - IGNORE_AND_CONTINUE:  Ignore the error and continue to process the next record.
              - FORCE_UNSUBSCRIPTION: Stop processing records and force unsubscription of the items
                                      requested by all the Lightstreamer clients subscribed to this 
                                      connection.
 
-             NOTE: When "item.snapshot.enabled.mode" is set to any value other than "NONE", this 
-             parameter is forced to "IGNORE_AND_CONTINUE" regardless of the configured value. 
-             See the "Snapshot Management" section in the README for the rationale.
+             See the "Snapshot Management" section in the README for the rationale of the override.
 
              Default: "IGNORE_AND_CONTINUE". -->
         <!--
@@ -657,8 +665,9 @@
                            <param name="field.key">#{KEY}</param>
 
              Default value: DISABLED. -->
-        <!-- -->
+        <!-- 
         <param name="fields.evaluate.command.mode">AUTO</param>
+        -->
 
         <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
 
