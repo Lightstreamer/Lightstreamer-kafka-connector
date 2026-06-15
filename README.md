@@ -2021,7 +2021,7 @@ The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) als
 > [!IMPORTANT]
 > Because the connector replays each assigned partition from the earliest available offset, the shape of the resulting snapshot depends on what Kafka still retains on disk:
 > - For `MERGE` and `COMMAND`, the recommended companion is a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`): only the latest record per key survives, which matches exactly what the connector reconstructs (latest value per item / current rows of the table) and keeps the replay cost bounded. On a non-compacted topic the replay still produces a correct snapshot, but it scans every retained record — startup time and consumer load grow with the topic size.
-> - For `DISTINCT`, a time- or size-bounded retention policy sized to cover at least `item.snapshot.distinct.length` events per item is the intended companion: the Lightstreamer Server already caps the per-item snapshot to that length regardless of how many records the replay surfaces, so the snapshot shape stays independent of the topic shape. Log compaction is also accepted — it does not break correctness and can even be preferable in deployments where compaction guarantees are weak or cleaner cadence is unpredictable — but the natural fit is a retention-based topic.
+> - For `DISTINCT`, a time- or size-bounded retention policy sized to cover `item.snapshot.distinct.length` events per item is the intended companion: the Lightstreamer Server already caps the per-item snapshot to that length regardless of how many records the replay surfaces, so the snapshot shape stays independent of the topic shape. Log compaction is also accepted — it does not break correctness and can even be preferable in deployments where compaction guarantees are weak or cleaner cadence is unpredictable — but the natural fit is a retention-based topic.
 
 The rest of this subsection describes each per-_Mode_ snapshot shape in detail.
 
@@ -2047,7 +2047,7 @@ With `item.snapshot.enabled.mode = DISTINCT`:
 - A new subscriber receives up to `item.snapshot.distinct.length` snapshot events per item, in the same order in which they were originally published.
 - After the snapshot is delivered, the client receives realtime updates as soon as new records are published.
 
-This is the appropriate choice when the topic carries a **time series of discrete events** (for example: trades, log lines, alerts) and clients need a short window of recent history alongside the realtime feed. A time- or size-based retention policy that retains at least `item.snapshot.distinct.length` events per item is the natural companion; log compaction is also accepted, since the Lightstreamer Server caps the per-item snapshot to `item.snapshot.distinct.length` regardless of how many records the replay surfaces.
+This is the appropriate choice when the topic carries a **time series of discrete events** (for example: trades, log lines, alerts) and clients need a short window of recent history alongside the realtime feed. A time- or size-based retention policy that retains `item.snapshot.distinct.length` events per item is the natural companion; log compaction is also accepted, since the Lightstreamer Server caps the per-item snapshot to `item.snapshot.distinct.length` regardless of how many records the replay surfaces.
 
 ### COMMAND Snapshot
 
