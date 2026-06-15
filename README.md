@@ -1022,12 +1022,14 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional_. Specifies where to start consuming events from. Can be one of the following:
+_Optional but ineffective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. Specifies where to start consuming events from. Can be one of the following:
 
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
 The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+
+When snapshot management is active, the connector manages partition positions explicitly: newly assigned partitions are always seeked to the beginning (so that the snapshot replay covers the full topic history), and re-assigned partitions resume from their committed offset. See [Snapshot Management](#snapshot-management).
 
 Default value: `LATEST`.
 
@@ -1254,15 +1256,14 @@ Examples:
 
 #### `record.extraction.error.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
+_Optional but forced to `IGNORE_AND_CONTINUE` when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
 - `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
 - `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section).
 
-Default value: `IGNORE_AND_CONTINUE`.
+See [Snapshot Management](#snapshot-management) for the rationale of the override.
 
-> [!IMPORTANT]
-> When [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`, this parameter is forced to `IGNORE_AND_CONTINUE` regardless of the configured value. See [Snapshot Management](#snapshot-management) for the rationale.
+Default value: `IGNORE_AND_CONTINUE`.
 
 Example:
 
