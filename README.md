@@ -1997,7 +1997,7 @@ For the parameter reference (valid values, defaults, XML examples) see [Item Sna
 
 ## No Snapshot
 
-This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the internal Kafka Consumer is started lazily on the first client subscription, every record fetched from Kafka is delivered as a realtime update, and the Lightstreamer Server reports an empty snapshot to new subscribers. The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record (the snapshot itself remains empty).
+This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the internal Kafka Consumer is started lazily on the first client subscription, and every record fetched from Kafka is delivered as a realtime update. The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained from prior realtime activity. The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
 
 ## Strategy 1 — Connector-Managed Snapshot
 
