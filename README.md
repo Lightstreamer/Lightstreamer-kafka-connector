@@ -1639,8 +1639,7 @@ This parameter selects how the connector produces those operations. Can be one o
   ...
   ```
 
-  > [!TIP]
-  > The `key` and `command` fields can be mapped from any part of the Kafka record structure.
+  **Tip:** the `key` and `command` fields can be mapped from any part of the Kafka record structure.
 
   When `EXPLICIT` is used, the producer can also drive the **snapshot** by emitting reserved `key` / `command` values (`snapshot` / `CS` / `EOS`) interleaved with regular updates. This is one of the two snapshot strategies supported by the connector and the only one available with `EXPLICIT`; for the full description and activation rules see [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command).
 
@@ -1658,11 +1657,9 @@ This parameter selects how the connector produces those operations. Can be one o
   ...
   ```
 
-  > [!TIP]
-  > The `key` field can be mapped from any part of the Kafka record structure.
+  **Tip:** the `key` field can be mapped from any part of the Kafka record structure.
 
-  > [!NOTE]
-  > `AUTO` is a general-purpose command-synthesis mode and is fully usable on its own, without any snapshot management. It is also a **prerequisite** for [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot) when the subscription _Mode_ is _COMMAND_: when paired with [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode), the connector additionally replays the topic, reconstructs the table state, and delivers it as the snapshot to new subscribers. See [COMMAND Snapshot](#command-snapshot) for the full lifecycle description.
+  **Note:** `AUTO` is a general-purpose command-synthesis mode and is fully usable on its own, without any snapshot management. It is also a **prerequisite** for [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot) when the subscription _Mode_ is _COMMAND_: when paired with [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode), the connector additionally replays the topic, reconstructs the table state, and delivers it as the snapshot to new subscribers. See [COMMAND Snapshot](#command-snapshot) for the full lifecycle description.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
@@ -2007,7 +2004,7 @@ This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` co
 When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
 
 - The internal Kafka Consumer is started _eagerly_ at adapter initialization, regardless of whether any client is subscribed yet.
-- The connector explicitly seeks to the beginning of every assigned partition and replays the mapped topics from there — independently of [`record.consume.from`](#recordconsumefrom), which only affects the realtime phase — to pre-seed the per-item store maintained by the Lightstreamer Server.
+- The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
 - Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates both the Server-side store and any subscribed client.
 - A subscriber that joins later receives the current contents of the per-item store as the snapshot, followed by realtime updates.
 
