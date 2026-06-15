@@ -488,7 +488,12 @@
 
              - IGNORE_AND_CONTINUE:  Ignore the error and continue to process the next record.
              - FORCE_UNSUBSCRIPTION: Stop processing records and force unsubscription of the items
-                                     requested by all the Lightstreamer clients subscribed to this connection.
+                                     requested by all the Lightstreamer clients subscribed to this 
+                                     connection.
+
+             NOTE: When "item.snapshot.enabled.mode" is set to any value other than "NONE", this 
+             parameter is forced to "IGNORE_AND_CONTINUE" regardless of the configured value. 
+             See the "Snapshot Management" section in the README for the rationale.
 
              Default: "IGNORE_AND_CONTINUE". -->
         <!--
@@ -528,7 +533,6 @@
         <param name="map.aTopicName.to">item-template.template-name1,item1,item-template.template-name2,item2,...</param>
         -->
         <param name="map.stocks.to">item-template.stock</param>
-        <param name="map.stocks2.to">IBM,APPLE</param>
 
         <!-- Optional. Enables the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be 
              treated as a regular expression rather than of a literal topic name.
@@ -536,20 +540,6 @@
         <!--
         <param name="map.regex.enable">true</param>
         -->
-
-        <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
-
-        <!-- Optional. The snapshot delivery mode for subscribed items. Controls how the initial
-             state is delivered to Lightstreamer clients upon subscription. Can be one of the 
-             following:
-
-             - DISABLED: No snapshot is delivered; clients receive only real-time updates.
-             - IMPLICIT: The main consumer reads from the beginning of all configured topic
-                         partitions; every record is both delivered as a real-time update and
-                         contributes to the implicit snapshot.
-
-             Default value: DISABLED. -->
-        <param name="item.snapshot.enable">false</param>
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
@@ -591,6 +581,7 @@
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
+        <param name="field.key">#{OFFSET}</param>
 
         <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's 
              value will simply be omitted from the update sent to Lightstreamer clients, while other 
@@ -666,8 +657,40 @@
                            <param name="field.key">#{KEY}</param>
 
              Default value: DISABLED. -->
+        <!-- -->
+        <param name="fields.evaluate.command.mode">AUTO</param>
+
+        <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
+
+        <!-- Optional. Selects the snapshot behavior for subscribed items and, when not set to
+             "NONE", pins the Lightstreamer subscription Mode the connector is willing to serve.
+             Any non-"NONE" value activates the eager pipeline: the consumer starts at adapter
+             initialization, replays the topic from the beginning to seed the Server's item store,
+             then transitions to realtime tailing. Can be one of the following:
+
+             - NONE:     Snapshot disabled. The consumer starts on the first client subscription
+                         and every record is delivered as a realtime update. The subscription Mode
+                         is not constrained by the adapter.
+             - MERGE:    Snapshot enabled; subscription Mode pinned to MERGE. A new subscriber
+                         receives a single snapshot event per item (the current value), followed by
+                         realtime updates.
+             - DISTINCT: Snapshot enabled; subscription Mode pinned to DISTINCT. A new subscriber
+                         receives up to "item.snapshot.distinct.length" snapshot events per item
+                         (the most recent ones), followed by realtime updates.
+             - COMMAND:  Snapshot enabled; subscription Mode pinned to COMMAND. A new subscriber
+                         receives all rows currently in the per-item table. Requires
+                         "fields.evaluate.command.mode" to be set to "AUTO".
+
+             Default value: NONE. -->
+        <param name="item.snapshot.enabled.mode">MERGE</param>
+
+        <!-- Optional but only effective when "item.snapshot.enabled.mode" is set to "DISTINCT".
+             The maximum allowed length for the snapshot of an item that has been requested with
+             publishing Mode DISTINCT. Must be a positive integer.
+
+             Default value: 10. -->
         <!--
-        <param name="fields.evaluate.command.mode">EXPLICIT</param>
+        <param name="item.snapshot.distinct.length">100</param>
         -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
