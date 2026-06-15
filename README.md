@@ -2005,7 +2005,7 @@ When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the con
 
 - The internal Kafka Consumer is started _eagerly_ at adapter initialization, regardless of whether any client is subscribed yet.
 - The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
-- Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates both the Server-side store and any subscribed client.
+- Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates the Server-side store.
 - A subscriber that joins later receives the current contents of the per-item store as the snapshot, followed by realtime updates.
 
 Because the per-item store backs every future snapshot and the consumer runs even when no client is subscribed, the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting is forced to `IGNORE_AND_CONTINUE` under this strategy: `FORCE_UNSUBSCRIPTION` would either have nothing to unsubscribe (during the initial replay) or, on a single bad record during realtime tailing, would tear down the per-item store and permanently break snapshot delivery for every future subscription on this connection.
