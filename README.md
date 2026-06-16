@@ -2003,7 +2003,7 @@ This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` co
 
 When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
 
-- The internal Kafka Consumer is started _eagerly_ at adapter initialization, regardless of whether any client is subscribed yet.
+- The internal Kafka Consumer is started _eagerly_ during adapter initialization, before the adapter is ready to accept any client subscription (clients can only subscribe once initialization has completed).
 - The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
 - Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates the Server-side store.
 - A subscriber that joins later receives the current contents of the per-item store as the snapshot, followed by realtime updates.
