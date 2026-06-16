@@ -255,7 +255,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
+  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L41) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -451,7 +451,7 @@ This command generates the `lightstreamer-kafka-connector-utils-consumer-all-<ve
 Then, launch it with:
 
 ```sh
-$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-1.5.2.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields name,ask,bid,min,max
+$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields name,ask,bid,min,max
 ```
 
 As you can see, you need to specify a few parameters:
@@ -1445,7 +1445,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L517) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L574) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
