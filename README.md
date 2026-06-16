@@ -1998,7 +1998,11 @@ For the parameter reference (valid values, defaults, XML examples) see [Item Sna
 
 ## Server-Managed Snapshot Only
 
-This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies. The internal Kafka Consumer is started lazily on the first client subscription, and every record fetched from Kafka is delivered as a realtime update. The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained. The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
+This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`. The connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies:
+
+- The internal Kafka Consumer is started _lazily_, on the first client subscription, and every record fetched from Kafka is delivered as a realtime update.
+- The connector does not pre-seed any per-item store on the Lightstreamer Server. The snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained.
+- The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
 
 ## Strategy 1 — Connector-Managed Snapshot
 
