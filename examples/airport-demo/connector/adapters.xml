@@ -10,30 +10,32 @@
 <!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
-        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a
-             custom implementation by extending this class. -->
+        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to 
+             provide a custom implementation by extending this class. -->
         <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
 
-        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
+        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment 
+             folder LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
 
     </metadata_provider>
 
-    <!-- Mandatory. The Kafka Connector allows the configuration of different independent connections to different Kafka
-         broker/clusters.
+    <!-- Mandatory. The Kafka Connector allows the configuration of different independent 
+         connections to different Kafka broker/clusters.
 
-         Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
-         configuration must be provided.
+         Every single connection is configured via the definition of its own Lightstreamer Data 
+         Adapter. At least one connection configuration must be provided.
 
-         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several
-         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
-         configuration.
+         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal 
+         Kafka Consumer, several configuration settings in the Data Adapter are identical to those 
+         required by the usual Kafka Consumer configuration.
 
-         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the connection name, which will
-         be used by the Clients to request real-time data from this specific Kafka connection through a Subscription object.
+         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the 
+         connection name, which will be used by the Clients to request real-time data from this 
+         specific Kafka connection through a Subscription object.
 
-         The connection name is also used to group all logging messages belonging to the same connection.
+         The connection name is also used to group all logging messages belonging to the same 
+         connection.
 
          Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
 	<data_provider name="AirportDemo">
@@ -57,8 +59,8 @@
 
         <!-- ##### RECORD MAPPING SETTINGS ##### -->
 
-        <!-- Enable support for COMMAND mode. -->
-        <param name="fields.evaluate.as.command.enable">true</param>
+        <!-- Controls COMMAND-mode handling. -->
+        <param name="fields.evaluate.command">EXPLICIT</param>
 
         <!-- Extraction of the record value attributes mapped to corresponding field names. -->
         <param name="field.key">#{KEY}</param>
