@@ -58,6 +58,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
 - [Snapshot Management](#snapshot-management)
   - [Server-Managed Snapshot Only](#server-managed-snapshot-only)
   - [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot)
+    - [Snapshot Correctness: Template and Topic Shape](#snapshot-correctness-template-and-topic-shape)
     - [MERGE Snapshot](#merge-snapshot)
     - [DISTINCT Snapshot](#distinct-snapshot)
     - [COMMAND Snapshot](#command-snapshot)
@@ -1989,7 +1990,7 @@ In Lightstreamer terminology, the _snapshot_ of an item is the set of events a f
 The Kafka Connector offers two snapshot strategies, and **only one of them can be active in a given Data Adapter**:
 
 1. **Connector-managed snapshot** — activated by [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) ≠ `NONE`. The connector itself replays the topic from the beginning, maintains a per-item store, and serves it as the snapshot to late subscribers. Available for the _MERGE_, _DISTINCT_, and _COMMAND_ subscription _Modes_.
-2. **Producer-driven snapshot** — activated by [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) = `EXPLICIT` (with `item.snapshot.enabled.mode = NONE`). The producer marks snapshot boundaries through reserved `CS`/`EOS` events embedded in the stream; the broker delivers them as snapshot to new subscribers. Available only for the _COMMAND_ subscription _Mode_.
+2. **Producer-driven snapshot** — activated by [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) = `EXPLICIT` (with `item.snapshot.enabled.mode = NONE`). The producer marks snapshot boundaries through reserved `CS`/`EOS` events embedded in the stream; the Lightstreamer Server delivers them as snapshot to new subscribers. Available only for the _COMMAND_ subscription _Mode_.
 
 If neither is configured, the connector does **not** manage the snapshot at all — the Lightstreamer Server still applies its own automatic snapshot mechanism, see [Server-Managed Snapshot Only](#server-managed-snapshot-only) below. For a side-by-side picker, see [Choosing a Strategy](#choosing-a-strategy).
 
@@ -2018,12 +2019,39 @@ The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) als
 | `DISTINCT`                   | _DISTINCT_                                | Up to [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) events |
 | `COMMAND`                    | _COMMAND_                                 | All rows currently in the per-item table                                    |
 
-> [!IMPORTANT]
-> Because the connector replays each assigned partition from the earliest available offset, the shape of the resulting snapshot depends on what Kafka still retains on disk:
-> - For `MERGE` and `COMMAND`, the recommended companion is a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`): only the latest record per key survives, which matches exactly what the connector reconstructs (latest value per item / current rows of the table) and keeps the replay cost bounded. On a non-compacted topic the replay still produces a correct snapshot, but it scans every retained record — startup time and consumer load grow with the topic size.
-> - For `DISTINCT`, a time- or size-bounded retention policy sized to cover `item.snapshot.distinct.length` events per item is the intended companion: the Lightstreamer Server already caps the per-item snapshot to that length regardless of how many records the replay surfaces, so the snapshot shape stays independent of the topic shape. Log compaction is also accepted — it does not break correctness and can even be preferable in deployments where compaction guarantees are weak or cleaner cadence is unpredictable — but the natural fit is a retention-based topic.
+### Snapshot Correctness: Template and Topic Shape
 
-The rest of this subsection describes each per-_Mode_ snapshot shape in detail.
+The Connector-Managed Snapshot strategy is a straightforward replay-and-forward: the connector reads each assigned partition from the earliest offset, hands every record to the Lightstreamer Server's per-item store, and serves that store as the snapshot for late subscribers. The connector does no buffering or deduplication of its own — whatever Kafka still has on disk at replay time is exactly what reaches the per-item store, and from there the subscriber.
+
+For **_MERGE_** and **_COMMAND_** snapshots, two configuration choices decide whether the result matches what the per-_Mode_ descriptions below claim:
+
+1. **Use a log-compacted topic** (`cleanup.policy=compact`).
+    Both per-item stores follow a "latest record per key" model — MERGE keeps one current value per item, COMMAND keeps one row per row-`key` — which is exactly what compaction produces on disk. On a non-compacted topic the replay still works, but it scans every retained record and pays for it in startup time and consumer load. See [Topic shape](#topic-shape) below.
+2. **Build the item template from the Kafka key alone.**
+    Use `KEY` for scalar keys or `KEY.*` covering every field of a structured key — for example `stock-#{symbol=KEY}` against a string-keyed `stocks` topic, or `position-#{account=KEY.account,instrument=KEY.instrument}` against records keyed by `{account, instrument}`. Each Kafka key then maps to exactly one Lightstreamer item, and what Kafka keeps per key is what the snapshot delivers per item. Other template shapes are accepted at startup but produce snapshots ranging from "ordering-dependent" to "silently empty"; see [Template shape](#template-shape) below for the full catalogue.
+
+For **_DISTINCT_** both choices relax. A DISTINCT item is a bounded FIFO of the most recent events (capped at [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength), default 10), not a single current value, so multiple Kafka keys feeding the same item is fine — each event is preserved as a separate FIFO entry instead of being overwritten. The natural broker companion is time- or size-based retention sized to cover that window; compaction is also accepted, since the server-side cap makes the snapshot shape independent of what the replay surfaces.
+
+#### Template shape
+
+Full catalogue of the template shapes a snapshot-enabled adapter can encounter, from the recommended one down to the silent failures:
+
+| Template shape | Example | Snapshot correctness | What happens |
+| --- | --- | --- | --- |
+| Scalar `KEY`, or structured `KEY.*` covering every field of the key | `stock-#{symbol=KEY}` against a string-keyed topic; or `stock-#{symbol=KEY.symbol,exchange=KEY.exchange}` against records keyed by `{symbol, exchange}` | **Correct** — the recommended shape | Each surviving record produces exactly one Lightstreamer item, and the snapshot is exact. This is the shape Strategy 1 is designed around. |
+| `KEY.*` with parameters covering only a subset of the key | `stock-#{symbol=KEY.symbol}` against records keyed by `{symbol, exchange}` | **Consistent but ordering-sensitive** | Two records with different Kafka keys (and therefore different compaction identities) can map to the same Lightstreamer item. Both survive compaction, the snapshot replay delivers both, and the client sees the second value overwrite the first. The final value depends on poll/partition order. This is not a snapshot-specific bug — the same non-determinism exists on the realtime path with this template shape — but it is worth being aware of. |
+| `VALUE.*` only | `stock-#{symbol=VALUE.symbol}` against records keyed by an unrelated identifier | **Broken** | Kafka's compaction key carries no information about the Lightstreamer item, so multiple records with different keys but the same `VALUE.symbol` all survive compaction and all collapse onto the same item. From the snapshot's perspective the topic behaves as if it were not compacted: the replay delivers many events per item, with no upper bound from the unique-key count. Avoid this shape with `MERGE` / `COMMAND` snapshot. |
+| Mixed `KEY.*` and `VALUE.*` | `item-#{id=KEY.id,status=VALUE.status}` | **Silently wrong** | The Lightstreamer item name changes as the value changes, while the Kafka compaction key (just `id`) does not. Compaction keeps only the most recent record per `id`, so a client subscribing to `item-[id=1,status=ACTIVE]` never receives a snapshot for it: the record that would have matched was compacted away. The snapshot for the subscribed item is silently empty — no error, no warning, just nothing. This is the most dangerous shape because the failure is invisible. |
+| No bind parameters (plain item name, full topic collapsing onto one item) | `<param name="map.stocks.to">all-stocks</param>` | **Degenerate** | Every record in the topic produces the same Lightstreamer item. The snapshot delivers every surviving record on the topic to that single item. In `MERGE` each event overwrites the previous one and the client ends up with the last record polled — an arbitrary key, chosen by partition order. Avoid for Strategy 1. |
+
+**Regex topic mappings** ([`map.regex.enable = true`](#enable-regular-expression-mapregexenable)) are similarly accepted but not validated against the snapshot pipeline's assumptions; for snapshot-enabled adapters, prefer literal topic names.
+
+#### Topic shape
+
+The topic's cleanup policy is the broker-side half of the recipe:
+
+- For `MERGE` and `COMMAND`, the natural companion is a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`). Compaction is the broker-side counterpart of the "one surviving record per key" notion: only the latest record per key survives, which is exactly what the connector reconstructs (latest value per item / current rows of the table), and it keeps the replay cost bounded. On a non-compacted topic the replay still produces a correct snapshot, but it scans every retained record — startup time and consumer load grow with the topic size.
+- For `DISTINCT`, the "one surviving record per key" notion does not apply: the per-item snapshot is a bounded *sequence* of recent events, not a single current value, and the Lightstreamer Server caps it at [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) regardless of how many records the replay surfaces. A time- or size-bounded retention policy sized to cover `item.snapshot.distinct.length` events per item is the natural fit; log compaction is also accepted, since the server-side cap makes the snapshot shape independent of the topic shape.
 
 ### MERGE Snapshot
 
@@ -2035,7 +2063,7 @@ With `item.snapshot.enabled.mode = MERGE`:
 - A new subscriber receives exactly one snapshot event for each item it subscribes to, reflecting the latest value observed so far.
 - After the snapshot is delivered, the client receives realtime updates as soon as new records are published.
 
-This is the appropriate choice when the topic models the **current state** of an entity (for example: latest stock quote, latest sensor reading, latest order status) and clients only care about the most recent value plus the realtime stream of changes. A [log-compacted](https://kafka.apache.org/documentation/#compaction) topic is the natural companion: compaction keeps only the latest record per key, which is exactly what the snapshot needs.
+This is the appropriate choice when the topic models the **current state** of an entity (for example: latest stock quote, latest sensor reading, latest order status) and clients only care about the most recent value plus the realtime stream of changes. See [Topic shape](#topic-shape) above for the recommended `cleanup.policy`.
 
 ### DISTINCT Snapshot
 
@@ -2047,7 +2075,7 @@ With `item.snapshot.enabled.mode = DISTINCT`:
 - A new subscriber receives up to `item.snapshot.distinct.length` snapshot events per item, in the same order in which they were originally published.
 - After the snapshot is delivered, the client receives realtime updates as soon as new records are published.
 
-This is the appropriate choice when the topic carries a **time series of discrete events** (for example: trades, log lines, alerts) and clients need a short window of recent history alongside the realtime feed. A time- or size-based retention policy that retains `item.snapshot.distinct.length` events per item is the natural companion; log compaction is also accepted, since the Lightstreamer Server caps the per-item snapshot to `item.snapshot.distinct.length` regardless of how many records the replay surfaces.
+This is the appropriate choice when the topic carries a **time series of discrete events** (for example: trades, log lines, alerts) and clients need a short window of recent history alongside the realtime feed. See [Topic shape](#topic-shape) above for the recommended `cleanup.policy`.
 
 ### COMMAND Snapshot
 
@@ -2059,24 +2087,23 @@ With `item.snapshot.enabled.mode = COMMAND`:
 - A new subscriber receives one snapshot event per row currently in the table (each carrying `command = ADD`), followed by realtime updates that materialize subsequent inserts, modifications, and removals as `ADD`/`UPDATE`/`DELETE` events.
 - `item.snapshot.enabled.mode = COMMAND` **requires** [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) to be set to `AUTO`: only the `key` field is mapped from the record, and the connector synthesises the `command` value for each event from the record state.
 
-This is the appropriate choice when the topic models a **changelog of a keyed entity set** (for example: positions in a portfolio, online users, items in a cart) and clients need both the current contents of the set and the realtime stream of changes. A [log-compacted](https://kafka.apache.org/documentation/#compaction) topic is the natural companion: compaction (with tombstones for deletions) preserves exactly the records the connector needs to reconstruct the current table. If your producer already marks the snapshot boundaries explicitly in the stream, consider [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command) instead.
+This is the appropriate choice when the topic models a **changelog of a keyed entity set** (for example: positions in a portfolio, online users, items in a cart) and clients need both the current contents of the set and the realtime stream of changes. See [Topic shape](#topic-shape) above for the recommended `cleanup.policy` (and note that, for COMMAND, tombstones are mapped to `DELETE`, so compaction preserves exactly the records the connector needs to reconstruct the current table). If your producer already marks the snapshot boundaries explicitly in the stream, consider [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command) instead.
 
 ## Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)
 
-With `fields.evaluate.command.mode = EXPLICIT` (and `item.snapshot.enabled.mode = NONE`), the **producer** drives the snapshot by interleaving reserved sentinel events with regular updates. The connector does not replay the topic; it simply forwards each record as-is, recognizing the sentinel `key`/`command` combinations and asking the Lightstreamer Broker to treat them as snapshot-control events.
+With `fields.evaluate.command.mode = EXPLICIT` (and `item.snapshot.enabled.mode = NONE`), the **producer** drives the snapshot by interleaving reserved sentinel events with regular updates. The connector does not replay the topic; it simply forwards each record as-is, recognizing the sentinel `key`/`command` combinations and asking the Lightstreamer Server to treat them as snapshot-control events.
 
 Availability and activation:
 
 - Available only for the _COMMAND_ subscription _Mode_: the adapter pins _COMMAND_ (a client requesting any other _Mode_ will be refused).
 - Requires `fields.evaluate.command.mode = EXPLICIT` and the mandatory `key` and `command` field mappings, as documented in [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
-- Requires `item.snapshot.enabled.mode = NONE`: the producer-driven and the connector-managed strategies are mutually exclusive.
 
 Reserved sentinel values:
 
 - `key` set to the special value `snapshot`.
 - `command` set to one of:
   - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
+  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Server. If the Server has already determined that the snapshot has ended, the event may be ignored.
 
 A typical producer sequence is therefore: zero or more `ADD` events that constitute the snapshot, followed by an `EOS` sentinel, followed by realtime `ADD`/`UPDATE`/`DELETE` events. Issue a `CS` sentinel at any time to invalidate and rebuild the snapshot from scratch.
 
