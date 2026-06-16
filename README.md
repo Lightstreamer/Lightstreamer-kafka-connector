@@ -56,7 +56,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
       - [Confluent Schema Registry Quickstart](#confluent-schema-registry-quickstart)
     - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
 - [Snapshot Management](#snapshot-management)
-  - [No Snapshot](#no-snapshot)
+  - [Server-Managed Snapshot Only](#server-managed-snapshot-only)
   - [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot)
     - [MERGE Snapshot](#merge-snapshot)
     - [DISTINCT Snapshot](#distinct-snapshot)
@@ -1991,13 +1991,13 @@ The Kafka Connector offers two snapshot strategies, and **only one of them can b
 1. **Connector-managed snapshot** — activated by [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) ≠ `NONE`. The connector itself replays the topic from the beginning, maintains a per-item store, and serves it as the snapshot to late subscribers. Available for the _MERGE_, _DISTINCT_, and _COMMAND_ subscription _Modes_.
 2. **Producer-driven snapshot** — activated by [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) = `EXPLICIT` (with `item.snapshot.enabled.mode = NONE`). The producer marks snapshot boundaries through reserved `CS`/`EOS` events embedded in the stream; the broker delivers them as snapshot to new subscribers. Available only for the _COMMAND_ subscription _Mode_.
 
-If neither is configured, the connector does **not** manage the snapshot at all — see [No Snapshot](#no-snapshot) below. For a side-by-side picker, see [Choosing a Strategy](#choosing-a-strategy).
+If neither is configured, the connector does **not** manage the snapshot at all — the Lightstreamer Server still applies its own automatic snapshot mechanism, see [Server-Managed Snapshot Only](#server-managed-snapshot-only) below. For a side-by-side picker, see [Choosing a Strategy](#choosing-a-strategy).
 
 For the parameter reference (valid values, defaults, XML examples) see [Item Snapshot Settings](#item-snapshot-settings) and [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
 
-## No Snapshot
+## Server-Managed Snapshot Only
 
-This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the internal Kafka Consumer is started lazily on the first client subscription, and every record fetched from Kafka is delivered as a realtime update. The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained from prior realtime activity. The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
+This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies. The internal Kafka Consumer is started lazily on the first client subscription, and every record fetched from Kafka is delivered as a realtime update. The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained. The subscription _Mode_ is left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
 
 ## Strategy 1 — Connector-Managed Snapshot
 
@@ -2086,8 +2086,8 @@ This is the appropriate choice when the source-of-truth system already produces 
 
 | Need | Strategy | `item.snapshot.enabled.mode` | `fields.evaluate.command.mode` | Subscription _Mode_ |
 | --- | --- | --- | --- | --- |
-| No snapshot, client picks any _Mode_ | [No Snapshot](#no-snapshot) | `NONE` (default) | `DISABLED` (default) | Client's choice |
-| No snapshot, _COMMAND_ with `command` synthesised by the connector | [No Snapshot](#no-snapshot) | `NONE` | `AUTO` | _COMMAND_ (pinned) |
+| Connector does not manage the snapshot, client picks any _Mode_ | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` (default) | `DISABLED` (default) | Client's choice |
+| Connector does not manage the snapshot, _COMMAND_ with `command` synthesised by the connector | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `AUTO` | _COMMAND_ (pinned) |
 | Snapshot = latest value per item | [MERGE Snapshot](#merge-snapshot) | `MERGE` | `DISABLED` (required) | _MERGE_ (pinned) |
 | Snapshot = recent events per item | [DISTINCT Snapshot](#distinct-snapshot) | `DISTINCT` | `DISABLED` (required) | _DISTINCT_ (pinned) |
 | Snapshot = current rows of a table, connector reconstructs from the topic | [COMMAND Snapshot](#command-snapshot) | `COMMAND` | `AUTO` (required) | _COMMAND_ (pinned) |
