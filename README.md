@@ -147,7 +147,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
- - [`Azure Events Hub`](/examples/vendors/azure/quickstart-azure/README.md)
+ - [`Azure Event Hubs`](/examples/vendors/azure/quickstart-azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -2142,12 +2142,12 @@ Two notes that apply to all three Modes above:
 
 ## Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)
 
-With `fields.evaluate.command.mode = EXPLICIT` (and `item.snapshot.enabled.mode = NONE`), the **producer** drives the snapshot by interleaving reserved sentinel events with regular updates. The connector does not replay the topic; it simply forwards each record as-is, recognizing the sentinel `key`/`command` combinations and asking the Lightstreamer Server to treat them as snapshot-control events.
+When `item.snapshot.enabled.mode = NONE` is paired with `fields.evaluate.command.mode = EXPLICIT`, the connector does not replay the topic or maintain any per-item store; the **producer** drives the snapshot by interleaving reserved sentinel events with regular updates, and the connector simply forwards each record as-is — recognizing the sentinel `key`/`command` combinations and asking the Lightstreamer Server to treat them as snapshot-control events.
 
-Availability and activation:
-
-- Available only for the _COMMAND_ subscription _Mode_: the adapter pins _COMMAND_ (a client requesting any other _Mode_ will be refused).
-- Requires `fields.evaluate.command.mode = EXPLICIT` and the mandatory `key` and `command` field mappings, as documented in [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
+- The internal Kafka Consumer is started _lazily_ on the first client subscription, as under [Server-Managed Snapshot Only](#server-managed-snapshot-only). [`record.consume.from`](#recordconsumefrom) is honored (no override): newly assigned partitions use the configured `auto.offset.reset` behavior, and re-assigned partitions resume from their committed offset.
+- The connector does not maintain a per-item store: every record fetched from Kafka is forwarded immediately, with sentinel events translated into the corresponding snapshot-control instructions for the Lightstreamer Server.
+- [`record.extraction.error.strategy`](#recordextractionerrorstrategy) is honored as configured: there is no per-item store to protect, so the Strategy 1 override to `IGNORE_AND_CONTINUE` does not apply.
+- The adapter pins the subscription _Mode_ to _COMMAND_ (a client requesting any other _Mode_ will be refused) and requires the mandatory `key` and `command` field mappings, as documented in [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
 
 Reserved sentinel values:
 
@@ -2158,20 +2158,20 @@ Reserved sentinel values:
 
 A typical producer sequence is therefore: zero or more `ADD` events that constitute the snapshot, followed by an `EOS` sentinel, followed by realtime `ADD`/`UPDATE`/`DELETE` events. Issue a `CS` sentinel at any time to invalidate and rebuild the snapshot from scratch.
 
-This is the appropriate choice when the source-of-truth system already produces an explicit snapshot stream (typically a CDC pipeline or a change-log compaction process) and you want the connector to forward it untouched rather than reconstruct it.
+This is the appropriate choice when the source-of-truth system already produces an explicit snapshot stream (typically a CDC pipeline or a change-log compaction process) and you want the connector to forward it untouched rather than reconstruct it. If instead you want the connector to reconstruct the table state from a keyed (typically log-compacted) topic, use [COMMAND Snapshot](#command-snapshot) under Strategy 1.
 
 ## Choosing a Strategy
 
 | Need | Strategy | `item.snapshot.enabled.mode` | `fields.evaluate.command.mode` | Subscription _Mode_ |
 | --- | --- | --- | --- | --- |
-| Connector does not manage the snapshot, client picks any _Mode_ | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` (default) | `DISABLED` (default) | Client's choice |
-| Connector does not manage the snapshot, _COMMAND_ with `command` synthesised by the connector | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `AUTO` | _COMMAND_ (pinned) |
-| Snapshot = latest value per item | [MERGE Snapshot](#merge-snapshot) | `MERGE` | `DISABLED` (required) | _MERGE_ (pinned) |
-| Snapshot = recent events per item | [DISTINCT Snapshot](#distinct-snapshot) | `DISTINCT` | `DISABLED` (required) | _DISTINCT_ (pinned) |
-| Snapshot = current rows of a table, connector reconstructs from the topic | [COMMAND Snapshot](#command-snapshot) | `COMMAND` | `AUTO` (required) | _COMMAND_ (pinned) |
-| Snapshot = current rows of a table, producer marks boundaries with `CS`/`EOS` | [Strategy 2](#strategy-2--producer-driven-snapshot-explicit-command) | `NONE` (required) | `EXPLICIT` | _COMMAND_ (pinned) |
+| No connector-managed snapshot; client picks any _Mode_ | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `DISABLED` | Client's choice |
+| No connector-managed snapshot; _COMMAND_ with `command` synthesised by the connector | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `AUTO` | _COMMAND_ (pinned) |
+| Snapshot = latest value per item | Strategy 1 — [MERGE Snapshot](#merge-snapshot) | `MERGE` | `DISABLED` | _MERGE_ (pinned) |
+| Snapshot = recent events per item | Strategy 1 — [DISTINCT Snapshot](#distinct-snapshot) | `DISTINCT` | `DISABLED` | _DISTINCT_ (pinned) |
+| Snapshot = current rows of a table, connector reconstructs from the topic | Strategy 1 — [COMMAND Snapshot](#command-snapshot) | `COMMAND` | `AUTO` | _COMMAND_ (pinned) |
+| Snapshot = current rows of a table, producer marks boundaries with `CS`/`EOS` | [Strategy 2 — Producer-Driven Snapshot](#strategy-2--producer-driven-snapshot-explicit-command) | `NONE` | `EXPLICIT` | _COMMAND_ (pinned) |
 
-All other combinations of `fields.evaluate.command.mode` and `item.snapshot.enabled.mode` are rejected at startup with a configuration error.
+The first row corresponds to the out-of-the-box defaults (`item.snapshot.enabled.mode = NONE`, `fields.evaluate.command.mode = DISABLED`). All other combinations of `fields.evaluate.command.mode` and `item.snapshot.enabled.mode` are rejected at startup with a configuration error; this is distinct from the **extraction-layout** misconfigurations described in the per-_Mode_ [Caveats](#caveats), which are accepted at startup and surface only as degraded runtime behavior.
 
 # Client Side Error Handling
 
