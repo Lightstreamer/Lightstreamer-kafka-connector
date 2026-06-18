@@ -1784,7 +1784,7 @@ Let's suppose we have three different Lightstreamer clients:
 
 Now, let's see how filtered routing works for the following incoming Kafka records from the topic `user`:
 
-- Record 1:
+- **Record 1**:
   ```js
   {
     ...
@@ -1800,7 +1800,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   | `by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
   | `by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
 
-- Record 2:
+- **Record 2**:
   ```js
   {
     ...
@@ -1816,7 +1816,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   | `by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
   | `by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
 
-- Record 3:
+- **Record 3**:
   ```js
   {
     ...
