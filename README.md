@@ -37,7 +37,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Connection Settings](#connection-settings)
     - [General Parameters](#general-parameters)
     - [Encryption Parameters](#encryption-parameters)
-    - [Broker Authentication Parameters](#broker-authentication-parameters)
+    - [Kafka Broker Authentication Parameters](#kafka-broker-authentication-parameters)
   - [Record Processing](#record-processing)
   - [Topic Mapping](#topic-mapping)
     - [Data Extraction Language](#data-extraction-language)
@@ -800,9 +800,9 @@ Example:
 
 For an example of an encryption configuration, see the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app.
 
-### Broker Authentication Parameters
+### Kafka Broker Authentication Parameters
 
-Broker authentication is configured through parameters with the prefix `authentication`.
+Kafka broker authentication is configured through parameters with the prefix `authentication`.
 
 #### `authentication.enable`
 
@@ -2001,7 +2001,9 @@ This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` co
 
 - **Lazy consumer.** The internal Kafka Consumer is started on the first client subscription, and every record fetched from Kafka is delivered as a realtime update.
 - **Snapshot reflects Server state only.** The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained.
-- **Subscription _Mode_.** Left to the client when `fields.evaluate.command.mode = DISABLED`; with `AUTO` the adapter still pins _COMMAND_ Mode so that the `command` field can be synthesised from each record.
+- **Subscription _Mode_.**
+  - With `fields.evaluate.command.mode = DISABLED`, the Mode is left to the client.
+  - With `fields.evaluate.command.mode = AUTO`, the adapter pins the Mode to _COMMAND_ so that the `command` field can be synthesised from each record. This pinning is a property of `AUTO` alone — it is not part of any snapshot strategy.
 
 ## Strategy 1 — Connector-Managed Snapshot
 
@@ -2178,7 +2180,7 @@ The first row corresponds to the out-of-the-box defaults (`item.snapshot.enabled
 When a client sends a subscription to the Kafka Connector, several error conditions can occur:
 
 - Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
-- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the broker.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the Kafka broker.
 - Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
 
 In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
