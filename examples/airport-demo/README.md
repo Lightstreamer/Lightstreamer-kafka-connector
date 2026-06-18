@@ -103,7 +103,7 @@ Based on this choice, you will need to modify the [`adapters.xml`](connector/ada
 </data_provider>
 ```
 
-However, in more complex scenarios where authentication and TLS need to be set up, please refer to the Kafka Connector guide [here](../../README.md#broker-authentication-parameters) and [here](../../README.md#encryption-parameters).
+However, in more complex scenarios where authentication and TLS need to be set up, please refer to the Kafka Connector guide [here](../../README.md#kafka-broker-authentication-parameters) and [here](../../README.md#encryption-parameters).
 
 The demo leverages a particular data retention mechanism to ensure simplified snapshot management.
 The mechanism is compaction, which takes advantage of the fact that the demo uses key-based messages, allowing the Kafka cluster to maintain only one value per key, the most recent one, in the message history.
