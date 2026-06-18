@@ -41,7 +41,7 @@ configurations {
 }
 
 dependencies {
-    api("com.lightstreamer:ls-adapter-inprocess:8.0.0")
+    api("com.lightstreamer:ls-adapter-inprocess:8.1.0")
 
     implementation("org.slf4j:slf4j-reload4j:2.0.17")
     implementation("org.apache.kafka:kafka-clients:8.1.1-ccs")
