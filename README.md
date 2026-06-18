@@ -1718,7 +1718,51 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-#### Example
+#### Example 1
+
+Consider the following configuration:
+
+```xml
+<param name="item-template.currencyPair">pair-#{symbol=KEY}</param>
+<param name="map.forex.to">item-template.currencyPair</param>
+```
+
+which specifies how to route records from the topic `forex`, whose Kafka key is the currency-pair symbol (e.g. `EURUSD`, `GBPUSD`, `USDJPY`), to the item template `currencyPair`. The template binds the single parameter `symbol` to the Kafka key, so each subscribed item targets exactly one currency pair.
+
+Let's suppose we have two different Lightstreamer clients:
+
+1. _Client A_ subscribes to two parameterized items:
+   - _SA1_ `pair-[symbol=EURUSD]` for receiving real-time updates relative to the `EUR/USD` pair.
+   - _SA2_ `pair-[symbol=EURGBP]` for receiving real-time updates relative to the `EUR/GBP` pair.
+2. _Client B_ subscribes to the parameterized item _SB1_ `pair-[symbol=USDJPY]` for receiving real-time updates relative to the `USD/JPY` pair.
+
+Now, let's see how filtered routing works for the following incoming Kafka records from the topic `forex`:
+
+- **Record 1** — key `EURUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURUSD]` | _SA1_                   | _Client A_       |
+
+- **Record 2** — key `USDJPY`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=USDJPY]` | _SB1_                   | _Client B_       |
+
+- **Record 3** — key `GBPUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=GBPUSD]` | _None_                  | _None_           |
+
+- **Record 4** — key `EURGBP`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURGBP]` | _SA2_                   | _Client A_       |
+
+#### Example 2
 
 Consider the following configuration:
 
@@ -1728,7 +1772,7 @@ Consider the following configuration:
 <param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
-which specifies how to route records published from the topic `user` to the item templates defined to extract some personal data.
+which specifies how to route records from the topic `user` to the item templates defined to extract some personal data. The two templates bind different parameters extracted from the record value: `by-name` binds `firstName` and `lastName` to `VALUE.name` and `VALUE.surname`, while `by-age` binds `age` to `VALUE.age`. Because the topic maps to both templates, every record is evaluated against both and may match items on either or both axes.
 
 Let's suppose we have three different Lightstreamer clients:
 
@@ -1738,7 +1782,7 @@ Let's suppose we have three different Lightstreamer clients:
 2. _Client B_ subscribes to the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`.
 3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]` for receiving real-time updates relative to any 37 year-old user.
 
-Now, let's see how filtered routing works for the following incoming Kafka records published to the topic `user`:
+Now, let's see how filtered routing works for the following incoming Kafka records from the topic `user`:
 
 - Record 1:
   ```js
@@ -1752,10 +1796,9 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                              | Matched Subscribed Item | Routed to Client |
-  | ----------| -------------------------------------- | ----------------------- | -----------------|
+  | --------- | -------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
   | `by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
-
 
 - Record 2:
   ```js
@@ -1769,7 +1812,7 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                                     | Matched Subscribed Item | Routed to Client |
-  | --------- | --------------------------------------------- | ----------------------- | -----------------|
+  | --------- | --------------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
   | `by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
 
@@ -1785,11 +1828,9 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                               | Matched Subscribed Item | Routed to Client |
-  | ----------| --------------------------------------- | ----------------------- | -----------------|
+  | --------- | --------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=Nyota,lastName=Uhura]` | _None_                  | _None_           |
   | `by-age`  | `user-[age=37]`                         | _SC1_                   | _Client C_       |
-
-
 
 ## Item Snapshot Settings
 
@@ -2755,7 +2796,7 @@ item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
-The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
+The configuration above specifies how to route records from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
 
 # Docs
 
