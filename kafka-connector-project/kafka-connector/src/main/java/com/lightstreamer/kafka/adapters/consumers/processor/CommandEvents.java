@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 
 /**
  * Utility interface for COMMAND mode event decoration. Provides methods and constants for adding
- * command semantics ({@code ADD}, {@code DELETE}, {@code UPDATE}, {@code CS}, {@code EOS}) to
+ * command semantics ({@link Command#ADD}, {@link Command#DELETE}, {@link Command#UPDATE}) to
  * Lightstreamer events derived from Kafka records.
  *
  * <p>Used by both the real-time record processing pipeline ({@link RecordConsumerSupport}) and the
@@ -34,15 +34,12 @@ import java.util.stream.Stream;
  */
 public interface CommandEvents {
 
-    /** Key value used to identify snapshot control records. */
-    static final String SNAPSHOT = "snapshot";
-
     /**
      * Decorates an event map with the given {@link Command}.
      *
      * @param event the event map to decorate
      * @param command the command to attach
-     * @return the decorated event map
+     * @return the same event map, now decorated with the command
      */
     static Map<String, String> decorate(Map<String, String> event, Command command) {
         event.put(Key.COMMAND.key(), command.toString());
@@ -69,9 +66,7 @@ public interface CommandEvents {
     enum Command {
         ADD,
         DELETE,
-        UPDATE,
-        CS,
-        EOS;
+        UPDATE;
 
         private static final Map<String, Command> CACHE =
                 Stream.of(values())
@@ -81,20 +76,11 @@ public interface CommandEvents {
          * Looks up the {@code Command} from the command field in the given map.
          *
          * @param input the field map to inspect
-         * @return the matching {@code Command}, or empty if not found
+         * @return the matching {@code Command}, or an empty {@link Optional} if not found
          */
         public static Optional<Command> lookUp(Map<String, String> input) {
             String command = input.get(Key.COMMAND.key());
             return Optional.ofNullable(CACHE.get(command));
-        }
-
-        /**
-         * Returns whether this command is a snapshot control flag ({@code CS} or {@code EOS}).
-         *
-         * @return {@code true} if this is a control flag, {@code false} otherwise
-         */
-        public boolean isControlFlag() {
-            return this.equals(CS) || this.equals(EOS);
         }
     }
 
