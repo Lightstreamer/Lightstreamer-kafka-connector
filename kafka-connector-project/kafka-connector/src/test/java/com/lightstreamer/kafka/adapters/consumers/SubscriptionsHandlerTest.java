@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
@@ -42,16 +41,14 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 public class SubscriptionsHandlerTest {
 
@@ -77,21 +74,7 @@ public class SubscriptionsHandlerTest {
                         IllegalStateException.class,
                         () ->
                                 SubscriptionsHandler.<String, String>builder()
-                                        .withConnectionSpec(
-                                                makeConnectionSpec(EvaluateCommandMode.EXPLICIT))
-                                        .withConsumerFactory(MockConsumer.factory())
-                                        .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.MERGE)
-                                        .build());
-        assertThat(ise)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Invalid configuration: command mode EXPLICIT is not compatible with item snapshot enablement");
-        ise =
-                assertThrows(
-                        IllegalStateException.class,
-                        () ->
-                                SubscriptionsHandler.<String, String>builder()
-                                        .withConnectionSpec(makeConnectionSpec())
+                                        .withConnectionSpec(makeConnectionSpec(false))
                                         .withConsumerFactory(MockConsumer.factory())
                                         .build());
 
@@ -99,11 +82,13 @@ public class SubscriptionsHandlerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(EvaluateCommandMode.class)
-    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeDisabled(
-            EvaluateCommandMode commandMode) {
+    @ValueSource(booleans = {true, false})
+    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeIsNone(
+            boolean processAsCommand) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
-                builder(commandMode).withMetadataListener(new Mocks.MockMetadataListener()).build();
+                builder(processAsCommand)
+                        .withMetadataListener(new Mocks.MockMetadataListener())
+                        .build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
         assertThat(
@@ -112,7 +97,7 @@ public class SubscriptionsHandlerTest {
                 .isFalse();
 
         subscriptionsHandler =
-                builder(commandMode)
+                builder(processAsCommand)
                         .withMetadataListener(new Mocks.MockMetadataListener())
                         .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.NONE)
                         .build();
@@ -124,22 +109,12 @@ public class SubscriptionsHandlerTest {
                 .isFalse();
     }
 
-    static Stream<Arguments> provideCommandModesForForceableHandler() {
-        return Stream.of(
-                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.MERGE),
-                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.DISTINCT),
-                Arguments.of(EvaluateCommandMode.DISABLED, ItemSnapshotEnabledMode.COMMAND),
-                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.MERGE),
-                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.DISTINCT),
-                Arguments.of(EvaluateCommandMode.AUTO, ItemSnapshotEnabledMode.COMMAND));
-    }
-
     @ParameterizedTest
-    @MethodSource("provideCommandModesForForceableHandler")
+    @EnumSource(names = {"MERGE", "DISTINCT", "COMMAND"})
     public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled(
-            EvaluateCommandMode commandMode, ItemSnapshotEnabledMode snapshotMode) {
+            ItemSnapshotEnabledMode snapshotMode) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
-                builder(commandMode).withItemSnapshotEnabledMode(snapshotMode).build();
+                builder(false).withItemSnapshotEnabledMode(snapshotMode).build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.ForceableSubscriptionsHandler.class);
     }
@@ -260,21 +235,16 @@ public class SubscriptionsHandlerTest {
     }
 
     private Builder<String, String> builder() {
-        return builder(EvaluateCommandMode.DISABLED);
+        return builder(false);
     }
 
-    private Builder<String, String> builder(EvaluateCommandMode commandMode) {
+    private Builder<String, String> builder(boolean processAsCommand) {
         return SubscriptionsHandler.<String, String>builder()
-                .withConnectionSpec(makeConnectionSpec(commandMode))
+                .withConnectionSpec(makeConnectionSpec(processAsCommand))
                 .withConsumerFactory(MockConsumer.factory());
     }
 
-    private static ConnectionSpec<String, String> makeConnectionSpec() {
-        return makeConnectionSpec(EvaluateCommandMode.DISABLED);
-    }
-
-    private static ConnectionSpec<String, String> makeConnectionSpec(
-            EvaluateCommandMode commandMode) {
+    private static ConnectionSpec<String, String> makeConnectionSpec(boolean processAsCommand) {
         return new ConnectionSpec<>(
                 "TestConnection",
                 new Properties(),
@@ -284,7 +254,7 @@ public class SubscriptionsHandlerTest {
                         OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
                         OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer()),
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                commandMode,
+                processAsCommand,
                 new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
     }
 
