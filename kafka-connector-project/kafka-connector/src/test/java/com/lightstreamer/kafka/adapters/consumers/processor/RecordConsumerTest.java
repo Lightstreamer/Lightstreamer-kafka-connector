@@ -33,7 +33,6 @@ import static java.util.stream.Collectors.toList;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -41,7 +40,6 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.Order
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.AbstractRecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ParallelRecordConsumer;
-import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.SingleThreadedRecordConsumer;
 import com.lightstreamer.kafka.common.mapping.Items;
@@ -109,11 +107,6 @@ public class RecordConsumerTest {
                 .build();
     }
 
-    private static ProcessUpdatesType getProcessUpdatesType(
-            EvaluateCommandMode evaluateCommandMode) {
-        return ProcessUpdatesStrategy.fromEvaluateCommandMode(evaluateCommandMode).type();
-    }
-
     private static final Logger logger = LogFactory.getLogger("TestConnection");
     private static Monitor monitor = new Mocks.MockMonitor();
 
@@ -171,7 +164,7 @@ public class RecordConsumerTest {
             ItemEventListener listener,
             int threads,
             boolean preferSingleThread,
-            EvaluateCommandMode commandStrategy,
+            boolean processAsCommand,
             OrderStrategy orderStrategy,
             boolean enableCatchUp) {
         return RecordConsumer.<String, String>recordMapper(recordMapper)
@@ -180,7 +173,7 @@ public class RecordConsumerTest {
                 .offsetService(new MockOffsetService())
                 .logger(logger)
                 .errorStrategy(connectionSpec.errorHandlingStrategy())
-                .evaluateCommandMode(commandStrategy)
+                .processAsCommand(processAsCommand)
                 .threads(threads)
                 .preferSingleThread(preferSingleThread)
                 .ordering(orderStrategy)
@@ -296,7 +289,7 @@ public class RecordConsumerTest {
                                 .UNORDERED, // Actually irrelevant, since ordering is ignored for
                         // single-threaded consumers
                         true,
-                        EvaluateCommandMode.AUTO,
+                        true,
                         IGNORE_AND_CONTINUE,
                         monitor),
                 arguments(
@@ -304,7 +297,7 @@ public class RecordConsumerTest {
                         false, // Trigger ParallelRecordConsumer even if only one thread
                         OrderStrategy.UNORDERED,
                         true,
-                        EvaluateCommandMode.EXPLICIT,
+                        true,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         monitor),
                 arguments(
@@ -312,7 +305,7 @@ public class RecordConsumerTest {
                         true, // Irrelevant for "threads" configured with -1 (auto)
                         OrderStrategy.ORDER_BY_KEY,
                         true,
-                        EvaluateCommandMode.AUTO,
+                        true,
                         IGNORE_AND_CONTINUE,
                         monitor),
                 arguments(
@@ -320,7 +313,7 @@ public class RecordConsumerTest {
                         false, // Irrelevant for "threads" configured with -1 (auto)
                         OrderStrategy.ORDER_BY_KEY,
                         true,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         monitor),
                 arguments(
@@ -329,23 +322,16 @@ public class RecordConsumerTest {
                         // ParallelRecordConsumer is created anyway
                         ORDER_BY_PARTITION,
                         false,
-                        EvaluateCommandMode.AUTO,
+                        true,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         monitor),
-                arguments(
-                        2,
-                        false,
-                        ORDER_BY_PARTITION,
-                        true,
-                        EvaluateCommandMode.DISABLED,
-                        IGNORE_AND_CONTINUE,
-                        monitor),
+                arguments(2, false, ORDER_BY_PARTITION, true, false, IGNORE_AND_CONTINUE, monitor),
                 arguments(
                         4,
                         false,
                         OrderStrategy.UNORDERED,
                         false,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         IGNORE_AND_CONTINUE,
                         monitor));
     }
@@ -357,7 +343,7 @@ public class RecordConsumerTest {
             boolean preferSingleThread,
             OrderStrategy order,
             boolean enableCatchUp,
-            EvaluateCommandMode command,
+            boolean processAsCommand,
             RecordErrorHandlingStrategy error,
             Monitor monitor) {
         MockOffsetService offsetService = new MockOffsetService();
@@ -369,7 +355,7 @@ public class RecordConsumerTest {
                         .eventListener(listener)
                         .offsetService(offsetService)
                         .logger(logger)
-                        .evaluateCommandMode(command)
+                        .processAsCommand(processAsCommand)
                         .errorStrategy(error)
                         .threads(threads)
                         .preferSingleThread(preferSingleThread)
@@ -416,7 +402,11 @@ public class RecordConsumerTest {
                 (RecordProcessorImpl<String, String>) recordConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
         assertThat(recordProcessor.listener).isSameInstanceAs(listener);
-        assertThat(recordProcessor.processUpdatesType()).isEqualTo(getProcessUpdatesType(command));
+        assertThat(recordProcessor.processUpdatesType())
+                .isEqualTo(
+                        processAsCommand
+                                ? ProcessUpdatesType.COMMAND_MODE
+                                : ProcessUpdatesType.DEFAULT);
         assertThat(recordProcessor.logger).isSameInstanceAs(logger);
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
     }
@@ -495,19 +485,6 @@ public class RecordConsumerTest {
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .logger(logger)
-                                    .evaluateCommandMode(null);
-                        });
-        assertThat(ne).hasMessageThat().isEqualTo("EvaluateCommandMode not set");
-
-        ne =
-                assertThrows(
-                        NullPointerException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .eventListener(new MockItemEventListener())
-                                    .offsetService(new MockOffsetService())
-                                    .logger(logger)
                                     .ordering(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OrderStrategy not set");
@@ -546,44 +523,6 @@ public class RecordConsumerTest {
                             });
             assertThat(ie).hasMessageThat().isEqualTo("Threads number must be greater than zero");
         }
-
-        // CommandMode.EXPLICIT does not support parallel processing, so threads must be 1
-        illegalThreadValues = new int[] {-1, 2};
-        for (int threads : illegalThreadValues) {
-            IllegalArgumentException ie =
-                    assertThrows(
-                            IllegalArgumentException.class,
-                            () -> {
-                                RecordConsumer.<String, String>recordMapper(recordMapper)
-                                        .subscribedItems(subscriptions)
-                                        .eventListener(new MockItemEventListener())
-                                        .offsetService(new MockOffsetService())
-                                        .logger(logger)
-                                        .evaluateCommandMode(EvaluateCommandMode.EXPLICIT)
-                                        .threads(threads)
-                                        .build();
-                            });
-            assertThat(ie)
-                    .hasMessageThat()
-                    .isEqualTo("Command mode [EXPLICIT] does not support parallel processing");
-        }
-
-        IllegalArgumentException ie =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> {
-                            RecordConsumer.<String, String>recordMapper(recordMapper)
-                                    .subscribedItems(subscriptions)
-                                    .eventListener(new MockItemEventListener())
-                                    .offsetService(new MockOffsetService())
-                                    .logger(logger)
-                                    .evaluateCommandMode(EvaluateCommandMode.EXPLICIT)
-                                    .threads(-1)
-                                    .build();
-                        });
-        assertThat(ie)
-                .hasMessageThat()
-                .isEqualTo("Command mode [EXPLICIT] does not support parallel processing");
     }
 
     /**
@@ -639,7 +578,7 @@ public class RecordConsumerTest {
                             testListener,
                             threads,
                             false,
-                            EvaluateCommandMode.DISABLED,
+                            false,
                             OrderStrategy.ORDER_BY_KEY,
                             false);
 
@@ -730,7 +669,7 @@ public class RecordConsumerTest {
                             testListener,
                             threads,
                             false,
-                            EvaluateCommandMode.DISABLED,
+                            false,
                             ORDER_BY_PARTITION,
                             false);
 
@@ -801,7 +740,7 @@ public class RecordConsumerTest {
                             testListener,
                             threads,
                             false,
-                            EvaluateCommandMode.DISABLED,
+                            false,
                             ORDER_BY_PARTITION,
                             false);
 
@@ -856,7 +795,7 @@ public class RecordConsumerTest {
                             testListener,
                             2,
                             false,
-                            EvaluateCommandMode.DISABLED,
+                            false,
                             OrderStrategy.UNORDERED,
                             false);
 
@@ -904,7 +843,7 @@ public class RecordConsumerTest {
                             testListener,
                             2,
                             false,
-                            EvaluateCommandMode.DISABLED,
+                            false,
                             OrderStrategy.UNORDERED,
                             false);
 
@@ -943,7 +882,7 @@ public class RecordConsumerTest {
                         testListener,
                         threads,
                         preferSinglThread,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         OrderStrategy.UNORDERED,
                         true);
 
