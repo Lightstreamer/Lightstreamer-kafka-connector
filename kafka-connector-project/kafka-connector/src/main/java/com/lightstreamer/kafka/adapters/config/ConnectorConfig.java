@@ -22,7 +22,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CHAR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATE_COMMAND_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
@@ -55,7 +54,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -80,12 +78,10 @@ import org.apache.kafka.clients.admin.AdminClientConfig;
 import java.io.File;
 import java.security.SecureRandom;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -125,8 +121,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
             "fields.map.non.scalar.values.enable";
-
-    public static final String FIELDS_EVALUATE_COMMAND_MODE = "fields.evaluate.command.mode";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -274,12 +268,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                false,
-                                false,
-                                EVALUATE_COMMAND_MODE,
-                                defaultValue(EvaluateCommandMode.DISABLED.toString()))
                         .add(RECORD_KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -534,91 +522,30 @@ public final class ConnectorConfig extends AbstractConfig {
                         });
     }
 
-    private static Set<ItemSnapshotEnabledMode> allowedSnapshotModes(
-            ItemSnapshotEnabledMode... snapshotMode) {
-        Set<ItemSnapshotEnabledMode> allowedSnapshotModes = new LinkedHashSet<>();
-        for (ItemSnapshotEnabledMode mode : snapshotMode) {
-            allowedSnapshotModes.add(mode);
-        }
-
-        return allowedSnapshotModes;
-    }
-
     private void resolveSubscriptionMode() {
-        EvaluateCommandMode evaluateCommandMode = getEvaluateCommandMode();
         ItemSnapshotEnabledMode snapshotMode = getItemSnapshotMode();
-        switch (evaluateCommandMode) {
-            case DISABLED -> {
-                Set<ItemSnapshotEnabledMode> allowedSnapshotModes =
-                        allowedSnapshotModes(
-                                ItemSnapshotEnabledMode.NONE,
-                                ItemSnapshotEnabledMode.MERGE,
-                                ItemSnapshotEnabledMode.DISTINCT);
-                if (!allowedSnapshotModes.contains(snapshotMode)) {
-                    throw new ConfigException(
-                            "Parameter [%s] set to [%s] requires [%s] to be one of %s"
-                                    .formatted(
-                                            FIELDS_EVALUATE_COMMAND_MODE,
-                                            EvaluateCommandMode.DISABLED,
-                                            ITEM_SNAPSHOT_ENABLED_MODE,
-                                            allowedSnapshotModes));
-                }
+        switch (snapshotMode) {
+            case NONE -> {
+                this.subscriptionMode = Optional.empty();
+            }
+
+            case COMMAND -> {
+                checkCommandKey();
+                this.subscriptionMode = Optional.of(Mode.COMMAND);
+            }
+
+            case MERGE, DISTINCT -> {
                 this.subscriptionMode = snapshotMode.toMode();
             }
-            case AUTO -> {
-                checkCommandKey(EvaluateCommandMode.AUTO);
-                Set<ItemSnapshotEnabledMode> allowedSnapshotModes =
-                        allowedSnapshotModes(
-                                ItemSnapshotEnabledMode.NONE, ItemSnapshotEnabledMode.COMMAND);
-                if (!allowedSnapshotModes.contains(snapshotMode)) {
-                    throw new ConfigException(
-                            "Parameter [%s] set to [%s] requires [%s] to be one of %s"
-                                    .formatted(
-                                            FIELDS_EVALUATE_COMMAND_MODE,
-                                            EvaluateCommandMode.AUTO,
-                                            ITEM_SNAPSHOT_ENABLED_MODE,
-                                            allowedSnapshotModes));
-                }
-                this.subscriptionMode = Optional.of(Mode.COMMAND);
-            }
-
-            case EXPLICIT -> {
-                checkCommandKey(EvaluateCommandMode.EXPLICIT);
-                if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
-                    throw new ConfigException(
-                            "Parameter [%s] set to [%s] requires [field.command] to be set"
-                                    .formatted(
-                                            FIELDS_EVALUATE_COMMAND_MODE,
-                                            EvaluateCommandMode.EXPLICIT));
-                }
-                if (getRecordConsumeWithNumThreads() != 1) {
-                    throw new ConfigException(
-                            "Parameter [%s] set to [%s] requires [%s] to be [1]"
-                                    .formatted(
-                                            FIELDS_EVALUATE_COMMAND_MODE,
-                                            EvaluateCommandMode.EXPLICIT,
-                                            RECORD_CONSUME_WITH_NUM_THREADS));
-                }
-
-                if (getItemSnapshotMode() != ItemSnapshotEnabledMode.NONE) {
-                    throw new ConfigException(
-                            "Parameter [%s] set to [%s] requires [%s] to be [%s]"
-                                    .formatted(
-                                            FIELDS_EVALUATE_COMMAND_MODE,
-                                            EvaluateCommandMode.EXPLICIT,
-                                            ITEM_SNAPSHOT_ENABLED_MODE,
-                                            ItemSnapshotEnabledMode.NONE));
-                }
-                this.subscriptionMode = Optional.of(Mode.COMMAND);
-            }
         }
     }
 
-    private void checkCommandKey(EvaluateCommandMode mode) {
+    private void checkCommandKey() {
         if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
             throw new ConfigException(
                     "Parameter [%s] set to [%s] requires [field.key] to be set"
-                            .formatted(FIELDS_EVALUATE_COMMAND_MODE, mode));
+                            .formatted(
+                                    ITEM_SNAPSHOT_ENABLED_MODE, ItemSnapshotEnabledMode.COMMAND));
         }
     }
 
@@ -745,11 +672,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public final RecordConsumeFrom getRecordConsumeFrom() {
         return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
-    }
-
-    public final EvaluateCommandMode getEvaluateCommandMode() {
-        return EvaluateCommandMode.valueOf(
-                get(FIELDS_EVALUATE_COMMAND_MODE, EVALUATE_COMMAND_MODE, false));
     }
 
     /**
