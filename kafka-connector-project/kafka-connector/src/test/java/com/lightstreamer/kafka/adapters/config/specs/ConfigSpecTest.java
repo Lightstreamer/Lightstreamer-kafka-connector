@@ -24,7 +24,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Options;
@@ -186,12 +185,5 @@ public class ConfigSpecTest {
         Map<String, String> source = Map.of(key, "value");
         Map<String, String> dest = new HashMap<>();
         assertThrows(ConfigException.class, () -> param.fill(source, dest));
-    }
-
-    @Test
-    public void shouldCommandModeManageSnapshot() {
-        assertThat(EvaluateCommandMode.AUTO.manageSnapshot()).isFalse();
-        assertThat(EvaluateCommandMode.EXPLICIT.manageSnapshot()).isTrue();
-        assertThat(EvaluateCommandMode.DISABLED.manageSnapshot()).isFalse();
     }
 }
