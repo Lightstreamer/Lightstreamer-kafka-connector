@@ -18,7 +18,6 @@
 package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 
 import static org.junit.Assert.assertThrows;
@@ -50,6 +49,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -167,7 +167,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldHandleSnapshot() throws Exception {
+    public void shouldNotHandleSnapshot() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
@@ -176,44 +176,25 @@ public class AdapterSetTest {
         connectorDataAdapter1.setListener(new MockItemEventListener());
 
         assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
+    }
 
-        KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter2.setConsumerFactory(this.getConsumer());
-        connectorDataAdapter2.init(
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(
-                                ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}")),
-                adapterDir.toFile());
-        connectorDataAdapter2.setListener(new MockItemEventListener());
-        assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
+    @ParameterizedTest
+    @ValueSource(strings = {"COMMAND", "MERGE", "DISTINCT"})
+    public void shouldHandleSnapshot(String mode) throws Exception {
+        doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
         connectorDataAdapter3.setConsumerFactory(this.getConsumer());
+        Map<String, String> config = new HashMap<>();
+        config.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, mode);
+        if (mode.equals("COMMAND")) {
+            config.put("field.key", "#{KEY}");
+        }
         connectorDataAdapter3.init(
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(
-                                ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE,
-                                "AUTO",
-                                "field.key",
-                                "#{KEY}")),
-                adapterDir.toFile());
-        connectorDataAdapter3.setListener(new MockItemEventListener());
-        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isFalse();
-
-        KafkaConnectorDataAdapter connectorDataAdapter4 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter4.setConsumerFactory(this.getConsumer());
-        connectorDataAdapter4.init(
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "MERGE")),
-                adapterDir.toFile());
+                ConnectorConfigProvider.minimalConfigWith(config), adapterDir.toFile());
         // Here we don't call setListener because snapshot availability should not depend on it, but
         // rather on the configuration only
-        assertThat(connectorDataAdapter4.isSnapshotAvailable("anItem")).isTrue();
+        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isTrue();
     }
 
     private Function<Properties, Consumer<byte[], byte[]>> getConsumer() {
@@ -331,83 +312,38 @@ public class AdapterSetTest {
 
     static Stream<Arguments> modes() {
         return Stream.of(
-                // Test with with no usage of command mode
+                // Test with with no snapshot mode configured, which should allow all modes by
+                // default
                 Arguments.of(Mode.DISTINCT, Collections.emptyMap(), true),
                 Arguments.of(Mode.MERGE, Collections.emptyMap(), true),
                 Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
                 Arguments.of(Mode.RAW, Collections.emptyMap(), true),
-                // Test with usage of command mode through
-                // "field.command.mode=EXPLICIT"
-                Arguments.of(
-                        Mode.DISTINCT,
-                        Map.of(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
-                        false),
-                Arguments.of(
-                        Mode.MERGE,
-                        Map.of(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
-                        false),
-                Arguments.of(
-                        Mode.RAW,
-                        Map.of(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
-                        false),
-                Arguments.of(
-                        Mode.COMMAND,
-                        Map.of(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
-                        true),
-                // Test with usage of command mode through "fields.command.mode=AUTO"
-                Arguments.of(
-                        Mode.DISTINCT,
-                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
-                        false),
-                Arguments.of(
-                        Mode.MERGE,
-                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
-                        false),
-                Arguments.of(
-                        Mode.RAW,
-                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
-                        false),
-                Arguments.of(
-                        Mode.COMMAND,
-                        Map.of(FIELDS_EVALUATE_COMMAND_MODE, "AUTO", "field.key", "#{KEY}"),
-                        true),
-                // Test with usage of "item.snapshot.enabled.mode"
+                // Test with specific snapshot modes configured, which should allow only the
+                // matching mode
                 Arguments.of(Mode.DISTINCT, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), true),
+                Arguments.of(Mode.DISTINCT, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
+                Arguments.of(
+                        Mode.DISTINCT,
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
+                        false),
                 Arguments.of(Mode.MERGE, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), true),
+                Arguments.of(Mode.MERGE, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
+                Arguments.of(
+                        Mode.MERGE,
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
+                        false),
                 Arguments.of(
                         Mode.COMMAND,
-                        Map.of(
-                                ITEM_SNAPSHOT_ENABLED_MODE,
-                                "COMMAND",
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "AUTO",
-                                "field.key",
-                                "#{KEY}"),
-                        true));
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
+                        true),
+                Arguments.of(Mode.COMMAND, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
+                Arguments.of(Mode.COMMAND, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
+                Arguments.of(Mode.RAW, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
+                Arguments.of(Mode.RAW, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
+                Arguments.of(
+                        Mode.RAW,
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
+                        false));
     }
 
     @ParameterizedTest
