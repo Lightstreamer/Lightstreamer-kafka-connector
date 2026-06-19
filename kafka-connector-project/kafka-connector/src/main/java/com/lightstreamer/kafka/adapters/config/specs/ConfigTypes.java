@@ -250,20 +250,6 @@ public interface ConfigTypes {
         }
     }
 
-    enum EvaluateCommandMode {
-        DISABLED,
-        EXPLICIT,
-        AUTO;
-
-        public boolean manageSnapshot() {
-            return this == EXPLICIT;
-        }
-
-        public static Set<String> names() {
-            return enumNames(values());
-        }
-    }
-
     enum ItemSnapshotEnabledMode {
         NONE,
         MERGE,
