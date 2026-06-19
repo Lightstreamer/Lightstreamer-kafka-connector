@@ -94,7 +94,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldNotInitDueToMissingRequiredParameters() {
+    public void shouldNotInitDueToMissingRequiredParameters() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -107,7 +107,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldInit() throws MetadataProviderException {
+    public void shouldInit() throws MetadataProviderException {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
@@ -138,7 +138,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldHandleConnectorItems() throws Exception {
+    public void shouldHandleConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -153,7 +153,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldNotHandleNonConnectorItems() throws Exception {
+    public void shouldNotHandleNonConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -208,7 +208,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldDenyNotEnabledConnection() throws Exception {
+    public void shouldDenyNotEnabledConnection() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -228,7 +228,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldHandleCustomAdapter() throws Exception {
+    public void shouldHandleCustomAdapter() throws Exception {
         record NotifiedNewTables(String user, String sessionId, TableInfo[] tables) {}
 
         record NotifiedCloseTables(String sessionId, TableInfo[] tables) {}
@@ -282,7 +282,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideRemapItems")
-    void shouldRemapItems(String input, List<String> expected)
+    public void shouldRemapItems(String input, List<String> expected)
             throws MetadataProviderException, ItemsException {
         doInit();
 
@@ -301,7 +301,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideGetIItems")
-    void shouldGetItems(String input, List<String> normalizedItems)
+    public void shouldGetItems(String input, List<String> normalizedItems)
             throws MetadataProviderException, ItemsException {
         doInit();
 
