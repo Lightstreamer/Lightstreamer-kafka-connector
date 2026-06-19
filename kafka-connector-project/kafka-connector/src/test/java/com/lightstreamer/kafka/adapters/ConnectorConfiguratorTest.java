@@ -20,11 +20,8 @@ package com.lightstreamer.kafka.adapters;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.BOOTSTRAP_SERVERS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_NUM_THREADS;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfig;
 import static com.lightstreamer.kafka.test_utils.ConnectorConfigProvider.minimalConfigWith;
-
 import static org.apache.kafka.common.serialization.Serdes.ByteArray;
 import static org.apache.kafka.common.serialization.Serdes.ByteBuffer;
 import static org.apache.kafka.common.serialization.Serdes.Double;
@@ -35,9 +32,27 @@ import static org.apache.kafka.common.serialization.Serdes.String;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.serialization.BooleanDeserializer;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -51,25 +66,6 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
-
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.BooleanDeserializer;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.stream.Stream;
 
 public class ConnectorConfiguratorTest {
 
@@ -206,7 +202,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.DISABLED);
+        assertThat(connectionSpec.processAsCommand()).isFalse();
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
@@ -224,7 +220,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic2.to", "item-template.template1");
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
-        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE, "AUTO");
+        updatedConfigs.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
         updatedConfigs.put("field.key", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
@@ -267,7 +263,7 @@ public class ConnectorConfiguratorTest {
 
         assertThat(connectionSpec.errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.AUTO);
+        assertThat(connectionSpec.processAsCommand()).isTrue();
 
         Concurrency concurrency = connectionSpec.concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
@@ -284,9 +280,8 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
-        updatedConfigs.put(ConnectorConfig.FIELDS_EVALUATE_COMMAND_MODE, "EXPLICIT");
+        updatedConfigs.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
         updatedConfigs.put("field.key", "#{VALUE.key}");
-        updatedConfigs.put("field.command", "#{VALUE.command}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put("field.*", "#{VALUE.*}");
@@ -299,7 +294,7 @@ public class ConnectorConfiguratorTest {
 
         FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
-        assertThat(fieldNames).containsExactly("key", "command", "fieldName1", "fieldName2");
+        assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
         ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
         assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
@@ -320,7 +315,7 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
 
-        assertThat(connectionSpec.evaluateCommandMode()).isEqualTo(EvaluateCommandMode.EXPLICIT);
+        assertThat(connectionSpec.processAsCommand()).isTrue();
     }
 
     @Test
@@ -364,30 +359,6 @@ public class ConnectorConfiguratorTest {
                 .isEqualTo("KafkaProtobufDeserializer");
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("KafkaProtobufDeserializer");
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {-1, 2})
-    public void shouldNotCreateDueToIncompatibleEvaluateCommandModeAndParallelism(int threads) {
-        Map<String, String> config =
-                minimalConfigWith(
-                        Map.of(
-                                FIELDS_EVALUATE_COMMAND_MODE,
-                                "EXPLICIT",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}",
-                                RECORD_CONSUME_WITH_NUM_THREADS,
-                                String.valueOf(threads)));
-        ConfigException ce =
-                assertThrows(
-                        ConfigException.class,
-                        () -> new ConnectorConfigurator(config, ADAPTER_DIR));
-        assertThat(ce)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Parameter [fields.evaluate.command.mode] set to [EXPLICIT] requires [record.consume.with.num.threads] to be [1]");
     }
 
     @ParameterizedTest
