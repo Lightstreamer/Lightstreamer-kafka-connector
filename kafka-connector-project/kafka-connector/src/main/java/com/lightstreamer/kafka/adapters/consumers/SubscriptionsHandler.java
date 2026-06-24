@@ -151,13 +151,6 @@ public interface SubscriptionsHandler<K, V> {
             }
 
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
-            if (connectionSpec.evaluateCommandMode().manageSnapshot()
-                    && itemSnapshotMode != ItemSnapshotEnabledMode.NONE) {
-                throw new IllegalStateException(
-                        "Invalid configuration: command mode "
-                                + connectionSpec.evaluateCommandMode()
-                                + " is not compatible with item snapshot enablement");
-            }
             if (itemSnapshotMode != ItemSnapshotEnabledMode.NONE) {
                 return new ForceableSubscriptionsHandler<>(this);
             }
@@ -312,7 +305,7 @@ public interface SubscriptionsHandler<K, V> {
 
         @Override
         public boolean isSnapshotAvailable(String itemName) {
-            return connectionSpec.evaluateCommandMode().manageSnapshot();
+            return false;
         }
 
         /**
@@ -476,21 +469,17 @@ public interface SubscriptionsHandler<K, V> {
      */
     class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
-        private boolean singleSnapshotInCatchUp;
         private ForceableSubscribedItems subscribedItems;
         private FutureStatus lifecycleStatus;
 
         /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
         ForceableSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
-            this.singleSnapshotInCatchUp =
-                    builder.itemSnapshotMode.equals(ItemSnapshotEnabledMode.MERGE);
         }
 
         @Override
         protected void doSetListener(ItemEventListener listener) {
-            this.subscribedItems =
-                    SubscribedItems.forceable(listener, singleSnapshotInCatchUp, logger);
+            this.subscribedItems = SubscribedItems.forceable(listener, logger);
             startConsuming();
         }
 
