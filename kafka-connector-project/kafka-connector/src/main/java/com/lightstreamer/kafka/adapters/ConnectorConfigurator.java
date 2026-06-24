@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
@@ -119,7 +120,7 @@ public class ConnectorConfigurator {
                 fieldsExtractor,
                 deserializerPair,
                 config.getRecordExtractionErrorHandlingStrategy(),
-                config.getEvaluateCommandMode(),
+                config.getItemSnapshotMode().equals(ItemSnapshotEnabledMode.COMMAND),
                 new Concurrency(
                         config.getRecordConsumeWithOrderStrategy(),
                         config.getRecordConsumeWithNumThreads()));
