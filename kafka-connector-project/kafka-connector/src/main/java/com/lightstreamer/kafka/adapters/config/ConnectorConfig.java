@@ -70,6 +70,8 @@ import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -541,9 +543,17 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void checkCommandKey() {
-        if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
+        ExtractionExpression extractionExpression =
+                fieldConfigs.namedFieldsExpressions().get("key");
+        if (extractionExpression == null) {
             throw new ConfigException(
                     "Parameter [%s] set to [%s] requires [field.key] to be set"
+                            .formatted(
+                                    ITEM_SNAPSHOT_ENABLED_MODE, ItemSnapshotEnabledMode.COMMAND));
+        }
+        if (!extractionExpression.constant().equals(Constant.KEY)) {
+            throw new ConfigException(
+                    "Parameter [field.key] must be set to a constant expression referencing [KEY] when [%s] is set to [%s]"
                             .formatted(
                                     ITEM_SNAPSHOT_ENABLED_MODE, ItemSnapshotEnabledMode.COMMAND));
         }
