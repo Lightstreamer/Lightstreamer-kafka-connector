@@ -273,7 +273,8 @@ public class Mocks {
         }
 
         @Override
-        public void process(KafkaRecord<K, V> record, boolean isSnapshot) throws ValueException {
+        public void process(KafkaRecord<K, V> record, EventsDeliveryStrategy deliveryStrategy)
+                throws ValueException {
             if (e == null) {
                 return;
             }
