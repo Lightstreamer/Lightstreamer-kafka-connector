@@ -130,6 +130,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.stream.Stream;
 
 public class ConnectorConfigTest {
@@ -1463,15 +1464,35 @@ public class ConnectorConfigTest {
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [field.key]");
 
+        Set<String> invalidExpressions = Set.of("#{VALUE}", "#{VALUE.value}");
+        for (String invalidExpression : invalidExpressions) {
+            ce =
+                    assertThrows(
+                            ConfigException.class,
+                            () -> {
+                                Map<String, String> configs = new HashMap<>(standardParameters());
+                                configs.put(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
+                                configs.put("field.key", invalidExpression);
+                                ConnectorConfig.newConfig(adapterDir.toFile(), configs);
+                            });
+            assertThat(ce)
+                    .hasMessageThat()
+                    .isEqualTo(
+                            "Parameter [field.key] must be set to a constant expression referencing [KEY] when [item.snapshot.enabled.mode] is set to [COMMAND]");
+        }
+
         // Test the COMMAND mode with a valid field.key parameter
-        updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
-        updatedConfig.put("field.key", "#{KEY}");
-        ConnectorConfig configWithCommandMode =
-                ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-        assertThat(configWithCommandMode.getItemSnapshotMode())
-                .isEqualTo(ItemSnapshotEnabledMode.COMMAND);
-        assertThat(configWithCommandMode.getSubscriptionMode()).hasValue(Mode.COMMAND);
+        Set<String> validKeyExpressions = Set.of("#{KEY}", "#{KEY.value}");
+        for (String validExpression : validKeyExpressions) {
+            updatedConfig = new HashMap<>(standardParameters());
+            updatedConfig.put(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
+            updatedConfig.put("field.key", validExpression);
+            ConnectorConfig configWithCommandMode =
+                    ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+            assertThat(configWithCommandMode.getItemSnapshotMode())
+                    .isEqualTo(ItemSnapshotEnabledMode.COMMAND);
+            assertThat(configWithCommandMode.getSubscriptionMode()).hasValue(Mode.COMMAND);
+        }
     }
 
     static Stream<Arguments> itemSnapshotEnabledModeProvider() {
