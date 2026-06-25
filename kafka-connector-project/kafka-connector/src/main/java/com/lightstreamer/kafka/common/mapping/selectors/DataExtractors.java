@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -404,7 +405,7 @@ public class DataExtractors {
         private final DataExtractor<K, V>[] extractors;
         private final boolean skipOnFailure;
         private final boolean mapNonScalars;
-        private Set<String> fieldNames;
+        private final Map<String, DataExtractor<K, V>> extractorsByName = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         NamedFieldsExtractorImpl(
@@ -425,16 +426,15 @@ public class DataExtractors {
             this.extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
             ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
 
-            Set<String> fields = new HashSet<>();
             int index = 0;
             for (Map.Entry<String, ExtractionExpression> namedExpression : expressions.entrySet()) {
                 String fieldName = namedExpression.getKey();
-                this.extractors[index++] =
+                DataExtractor<K, V> dataExtractor =
                         provider.createDataExtractor(
                                 fieldName, namedExpression.getValue(), mapNonScalars);
-                fields.add(fieldName);
+                this.extractors[index++] = dataExtractor;
+                extractorsByName.put(fieldName, dataExtractor);
             }
-            this.fieldNames = Collections.unmodifiableSet(fields);
         }
 
         @Override
@@ -453,6 +453,23 @@ public class DataExtractors {
         }
 
         @Override
+        public void extractFieldIntoMap(
+                String field, KafkaRecord<K, V> record, Map<String, String> targetMap) {
+            DataExtractor<K, V> dataExtractor = extractorsByName.get(field);
+            if (dataExtractor == null) {
+                return;
+            }
+            try {
+                Data data = dataExtractor.extract(record);
+                targetMap.put(data.name(), data.text());
+            } catch (ValueException ve) {
+                if (!skipOnFailure) {
+                    throw ve;
+                }
+            }
+        }
+
+        @Override
         public boolean skipOnFailure() {
             return skipOnFailure;
         }
@@ -464,7 +481,7 @@ public class DataExtractors {
 
         @Override
         public Set<String> mappedFields() {
-            return fieldNames;
+            return extractorsByName.keySet();
         }
 
         private static boolean areNamedExpressions(Collection<ExtractionExpression> expressions) {
