@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
@@ -33,17 +32,21 @@ public interface ConsumerSettings {
      * Immutable specification for a single Kafka consumer connection. Groups all parameters that
      * drive consumer creation, record processing, snapshot delivery, and subscription management.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      * @param connectionName logical name of the connection (used for logging)
      * @param consumerProperties Kafka consumer configuration properties
-     * @param itemTemplates templates that map Kafka records to subscribable items
-     * @param fieldsExtractor extracts field values from deserialized records
-     * @param deserializerPair key and value deserializers for raw Kafka records
-     * @param errorHandlingStrategy how deserialization or extraction errors are handled
-     * @param evaluateCommandMode the {@link EvaluateCommandMode} behavior for this connection
-     *     ({@code EXPLICIT}, {@code AUTO}, or {@code DISABLED})
-     * @param concurrency thread count and ordering strategy for record processing
+     * @param itemTemplates {@link ItemTemplates} that map Kafka records to subscribable items
+     * @param fieldsExtractor the {@link FieldsExtractor} that extracts field values from
+     *     deserialized records
+     * @param deserializerPair the {@link KafkaRecord.DeserializerPair} of key and value
+     *     deserializers for raw Kafka records
+     * @param errorHandlingStrategy the {@link RecordErrorHandlingStrategy} that determines how
+     *     deserialization or extraction errors are handled
+     * @param processAsCommand {@code true} if records must be processed as COMMAND-mode updates,
+     *     {@code false} otherwise
+     * @param concurrency the {@link Concurrency} settings (thread count and ordering strategy) for
+     *     record processing
      */
     record ConnectionSpec<K, V>(
             String connectionName,
@@ -52,13 +55,14 @@ public interface ConsumerSettings {
             FieldsExtractor<K, V> fieldsExtractor,
             KafkaRecord.DeserializerPair<K, V> deserializerPair,
             RecordErrorHandlingStrategy errorHandlingStrategy,
-            EvaluateCommandMode evaluateCommandMode,
+            boolean processAsCommand,
             Concurrency concurrency) {
 
         /**
          * Thread concurrency settings for record processing.
          *
-         * @param orderStrategy the ordering guarantee when processing records in parallel
+         * @param orderStrategy the {@link RecordConsumeWithOrderStrategy} ordering guarantee when
+         *     processing records in parallel
          * @param threads the number of threads dedicated to record processing
          */
         public record Concurrency(RecordConsumeWithOrderStrategy orderStrategy, int threads) {
