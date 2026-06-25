@@ -149,8 +149,8 @@ public class RecordConsumerBenchmark {
                             .offsetService(offsetService)
                             .logger(logger)
                             .threads(threads)
-                            .ordering(OrderStrategy.valueOf(ordering))
-                            .preferSingleThread(preferSingleThread)
+                            .orderStrategy(OrderStrategy.valueOf(ordering))
+                            .singleThreadPreferred(preferSingleThread)
                             .build();
 
             // Generate the test records.
@@ -246,8 +246,8 @@ public class RecordConsumerBenchmark {
                             .offsetService(offsetService)
                             .logger(logger)
                             .threads(threads)
-                            .ordering(OrderStrategy.ORDER_BY_KEY)
-                            .preferSingleThread(false)
+                            .orderStrategy(OrderStrategy.ORDER_BY_KEY)
+                            .singleThreadPreferred(false)
                             .build();
 
             var deserializerPair =

@@ -77,6 +77,9 @@ public class RecordMapperBenchmarks {
         @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
+        @Param({"1", "2", "4", "8"})
+        int numOfTemplates = 1;
+
         private RecordMapper<String, V> mapper;
         private SubscribedItems subscribedItems;
         private MappedRecord mappedRecord;
@@ -86,14 +89,18 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp(Blackhole bh) throws Exception {
             ConnectorConfigurator configurator =
-                    BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
+                    BenchmarksUtils.newConfigurator(
+                            TOPICS, type, numOfTemplateParams, numOfTemplates);
 
             @SuppressWarnings("unchecked")
             ConnectionSpec<String, V> config =
                     (ConnectionSpec<String, V>) configurator.connectionSpec();
             this.subscribedItems =
                     BenchmarksUtils.onDemandSubscriptions(
-                            numOfSubscriptions, new FakeEventListener(bh), numOfTemplateParams);
+                            numOfSubscriptions,
+                            new FakeEventListener(bh),
+                            numOfTemplateParams,
+                            numOfTemplates);
 
             // Generate the test records.
             ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -122,7 +129,7 @@ public class RecordMapperBenchmarks {
      * @param plan the benchmark state containing the mapper and record to be mapped
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
+    // @Benchmark
     public <V> void map(Plan<V> plan, Blackhole bh) {
         MappedRecord map = plan.mapper.map(plan.record);
         bh.consume(map);
@@ -141,7 +148,7 @@ public class RecordMapperBenchmarks {
      * @param plan the benchmark state containing the mapper and test records
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
+    // @Benchmark
     public <V> void mapAndFieldsMap(Plan<V> plan, Blackhole bh) {
         MappedRecord map = plan.mapper.map(plan.record);
         Map<String, String> filtered = map.fieldsMap();

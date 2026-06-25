@@ -71,12 +71,14 @@ public class BenchmarksUtils {
 
     private static List<String> TEMPLATES =
             List.of(
-                    "users-#{key=KEY}",
-                    "users-#{key=KEY,tag=VALUE.tag}",
-                    "users-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
+                    "users%d-#{key=KEY}",
+                    "users%d-#{key=KEY,tag=VALUE.tag}",
+                    "users%d-#{key=KEY,tag=VALUE.tag,sonTag=VALUE.children[0].tag}");
 
     private static List<String> SUBSCRIPTIONS =
-            List.of("users-[key=%s]", "users-[key=%s,tag=%s]", "users-[key=%s,tag=%s,sonTag=%s]");
+            List.of(
+                    "users%d-[key=%s]",
+                    "users%d-[key=%s,tag=%s]", "users%d-[key=%s,tag=%s,sonTag=%s]");
 
     public static class FakeEventListener implements ItemEventListener {
 
@@ -380,8 +382,7 @@ public class BenchmarksUtils {
 
         public ForceableSubscribedItems forceableSubscriptions(
                 int numOfSubscriptions, ItemEventListener listener) {
-            ForceableSubscribedItems subscribedItems =
-                    SubscribedItems.forceable(listener, false, null);
+            ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
 
             String[] items =
                     IntStream.range(0, numOfSubscriptions)
@@ -540,6 +541,11 @@ public class BenchmarksUtils {
     // Public static methods
     public static ConnectorConfigurator newConfigurator(
             String[] topic, String valueType, int templateParams) {
+        return newConfigurator(topic, valueType, templateParams, 1);
+    }
+
+    public static ConnectorConfigurator newConfigurator(
+            String[] topic, String valueType, int templateParams, int numOfTemplates) {
         File adapterDir;
         try {
             adapterDir = Files.createTempDirectory("adapter_dir").toFile();
@@ -554,7 +560,7 @@ public class BenchmarksUtils {
                 Files.copy(source.toPath(), target.toPath());
             }
             return new ConnectorConfigurator(
-                    basicParameters(topic, valueType, templateParams), adapterDir);
+                    basicParameters(topic, valueType, templateParams, numOfTemplates), adapterDir);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -562,52 +568,72 @@ public class BenchmarksUtils {
 
     public static <T> RecordMapper<String, T> newRecordMapper(ConnectionSpec<String, T> config) {
         return RecordMapper.<String, T>builder()
-                .withCanonicalItemExtractors(config.itemTemplates().groupExtractors())
-                .withFieldExtractor(config.fieldsExtractor())
+                .addCanonicalItemExtractors(config.itemTemplates().groupExtractors())
+                .fieldExtractor(config.fieldsExtractor())
                 .build();
     }
 
     public static SubscribedItems onDemandSubscriptions(
             int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
+        return onDemandSubscriptions(subscriptions, listener, numOfTemplateParams, 1);
+    }
+
+    public static SubscribedItems onDemandSubscriptions(
+            int subscriptions,
+            ItemEventListener listener,
+            int numOfTemplateParams,
+            int numOfTemplates) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
+        String baseSub = SUBSCRIPTIONS.get(numOfTemplateParams - 1);
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
 
-            Object[] params =
-                    switch (numOfTemplateParams) {
-                        case 1 -> new Object[] {key};
-                        case 2 -> new Object[] {key, key};
-                        case 3 -> new Object[] {key, key, key + "-son"};
-                        default ->
-                                throw new IllegalArgumentException(
-                                        "Invalid subscription number: " + numOfTemplateParams);
-                    };
-            SubscriptionExpression input =
-                    Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
-            OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(input, new Object());
-            subscribedItems.addItem(item);
+            for (int t = 0; t < numOfTemplates; t++) {
+                Object[] params =
+                        switch (numOfTemplateParams) {
+                            case 1 -> new Object[] {t, key};
+                            case 2 -> new Object[] {t, key, key};
+                            case 3 -> new Object[] {t, key, key, key + "-son"};
+                            default ->
+                                    throw new IllegalArgumentException(
+                                            "Invalid subscription number: " + numOfTemplateParams);
+                        };
+                SubscriptionExpression input = Subscription(String.format(baseSub, params));
+                OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(input, new Object());
+                subscribedItems.addItem(item);
+            }
         }
         return subscribedItems;
     }
 
     public static SubscribedItems forceableSubscriptions(
             int subscriptions, ItemEventListener listener, int numOfTemplateParams) {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, false, null);
+        return forceableSubscriptions(subscriptions, listener, numOfTemplateParams, 1);
+    }
+
+    public static SubscribedItems forceableSubscriptions(
+            int subscriptions,
+            ItemEventListener listener,
+            int numOfTemplateParams,
+            int numOfTemplates) {
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(listener, null);
+        String baseSub = SUBSCRIPTIONS.get(numOfTemplateParams - 1);
         for (int i = 0; i < subscriptions; i++) {
             String key = String.valueOf(i);
 
-            Object[] params =
-                    switch (numOfTemplateParams) {
-                        case 1 -> new Object[] {key};
-                        case 2 -> new Object[] {key, key};
-                        case 3 -> new Object[] {key, key, key + "-son"};
-                        default ->
-                                throw new IllegalArgumentException(
-                                        "Invalid subscription number: " + numOfTemplateParams);
-                    };
-            SubscriptionExpression input =
-                    Subscription(SUBSCRIPTIONS.get(numOfTemplateParams - 1).formatted(params));
-            subscribedItems.activateOrInstall(input, new Object());
+            for (int t = 0; t < numOfTemplates; t++) {
+                Object[] params =
+                        switch (numOfTemplateParams) {
+                            case 1 -> new Object[] {t, key};
+                            case 2 -> new Object[] {t, key, key};
+                            case 3 -> new Object[] {t, key, key, key + "-son"};
+                            default ->
+                                    throw new IllegalArgumentException(
+                                            "Invalid subscription number: " + numOfTemplateParams);
+                        };
+                SubscriptionExpression input = Subscription(String.format(baseSub, params));
+                subscribedItems.activateOrInstall(input, new Object());
+            }
         }
         return subscribedItems;
     }
@@ -668,9 +694,9 @@ public class BenchmarksUtils {
     }
 
     private static Map<String, String> basicParameters(
-            String[] topics, String valueType, int templateParams) {
-        String template = TEMPLATES.get(templateParams - 1);
-        System.out.println("Using template: " + template);
+            String[] topics, String valueType, int templateParams, int numOfTemplates) {
+        String baseTemplate = TEMPLATES.get(templateParams - 1);
+        System.out.println("Using template: " + baseTemplate + " x " + numOfTemplates);
         Map<String, String> adapterParams = new HashMap<>();
         adapterParams.put(ConnectorConfig.BOOTSTRAP_SERVERS, "server:8080,server:8081");
         adapterParams.put(ConnectorConfig.ADAPTERS_CONF_ID, "KAFKA");
@@ -682,9 +708,22 @@ public class BenchmarksUtils {
                     ConnectorConfig.RECORD_VALUE_EVALUATOR_SCHEMA_PATH, "descriptor_set.desc");
             adapterParams.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_PROTOBUF_MESSAGE_TYPE, "Guy");
         }
-        adapterParams.put("item-template.users", template);
+        StringBuilder mappings = new StringBuilder();
+        for (int i = 0; i < numOfTemplates; i++) {
+            String name = "users" + i;
+            String body = String.format(baseTemplate, i);
+            adapterParams.put("item-template." + name, body);
+            if (i > 0) {
+                mappings.append(",");
+            }
+            mappings.append("item-template.").append(name);
+            System.out.println("Using template: " + name + " -> " + body);
+        }
+
+        String mappingValue = mappings.toString();
         for (String t : topics) {
-            adapterParams.put("map." + t + ".to", "item-template.users");
+            adapterParams.put("map." + t + ".to", mappingValue);
+            System.out.println("Mapping topic: " + t + " to templates-> " + mappingValue);
         }
         adapterParams.put("field.name", "#{VALUE.name}");
         adapterParams.put("field.surname", "#{VALUE.surname}");
