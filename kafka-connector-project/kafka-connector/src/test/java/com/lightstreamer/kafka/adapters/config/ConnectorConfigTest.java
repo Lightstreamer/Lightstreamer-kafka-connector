@@ -40,6 +40,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_DISTINCT_LENGTH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_MAX_IDLE_SECONDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
@@ -578,6 +579,15 @@ public class ConnectorConfigTest {
         assertThat(itemSnapShotDistinctLength.mutable()).isTrue();
         assertThat(itemSnapShotDistinctLength.defaultValue()).isEqualTo("10");
         assertThat(itemSnapShotDistinctLength.type()).isEqualTo(ConfType.POSITIVE_INT);
+
+        ConfParameter itemSnapShotMaxIdleSeconds =
+                configSpec.findParameter(ITEM_SNAPSHOT_MAX_IDLE_SECONDS);
+        assertThat(itemSnapShotMaxIdleSeconds.name()).isEqualTo(ITEM_SNAPSHOT_MAX_IDLE_SECONDS);
+        assertThat(itemSnapShotMaxIdleSeconds.required()).isFalse();
+        assertThat(itemSnapShotMaxIdleSeconds.multiple()).isFalse();
+        assertThat(itemSnapShotMaxIdleSeconds.mutable()).isTrue();
+        assertThat(itemSnapShotMaxIdleSeconds.defaultValue()).isEqualTo("0");
+        assertThat(itemSnapShotMaxIdleSeconds.type()).isEqualTo(ConfType.NON_NEGATIVE_INT);
     }
 
     private Map<String, String> standardParameters() {
@@ -1521,7 +1531,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetItemDistinctLength() {
+    public void shouldGetItemSnapshotDistinctLength() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
         assertThat(config.getItemSnapshotDistinctLength()).isEqualTo(10);
 
@@ -1538,6 +1548,30 @@ public class ConnectorConfigTest {
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [item.snapshot.distinct.length]");
+    }
+
+    @Test
+    public void shouldGetItemSnapshotMaxIdleSeconds() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        assertThat(config.getItemSnapshotMaxIdleSeconds()).isEqualTo(0);
+
+        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
+        updatedConfig.put(ITEM_SNAPSHOT_MAX_IDLE_SECONDS, "400");
+        config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
+        assertThat(config.getItemSnapshotMaxIdleSeconds()).isEqualTo(400);
+
+        String[] invalidValues = {"invalid_ttl", "-1"};
+        for (String invalidValue : invalidValues) {
+            updatedConfig.put(ITEM_SNAPSHOT_MAX_IDLE_SECONDS, invalidValue);
+            ConfigException ce =
+                    assertThrows(
+                            ConfigException.class,
+                            () -> ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig));
+            assertThat(ce)
+                    .hasMessageThat()
+                    .isEqualTo(
+                            "Specify a valid value for parameter [item.snapshot.max.idle.seconds]");
+        }
     }
 
     @Test
