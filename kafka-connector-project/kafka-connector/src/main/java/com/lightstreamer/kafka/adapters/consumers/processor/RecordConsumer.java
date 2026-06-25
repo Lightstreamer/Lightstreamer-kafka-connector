@@ -18,10 +18,10 @@
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
+import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
@@ -32,6 +32,7 @@ import com.lightstreamer.kafka.common.records.RecordBatch;
 import org.apache.kafka.common.KafkaException;
 import org.slf4j.Logger;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
@@ -88,57 +89,51 @@ public interface RecordConsumer<K, V> {
      */
     interface RecordProcessor<K, V> {
 
+        /**
+         * Strategy for delivering a synthesized update event to a single {@link SubscribedItem}.
+         *
+         * <p>Implementations decide whether delivery is snapshot-style (catch-up phase) or
+         * realtime, and how the event map is forwarded to the underlying {@link ItemEventListener}.
+         */
+        @FunctionalInterface
+        interface EventsDeliveryStrategy {
+
+            /**
+             * Delivers an update event to the given subscribed item.
+             *
+             * @param event the field/value map representing the update
+             * @param sub the target subscribed item
+             */
+            void deliverEvent(Map<String, String> event, SubscribedItem sub);
+        }
+
         /** Determines how updates are dispatched to subscribed items. */
         enum ProcessUpdatesType {
             /**
              * Standard dispatch with no COMMAND-mode synthesis: each record is delivered as an
              * update event, leaving interpretation to the subscription mode (e.g. {@code MERGE},
-             * {@code DISTINCT}, {@code RAW}).
+             * {@code DISTINCT}, {@code COMMAND}, {@code RAW}).
              */
             DEFAULT,
 
             /**
-             * Explicit COMMAND-mode dispatch: the record's extracted fields drive the {@code
-             * command} column (e.g. {@code ADD}/{@code UPDATE}/{@code DELETE}) directly. Concurrent
-             * processing is disabled to preserve per-key command ordering.
-             */
-            EXPLICIT_COMMAND_MODE,
-
-            /**
-             * Auto COMMAND-mode dispatch: the connector synthesizes the {@code command} column
+             * COMMAND-mode dispatch: the connector synthesizes the {@code command} column
              * automatically (typically {@code ADD}/{@code UPDATE}, with {@code DELETE} on
              * tombstones). Concurrent processing remains allowed.
              */
-            AUTO_COMMAND_MODE;
-
-            /**
-             * Returns whether records can be processed concurrently with this update type.
-             *
-             * @return {@code true} if concurrent processing is allowed, {@code false} otherwise
-             */
-            boolean allowConcurrentProcessing() {
-                return this != EXPLICIT_COMMAND_MODE;
-            }
+            COMMAND_MODE;
         }
 
         /**
          * Processes a record as a realtime event.
          *
          * @param record the record to process
+         * @param deliveryStrategy the {@link EventsDeliveryStrategy} used to dispatch the resulting
+         *     update events to subscribed items
          * @throws ValueException if field extraction fails
          */
-        default void process(KafkaRecord<K, V> record) throws ValueException {
-            process(record, false);
-        }
-
-        /**
-         * Processes a record, optionally delivering it as a snapshot event.
-         *
-         * @param record the record to process
-         * @param isSnapshot {@code true} to deliver via snapshot, {@code false} for realtime
-         * @throws ValueException if field extraction fails
-         */
-        void process(KafkaRecord<K, V> record, boolean isSnapshot) throws ValueException;
+        void process(KafkaRecord<K, V> record, EventsDeliveryStrategy deliveryStrategy)
+                throws ValueException;
 
         /**
          * Sets the logger for this processor.
@@ -156,12 +151,13 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting the {@link SubscribedItems}.
+     * Initial builder step, reached after providing the {@link RecordMapper}; sets the {@link
+     * SubscribedItems}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
      */
-    interface StartBuildingProcessor<K, V> {
+    interface RecordMapperStep<K, V> {
 
         /**
          * Sets the subscribed items for the processor.
@@ -173,7 +169,8 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting the {@link ItemEventListener}.
+     * Builder step reached after setting the {@link SubscribedItems}; sets the {@link
+     * ItemEventListener}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -183,14 +180,15 @@ public interface RecordConsumer<K, V> {
         /**
          * Sets the {@link ItemEventListener} that receives dispatched updates.
          *
-         * @param listener the event listener
+         * @param eventListener the event listener
          * @return the next builder step
          */
-        WithEventListener<K, V> eventListener(ItemEventListener listener);
+        WithEventListener<K, V> eventListener(ItemEventListener eventListener);
     }
 
     /**
-     * Builder step for setting the {@link OffsetService}.
+     * Builder step reached after setting the {@link ItemEventListener}; sets the {@link
+     * OffsetService}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -207,7 +205,7 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting the {@link Logger}.
+     * Builder step reached after setting the {@link OffsetService}; sets the {@link Logger}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -224,7 +222,8 @@ public interface RecordConsumer<K, V> {
     }
 
     /**
-     * Builder step for setting optional configuration parameters.
+     * Builder step reached after setting the {@link Logger}; accepts optional configuration
+     * parameters and builds the {@link RecordConsumer}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -234,29 +233,33 @@ public interface RecordConsumer<K, V> {
         /**
          * Sets the error handling strategy.
          *
-         * @param errorHandlingStrategy the strategy to apply on record processing errors
+         * @param errorStrategy the strategy to apply on record processing errors
          * @return this builder step
          */
-        WithOptionals<K, V> errorStrategy(RecordErrorHandlingStrategy errorHandlingStrategy);
+        WithOptionals<K, V> errorStrategy(RecordErrorHandlingStrategy errorStrategy);
 
         /**
-         * Sets the command mode for update dispatch.
+         * Enables or disables COMMAND-mode dispatch.
          *
-         * @param evaluateCommandMode the {@link EvaluateCommandMode} to apply
+         * <p>When enabled, the connector synthesizes the {@code command} column automatically (see
+         * {@link RecordProcessor.ProcessUpdatesType#COMMAND_MODE}).
+         *
+         * @param commandModeEnabled {@code true} to enable COMMAND-mode dispatch, {@code false}
+         *     otherwise
          * @return this builder step
          */
-        WithOptionals<K, V> evaluateCommandMode(EvaluateCommandMode evaluateCommandMode);
+        WithOptionals<K, V> commandModeEnabled(boolean commandModeEnabled);
 
         /**
          * Enables or disables the catch-up phase for this consumer.
          *
          * <p>When enabled, records are initially delivered as snapshot events until {@link
-         * #endCatchUp()} is called.
+         * RecordConsumer#endCatchUp()} is called.
          *
-         * @param catchUp {@code true} to enable catch-up mode, {@code false} otherwise
+         * @param catchUpEnabled {@code true} to enable catch-up mode, {@code false} otherwise
          * @return this builder step
          */
-        WithOptionals<K, V> enableCatchUp(boolean catchUp);
+        WithOptionals<K, V> catchUpEnabled(boolean catchUpEnabled);
 
         /**
          * Sets the number of worker threads for parallel processing.
@@ -272,15 +275,15 @@ public interface RecordConsumer<K, V> {
          * @param orderStrategy the {@link OrderStrategy} to apply
          * @return this builder step
          */
-        WithOptionals<K, V> ordering(OrderStrategy orderStrategy);
+        WithOptionals<K, V> orderStrategy(OrderStrategy orderStrategy);
 
         /**
          * Indicates a preference for single-threaded processing regardless of thread count.
          *
-         * @param singleThread {@code true} to prefer single-threaded execution
+         * @param singleThreadPreferred {@code true} to prefer single-threaded execution
          * @return this builder step
          */
-        WithOptionals<K, V> preferSingleThread(boolean singleThread);
+        WithOptionals<K, V> singleThreadPreferred(boolean singleThreadPreferred);
 
         /**
          * Sets the {@link Monitor} for tracking consumer metrics.
@@ -304,11 +307,11 @@ public interface RecordConsumer<K, V> {
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
-     * @param mapper the record mapper for field extraction
+     * @param recordMapper the record mapper for field extraction
      * @return the first step of the processor builder
      */
-    public static <K, V> StartBuildingProcessor<K, V> recordMapper(RecordMapper<K, V> mapper) {
-        return RecordConsumerSupport.startBuildingProcessor(mapper);
+    public static <K, V> RecordMapperStep<K, V> recordMapper(RecordMapper<K, V> recordMapper) {
+        return RecordConsumerSupport.recordMapper(recordMapper);
     }
 
     // Queries / accessors
@@ -337,7 +340,7 @@ public interface RecordConsumer<K, V> {
     /**
      * Returns the number of worker threads used by this consumer.
      *
-     * @return the thread count (defaults to 1)
+     * @return the number of worker threads, or {@code 1} if unspecified
      */
     default int numOfThreads() {
         return 1;
@@ -388,6 +391,13 @@ public interface RecordConsumer<K, V> {
      * @return the {@link Monitor}
      */
     Monitor monitor();
+
+    /**
+     * Returns the event listener that receives dispatched updates.
+     *
+     * @return the {@link ItemEventListener}
+     */
+    ItemEventListener eventListener();
 
     // Mutators
 
