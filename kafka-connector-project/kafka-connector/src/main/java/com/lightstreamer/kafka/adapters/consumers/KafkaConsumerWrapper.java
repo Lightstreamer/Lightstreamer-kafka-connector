@@ -282,11 +282,11 @@ public class KafkaConsumerWrapper<K, V> {
                         .offsetService(offsetService)
                         .logger(logger)
                         .errorStrategy(this.connectionSpec.errorHandlingStrategy())
-                        .evaluateCommandMode(this.connectionSpec.evaluateCommandMode())
-                        .enableCatchUp(eagerLifecycle)
+                        .commandModeEnabled(this.connectionSpec.processAsCommand())
+                        .catchUpEnabled(eagerLifecycle)
                         .threads(concurrency.threads())
-                        .ordering(OrderStrategy.from(concurrency.orderStrategy()))
-                        .preferSingleThread(true)
+                        .orderStrategy(OrderStrategy.from(concurrency.orderStrategy()))
+                        .singleThreadPreferred(true)
                         // Pass the monitor to the RecordConsumer to allow it to record relevant
                         // metrics.
                         .monitor(monitor)
@@ -473,11 +473,6 @@ public class KafkaConsumerWrapper<K, V> {
             }
             if (endOffsets != null && hasReachedEndOffsets(endOffsets)) {
                 recordConsumer.endCatchUp();
-                // Signal end-of-snapshot to the Server for every forced item. This
-                // transitions each item from snapshot delivery to real-time, allowing
-                // the Server to serve a complete initial snapshot to clients connecting
-                // after catch-up completes.
-                subscribedItems.forEach(item -> item.endOfSnapshot(eventListener));
                 long endTime = System.currentTimeMillis();
                 logger.atInfo().log(
                         "Catch-up phase completed, total records caught up: {}, total subscriptions forced: {}, duration: {} ms",
