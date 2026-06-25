@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.consumers.processor;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -44,22 +43,6 @@ public interface CommandEvents {
     static Map<String, String> decorate(Map<String, String> event, Command command) {
         event.put(Key.COMMAND.key(), command.toString());
         return event;
-    }
-
-    /**
-     * Creates a DELETE event retaining only the key field from the original event.
-     *
-     * @param event the original event map
-     * @return a new event map decorated with the {@link Command#DELETE} command
-     */
-    static Map<String, String> deleteEvent(Map<String, String> event) {
-        // Creates a new event with only the key field: all other fields are discarded because
-        // they are not relevant for the deletion operation.
-        Map<String, String> deleteEvent = new HashMap<>();
-        deleteEvent.put(Key.KEY.key(), Key.KEY.lookUp(event));
-
-        // Decorate the event with DELETE command
-        return decorate(deleteEvent, Command.DELETE);
     }
 
     /** Commands that can be attached to Lightstreamer events for COMMAND mode subscriptions. */
