@@ -115,6 +115,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String ITEM_SNAPSHOT_DISTINCT_LENGTH = "item.snapshot.distinct.length";
 
+    public static final String ITEM_SNAPSHOT_MAX_IDLE_SECONDS = "item.snapshot.max.idle.seconds";
+
     public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
     public static final String FIELD_MAPPING = "field";
@@ -250,6 +252,12 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 POSITIVE_INT,
                                 defaultValue("10"))
+                        .add(
+                                ITEM_SNAPSHOT_MAX_IDLE_SECONDS,
+                                false,
+                                false,
+                                NON_NEGATIVE_INT,
+                                defaultValue("0"))
                         .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
@@ -1159,6 +1167,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public int getItemSnapshotDistinctLength() {
         return Integer.parseInt(getPositiveInt(ITEM_SNAPSHOT_DISTINCT_LENGTH));
+    }
+
+    public int getItemSnapshotMaxIdleSeconds() {
+        return Integer.parseInt(getNonNegativeInt(ITEM_SNAPSHOT_MAX_IDLE_SECONDS));
     }
 
     public boolean isMapRegExEnabled() {
