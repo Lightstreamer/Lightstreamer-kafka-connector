@@ -52,7 +52,7 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -101,35 +101,11 @@ public class Items {
          */
         Schema schema();
 
-        /**
-         * Indicates whether this item is still in the snapshot delivery phase.
-         *
-         * @return {@code true} if snapshot delivery is in progress, {@code false} otherwise
-         */
-        boolean isSnapshot();
+        void sendEvent(Map<String, String> event, ItemEventListener listener);
 
-        /**
-         * Sets the snapshot delivery state of this item.
-         *
-         * @param flag {@code true} to indicate snapshot is in progress, {@code false} when complete
-         */
-        void setSnapshot(boolean flag);
-
-        void sendEvent(Map<String, String> event, ItemEventListener listener, boolean isSnapshot);
-
-        /**
-         * Clears the snapshot for this item on the server.
-         *
-         * @param listener the {@link ItemEventListener} to notify
-         */
-        void clearSnapshot(ItemEventListener listener);
-
-        /**
-         * Signals the end of snapshot delivery for this item.
-         *
-         * @param listener the {@link ItemEventListener} to notify
-         */
-        void endOfSnapshot(ItemEventListener listener);
+        default void sendSnapshot(Map<String, String> event, ItemEventListener listener) {
+            sendEvent(event, listener);
+        }
     }
 
     /**
@@ -165,18 +141,12 @@ public class Items {
          *
          * @param itemEventListener the {@link ItemEventListener} used to drive {@code
          *     forceSubscription} and to deliver events
-         * @param singleSnapshotInCatchUp {@code true} to deliver only the first catch-up record
-         *     with {@code isSnapshot=true} and downgrade subsequent catch-up records to {@code
-         *     isSnapshot=false} (MERGE single-state snapshot semantics); {@code false} to preserve
-         *     the {@code isSnapshot} flag as-is (DISTINCT/COMMAND multi-event snapshot)
          * @param logger the {@link Logger} for recording force-subscription events and errors
          * @return a new {@link ForceableSubscribedItems} instance
          */
         static ForceableSubscribedItems forceable(
-                ItemEventListener itemEventListener,
-                boolean singleSnapshotInCatchUp,
-                Logger logger) {
-            return new ForceableSubscribedItems(itemEventListener, singleSnapshotInCatchUp, logger);
+                ItemEventListener itemEventListener, Logger logger) {
+            return new ForceableSubscribedItems(itemEventListener, logger);
         }
 
         /**
@@ -277,14 +247,9 @@ public class Items {
         private final Logger logger;
         private final Map<String, BufferedSubscribedItem> items = new ConcurrentHashMap<>();
         private final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
-        private final boolean singleSnapshotInCatchUp;
 
-        ForceableSubscribedItems(
-                ItemEventListener itemEventListener,
-                boolean singleSnapshotInCatchUp,
-                Logger logger) {
+        ForceableSubscribedItems(ItemEventListener itemEventListener, Logger logger) {
             this.itemEventListener = Objects.requireNonNull(itemEventListener, "itemEventListener");
-            this.singleSnapshotInCatchUp = singleSnapshotInCatchUp;
             this.logger = logger;
         }
 
@@ -347,8 +312,7 @@ public class Items {
                     existing.markForced();
                     return null;
                 }
-                BufferedSubscribedItem fresh =
-                        new BufferedSubscribedItem(expression, singleSnapshotInCatchUp);
+                BufferedSubscribedItem fresh = new BufferedSubscribedItem(expression);
                 fresh.enableEventsDelivery(handle, itemEventListener);
                 items.put(canonicalName, fresh);
                 // Path-1 organic: emit end-of-snapshot for the new client subscription.
@@ -370,6 +334,11 @@ public class Items {
             // subsequent poll-thread sightings can return it without locking.
             BufferedSubscribedItem cached = items.get(itemName);
             if (cached != null && cached.isForced()) {
+                // Sliding-touch on the steady-state hot path: every record sighting
+                // of an eternal item refreshes the idle clock used by
+                // clearIdleSnapshots(). This is what makes the snapshot
+                // max-idle policy actually slide.
+                cached.touch();
                 return cached;
             }
 
@@ -413,12 +382,13 @@ public class Items {
                 //       markForced() below promotes the entry (idempotent if the callback
                 //       races and marks it first).
                 if (cached != null && cached.isForced()) {
+                    // Same sliding-touch as the fast path above; we reached the
+                    // slow path only because we lost the fast-path/lock race.
+                    cached.touch();
                     return cached;
                 }
                 if (cached == null) {
-                    cached =
-                            new BufferedSubscribedItem(
-                                    Subscription(itemName), singleSnapshotInCatchUp);
+                    cached = new BufferedSubscribedItem(Subscription(itemName));
                     items.put(itemName, cached);
                 }
             } finally {
@@ -459,7 +429,58 @@ public class Items {
                 logger.atWarn().log("Failed force subscription for item '{}'", itemName);
             }
             cached.markForced();
+            // Anchor the idle clock at the moment this entry becomes eternal.
+            // Required for case (2) Path-1 promotion: the entry was created by an
+            // earlier organic subscribe and its constructor stamp may be
+            // arbitrarily stale (no record had been seen yet), so without this
+            // touch the next scheduler tick could push a bogus clearSnapshot on
+            // an item that just received its first real record. Redundant but
+            // harmless in case (1) Path-2 start (constructor ran ms ago in this
+            // same call).
+            cached.touch();
             return cached;
+        }
+
+        /**
+         * Clears snapshots for all forced items that have been idle for longer than the specified
+         * maximum idle time. This method is intended to be called periodically by a scheduler to
+         * enforce the snapshot idle policy.
+         *
+         * @param maxIdleSeconds the maximum idle time in seconds before a snapshot is considered
+         *     idle and cleared
+         */
+        public void clearIdleSnapshots(long maxIdleSeconds) {
+            logger.atDebug().log("Checking for idle snapshots (maxIdleSeconds={})", maxIdleSeconds);
+            // Lock-free scan. We deliberately skip the per-name lock that
+            // getItem / activateOrInstall / removeIfUnforced acquire, because:
+            //
+            //   * Only forced (eternal) items are inspected here; their lifecycle
+            //     is terminal (C-eternal), so no concurrent structural mutation
+            //     (install / activate / prune) can race against this scan.
+            //   * The fast path of getItem is itself lock-free: even if we took
+            //     the per-name lock here, we could not serialize against the
+            //     poll-thread touch(). Ordering between this scheduler's
+            //     clearSnapshot and a concurrent fast-path update is intentionally
+            //     not enforced — by clearSnapshot's contract, any update arriving
+            //     after a clearSnapshot simply starts a fresh snapshot.
+            //
+            // Volatile reads (isForced, isIdleFor) provide the necessary
+            // visibility; clearSnapshot itself is dispatched via the item's
+            // direct dispatcher, which the SDK serializes per handle.
+            long nowNanos = System.nanoTime();
+            for (BufferedSubscribedItem item : items.values()) {
+                if (!item.isForced()) {
+                    continue;
+                }
+                if (!item.isIdleFor(nowNanos, maxIdleSeconds)) {
+                    continue;
+                }
+                logger.atDebug().log(
+                        "Sending clearSnapshot for expired item '{}'", item.canonicalName());
+                item.clearSnapshot(itemEventListener);
+                item.touch();
+            }
+            logger.atDebug().log("Idle snapshots check completed");
         }
 
         /**
@@ -556,7 +577,6 @@ public class Items {
         private final String canonicalItemName;
         private final Schema schema;
         private final Object itemHandle;
-        private boolean snapshotFlag = true;
 
         OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
             this.canonicalItemName = expression.canonicalItemName();
@@ -588,29 +608,8 @@ public class Items {
         }
 
         @Override
-        public boolean isSnapshot() {
-            return snapshotFlag;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            this.snapshotFlag = flag;
-        }
-
-        @Override
-        public void sendEvent(
-                Map<String, String> event, ItemEventListener listener, boolean isSnapshot) {
-            listener.smartUpdate(itemHandle, event, isSnapshot);
-        }
-
-        @Override
-        public void clearSnapshot(ItemEventListener listener) {
-            listener.smartClearSnapshot(itemHandle);
-        }
-
-        @Override
-        public void endOfSnapshot(ItemEventListener listener) {
-            listener.smartEndOfSnapshot(itemHandle);
+        public void sendEvent(Map<String, String> event, ItemEventListener listener) {
+            listener.smartUpdate(itemHandle, event, false);
         }
     }
 
@@ -620,13 +619,6 @@ public class Items {
      * is activated via {@link #enableEventsDelivery(Object, ItemEventListener)}, at which point the
      * buffered events are drained in insertion order — each preserving its original {@code
      * isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
-     *
-     * <p>When constructed with {@code singleSnapshotInCatchUp=true} (MERGE single-state snapshot
-     * semantics), {@link #sendEvent(Map, ItemEventListener, boolean)} also gates the {@code
-     * isSnapshot} flag: only the first {@code isSnapshot=true} event observed over the lifetime of
-     * this item is dispatched as snapshot; subsequent {@code isSnapshot=true} events are downgraded
-     * to {@code isSnapshot=false}. With {@code singleSnapshotInCatchUp=false} (DISTINCT/COMMAND),
-     * the flag is passed through unchanged.
      */
     public static class BufferedSubscribedItem implements SubscribedItem {
 
@@ -770,28 +762,20 @@ public class Items {
             }
         }
 
+        protected volatile EventDispatcher dispatcher;
+
         private final String canonicalItemName;
         private final Schema schema;
-        // True for MERGE subscriptions, which carry single-state snapshot semantics:
-        // only the first catch-up record is delivered as snapshot, later catch-up
-        // records are downgraded to real-time updates. False for DISTINCT/COMMAND,
-        // whose snapshot is a multi-event sequence and must be preserved as-is.
-        private final boolean singleSnapshotInCatchUp;
-        // When singleSnapshotInCatchUp is enabled: the first snapshot event wins the
-        // CAS and is dispatched as snapshot; subsequent isSnapshot=true events for
-        // this item are downgraded to isSnapshot=false.
-        private final AtomicBoolean firstSnapshotSent = new AtomicBoolean(false);
-        private volatile EventDispatcher dispatcher;
         private volatile boolean forced;
-        private QueueingEventDispatcher queueing;
-        private boolean snapshotFlag = true;
+        private volatile long lastAccessNanos;
+        private QueueingEventDispatcher queueingDispatcher;
 
-        BufferedSubscribedItem(SubscriptionExpression expression, boolean singleSnapshotInCatchUp) {
+        BufferedSubscribedItem(SubscriptionExpression expression) {
             this.canonicalItemName = expression.canonicalItemName();
             this.schema = expression.schema();
-            this.singleSnapshotInCatchUp = singleSnapshotInCatchUp;
-            this.queueing = new QueueingEventDispatcher(this);
-            this.dispatcher = queueing;
+            this.queueingDispatcher = new QueueingEventDispatcher(this);
+            this.dispatcher = queueingDispatcher;
+            this.lastAccessNanos = System.nanoTime();
         }
 
         @Override
@@ -810,7 +794,7 @@ public class Items {
          */
         public void enableEventsDelivery(Object itemHandle, ItemEventListener listener) {
             Objects.requireNonNull(itemHandle, "itemHandle");
-            QueueingEventDispatcher q = queueing;
+            QueueingEventDispatcher q = queueingDispatcher;
             if (q == null) {
                 // Already activated — nothing to do.
                 return;
@@ -826,7 +810,7 @@ public class Items {
             // Drop the field reference. The QueueingEventDispatcher (with its empty queue) is now
             // unreachable: producers that observed the swap route through DirectEventDispatcher
             // and never look at this field again. At 1M items this releases ~150 MB of state.
-            queueing = null;
+            queueingDispatcher = null;
         }
 
         /**
@@ -840,6 +824,32 @@ public class Items {
         }
 
         /**
+         * Refreshes the last-access stamp used by the idle-expiration scheduler. Uses {@link
+         * System#nanoTime()} so the elapsed measurement is monotonic and immune to wall-clock jumps
+         * (NTP, leap second, host suspend/resume).
+         */
+        void touch() {
+            this.lastAccessNanos = System.nanoTime();
+        }
+
+        /**
+         * Returns whether this item has been idle for at least the given duration, relative to the
+         * supplied reference timestamp. Taking {@code nowNanos} as a parameter lets the caller
+         * capture a single timestamp for a batch scan and makes the method deterministic under
+         * test.
+         *
+         * @param nowNanos the reference timestamp, expressed in the {@link System#nanoTime()} time
+         *     base
+         * @param maxIdleSeconds the idle threshold, in seconds
+         * @return {@code true} if the elapsed time since the last {@link #touch()} is greater than
+         *     or equal to {@code maxIdleSeconds}, {@code false} otherwise
+         */
+        boolean isIdleFor(long nowNanos, long maxIdleSeconds) {
+            long maxIdleNanos = TimeUnit.SECONDS.toNanos(maxIdleSeconds);
+            return nowNanos - lastAccessNanos >= maxIdleNanos;
+        }
+
+        /**
          * Returns whether this item has been forced. Safe to call without a lock: the field is
          * {@code volatile} and monotonic ({@code true} is terminal).
          */
@@ -847,22 +857,24 @@ public class Items {
             return forced;
         }
 
-        @Override
-        public void sendEvent(
-                Map<String, String> event, ItemEventListener listener, boolean isSnapshot) {
-            boolean effectiveSnapshot =
-                    isSnapshot
-                            && (!singleSnapshotInCatchUp
-                                    || firstSnapshotSent.compareAndSet(false, true));
-            dispatcher.dispatchUpdate(event, effectiveSnapshot, listener);
+        long lastTouched() {
+            return lastAccessNanos;
         }
 
         @Override
+        public void sendEvent(Map<String, String> event, ItemEventListener listener) {
+            dispatcher.dispatchUpdate(event, false, listener);
+        }
+
+        @Override
+        public void sendSnapshot(Map<String, String> event, ItemEventListener listener) {
+            dispatcher.dispatchUpdate(event, true, listener);
+        }
+
         public void clearSnapshot(ItemEventListener listener) {
             dispatcher.clearSnapshot(listener);
         }
 
-        @Override
         public void endOfSnapshot(ItemEventListener listener) {
             dispatcher.endOfSnapshot(listener);
         }
@@ -870,16 +882,6 @@ public class Items {
         @Override
         public Schema schema() {
             return schema;
-        }
-
-        @Override
-        public boolean isSnapshot() {
-            return snapshotFlag;
-        }
-
-        @Override
-        public void setSnapshot(boolean flag) {
-            this.snapshotFlag = flag;
         }
     }
 
@@ -1080,17 +1082,11 @@ public class Items {
      * Creates a {@link BufferedSubscribedItem} from a canonical item name string.
      *
      * @param canonicalName the canonical Lightstreamer item name
-     * @param singleSnapshotInCatchUp {@code true} to deliver only the first catch-up record with
-     *     {@code isSnapshot=true} and downgrade subsequent catch-up records to {@code
-     *     isSnapshot=false} (MERGE single-state snapshot semantics); {@code false} to preserve the
-     *     {@code isSnapshot} flag as-is (DISTINCT/COMMAND multi-event snapshot)
      * @return a new {@code BufferedSubscribedItem}
      * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
      */
-    public static BufferedSubscribedItem bufferedSubscribedFrom(
-            String canonicalName, boolean singleSnapshotInCatchUp) {
-        return new BufferedSubscribedItem(
-                Expressions.Subscription(canonicalName), singleSnapshotInCatchUp);
+    public static BufferedSubscribedItem bufferedSubscribedFrom(String canonicalName) {
+        return new BufferedSubscribedItem(Expressions.Subscription(canonicalName));
     }
 
     /**
