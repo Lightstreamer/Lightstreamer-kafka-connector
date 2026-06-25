@@ -135,6 +135,9 @@ public interface FieldsExtractor<K, V> {
     void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
             throws ValueException;
 
+    default void extractFieldIntoMap(
+            String field, KafkaRecord<K, V> record, Map<String, String> targetMap) {}
+
     /**
      * Returns whether extraction failures should be silently ignored.
      *
