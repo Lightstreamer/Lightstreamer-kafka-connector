@@ -21,7 +21,6 @@ import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
@@ -44,6 +43,9 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
@@ -56,6 +58,35 @@ import java.util.function.Function;
  * @param <V> the deserialized value type
  */
 public interface SubscriptionsHandler<K, V> {
+
+    /**
+     * Creates a new {@code SubscriptionsHandler} builder.
+     *
+     * @param <K> the deserialized key type
+     * @param <V> the deserialized value type
+     * @return a new {@link Builder}
+     */
+    static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
+    }
+
+    /**
+     * Returns whether the given item supports snapshot delivery. The result is used by {@code
+     * KafkaConnectorDataAdapter} to determine if a subscription should be treated as a snapshot
+     * subscription (Path-2) or a regular subscription (Path-1).
+     *
+     * @param itemName the name of the item to check
+     * @return {@code true} if the item supports snapshot delivery, {@code false} otherwise
+     */
+    boolean isSnapshotAvailable(String itemName);
+
+    /**
+     * Sets the Lightstreamer event listener used to deliver events to clients. Must be called
+     * before any {@link #subscribe} call.
+     *
+     * @param listener the {@link ItemEventListener} to use for event delivery
+     */
+    void setListener(ItemEventListener listener);
 
     /**
      * Subscribes to the given item, starting the Kafka consumer if required by the implementation.
@@ -77,35 +108,6 @@ public interface SubscriptionsHandler<K, V> {
     boolean unsubscribe(String item);
 
     /**
-     * Returns whether the given item supports snapshot delivery. The result is used by {@code
-     * KafkaConnectorDataAdapter} to determine if a subscription should be treated as a snapshot
-     * subscription (Path-2) or a regular subscription (Path-1).
-     *
-     * @param itemName the name of the item to check
-     * @return {@code true} if the item supports snapshot delivery, {@code false} otherwise
-     */
-    boolean isSnapshotAvailable(String itemName);
-
-    /**
-     * Sets the Lightstreamer event listener used to deliver events to clients. Must be called
-     * before any {@link #subscribe} call.
-     *
-     * @param listener the {@link ItemEventListener} to use for event delivery
-     */
-    void setListener(ItemEventListener listener);
-
-    /**
-     * Creates a new {@code SubscriptionsHandler} builder.
-     *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
-     * @return a new {@link Builder}
-     */
-    static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
-    /**
      * Builder for creating {@link SubscriptionsHandler} instances. The implementation is selected
      * from the connection's {@code item.snapshot.enable} flag: when {@code true} a {@link
      * ForceableSubscriptionsHandler} is returned; otherwise an {@link
@@ -119,39 +121,91 @@ public interface SubscriptionsHandler<K, V> {
         private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
         private ConnectionSpec<K, V> connectionSpec;
         private MetadataListener metadataListener;
-        private ItemSnapshotEnabledMode itemSnapshotMode = ItemSnapshotEnabledMode.NONE;
+        private long itemSnapshotMaxIdleSeconds = 0;
+        private boolean snapshotEnabled;
 
         private Builder() {}
 
-        public Builder<K, V> withConsumerFactory(
+        /**
+         * Sets the factory used to create the underlying Kafka {@link Consumer}.
+         *
+         * @param consumerFactory the consumer factory
+         * @return this builder
+         */
+        public Builder<K, V> consumerFactory(
                 Function<Properties, Consumer<byte[], byte[]>> consumerFactory) {
             this.consumerFactory = consumerFactory;
             return this;
         }
 
-        public Builder<K, V> withConnectionSpec(ConnectionSpec<K, V> connectionSpec) {
+        /**
+         * Sets the {@link ConnectionSpec} describing the Kafka connection and its mapping
+         * configuration.
+         *
+         * @param connectionSpec the connection spec
+         * @return this builder
+         */
+        public Builder<K, V> connectionSpec(ConnectionSpec<K, V> connectionSpec) {
             this.connectionSpec = connectionSpec;
             return this;
         }
 
-        public Builder<K, V> withMetadataListener(MetadataListener metadataListener) {
+        /**
+         * Sets the {@link MetadataListener} used to force unsubscriptions when the consumer cannot
+         * recover. Required when snapshot support is disabled.
+         *
+         * @param metadataListener the metadata listener
+         * @return this builder
+         */
+        public Builder<K, V> metadataListener(MetadataListener metadataListener) {
             this.metadataListener = metadataListener;
             return this;
         }
 
-        public Builder<K, V> withItemSnapshotEnabledMode(
-                ItemSnapshotEnabledMode itemSnapshotEnabledMode) {
-            this.itemSnapshotMode = itemSnapshotEnabledMode;
+        /**
+         * Selects the handler implementation: {@code true} returns a {@link
+         * ForceableSubscriptionsHandler} with eager consumer lifecycle and snapshot support; {@code
+         * false} returns an {@link OnDemandSubscriptionsHandler}.
+         *
+         * @param snapshotEnabled {@code true} to enable snapshot support, {@code false} otherwise
+         * @return this builder
+         */
+        public Builder<K, V> snapshotEnabled(boolean snapshotEnabled) {
+            this.snapshotEnabled = snapshotEnabled;
             return this;
         }
 
+        /**
+         * Sets the maximum idle time, in seconds, after which a snapshotted item that has received
+         * no record-driven access is considered stale and a {@code clearSnapshot} is pushed to the
+         * Lightstreamer kernel. A value of {@code 0} disables the sliding-expiration check.
+         *
+         * @param itemSnapshotMaxIdleSeconds the max idle in seconds; must be non-negative
+         * @return this builder
+         * @throws IllegalArgumentException if {@code itemSnapshotMaxIdleSeconds} is negative
+         */
+        public Builder<K, V> itemSnapshotMaxIdleSeconds(long itemSnapshotMaxIdleSeconds) {
+            if (itemSnapshotMaxIdleSeconds < 0) {
+                throw new IllegalArgumentException(
+                        "itemSnapshotMaxIdleSeconds must be non-negative");
+            }
+            this.itemSnapshotMaxIdleSeconds = itemSnapshotMaxIdleSeconds;
+            return this;
+        }
+
+        /**
+         * Builds the configured {@link SubscriptionsHandler}.
+         *
+         * @return a new {@link SubscriptionsHandler} instance
+         * @throws IllegalStateException if a required builder property has not been set
+         */
         public SubscriptionsHandler<K, V> build() {
             if (consumerFactory == null) {
                 throw new IllegalStateException("ConsumerFactory not set");
             }
 
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
-            if (itemSnapshotMode != ItemSnapshotEnabledMode.NONE) {
+            if (snapshotEnabled) {
                 return new ForceableSubscriptionsHandler<>(this);
             }
             if (metadataListener == null) {
@@ -269,19 +323,17 @@ public interface SubscriptionsHandler<K, V> {
      */
     class OnDemandSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
-        // Only for testing purposes: hook invoked before acquiring lock in
-        // decrementAndMaybeStopConsuming()
-        Runnable stopConsumingHook = () -> {};
+        protected final ReentrantLock consumerLock = new ReentrantLock();
+        protected KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
+        protected FutureStatus lifecycleStatus; // guarded by consumerLock
 
-        private int itemsCount; // guarded by consumerLock
+        // Only for testing purposes: hook invoked before acquiring lock in
+        // decrementAndMaybeStopConsuming().
+        Runnable stopConsumingHook = () -> {};
 
         private final MetadataListener metadataListener;
         private final OnDemandSubscribedItems subscribedItems;
-
-        protected final ReentrantLock consumerLock = new ReentrantLock();
-
-        protected KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
-        protected FutureStatus lifecycleStatus; // guarded by consumerLock
+        private int itemsCount; // guarded by consumerLock
 
         /** Constructs an {@code OnDemandSubscriptionsHandler} from the given builder. */
         OnDemandSubscriptionsHandler(Builder<K, V> builder) {
@@ -469,18 +521,61 @@ public interface SubscriptionsHandler<K, V> {
      */
     class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
+        private final long itemSnapshotMaxIdleSeconds;
+        private final ScheduledExecutorService idleSnapshotScheduler;
         private ForceableSubscribedItems subscribedItems;
         private FutureStatus lifecycleStatus;
+        private Optional<ScheduledFuture<?>> scheduled = Optional.empty();
 
         /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
         ForceableSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
+            this.itemSnapshotMaxIdleSeconds = builder.itemSnapshotMaxIdleSeconds;
+            this.idleSnapshotScheduler =
+                    Executors.newScheduledThreadPool(
+                            1,
+                            r -> {
+                                Thread t = new Thread(r, "IdleSnapshotScheduler");
+                                t.setDaemon(true);
+                                return t;
+                            });
         }
 
         @Override
         protected void doSetListener(ItemEventListener listener) {
             this.subscribedItems = SubscribedItems.forceable(listener, logger);
             startConsuming();
+            if (itemSnapshotMaxIdleSeconds > 0) {
+                long checkPeriodSeconds = Math.max(1, itemSnapshotMaxIdleSeconds / 2);
+                logger.atInfo().log(
+                        "Scheduling snapshot idle-expiration check every {} s (max idle {} s)",
+                        checkPeriodSeconds,
+                        itemSnapshotMaxIdleSeconds);
+                this.scheduled =
+                        Optional.of(
+                                this.idleSnapshotScheduler.scheduleWithFixedDelay(
+                                        () -> {
+                                            // ScheduledExecutorService silently cancels the
+                                            // recurring task
+                                            // if a single execution propagates a Throwable, so
+                                            // catch-and-log
+                                            // here to keep the idle-expiration check alive for the
+                                            // lifetime
+                                            // of the adapter.
+                                            try {
+                                                subscribedItems.clearIdleSnapshots(
+                                                        itemSnapshotMaxIdleSeconds);
+                                            } catch (Throwable t) {
+                                                logger.atError()
+                                                        .setCause(t)
+                                                        .log(
+                                                                "Snapshot idle-expiration check failed");
+                                            }
+                                        },
+                                        checkPeriodSeconds,
+                                        checkPeriodSeconds,
+                                        TimeUnit.SECONDS));
+            }
         }
 
         /** Starts the Kafka consumer eagerly. Called once during initialization. */
@@ -533,6 +628,16 @@ public interface SubscriptionsHandler<K, V> {
         // Only for testing purposes
         FutureStatus getLifecycleStatus() {
             return lifecycleStatus;
+        }
+
+        // Only for testing purposes
+        long getItemSnapshotMaxIdleSeconds() {
+            return itemSnapshotMaxIdleSeconds;
+        }
+
+        // Only for testing purposes
+        Optional<ScheduledFuture<?>> getScheduled() {
+            return scheduled;
         }
     }
 }
