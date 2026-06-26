@@ -182,13 +182,8 @@ public interface SubscriptionsHandler<K, V> {
          *
          * @param itemSnapshotMaxIdleSeconds the max idle in seconds; must be non-negative
          * @return this builder
-         * @throws IllegalArgumentException if {@code itemSnapshotMaxIdleSeconds} is negative
          */
         public Builder<K, V> itemSnapshotMaxIdleSeconds(long itemSnapshotMaxIdleSeconds) {
-            if (itemSnapshotMaxIdleSeconds < 0) {
-                throw new IllegalArgumentException(
-                        "itemSnapshotMaxIdleSeconds must be non-negative");
-            }
             this.itemSnapshotMaxIdleSeconds = itemSnapshotMaxIdleSeconds;
             return this;
         }
@@ -206,6 +201,10 @@ public interface SubscriptionsHandler<K, V> {
 
             if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
             if (snapshotEnabled) {
+                if (itemSnapshotMaxIdleSeconds < 0) {
+                    throw new IllegalStateException(
+                            "itemSnapshotMaxIdleSeconds must be non-negative");
+                }
                 return new ForceableSubscriptionsHandler<>(this);
             }
             if (metadataListener == null) {
