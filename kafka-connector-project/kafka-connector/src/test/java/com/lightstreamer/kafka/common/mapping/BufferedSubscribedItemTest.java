@@ -56,17 +56,40 @@ public class BufferedSubscribedItemTest {
     public void setUp() throws Exception {
         this.eventListener = new MockItemEventListener();
         this.subscribedItem =
-                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"), false);
+                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"));
     }
 
     @Test
     public void shouldCreateBufferedSubscribedItemFromFactory() {
         String expression = "item-[name=field1]";
-        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression, false);
+        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo("item");
         assertThat(item.schema().keys()).containsExactly("name");
         assertThat(item.canonicalName()).isEqualTo("item-[name=field1]");
+    }
+
+    @Test
+    public void shouldTouch() {
+        long beforeTouch = subscribedItem.lastTouched();
+        subscribedItem.touch();
+        long afterTouch = subscribedItem.lastTouched();
+        assertThat(afterTouch).isGreaterThan(beforeTouch);
+    }
+
+    @Test
+    public void shouldCompareAndSetLastTouched() {
+        long observed = subscribedItem.lastTouched();
+
+        // Stale expected: a concurrent touch raced in, CAS rejects.
+        subscribedItem.touch();
+        assertThat(subscribedItem.casLastTouched(observed, observed + 1)).isFalse();
+        assertThat(subscribedItem.lastTouched()).isNotEqualTo(observed + 1);
+
+        // Current expected: CAS succeeds and installs the update.
+        long current = subscribedItem.lastTouched();
+        assertThat(subscribedItem.casLastTouched(current, current + 100)).isTrue();
+        assertThat(subscribedItem.lastTouched()).isEqualTo(current + 100);
     }
 
     static Stream<Arguments> provideExpressions() {
@@ -102,7 +125,7 @@ public class BufferedSubscribedItemTest {
             Set<String> expectedKeys,
             String expectedCanonicalItemName) {
         BufferedSubscribedItem item =
-                new BufferedSubscribedItem(Expressions.Subscription(expression), false);
+                new BufferedSubscribedItem(Expressions.Subscription(expression));
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
@@ -110,54 +133,45 @@ public class BufferedSubscribedItemTest {
         assertThat(item.equals(item)).isTrue();
     }
 
-    static Stream<Arguments> snapshotGateScenarios() {
+    static Stream<Arguments> deliveryScenarios() {
         // Each scenario drives BufferedSubscribedItem with a tiny action DSL:
-        //   'T' -> sendEvent(..., isSnapshot=true)
-        //   'F' -> sendEvent(..., isSnapshot=false)
-        // expectedFlags is parallel to the actions ('1'=snapshot, '0'=realtime).
+        //   'T' -> sendSnapshot(...)   (isSnapshot=true)
+        //   'F' -> sendEvent(...)      (isSnapshot=false)
+        // expectedFlags is parallel to actions ('1' = snapshot, '0' = realtime).
         return Stream.of(
-                // Queueing-dispatcher path: events arrive before activation, drain after.
-                // With the gate active, only the first snapshot wins.
-                arguments("queueing dispatcher: gate active", true, false, "TTT", "100"),
-                // Direct-dispatcher path: events arrive after activation. Same gate result,
-                // proving the gate fires regardless of which dispatcher is active.
-                arguments("direct dispatcher: gate active", true, true, "TTT", "100"),
-                // Gate disabled (DISTINCT/COMMAND): every isSnapshot=true is preserved.
-                arguments("gate disabled: all snapshots preserved", false, true, "TTT", "111"),
-                // Interleaved realtime events short-circuit before the CAS, so they must
-                // not consume the snapshot slot: the next isSnapshot=true still wins.
-                arguments(
-                        "gate active: realtime does not consume slot", true, true, "FTFT", "0100"));
+                // Buffered path: events are sent before enableEventsDelivery and drained on
+                // activation, in insertion order and with their original flag.
+                arguments("buffered: all snapshots", false, "TTT", "111"),
+                arguments("buffered: all realtime", false, "FFF", "000"),
+                arguments("buffered: mixed", false, "TFTF", "1010"),
+                // Direct path: events are sent after enableEventsDelivery and forwarded
+                // immediately, with their original flag.
+                arguments("direct: all snapshots", true, "TTT", "111"),
+                arguments("direct: all realtime", true, "FFF", "000"),
+                arguments("direct: mixed", true, "FTFT", "0101"));
     }
 
     @ParameterizedTest(name = "{0}")
-    @MethodSource("snapshotGateScenarios")
-    public void shouldGateSnapshotFlagAccordingToSingleSnapshotInCatchUp(
-            String name,
-            boolean singleSnapshotInCatchUp,
-            boolean activateBeforeSends,
-            String actions,
-            String expectedFlags) {
-        BufferedSubscribedItem item =
-                new BufferedSubscribedItem(
-                        Expressions.Subscription("item"), singleSnapshotInCatchUp);
+    @MethodSource("deliveryScenarios")
+    public void shouldDeliverEventsCorrectly(
+            String scenario, boolean enableBeforeSends, String actions, String expectedFlags) {
+        BufferedSubscribedItem item = new BufferedSubscribedItem(Expressions.Subscription("item"));
         Object handle = new Object();
-        if (activateBeforeSends) {
+        if (enableBeforeSends) {
             item.enableEventsDelivery(handle, eventListener);
         }
 
         int seq = 0;
         for (char action : actions.toCharArray()) {
+            Map<String, String> event = Map.of("seq", String.valueOf(seq++));
             switch (action) {
-                case 'T' ->
-                        item.sendEvent(Map.of("seq", String.valueOf(seq++)), eventListener, true);
-                case 'F' ->
-                        item.sendEvent(Map.of("seq", String.valueOf(seq++)), eventListener, false);
+                case 'T' -> item.sendSnapshot(event, eventListener);
+                case 'F' -> item.sendEvent(event, eventListener);
                 default -> throw new IllegalArgumentException("Unknown action: " + action);
             }
         }
 
-        if (!activateBeforeSends) {
+        if (!enableBeforeSends) {
             item.enableEventsDelivery(handle, eventListener);
         }
 
@@ -180,12 +194,12 @@ public class BufferedSubscribedItemTest {
         Map<String, String> snapshotEvent2 = Map.of("field1", "snapshot2");
         Map<String, String> realTimeEvent2 = Map.of("field1", "realTime2");
 
-        subscribedItem.sendEvent(snapshotEvent1, eventListener, true);
+        subscribedItem.sendSnapshot(snapshotEvent1, eventListener);
         subscribedItem.clearSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent1, eventListener, false);
-        subscribedItem.sendEvent(snapshotEvent2, eventListener, true);
+        subscribedItem.sendEvent(realTimeEvent1, eventListener);
+        subscribedItem.sendSnapshot(snapshotEvent2, eventListener);
         subscribedItem.endOfSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent2, eventListener, false);
+        subscribedItem.sendEvent(realTimeEvent2, eventListener);
 
         // Nothing has been delivered yet.
         assertThat(eventListener.getEvents()).isEmpty();
@@ -239,11 +253,11 @@ public class BufferedSubscribedItemTest {
         Map<String, String> realTimeEvent4 = Map.of("field1", "direct2");
         Map<String, String> snapshotEvent4 = Map.of("field1", "snapshot4");
 
-        subscribedItem.sendEvent(realTimeEvent3, eventListener, false);
-        subscribedItem.sendEvent(snapshotEvent3, eventListener, true);
+        subscribedItem.sendEvent(realTimeEvent3, eventListener);
+        subscribedItem.sendSnapshot(snapshotEvent3, eventListener);
         subscribedItem.endOfSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent4, eventListener, false);
-        subscribedItem.sendEvent(snapshotEvent4, eventListener, true);
+        subscribedItem.sendEvent(realTimeEvent4, eventListener);
+        subscribedItem.sendSnapshot(snapshotEvent4, eventListener);
         subscribedItem.clearSnapshot(eventListener);
 
         allEvents = eventListener.getEvents();
@@ -320,8 +334,7 @@ public class BufferedSubscribedItemTest {
                                                         "id",
                                                         realtimeEventPrefix
                                                                 + realtimeEventCounter.get()),
-                                                eventListener,
-                                                false);
+                                                eventListener);
                                     }
                                 } catch (InterruptedException e) {
                                     Thread.currentThread().interrupt();
@@ -340,15 +353,11 @@ public class BufferedSubscribedItemTest {
                                 // Buffer snapshot events, a clearSnapshot, and an endOfSnapshot
                                 // before enableEventsDelivery. These exercise all PendingEvent
                                 // types in drainTo.
-                                subscribedItem.sendEvent(
-                                        Map.of("id", snapshotEventPrefix + "1"),
-                                        eventListener,
-                                        true);
+                                subscribedItem.sendSnapshot(
+                                        Map.of("id", snapshotEventPrefix + "1"), eventListener);
                                 subscribedItem.clearSnapshot(eventListener);
-                                subscribedItem.sendEvent(
-                                        Map.of("id", snapshotEventPrefix + "2"),
-                                        eventListener,
-                                        true);
+                                subscribedItem.sendSnapshot(
+                                        Map.of("id", snapshotEventPrefix + "2"), eventListener);
                                 subscribedItem.endOfSnapshot(eventListener);
 
                                 Thread.sleep(5); // Let some real-time events accumulate.
@@ -357,9 +366,9 @@ public class BufferedSubscribedItemTest {
                                 // Send post-transition events (both realtime and snapshot).
                                 for (int i = 1; i <= 3; i++) {
                                     subscribedItem.sendEvent(
-                                            Map.of("id", "post" + i), eventListener, false);
-                                    subscribedItem.sendEvent(
-                                            Map.of("snapshot", "after" + i), eventListener, true);
+                                            Map.of("id", "post" + i), eventListener);
+                                    subscribedItem.sendSnapshot(
+                                            Map.of("snapshot", "after" + i), eventListener);
                                     Thread.sleep(1);
                                 }
                             } catch (InterruptedException e) {
@@ -462,7 +471,7 @@ public class BufferedSubscribedItemTest {
     public void shouldEnableEventsDeliveryBeIdempotent() {
         // Send some events first.
         Map<String, String> event1 = Map.of("field1", "value1");
-        subscribedItem.sendEvent(event1, eventListener, false);
+        subscribedItem.sendEvent(event1, eventListener);
 
         Object itemHandle = new Object();
 
@@ -476,7 +485,7 @@ public class BufferedSubscribedItemTest {
 
         // Send event after.
         Map<String, String> event2 = Map.of("field1", "value2");
-        subscribedItem.sendEvent(event2, eventListener, false);
+        subscribedItem.sendEvent(event2, eventListener);
 
         // Verify events were processed correctly.
         List<EventCall> realtimeUpdates = eventListener.getSmartRealtimeUpdates();

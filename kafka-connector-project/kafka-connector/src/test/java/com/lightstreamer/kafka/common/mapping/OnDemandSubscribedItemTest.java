@@ -198,84 +198,41 @@ public class OnDemandSubscribedItemTest {
                 new OnDemandSubscribedItem(
                         new SubscriptionExpression("item", new TreeSet<>()), itemHandle);
 
-        Map<String, String> s1 = Map.of("field1", "snapshot1");
-        Map<String, String> r1 = Map.of("field1", "realTime1");
-        Map<String, String> s2 = Map.of("field1", "snapshot2");
-        Map<String, String> r2 = Map.of("field1", "realTime2");
+        Map<String, String> e1 = Map.of("field1", "event1");
+        Map<String, String> e2 = Map.of("field1", "event2");
+        Map<String, String> e3 = Map.of("field1", "event3");
+        Map<String, String> e4 = Map.of("field1", "event4");
 
-        subscribedItem.clearSnapshot(eventListener);
-        subscribedItem.sendEvent(s1, eventListener, true);
-        subscribedItem.endOfSnapshot(eventListener);
-        subscribedItem.sendEvent(r1, eventListener, false);
-        subscribedItem.sendEvent(s2, eventListener, true);
-        subscribedItem.sendEvent(r2, eventListener, false);
-        subscribedItem.clearSnapshot(eventListener);
-        subscribedItem.clearSnapshot(eventListener);
-        subscribedItem.endOfSnapshot(eventListener);
+        subscribedItem.sendEvent(e1, eventListener);
+        subscribedItem.sendEvent(e2, eventListener);
+        subscribedItem.sendEvent(e3, eventListener);
+        subscribedItem.sendEvent(e4, eventListener);
 
         List<EventCall> allEvents = eventListener.getEvents();
-        assertThat(allEvents).hasSize(9);
+        assertThat(allEvents).hasSize(4);
 
         EventCall eventCall = allEvents.get(0);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.CS);
+        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
         assertThat(eventCall.handle()).isEqualTo(itemHandle);
+        assertThat(eventCall.event()).isEqualTo(e1);
+        assertThat(eventCall.isSnapshot()).isFalse();
 
         eventCall = allEvents.get(1);
         assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
         assertThat(eventCall.handle()).isEqualTo(itemHandle);
-        assertThat(eventCall.event()).isEqualTo(s1);
-        assertThat(eventCall.isSnapshot()).isTrue();
+        assertThat(eventCall.event()).isEqualTo(e2);
+        assertThat(eventCall.isSnapshot()).isFalse();
 
         eventCall = allEvents.get(2);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.EOS);
+        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
         assertThat(eventCall.handle()).isEqualTo(itemHandle);
+        assertThat(eventCall.event()).isEqualTo(e3);
+        assertThat(eventCall.isSnapshot()).isFalse();
 
         eventCall = allEvents.get(3);
         assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
         assertThat(eventCall.handle()).isEqualTo(itemHandle);
-        assertThat(eventCall.event()).isEqualTo(r1);
+        assertThat(eventCall.event()).isEqualTo(e4);
         assertThat(eventCall.isSnapshot()).isFalse();
-
-        eventCall = allEvents.get(4);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
-        assertThat(eventCall.handle()).isEqualTo(itemHandle);
-        assertThat(eventCall.event()).isEqualTo(s2);
-        assertThat(eventCall.isSnapshot()).isTrue();
-
-        eventCall = allEvents.get(5);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.UPDATE);
-        assertThat(eventCall.handle()).isEqualTo(itemHandle);
-        assertThat(eventCall.event()).isEqualTo(r2);
-        assertThat(eventCall.isSnapshot()).isFalse();
-
-        eventCall = allEvents.get(6);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.CS);
-        assertThat(eventCall.handle()).isEqualTo(itemHandle);
-
-        eventCall = allEvents.get(7);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.CS);
-        assertThat(eventCall.handle()).isEqualTo(itemHandle);
-
-        eventCall = allEvents.get(8);
-        assertThat(eventCall.type()).isEqualTo(EventCall.EventType.EOS);
-        assertThat(eventCall.handle()).isEqualTo(itemHandle);
-    }
-
-    @Test
-    public void shouldMaintainSnapshotFlagBehavior() {
-        SubscriptionExpression expression = Subscription("item-[name=field1]");
-        Object handle = new Object();
-        OnDemandSubscribedItem subscribedItem = Items.onDemandSubscribedFrom(expression, handle);
-
-        // Initially in snapshot mode
-        assertThat(subscribedItem.isSnapshot()).isTrue();
-
-        // Change flag
-        subscribedItem.setSnapshot(false);
-        assertThat(subscribedItem.isSnapshot()).isFalse();
-
-        // Change back
-        subscribedItem.setSnapshot(true);
-        assertThat(subscribedItem.isSnapshot()).isTrue();
     }
 }

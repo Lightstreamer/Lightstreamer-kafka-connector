@@ -96,7 +96,7 @@ public class RecordRoutingTest {
                         OthersSelectorSuppliers.String(), topics, List.of(itemName));
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
-                        .withCanonicalItemExtractors(templates.groupExtractors())
+                        .addCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         for (String topic : topics) {
@@ -194,7 +194,7 @@ public class RecordRoutingTest {
                         OthersSelectorSuppliers.String(), topics, templateStr);
         RecordMapper<String, String> mapper =
                 RecordMapper.<String, String>builder()
-                        .withCanonicalItemExtractors(templates.groupExtractors())
+                        .addCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         for (String topic : topics) {
@@ -252,7 +252,7 @@ public class RecordRoutingTest {
                 ItemTemplatesUtils.ItemTemplates(JsonValue(), List.of(TEST_TOPIC_1), templateStr);
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
-                        .withCanonicalItemExtractors(templates.groupExtractors())
+                        .addCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         JsonNode jsonNode = new ObjectMapper().readTree(jsonString);
@@ -281,7 +281,7 @@ public class RecordRoutingTest {
                 ItemTemplatesUtils.AvroAvroTemplates(TEST_TOPIC_1, template);
         RecordMapper<GenericRecord, GenericRecord> mapper =
                 RecordMapper.<GenericRecord, GenericRecord>builder()
-                        .withCanonicalItemExtractors(templates.groupExtractors())
+                        .addCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         KafkaRecord<GenericRecord, GenericRecord> incomingRecord =
@@ -319,7 +319,7 @@ public class RecordRoutingTest {
                 ItemTemplatesUtils.AvroJsonTemplates(TEST_TOPIC_1, template);
         RecordMapper<GenericRecord, JsonNode> mapper =
                 RecordMapper.<GenericRecord, JsonNode>builder()
-                        .withCanonicalItemExtractors(templates.groupExtractors())
+                        .addCanonicalItemExtractors(templates.groupExtractors())
                         .build();
 
         KafkaRecord<GenericRecord, JsonNode> incomingRecord =

@@ -24,7 +24,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -43,8 +42,6 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.HashMap;
 import java.util.List;
@@ -63,10 +60,10 @@ public class ForceableSubscriptionHandlerTest {
     private MockConsumer consumer;
 
     private ForceableSubscriptionsHandler<String, String> mkSubscriptionsHandler(
-            ItemSnapshotEnabledMode snapshotMode,
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
+            int maxIdleSeconds,
             String templateTopic) {
 
         Properties properties = new Properties();
@@ -125,62 +122,75 @@ public class ForceableSubscriptionHandlerTest {
 
         SubscriptionsHandler.Builder<String, String> builder =
                 SubscriptionsHandler.<String, String>builder()
-                        .withConnectionSpec(spec)
-                        .withConsumerFactory(factory)
-                        .withItemSnapshotEnabledMode(snapshotMode);
+                        .connectionSpec(spec)
+                        .consumerFactory(factory)
+                        .snapshotEnabled(true)
+                        .itemSnapshotMaxIdleSeconds(maxIdleSeconds);
         return (ForceableSubscriptionsHandler<String, String>) builder.build();
     }
 
-    void init(ItemSnapshotEnabledMode snapshotMode, String templateTopic) {
-        init(snapshotMode, false, false, false, templateTopic);
+    void init(String templateTopic) {
+        init(false, false, false, 0, templateTopic);
     }
 
     void init(
-            ItemSnapshotEnabledMode snapshotMode,
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
             String templateTopic) {
+        init(exceptionOnConnection, exceptionOnListTopics, exceptionOnPoll, 0, templateTopic);
+    }
+
+    void init(
+            boolean exceptionOnConnection,
+            boolean exceptionOnListTopics,
+            boolean exceptionOnPoll,
+            int maxIdleSeconds,
+            String templateTopic) {
         this.subscriptionsHandler =
                 mkSubscriptionsHandler(
-                        snapshotMode,
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
+                        maxIdleSeconds,
                         templateTopic);
         this.subscriptionsHandler.setListener(listener);
     }
 
-    @ParameterizedTest
-    @EnumSource(names = {"MERGE", "COMMAND", "DISTINCT"})
-    public void shouldInit(ItemSnapshotEnabledMode snapshotMode) {
-        init(snapshotMode, TOPIC);
+    @Test
+    public void shouldInit() {
+        init(TOPIC);
         // Unavailable state is expected while the consumer is performing the infinite polling loop
         // in the background
         assertThat(subscriptionsHandler.getLifecycleStatus().isStateAvailable()).isFalse();
+        assertThat(subscriptionsHandler.getItemSnapshotMaxIdleSeconds()).isEqualTo(0);
+        assertThat(subscriptionsHandler.getScheduled()).isEmpty();
+    }
+
+    @Test
+    public void shouldStartIdleSnapshotScheduler() {
+        init(false, false, false, 30, TOPIC);
+        assertThat(subscriptionsHandler.getLifecycleStatus().isStateAvailable()).isFalse();
+        assertThat(subscriptionsHandler.getItemSnapshotMaxIdleSeconds()).isEqualTo(30);
+        assertThat(subscriptionsHandler.getScheduled()).isPresent();
     }
 
     @Test
     public void shouldGetSnapshotAvailability() {
-        init(ItemSnapshotEnabledMode.MERGE, TOPIC);
+        init(TOPIC);
         assertThat(subscriptionsHandler.isSnapshotAvailable("anyItem")).isTrue();
     }
 
     @Test
     public void shouldFailInitDueToExceptionWhileConnecting() {
         KafkaException ke =
-                assertThrows(
-                        KafkaException.class,
-                        () -> init(ItemSnapshotEnabledMode.MERGE, true, false, false, TOPIC));
+                assertThrows(KafkaException.class, () -> init(true, false, false, TOPIC));
         assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
     }
 
     @Test
     public void shouldFailInitDueToNonExistingTopics() {
-        KafkaException ke =
-                assertThrows(
-                        KafkaException.class,
-                        () -> init(ItemSnapshotEnabledMode.MERGE, "nonExistingTopic"));
+        KafkaException ke = assertThrows(KafkaException.class, () -> init("nonExistingTopic"));
         assertThat(ke)
                 .hasMessageThat()
                 .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_MISSING_TOPICS");
@@ -189,9 +199,7 @@ public class ForceableSubscriptionHandlerTest {
     @Test
     public void shouldFailInitDueToExceptionWhileGettingTopicList() {
         KafkaException ke =
-                assertThrows(
-                        KafkaException.class,
-                        () -> init(ItemSnapshotEnabledMode.MERGE, false, true, false, TOPIC));
+                assertThrows(KafkaException.class, () -> init(false, true, false, TOPIC));
         assertThat(ke)
                 .hasMessageThat()
                 .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_ERROR");
@@ -200,9 +208,7 @@ public class ForceableSubscriptionHandlerTest {
     @Test
     public void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
         KafkaException ke =
-                assertThrows(
-                        KafkaException.class,
-                        () -> init(ItemSnapshotEnabledMode.MERGE, false, false, true, TOPIC));
+                assertThrows(KafkaException.class, () -> init(false, false, true, TOPIC));
         assertThat(ke)
                 .hasMessageThat()
                 .isEqualTo("Consumer initialization failed: INIT_FAILED_ON_ERROR");
@@ -211,7 +217,7 @@ public class ForceableSubscriptionHandlerTest {
 
     @Test
     public void shouldFailInitDueToExceptionWhilePolling() {
-        init(ItemSnapshotEnabledMode.MERGE, false, false, false, TOPIC);
+        init(false, false, false, 0, TOPIC);
 
         // Simulate exception while polling after initialization (including catch-up) completes
         // successfully.
@@ -227,7 +233,7 @@ public class ForceableSubscriptionHandlerTest {
 
     @Test
     public void shouldSubscribeAndUnsubscribe() throws SubscriptionException {
-        init(ItemSnapshotEnabledMode.MERGE, TOPIC);
+        init(TOPIC);
 
         Object itemHandle = new Object();
 
@@ -240,7 +246,7 @@ public class ForceableSubscriptionHandlerTest {
 
     @Test
     public void shouldNotUnsubscribeAfterItemIsPromotedToForced() throws SubscriptionException {
-        init(ItemSnapshotEnabledMode.MERGE, TOPIC);
+        init(TOPIC);
 
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -255,7 +261,7 @@ public class ForceableSubscriptionHandlerTest {
 
     @Test
     public void shouldNotUnsubscribeFromExistingItem() {
-        init(ItemSnapshotEnabledMode.MERGE, TOPIC);
+        init(TOPIC);
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }
 }

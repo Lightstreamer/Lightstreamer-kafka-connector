@@ -20,18 +20,26 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
+import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.selectors.DataExtractors;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
+import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
+import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Records;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,39 +51,56 @@ public class MappedRecordTest {
         return Stream.of(
                 Arguments.of(
                         new String[] {"schema-[key=aKey]"},
-                        Map.of("field1", "value1"),
-                        true,
-                        "MappedRecord (canonicalItemNames=[schema-[key=aKey]], fieldsMap={field1=value1})"),
+                        Map.of(
+                                "key",
+                                Expressions.Wrapped("#{KEY}"),
+                                "value",
+                                Expressions.Wrapped("#{VALUE}")),
+                        Records.KafkaRecord("aKey", "aValue"),
+                        Map.of("key", "aKey", "value", "aValue")),
                 Arguments.of(
-                        new String[] {
-                            "schema1-[key=aKey]",
-                            "schema2",
-                            "schema3-[partition=aPartition,value=aValue]"
-                        },
-                        new LinkedHashMap<>() {
+                        new String[] {"schema-[key=aKey]"},
+                        Map.of(
+                                "key",
+                                Expressions.Wrapped("#{KEY}"),
+                                "value",
+                                Expressions.Wrapped("#{VALUE}")),
+                        Records.KafkaRecord("aKey", null),
+                        new HashMap<>() {
                             {
-                                put("field1", "value1");
-                                put("field2", "value2");
-                                put("field3", null);
+                                put("key", "aKey");
+                                put("value", null);
                             }
-                        },
-                        false,
-                        "MappedRecord (canonicalItemNames=[schema1-[key=aKey],schema2,schema3-[partition=aPartition,value=aValue]], fieldsMap={field1=value1, field2=value2, field3=null})"));
+                        }));
     }
 
     @ParameterizedTest
     @MethodSource("provideRecordsForRouting")
     public void shouldCreateMappedRecord(
             String[] canonicalItemNames,
-            Map<String, String> fieldsMap,
-            boolean isPayloadNull,
-            String expectedToString) {
+            Map<String, ExtractionExpression> extractionExpressions,
+            KafkaRecord<String, String> kafkaRecord,
+            Map<String, String> expectedFieldsMap)
+            throws ExtractionException {
+
+        FieldsExtractor<String, String> fieldsExtractor =
+                DataExtractors.namedFieldsExtractor(
+                        OthersSelectorSuppliers.String(), extractionExpressions, false, false);
+
         MappedRecordImpl record =
-                new MappedRecordImpl(canonicalItemNames, () -> fieldsMap, isPayloadNull);
-        assertThat(record.fieldsMap()).containsExactlyEntriesIn(fieldsMap);
+                new MappedRecordImpl(
+                        canonicalItemNames,
+                        new FieldsMapSupplierImpl<>(fieldsExtractor, kafkaRecord));
+        assertThat(record.fieldsMap()).containsExactlyEntriesIn(expectedFieldsMap);
         assertThat(record.canonicalItemNames()).isEqualTo(canonicalItemNames);
-        assertThat(record.isPayloadNull()).isEqualTo(isPayloadNull);
-        assertThat(record.toString()).isEqualTo(expectedToString);
+        assertThat(record.isPayloadNull()).isEqualTo(kafkaRecord.isPayloadNull());
+
+        Set<String> fields = expectedFieldsMap.keySet();
+        for (String field : fields) {
+            Map<String, String> map = record.fieldsMapFromField(field);
+            assertThat(map).hasSize(1);
+            assertThat(map).containsEntry(field, expectedFieldsMap.get(field));
+        }
     }
 
     @Test
@@ -84,7 +109,7 @@ public class MappedRecordTest {
         assertThat(MappedRecordImpl.NOPRecord.isPayloadNull()).isTrue();
         assertThat(MappedRecordImpl.NOPRecord.fieldsMap()).isEmpty();
         assertThat(MappedRecordImpl.NOPRecord.toString())
-                .isEqualTo("MappedRecord (canonicalItemNames=[], fieldsMap={})");
+                .isEqualTo("MappedRecord(canonicalItemNames=[])");
     }
 
     @Test
@@ -140,7 +165,7 @@ public class MappedRecordTest {
         assertThat(record.isPayloadNull()).isTrue();
 
         SubscribedItems subscribedItems1 =
-                SubscribedItems.forceable(new Mocks.MockItemEventListener(), false, null);
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
         Set<SubscribedItem> routed = record.route(subscribedItems1);
         assertThat(routed.stream().map(SubscribedItem::canonicalName))
                 .containsExactly(canonicalItemName, canonicalItemName2);
@@ -180,7 +205,7 @@ public class MappedRecordTest {
         assertThat(record.isPayloadNull()).isTrue();
 
         SubscribedItems forcedItems =
-                SubscribedItems.forceable(new Mocks.MockItemEventListener(), false, null);
+                SubscribedItems.forceable(new Mocks.MockItemEventListener(), null);
         Set<SubscribedItem> routed = record.route(forcedItems);
 
         assertThat(routed.stream().map(SubscribedItem::canonicalName))

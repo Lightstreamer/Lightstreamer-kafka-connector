@@ -70,7 +70,7 @@ public class ForceableSubscribedItemsTest {
     public void setUp() {
         final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         listener = new MockItemEventListener();
-        items = Items.SubscribedItems.forceable(listener, false, logger);
+        items = Items.SubscribedItems.forceable(listener, logger);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ForceableSubscribedItemsTest {
         final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         assertThrows(
                 NullPointerException.class,
-                () -> Items.SubscribedItems.forceable(null, false, logger),
+                () -> Items.SubscribedItems.forceable(null, logger),
                 "listener cannot be null");
     }
 
@@ -87,6 +87,20 @@ public class ForceableSubscribedItemsTest {
         assertThat(items.isEmpty()).isTrue();
         assertThat(items.size()).isEqualTo(0);
         assertThat(items.values()).isEmpty();
+    }
+
+    @Test
+    public void shouldStartSingleSnapshotInCatchUp() {
+        final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
+        listener = new MockItemEventListener();
+        items = Items.SubscribedItems.forceable(listener, logger);
+
+        assertThat(items.isEmpty()).isTrue();
+        assertThat(items.size()).isEqualTo(0);
+        assertThat(items.values()).isEmpty();
+
+        BufferedSubscribedItem item = items.getItem("anItem");
+        assertThat(item).isNotNull();
     }
 
     /** removeIfUnforced removes unforced entries and keeps forced (eternal) entries. */
@@ -126,12 +140,25 @@ public class ForceableSubscribedItemsTest {
         assertThat(still.isForced()).isTrue();
     }
 
+    /** removeIfUnforced returns false when no entry exists for the given name. */
+    @Test
+    public void shouldReturnFalseWhenRemovingAbsentEntry() {
+        assertThat(items.isEmpty()).isTrue();
+
+        boolean removed = items.removeIfUnforced("missing");
+
+        assertThat(removed).isFalse();
+        assertThat(items.isEmpty()).isTrue();
+    }
+
     /**
      * Path-1 (organic): activateOrInstall installs a fresh entry directly in direct-dispatch mode
      * and emits endOfSnapshot.
      */
     @Test
     public void shouldAddItemPath1Organic() {
+        ForceableSubscribedItems items =
+                Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
         final Object itemHandle = new Object();
 
         BufferedSubscribedItem subscribedItem =
@@ -157,6 +184,9 @@ public class ForceableSubscribedItemsTest {
      */
     @Test
     public void shouldGetItemPath2Case1TrueMiss() {
+        ForceableSubscribedItems items =
+                Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
+
         final Object itemHandle = new Object();
         AtomicBoolean forceSubscriptionCalled = new AtomicBoolean(false);
 
@@ -195,6 +225,8 @@ public class ForceableSubscribedItemsTest {
      */
     @Test
     public void shouldGetItemPath2Case2HitOnUnforced() {
+        ForceableSubscribedItems items =
+                Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
         final Object itemHandle = new Object();
 
         // Path-1 organic: add unforced entry
@@ -355,6 +387,214 @@ public class ForceableSubscribedItemsTest {
         assertThat(listener.getSmartEndOfSnapshotCalls()).isEmpty();
     }
 
+    /**
+     * Path-2 (forceable) case (0) <strong>in-lock</strong> branch: when the entry is unforced at
+     * fast-path read but gets marked forced between the fast-path read and the lock acquisition,
+     * the in-lock re-read returns it directly without calling {@code forceSubscription}. Simulated
+     * single-threaded by a subclass whose {@code isForced()} returns {@code false} on the fast-path
+     * call and {@code true} on every subsequent call — the same observable outcome as a real
+     * concurrent promotion that lands during lock acquisition.
+     */
+    @Test
+    public void shouldReturnViaInLockBranchWhenForcedRaceWonAfterFastPath() throws Exception {
+        final String itemName = "inlock-race";
+        final Object handle = new Object();
+        BufferedSubscribedItem racing =
+                new BufferedSubscribedItem(Expressions.Subscription(itemName)) {
+                    private final AtomicInteger calls = new AtomicInteger();
+
+                    @Override
+                    boolean isForced() {
+                        // First call: fast-path read. Return false to fall through to the
+                        // slow path. Second call (in-lock re-read) and beyond: return true
+                        // to exercise the case (0) in-lock branch.
+                        return calls.incrementAndGet() > 1;
+                    }
+                };
+        racing.enableEventsDelivery(handle, listener);
+
+        java.lang.reflect.Field itemsField =
+                ForceableSubscribedItems.class.getDeclaredField("items");
+        itemsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, BufferedSubscribedItem> internal =
+                (Map<String, BufferedSubscribedItem>) itemsField.get(items);
+        internal.put(itemName, racing);
+
+        // Any forceSubscription call would mean we missed the in-lock branch.
+        listener.setForceSubscriptionAction(
+                name -> {
+                    throw new AssertionError(
+                            "forceSubscription must not be called when case (0) in-lock fires");
+                });
+
+        BufferedSubscribedItem returned = items.getItem(itemName);
+
+        assertThat(returned).isSameInstanceAs(racing);
+    }
+
+    /** clearIdleSnapshots dispatches clearSnapshot for every forced item that is idle. */
+    @Test
+    public void shouldClearSnapshotForIdleForcedItems() {
+        final Object handle1 = new Object();
+        final Object handle2 = new Object();
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if ("item1".equals(name)) {
+                        items.activateOrInstall(Expressions.Subscription("item1"), handle1);
+                    } else if ("item2".equals(name)) {
+                        items.activateOrInstall(Expressions.Subscription("item2"), handle2);
+                    }
+                });
+        items.getItem("item1");
+        items.getItem("item2");
+        listener.reset();
+
+        // Threshold of zero: every forced item is idle on the next scan.
+        items.clearIdleSnapshots(0);
+
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(handle1, handle2);
+    }
+
+    /** clearIdleSnapshots skips unforced (non-eternal) entries. */
+    @Test
+    public void shouldSkipUnforcedItemsInIdleScan() {
+        final Object handle = new Object();
+        // Path-1 organic install: the entry is created unforced.
+        items.activateOrInstall(Expressions.Subscription("unforced"), handle);
+        listener.reset();
+
+        items.clearIdleSnapshots(0);
+
+        assertThat(listener.getSmartClearSnapshotCalls()).isEmpty();
+    }
+
+    /** clearIdleSnapshots skips forced items whose last touch is within the idle threshold. */
+    @Test
+    public void shouldSkipForcedItemsWithinIdleThreshold() {
+        final Object handle = new Object();
+        listener.setForceSubscriptionAction(
+                name -> items.activateOrInstall(Expressions.Subscription(name), handle));
+        BufferedSubscribedItem item = items.getItem("fresh");
+        assertThat(item.isForced()).isTrue();
+        listener.reset();
+
+        // The item was just touched; a 60-second threshold leaves plenty of margin.
+        items.clearIdleSnapshots(60);
+
+        assertThat(listener.getSmartClearSnapshotCalls()).isEmpty();
+    }
+
+    /** clearIdleSnapshots refreshes the last-touched timestamp after expiring an item. */
+    @Test
+    public void shouldRefreshLastTouchedAfterExpiringItem() {
+        final Object handle = new Object();
+        listener.setForceSubscriptionAction(
+                name -> items.activateOrInstall(Expressions.Subscription(name), handle));
+        BufferedSubscribedItem item = items.getItem("item");
+        long touchedBefore = item.lastTouched();
+        // Spin until nanoTime advances, so the post-clear touch is observably later.
+        while (System.nanoTime() == touchedBefore) {
+            // busy wait
+        }
+
+        items.clearIdleSnapshots(0);
+
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(handle);
+        assertThat(item.lastTouched()).isGreaterThan(touchedBefore);
+    }
+
+    /** clearIdleSnapshots on an empty collection is a safe no-op. */
+    @Test
+    public void shouldBeNoOpOnEmptyCollection() {
+        assertThat(items.isEmpty()).isTrue();
+
+        items.clearIdleSnapshots(0);
+
+        assertThat(listener.getSmartClearSnapshotCalls()).isEmpty();
+    }
+
+    /**
+     * A single scan filters per item: with one forced+aged, one forced+fresh, and one unforced
+     * entry coexisting, only the aged forced entry is cleared. A second immediate scan with the
+     * same threshold then leaves it alone, exercising the sliding behavior of the post-clear
+     * touch().
+     */
+    @Test
+    public void shouldOnlyClearForcedAndIdleEntriesInMixedCollection() {
+        final Object handleAged = new Object();
+        final Object handleFresh = new Object();
+        final Object handleUnforced = new Object();
+        listener.setForceSubscriptionAction(
+                name -> {
+                    if ("aged".equals(name)) {
+                        items.activateOrInstall(Expressions.Subscription("aged"), handleAged);
+                    } else if ("fresh".equals(name)) {
+                        items.activateOrInstall(Expressions.Subscription("fresh"), handleFresh);
+                    }
+                });
+        BufferedSubscribedItem aged = items.getItem("aged");
+        items.getItem("fresh");
+        items.activateOrInstall(Expressions.Subscription("unforced"), handleUnforced);
+        listener.reset();
+
+        // Backdate only the aged item beyond a 1-second idle threshold.
+        aged.setLastTouched(System.nanoTime() - TimeUnit.SECONDS.toNanos(10));
+
+        items.clearIdleSnapshots(1);
+
+        // Exactly one clearSnapshot, against the aged item's handle.
+        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(handleAged);
+
+        // An immediate second scan with the same threshold must NOT re-clear the aged item,
+        // because the prior scan called touch() on it.
+        listener.reset();
+        items.clearIdleSnapshots(1);
+        assertThat(listener.getSmartClearSnapshotCalls()).isEmpty();
+    }
+
+    /**
+     * Race-protection branch: when a concurrent {@code touch()} bumps {@code lastAccessNanos}
+     * between the scan's idle check and its CAS claim, the CAS must fail and the scheduler must
+     * skip the item (no {@code clearSnapshot} dispatched). Simulated single-threaded by a subclass
+     * whose {@code lastTouched()} returns a stale value while writing a fresh one to the real field
+     * — the same observable outcome as a real concurrent touch.
+     */
+    @Test
+    public void shouldSkipDispatchWhenCasLastTouchedRacesAgainstConcurrentTouch() throws Exception {
+        final Object handle = new Object();
+        BufferedSubscribedItem racing =
+                new BufferedSubscribedItem(Expressions.Subscription("racing")) {
+                    @Override
+                    long lastTouched() {
+                        // Simulate a concurrent touch landing right after this read: bump the
+                        // real stamp to "now", but return a value old enough to pass the idle
+                        // check. The subsequent casLastTouched(stale, ...) will fail because
+                        // the field no longer matches.
+                        setLastTouched(System.nanoTime());
+                        return System.nanoTime() - TimeUnit.SECONDS.toNanos(10);
+                    }
+                };
+        racing.enableEventsDelivery(handle, listener);
+        racing.markForced();
+
+        // Inject the racing item into the private items map. No public seam exists, and adding
+        // one solely for this test would broaden the API surface for no production benefit.
+        java.lang.reflect.Field itemsField =
+                ForceableSubscribedItems.class.getDeclaredField("items");
+        itemsField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Map<String, BufferedSubscribedItem> internal =
+                (Map<String, BufferedSubscribedItem>) itemsField.get(items);
+        internal.put("racing", racing);
+        listener.reset();
+
+        items.clearIdleSnapshots(1);
+
+        // CAS failed, so no clearSnapshot was dispatched.
+        assertThat(listener.getSmartClearSnapshotCalls()).isEmpty();
+    }
+
     /*
      * Concurrent race catalog mapping:
      * - shouldCoverConcurrentSameNameConvergenceBoundedForceCalls:
@@ -493,10 +733,10 @@ public class ForceableSubscribedItemsTest {
         Map<String, String> firstUpdate = Map.of("seq", "1");
         Map<String, String> secondUpdate = Map.of("seq", "2");
 
-        placeholder.sendEvent(firstUpdate, listener, true);
+        placeholder.sendEvent(firstUpdate, listener);
         placeholder.clearSnapshot(listener);
         placeholder.endOfSnapshot(listener);
-        placeholder.sendEvent(secondUpdate, listener, false);
+        placeholder.sendEvent(secondUpdate, listener);
 
         // While activation is blocked, events stay buffered and are not dispatched yet.
         assertThat(listener.getEvents()).isEmpty();
@@ -517,7 +757,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(calls.get(0).type()).isEqualTo(UPDATE);
         assertThat(calls.get(0).handle()).isEqualTo(itemHandle);
         assertThat(calls.get(0).event()).isEqualTo(firstUpdate);
-        assertThat(calls.get(0).isSnapshot()).isTrue();
+        assertThat(calls.get(0).isSnapshot()).isFalse();
 
         assertThat(calls.get(1).type()).isEqualTo(CS);
         assertThat(calls.get(1).handle()).isEqualTo(itemHandle);
@@ -588,9 +828,7 @@ public class ForceableSubscribedItemsTest {
                             try {
                                 for (int i = 0; i < eventCount; i++) {
                                     placeholder.sendEvent(
-                                            Map.of("seq", Integer.toString(i)),
-                                            listener,
-                                            i < (eventCount / 2));
+                                            Map.of("seq", Integer.toString(i)), listener);
                                     if (i == (eventCount / 2) - 1) {
                                         firstHalfProduced.countDown();
                                         boolean released =
@@ -630,7 +868,7 @@ public class ForceableSubscribedItemsTest {
             assertThat(call.type()).isEqualTo(UPDATE);
             assertThat(call.handle()).isEqualTo(itemHandle);
             assertThat(call.event()).isEqualTo(Map.of("seq", Integer.toString(i)));
-            assertThat(call.isSnapshot()).isEqualTo(i < (eventCount / 2));
+            assertThat(call.isSnapshot()).isFalse();
         }
     }
 

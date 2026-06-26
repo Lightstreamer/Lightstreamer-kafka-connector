@@ -150,7 +150,7 @@ public class RecordMapperTest {
     public void shouldBuildMapperWithStaticFieldsExtractor() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         String(),
                                         Map.of("aKey", Wrapped("#{PARTITION}")),
@@ -201,7 +201,7 @@ public class RecordMapperTest {
                                 TEST_TOPIC_2,
                                 canonicalItemExtractor(
                                         String(), Template("prefix3-#{value=VALUE}")))
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         String(),
                                         Map.of(
@@ -285,8 +285,8 @@ public class RecordMapperTest {
                                 "anotherTopic[A-C]",
                                 canonicalItemExtractor(
                                         String(), Template("prefix3-#{value=VALUE}")))
-                        .enableRegex(true)
-                        .withFieldExtractor(
+                        .regexEnabled(true)
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         String(),
                                         Map.of(
@@ -396,7 +396,7 @@ public class RecordMapperTest {
                                         JsonValue(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
-                        .withFieldExtractor(fieldsExtractor)
+                        .fieldExtractor(fieldsExtractor)
                         .build();
         assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -454,7 +454,7 @@ public class RecordMapperTest {
                                 TEST_TOPIC_1,
                                 canonicalItemExtractor(
                                         JsonValue(), Template("test-#{name=VALUE.name}")))
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
@@ -487,7 +487,7 @@ public class RecordMapperTest {
                                 TEST_TOPIC_1,
                                 canonicalItemExtractor(
                                         JsonValue(), Template("test-#{name=VALUE.name}")))
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
@@ -522,7 +522,7 @@ public class RecordMapperTest {
                                 canonicalItemExtractor(
                                         JsonValue(),
                                         Template("test-#{name=VALUE.not_valid_attrib}")))
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         JsonValue(),
                                         Map.of(
@@ -600,7 +600,7 @@ public class RecordMapperTest {
                                         AvroValue(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
-                        .withFieldExtractor(fieldExtractor)
+                        .fieldExtractor(fieldExtractor)
                         .build();
         assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -700,7 +700,7 @@ public class RecordMapperTest {
                                         ProtoValue(),
                                         Template(
                                                 "test-#{phoneNumber=VALUE.phoneNumbers[0],country=VALUE.otherAddresses['work'].country.name}")))
-                        .withFieldExtractor(fieldsExtractor)
+                        .fieldExtractor(fieldsExtractor)
                         .build();
         assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
@@ -775,7 +775,7 @@ public class RecordMapperTest {
                                         Object(),
                                         Template(
                                                 "test-#{thirdChildName=VALUE.children[2].name,grandChildName=VALUE.children[1].children[0].name}")))
-                        .withFieldExtractor(
+                        .fieldExtractor(
                                 namedFieldsExtractor(
                                         Object(),
                                         Map.of(

@@ -222,7 +222,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put("map.topic3.to", "simple-item1,simple-item2");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "STRING");
         updatedConfigs.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
-        updatedConfigs.put("field.key", "#{VALUE.name}");
+        updatedConfigs.put("field.key", "#{KEY}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put("field.*", "#{VALUE.*}");
@@ -282,7 +282,7 @@ public class ConnectorConfiguratorTest {
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfigs.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND");
-        updatedConfigs.put("field.key", "#{VALUE.key}");
+        updatedConfigs.put("field.key", "#{KEY.key}");
         updatedConfigs.put("field.fieldName1", "#{VALUE.name}");
         updatedConfigs.put("field.fieldName2", "#{VALUE.otherAttrib}");
         updatedConfigs.put("field.*", "#{VALUE.*}");

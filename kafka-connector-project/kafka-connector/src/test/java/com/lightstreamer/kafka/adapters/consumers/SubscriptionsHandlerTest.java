@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThrows;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -41,7 +40,6 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.Properties;
@@ -65,7 +63,7 @@ public class SubscriptionsHandlerTest {
                         IllegalStateException.class,
                         () ->
                                 SubscriptionsHandler.<String, String>builder()
-                                        .withConsumerFactory(MockConsumer.factory())
+                                        .consumerFactory(MockConsumer.factory())
                                         .build());
         assertThat(ise).hasMessageThat().isEqualTo("ConnectionSpec not set");
 
@@ -74,20 +72,35 @@ public class SubscriptionsHandlerTest {
                         IllegalStateException.class,
                         () ->
                                 SubscriptionsHandler.<String, String>builder()
-                                        .withConnectionSpec(makeConnectionSpec(false))
-                                        .withConsumerFactory(MockConsumer.factory())
+                                        .connectionSpec(makeConnectionSpec(false))
+                                        .consumerFactory(MockConsumer.factory())
                                         .build());
 
         assertThat(ise).hasMessageThat().isEqualTo("MetadataListener not set");
+
+        ise =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                SubscriptionsHandler.<String, String>builder()
+                                        .connectionSpec(makeConnectionSpec(false))
+                                        .consumerFactory(MockConsumer.factory())
+                                        .metadataListener(new Mocks.MockMetadataListener())
+                                        .snapshotEnabled(true)
+                                        .itemSnapshotMaxIdleSeconds(-1)
+                                        .build());
+        assertThat(ise)
+                .hasMessageThat()
+                .isEqualTo("itemSnapshotMaxIdleSeconds must be non-negative");
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotModeIsNone(
+    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotIsDisabled(
             boolean processAsCommand) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(processAsCommand)
-                        .withMetadataListener(new Mocks.MockMetadataListener())
+                        .metadataListener(new Mocks.MockMetadataListener())
                         .build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
@@ -98,8 +111,8 @@ public class SubscriptionsHandlerTest {
 
         subscriptionsHandler =
                 builder(processAsCommand)
-                        .withMetadataListener(new Mocks.MockMetadataListener())
-                        .withItemSnapshotEnabledMode(ItemSnapshotEnabledMode.NONE)
+                        .metadataListener(new Mocks.MockMetadataListener())
+                        .snapshotEnabled(false)
                         .build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.OnDemandSubscriptionsHandler.class);
@@ -109,12 +122,10 @@ public class SubscriptionsHandlerTest {
                 .isFalse();
     }
 
-    @ParameterizedTest
-    @EnumSource(names = {"MERGE", "DISTINCT", "COMMAND"})
-    public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled(
-            ItemSnapshotEnabledMode snapshotMode) {
+    @Test
+    public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
-                builder(false).withItemSnapshotEnabledMode(snapshotMode).build();
+                builder(false).snapshotEnabled(true).build();
         assertThat(subscriptionsHandler)
                 .isInstanceOf(SubscriptionsHandler.ForceableSubscriptionsHandler.class);
     }
@@ -240,8 +251,8 @@ public class SubscriptionsHandlerTest {
 
     private Builder<String, String> builder(boolean processAsCommand) {
         return SubscriptionsHandler.<String, String>builder()
-                .withConnectionSpec(makeConnectionSpec(processAsCommand))
-                .withConsumerFactory(MockConsumer.factory());
+                .connectionSpec(makeConnectionSpec(processAsCommand))
+                .consumerFactory(MockConsumer.factory());
     }
 
     private static ConnectionSpec<String, String> makeConnectionSpec(boolean processAsCommand) {

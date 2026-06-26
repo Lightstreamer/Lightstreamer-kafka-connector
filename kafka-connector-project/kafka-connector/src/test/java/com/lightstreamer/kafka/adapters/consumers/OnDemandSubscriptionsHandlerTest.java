@@ -27,7 +27,6 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -39,6 +38,7 @@ import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 import com.lightstreamer.kafka.test_utils.Mocks.MockMetadataListener;
@@ -49,17 +49,14 @@ import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Stream;
 
 public class OnDemandSubscriptionsHandlerTest {
 
@@ -69,7 +66,7 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
-            EvaluateCommandMode commandMode,
+            boolean processAsCommand,
             String... topics) {
 
         Properties properties = new Properties();
@@ -91,7 +88,7 @@ public class OnDemandSubscriptionsHandlerTest {
                                         .valueSelectorSupplier()
                                         .deserializer()),
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        commandMode,
+                        processAsCommand,
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
@@ -118,9 +115,9 @@ public class OnDemandSubscriptionsHandlerTest {
 
         SubscriptionsHandler.Builder<String, String> builder =
                 SubscriptionsHandler.<String, String>builder()
-                        .withConnectionSpec(spec)
-                        .withConsumerFactory(factory)
-                        .withMetadataListener(metadataListener);
+                        .connectionSpec(spec)
+                        .consumerFactory(factory)
+                        .metadataListener(metadataListener);
         return (OnDemandSubscriptionsHandler<String, String>) builder.build();
     }
 
@@ -129,7 +126,7 @@ public class OnDemandSubscriptionsHandlerTest {
     private MockItemEventListener listener = new MockItemEventListener();
 
     void init(String... topics) {
-        init(false, false, false, EvaluateCommandMode.DISABLED, topics);
+        init(false, false, false, false, topics);
     }
 
     void init(
@@ -137,26 +134,21 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
             String... topics) {
-        init(
-                exceptionOnConnection,
-                exceptionOnListTopics,
-                exceptionOnPoll,
-                EvaluateCommandMode.DISABLED,
-                topics);
+        init(exceptionOnConnection, exceptionOnListTopics, exceptionOnPoll, false, topics);
     }
 
     void init(
             boolean exceptionOnConnection,
             boolean exceptionOnListTopics,
             boolean exceptionOnPoll,
-            EvaluateCommandMode commandMode,
+            boolean processAsCommand,
             String... topics) {
         this.subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
-                        commandMode,
+                        processAsCommand,
                         topics);
         this.subscriptionsHandler.setListener(listener);
         this.subscribedItems = subscriptionsHandler.getSubscribedItems();
@@ -196,13 +188,10 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(item2.canonicalName()).isEqualTo("anotherItemTemplate");
 
         // Verify that events are dispatched through the expected item handles.
-        item1.clearSnapshot(listener);
-        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle1);
-
-        listener.reset();
-
-        item2.clearSnapshot(listener);
-        assertThat(listener.getSmartClearSnapshotCalls()).containsExactly(itemHandle2);
+        item1.sendEvent(Map.of("field1", "event1"), listener);
+        List<EventCall> events = listener.getEvents();
+        assertThat(events.size()).isEqualTo(1);
+        assertThat(events.get(0).handle()).isEqualTo(itemHandle1);
     }
 
     @Test
@@ -309,18 +298,10 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(subscriptionsHandler.isConsumerActive()).isFalse();
     }
 
-    static Stream<Arguments> commandModes() {
-        return Stream.of(
-                Arguments.of(EvaluateCommandMode.DISABLED, false),
-                Arguments.of(EvaluateCommandMode.EXPLICIT, true),
-                Arguments.of(EvaluateCommandMode.AUTO, false));
-    }
-
-    @ParameterizedTest
-    @MethodSource("commandModes")
-    public void shouldGetSnapshotAvailability(EvaluateCommandMode commandMode, boolean expected) {
-        init(false, false, false, commandMode, "aTopic");
-        assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isEqualTo(expected);
+    @Test
+    public void shouldGetSnapshotAvailability() {
+        init(false, false, false, false, "aTopic");
+        assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isFalse();
     }
 
     @Test

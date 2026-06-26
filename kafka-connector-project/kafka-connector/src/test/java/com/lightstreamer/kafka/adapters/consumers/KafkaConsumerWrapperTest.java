@@ -23,7 +23,6 @@ import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.Su
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluateCommandMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
@@ -87,7 +86,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class KafkaConsumerWrapperTest {
@@ -137,7 +135,7 @@ public class KafkaConsumerWrapperTest {
                 topicsBroker,
                 trowExceptionWhileCheckingExistingTopic,
                 false,
-                EvaluateCommandMode.DISABLED,
+                false,
                 RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                 2,
                 RecordConsumeWithOrderStrategy.UNORDERED,
@@ -148,7 +146,7 @@ public class KafkaConsumerWrapperTest {
             Set<String> topicsBroker,
             boolean trowExceptionWhileCheckingExistingTopic,
             boolean enableSubscriptionPattern,
-            EvaluateCommandMode commandMode,
+            boolean processAsCommand,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy,
@@ -168,7 +166,7 @@ public class KafkaConsumerWrapperTest {
         ConnectionSpec<String, String> spec =
                 makeConnectionSpec(
                         enableSubscriptionPattern,
-                        commandMode,
+                        processAsCommand,
                         errorHandlingStrategy,
                         threads,
                         orderStrategy);
@@ -176,7 +174,7 @@ public class KafkaConsumerWrapperTest {
         // Create the SubscribedItems
         this.subscribedItems =
                 eagerLifecycle
-                        ? SubscribedItems.forceable(itemEventListener, false, logger)
+                        ? SubscribedItems.forceable(itemEventListener, logger)
                         : SubscribedItems.onDemand();
 
         KafkaConsumerWrapper<String, String> wrapper =
@@ -191,7 +189,7 @@ public class KafkaConsumerWrapperTest {
 
     private ConnectionSpec<String, String> makeConnectionSpec(
             boolean enableSubscriptionPattern,
-            EvaluateCommandMode commandMode,
+            boolean processAsCommand,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             int threads,
             RecordConsumeWithOrderStrategy orderStrategy) {
@@ -203,7 +201,7 @@ public class KafkaConsumerWrapperTest {
                     ItemTemplatesUtils.fieldsExtractor(),
                     deserializerPair,
                     errorHandlingStrategy,
-                    commandMode,
+                    processAsCommand,
                     new Concurrency(orderStrategy, threads));
         } catch (ExtractionException e) {
             throw new RuntimeException(e);
@@ -216,7 +214,7 @@ public class KafkaConsumerWrapperTest {
                         // threads
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         // expectedParallelism
                         false,
@@ -227,16 +225,16 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
-                        EvaluateCommandMode.EXPLICIT,
+                        true,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         false,
                         OrderStrategy.ORDER_BY_PARTITION,
-                        ProcessUpdatesType.EXPLICIT_COMMAND_MODE,
+                        ProcessUpdatesType.COMMAND_MODE,
                         false),
                 Arguments.of(
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.ORDER_BY_KEY,
@@ -245,7 +243,7 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.UNORDERED,
@@ -254,11 +252,11 @@ public class KafkaConsumerWrapperTest {
                 Arguments.of(
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
-                        EvaluateCommandMode.AUTO,
+                        true,
                         RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
                         true,
                         OrderStrategy.UNORDERED,
-                        ProcessUpdatesType.AUTO_COMMAND_MODE,
+                        ProcessUpdatesType.COMMAND_MODE,
                         false));
     }
 
@@ -267,7 +265,7 @@ public class KafkaConsumerWrapperTest {
     public void shouldCreateWrapper(
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
-            EvaluateCommandMode commandMode,
+            boolean processAsCommand,
             RecordErrorHandlingStrategy errorHandlingStrategy,
             boolean expectedParallelism,
             OrderStrategy expectedOrderStrategy,
@@ -278,7 +276,7 @@ public class KafkaConsumerWrapperTest {
                         Collections.emptySet(),
                         false,
                         false,
-                        commandMode,
+                        processAsCommand,
                         errorHandlingStrategy,
                         threads,
                         consumedWithOrderStrategy,
@@ -344,7 +342,7 @@ public class KafkaConsumerWrapperTest {
                         Set.of("topic", "topic2"),
                         false,
                         enableSubscriptionToPattern,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
@@ -379,7 +377,7 @@ public class KafkaConsumerWrapperTest {
                         availableTopicsOnBroker,
                         false,
                         false,
-                        EvaluateCommandMode.DISABLED,
+                        false,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
@@ -458,11 +456,11 @@ public class KafkaConsumerWrapperTest {
         Object handle = new Object();
         item.enableEventsDelivery(handle, itemEventListener);
 
-        // All 4 consumed records are delivered as snapshot updates, no real-time updates, and a
-        // single end-of-snapshot signal is sent to the item handle.
-        assertThat(itemEventListener.getSmartSnapshotUpdates()).hasSize(4);
-        assertThat(itemEventListener.getSmartRealtimeUpdates()).isEmpty();
-        assertThat(itemEventListener.getSmartEndOfSnapshotCalls()).containsExactly(handle);
+        // Verify that all events are flagged as no snapshot, as we let the server handle internal
+        // snapshot state.
+        List<EventCall> events = itemEventListener.getEvents();
+        assertThat(events).hasSize(4);
+        assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
     @Test
@@ -521,11 +519,11 @@ public class KafkaConsumerWrapperTest {
         Object handle = new Object();
         item.enableEventsDelivery(handle, itemEventListener);
 
-        // All 6 records (including the ones from the second poll) are delivered as snapshot
-        // updates, proving catch-up kept running until partition1 reached its end offset.
-        assertThat(itemEventListener.getSmartSnapshotUpdates()).hasSize(6);
-        assertThat(itemEventListener.getSmartRealtimeUpdates()).isEmpty();
-        assertThat(itemEventListener.getSmartEndOfSnapshotCalls()).containsExactly(handle);
+        // Verify that all events are flagged as no snapshot, as we let the server handle internal
+        // snapshot state.
+        List<EventCall> events = itemEventListener.getEvents();
+        assertThat(events).hasSize(6);
+        assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
     @Test
@@ -542,7 +540,7 @@ public class KafkaConsumerWrapperTest {
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 10L, partition1, 10L));
 
-        // 22 snapshot records (offsets 0..10 per partition) complete catch-up.
+        // 22 records (offsets 0..10 per partition) complete catch-up.
         ConsumerRecords<byte[], byte[]> snapshotRecords =
                 Records.generateRecords(topic, 22, List.of("a", "b"), 2);
         mockConsumer.schedulePollTask(
@@ -568,23 +566,18 @@ public class KafkaConsumerWrapperTest {
         // and the post-catch-up real-time records have already been processed by the loop.
         assertThat(status.join()).isEqualTo(State.LOOP_CLOSED_ON_WAKEUP);
 
-        // Flushing the buffered events delivers everything in arrival order, so snapshot vs
-        // real-time classification reflects whether endOfSnapshot had already been signalled
-        // (which catch-up does as its final step) at the time each record was processed.
+        // Flushing the buffered events delivers everything in arrival order, with the snapshot
+        // records first,
+        // then the real-time records. There is no snapshot flag on any event (nor an explicit
+        // end-of-snapshot event),
+        //  as we let the server handle internal snapshot state.
         BufferedSubscribedItem item =
                 (BufferedSubscribedItem) subscribedItems.values().iterator().next();
         item.enableEventsDelivery(new Object(), itemEventListener);
 
         List<EventCall> events = itemEventListener.getEvents();
-        assertThat(events).hasSize(25);
-
-        // The first 22 events are snapshot updates
-        assertThat(events.subList(0, 22).stream().allMatch(EventCall::isSnapshot)).isTrue();
-        // An end-of-snapshot call follows the snapshot updates
-        assertThat(events.get(22).type()).isEqualTo(EventCall.EventType.EOS);
-        // The last 2 events are real-time updates
-        assertThat(events.subList(23, 25).stream().allMatch(Predicate.not(EventCall::isSnapshot)))
-                .isTrue();
+        assertThat(events).hasSize(24);
+        assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
     @ParameterizedTest
