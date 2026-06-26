@@ -1488,7 +1488,8 @@ Example mapping:
 <param name="field.key">#{KEY}</param>
 ```
 
-**Tip:** the `key` field can be mapped from any part of the Kafka record structure.
+> [!TIP]
+> The `key` field can be mapped from any part of the Kafka record structure.
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
