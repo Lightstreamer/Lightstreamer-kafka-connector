@@ -452,7 +452,7 @@ public class Items {
          *     idle and cleared
          */
         public void clearIdleSnapshots(long maxIdleSeconds) {
-            logger.atDebug().log("Checking for idle snapshots (maxIdleSeconds={})", maxIdleSeconds);
+            logger.atInfo().log("Checking for idle snapshots (maxIdleSeconds={})", maxIdleSeconds);
             // Lock-free scan. We deliberately skip the per-name lock that
             // getItem / activateOrInstall / removeIfUnforced acquire, because:
             //
@@ -487,11 +487,11 @@ public class Items {
                     // item is no longer idle. Skip without dispatching.
                     continue;
                 }
-                logger.atDebug().log(
+                logger.atInfo().log(
                         "Sending clearSnapshot for expired item '{}'", item.canonicalName());
                 item.clearSnapshot(itemEventListener);
             }
-            logger.atDebug().log("Idle snapshots check completed");
+            logger.atInfo().log("Idle snapshots check completed");
         }
 
         /**
