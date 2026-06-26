@@ -1470,7 +1470,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 
 #### COMMAND Mode Field Mapping
 
-When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND Snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Broker requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
+When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND Snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Server requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
 
 - **`key`** is mapped explicitly by the user through the `field.key` parameter, like any other field. It identifies the row each record refers to.
 - **`command`** is **not** mapped: the connector synthesises it for every record from the record state and the per-item key history:
@@ -2012,14 +2012,14 @@ See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quicksta
 
 # Subscription Modes
 
-A Lightstreamer client subscribes to an item by choosing a **subscription _Mode_**, which dictates what each item represents on the wire and how the Lightstreamer Server stores incoming updates per item. The Server supports four Modes; the brief recap below covers what is needed to follow the Kafka Connector documentation. For the authoritative reference, see the _General Concepts_ guide shipped with the Lightstreamer Broker (`LS_HOME/docs/General Concepts.pdf`).
+A Lightstreamer client subscribes to an item by choosing a **subscription _Mode_**, which dictates what each item represents on the wire and how the Lightstreamer Broker stores incoming updates per item. The Server supports four Modes; the brief recap below covers what is needed to follow the Kafka Connector documentation. For the authoritative reference, see the _General Concepts_ guide shipped with the Lightstreamer Broker (`LS_HOME/docs/General Concepts.pdf`).
 
 - **_MERGE_** — the item represents a **single logical entity** whose fields are progressively overwritten by incoming updates. The Server keeps only the latest value of each field. Suitable for current-state feeds (latest quote, latest sensor reading, latest order status).
 - **_DISTINCT_** — the item represents a **stream of independent events** that must not be merged: every update is preserved as a separate event on the client side. The Server retains a bounded FIFO of the most recent events per item. Suitable for time series of discrete events (trades, log lines, alerts).
 - **_COMMAND_** — the item represents a **dynamic table** whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. Every update carries two mandatory fields, `key` (the row identifier) and `command` (the operation); the Server applies each operation to a per-item, key-addressed row set. Suitable for changelogs of a keyed entity set (positions in a portfolio, online users, items in a cart).
 - **_RAW_** — the item is treated as a pure pass-through: the Server forwards every update without keeping any per-item state. Always compatible with the other Modes on the same item.
 
-The Lightstreamer Server allows each item to be handled in only one of _MERGE_, _DISTINCT_, or _COMMAND_ at a time (plus _RAW_, which is always compatible): the first subscription request for an item effectively pins its Mode, and subsequent requests for a conflicting Mode are silently ignored.
+The Lightstreamer Broker allows each item to be handled in only one of _MERGE_, _DISTINCT_, or _COMMAND_ at a time (plus _RAW_, which is always compatible): the first subscription request for an item effectively pins its Mode, and subsequent requests for a conflicting Mode are silently ignored.
 
 The Mode also determines how the Server materialises the _snapshot_ delivered to a freshly subscribed client — see [Snapshot Management](#snapshot-management). The Kafka Connector can either leave the choice of Mode entirely to the client (the default) or pin it from the adapter side as a side effect of enabling connector-managed snapshot.
 
@@ -2061,7 +2061,13 @@ The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) als
 | `DISTINCT`                   | _DISTINCT_                                | Up to [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) events |
 | `COMMAND`                    | _COMMAND_                                 | All rows currently in the per-item table                                    |
 
-**Snapshot correctness.** For the snapshot to be exact, **each Kafka record key must map deterministically to a well-defined snapshot entry per matched item**: the item entry itself in _MERGE_, an entry of the per-item FIFO in _DISTINCT_, a row inside the item's table in _COMMAND_ (where rows are addressed by `field.key`). When one record fans out to multiple items (multiple templates, or `template1,template2` in `map.X.to`), each item receives its own entry under the same rule. When that mapping holds, the snapshot a late subscriber receives is exactly what Kafka still retains on disk. The per-_Mode_ sections below spell out the **extraction layout** and **topic settings** that achieve that mapping for each Mode, together with the runtime behavior of less suitable configurations.
+**Snapshot correctness.** For the snapshot to be exact, **each Kafka record key must map deterministically to a well-defined snapshot entry per matched item**, where the entry is:
+
+- the item entry itself in _MERGE_;
+- an entry of the per-item FIFO in _DISTINCT_;
+- a row inside the item's table in _COMMAND_ (rows are addressed by `field.key`).
+
+When one record fans out to multiple items (multiple templates, or `template1,template2` in `map.X.to`), each item receives its own entry under the same rule. When that mapping holds, the snapshot a late subscriber receives is exactly what Kafka still retains on disk. The per-_Mode_ sections below spell out the **extraction layout** and **topic settings** that achieve that mapping for each Mode, together with the runtime behavior of less suitable configurations.
 
 ### MERGE Snapshot
 
