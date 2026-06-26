@@ -27,6 +27,7 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
@@ -95,10 +96,12 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     protected <K, V> SubscriptionsHandler<K, V> subscriptionHandler(
             ConnectionSpec<K, V> connectionSpec) throws DataProviderException {
         return SubscriptionsHandler.<K, V>builder()
-                .withConnectionSpec(connectionSpec)
-                .withMetadataListener(metadataListener)
-                .withConsumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
-                .withItemSnapshotEnabledMode(connectorConfig.getItemSnapshotMode())
+                .connectionSpec(connectionSpec)
+                .metadataListener(metadataListener)
+                .consumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
+                .snapshotEnabled(
+                        !connectorConfig.getItemSnapshotMode().equals(ItemSnapshotEnabledMode.NONE))
+                .itemSnapshotMaxIdleSeconds(connectorConfig.getItemSnapshotMaxIdleSeconds())
                 .build();
     }
 
