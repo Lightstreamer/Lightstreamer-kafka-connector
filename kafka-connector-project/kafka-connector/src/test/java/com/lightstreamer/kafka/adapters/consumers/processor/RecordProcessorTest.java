@@ -25,11 +25,11 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subsc
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapped;
 import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
-import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor.ProcessUpdatesType;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.ProcessUpdatesStrategy;
+import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RealtimeDeliveryStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSupport.RecordProcessorImpl;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
@@ -65,13 +65,15 @@ public class RecordProcessorTest {
     }
 
     private MockItemEventListener eventListener;
+    private RealtimeDeliveryStrategy deliveryStrategy;
 
     @BeforeEach
     public void setUp() throws ExtractionException {
         this.eventListener = new MockItemEventListener();
+        this.deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
     }
 
-    private RecordMapper<String, String> mapperForAutoCommandMode() {
+    private RecordMapper<String, String> mapperForCommandMode() {
         try {
             return builder()
                     .addCanonicalItemExtractor(
@@ -80,7 +82,7 @@ public class RecordProcessorTest {
                     .addCanonicalItemExtractor(
                             TEST_TOPIC,
                             canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
-                    .withFieldExtractor(
+                    .fieldExtractor(
                             namedFieldsExtractor(
                                     String(),
                                     Map.of(
@@ -105,7 +107,7 @@ public class RecordProcessorTest {
                     .addCanonicalItemExtractor(
                             TEST_TOPIC,
                             canonicalItemExtractor(String(), Expressions.EmptyTemplate("item2")))
-                    .withFieldExtractor(
+                    .fieldExtractor(
                             namedFieldsExtractor(
                                     String(),
                                     Map.of(
@@ -138,10 +140,9 @@ public class RecordProcessorTest {
 
     RecordProcessor<String, String> processor(
             RecordMapper<String, String> mapper,
-            ItemEventListener listener,
             SubscribedItems subscribedItems,
             ProcessUpdatesStrategy updatesStrategy) {
-        return new RecordProcessorImpl<>(mapper, subscribedItems, listener, updatesStrategy);
+        return new RecordProcessorImpl<>(mapper, subscribedItems, updatesStrategy);
     }
 
     static Stream<Arguments> records() {
@@ -168,11 +169,7 @@ public class RecordProcessorTest {
             Map<String, String> expectedFields) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
-                processor(
-                        mapper,
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.defaultStrategy());
+                processor(mapper, subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
         // Subscribe to "item1" and process the record
@@ -181,7 +178,7 @@ public class RecordProcessorTest {
                 Items.onDemandSubscribedFrom(Subscription("item1"), itemHandle1);
         subscribedItems.addItem(item1);
 
-        processor.process(record);
+        processor.process(record, deliveryStrategy);
 
         // Verify that the real-time update has been routed
         assertThat(this.eventListener.getEvents())
@@ -198,7 +195,7 @@ public class RecordProcessorTest {
                 Items.onDemandSubscribedFrom(Subscription("item2"), itemHandle2);
         subscribedItems.addItem(item2);
 
-        processor.process(record);
+        processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
         assertThat(this.eventListener.getEvents())
@@ -213,17 +210,12 @@ public class RecordProcessorTest {
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
-        ForceableSubscribedItems subscribedItems =
-                SubscribedItems.forceable(eventListener, false, logger);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
         RecordProcessor<String, String> processor =
-                processor(
-                        mapper,
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.defaultStrategy());
+                processor(mapper, subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
 
-        processor.process(record);
+        processor.process(record, deliveryStrategy);
 
         // Simulate the forced subscription to "item1" triggered by the record processing
         Object itemHandle1 = new Object();
@@ -245,17 +237,14 @@ public class RecordProcessorTest {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        defaultMapper(),
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.defaultStrategy());
+                        defaultMapper(), subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
         OnDemandSubscribedItem item =
                 Items.onDemandSubscribedFrom(Subscription("item3"), new Object());
         subscribedItems.addItem(item);
 
-        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
+        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"), deliveryStrategy);
 
         // Verify that no events have been routed, since the record doesn't match any of the
         // subscribed items
@@ -264,21 +253,17 @@ public class RecordProcessorTest {
 
     @Test
     public void shouldNotProcessUnexpectedSubscriptionWithForcedSubscription() {
-        ForceableSubscribedItems subscribedItems =
-                SubscribedItems.forceable(eventListener, false, logger);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
         RecordProcessor<String, String> processor =
                 processor(
-                        defaultMapper(),
-                        this.eventListener,
-                        subscribedItems,
-                        ProcessUpdatesStrategy.defaultStrategy());
+                        defaultMapper(), subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
 
         // Subscribe to the unexpected "item3" and process the record
         OnDemandSubscribedItem item =
                 Items.onDemandSubscribedFrom(Subscription("item3"), new Object());
         subscribedItems.activateOrInstall(Subscription("item3"), item);
 
-        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"));
+        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"), deliveryStrategy);
 
         // Simulate the forced subscription to "item1" triggered by the record processing
         Object itemHandle1 = new Object();
@@ -298,7 +283,7 @@ public class RecordProcessorTest {
                                 UPDATE, itemHandle2, Map.of("aKey", "a", "aValue", "1a"), false));
     }
 
-    static Stream<Arguments> recordsForAutoCommandMode() {
+    static Stream<Arguments> recordsForCommandMode() {
         return Stream.of(
                 Arguments.of(
                         Records.KafkaRecord(TEST_TOPIC, 0, "a-1"),
@@ -309,14 +294,13 @@ public class RecordProcessorTest {
     }
 
     @ParameterizedTest
-    @MethodSource("recordsForAutoCommandMode")
-    public void shouldProcessRecordWithAutoCommandMode(
+    @MethodSource("recordsForCommandMode")
+    public void shouldProcessRecordWithCommandMode(
             KafkaRecord<String, String> record, Map<String, String> expectedFields) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
-                        mapperForAutoCommandMode(),
-                        this.eventListener,
+                        mapperForCommandMode(),
                         subscribedItems,
                         ProcessUpdatesStrategy.commandModeStrategy());
         assertThat(processor.processUpdatesType()).isEqualTo(ProcessUpdatesType.COMMAND_MODE);
@@ -327,7 +311,7 @@ public class RecordProcessorTest {
                 Items.onDemandSubscribedFrom(Subscription("item1"), itemHandle1);
         subscribedItems.addItem(item1);
 
-        processor.process(record);
+        processor.process(record, deliveryStrategy);
 
         // Verify that the real-time update has been routed
         assertThat(eventListener.getEvents())
@@ -342,7 +326,7 @@ public class RecordProcessorTest {
                 Items.onDemandSubscribedFrom(Subscription("item2"), itemHandle2);
         subscribedItems.addItem(item2);
 
-        processor.process(record);
+        processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
         assertThat(this.eventListener.getEvents())
