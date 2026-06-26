@@ -41,6 +41,8 @@ import com.lightstreamer.kafka.common.mapping.selectors.Schema;
 
 import org.slf4j.Logger;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -459,26 +461,35 @@ public class Items {
             //     (install / activate / prune) can race against this scan.
             //   * The fast path of getItem is itself lock-free: even if we took
             //     the per-name lock here, we could not serialize against the
-            //     poll-thread touch(). Ordering between this scheduler's
-            //     clearSnapshot and a concurrent fast-path update is intentionally
-            //     not enforced — by clearSnapshot's contract, any update arriving
-            //     after a clearSnapshot simply starts a fresh snapshot.
+            //     poll-thread touch().
             //
-            // Volatile reads (isForced, isIdleFor) provide the necessary
-            // visibility; clearSnapshot itself is dispatched via the item's
-            // direct dispatcher, which the SDK serializes per handle.
+            // Race protection: a poll-thread touch() that lands between our
+            // idle check and our clearSnapshot dispatch could let a stale clear
+            // overwrite a fresh update on the SDK delivery queue. We close this
+            // window with a compareAndSet on lastAccessNanos: the CAS only
+            // succeeds if the stamp we read at idle-check time is still current
+            // when we go to dispatch. The narrow residual window (touch after
+            // CAS, before the SDK call) is acceptable: by clearSnapshot's
+            // contract, any update arriving after a clearSnapshot simply starts
+            // a fresh snapshot.
             long nowNanos = System.nanoTime();
+            long maxIdleNanos = TimeUnit.SECONDS.toNanos(maxIdleSeconds);
             for (BufferedSubscribedItem item : items.values()) {
                 if (!item.isForced()) {
                     continue;
                 }
-                if (!item.isIdleFor(nowNanos, maxIdleSeconds)) {
+                long touchedAt = item.lastTouched();
+                if (nowNanos - touchedAt < maxIdleNanos) {
+                    continue;
+                }
+                if (!item.casLastTouched(touchedAt, nowNanos)) {
+                    // A concurrent touch() raced in after the read above; the
+                    // item is no longer idle. Skip without dispatching.
                     continue;
                 }
                 logger.atDebug().log(
                         "Sending clearSnapshot for expired item '{}'", item.canonicalName());
                 item.clearSnapshot(itemEventListener);
-                item.touch();
             }
             logger.atDebug().log("Idle snapshots check completed");
         }
@@ -762,6 +773,24 @@ public class Items {
             }
         }
 
+        // VarHandle on lastAccessNanos: lets clearIdleSnapshots atomically claim an
+        // expiration via compareAndSet, rejecting the dispatch if a concurrent touch()
+        // bumped the stamp between the idle check and the claim.
+        private static final VarHandle LAST_ACCESS_NANOS;
+
+        static {
+            try {
+                LAST_ACCESS_NANOS =
+                        MethodHandles.lookup()
+                                .findVarHandle(
+                                        BufferedSubscribedItem.class,
+                                        "lastAccessNanos",
+                                        long.class);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
+
         protected volatile EventDispatcher dispatcher;
 
         private final String canonicalItemName;
@@ -833,23 +862,6 @@ public class Items {
         }
 
         /**
-         * Returns whether this item has been idle for at least the given duration, relative to the
-         * supplied reference timestamp. Taking {@code nowNanos} as a parameter lets the caller
-         * capture a single timestamp for a batch scan and makes the method deterministic under
-         * test.
-         *
-         * @param nowNanos the reference timestamp, expressed in the {@link System#nanoTime()} time
-         *     base
-         * @param maxIdleSeconds the idle threshold, in seconds
-         * @return {@code true} if the elapsed time since the last {@link #touch()} is greater than
-         *     or equal to {@code maxIdleSeconds}, {@code false} otherwise
-         */
-        boolean isIdleFor(long nowNanos, long maxIdleSeconds) {
-            long maxIdleNanos = TimeUnit.SECONDS.toNanos(maxIdleSeconds);
-            return nowNanos - lastAccessNanos >= maxIdleNanos;
-        }
-
-        /**
          * Returns whether this item has been forced. Safe to call without a lock: the field is
          * {@code volatile} and monotonic ({@code true} is terminal).
          */
@@ -859,6 +871,29 @@ public class Items {
 
         long lastTouched() {
             return lastAccessNanos;
+        }
+
+        /**
+         * Atomically updates {@code lastAccessNanos} from {@code expected} to {@code update}. Used
+         * by {@link ForceableSubscribedItems#clearIdleSnapshots(long)} to claim an expiration
+         * decision: if a concurrent {@link #touch()} bumped the stamp after the idle check, this
+         * CAS fails and the scheduler skips the item, preventing a stale {@code clearSnapshot} from
+         * racing past a fresh update on the SDK delivery queue.
+         *
+         * @param expected the value previously read via {@link #lastTouched()}
+         * @param update the new value to install (typically the scan's reference timestamp)
+         * @return {@code true} if the CAS succeeded; {@code false} if a concurrent write bumped the
+         *     stamp first
+         */
+        boolean casLastTouched(long expected, long update) {
+            return LAST_ACCESS_NANOS.compareAndSet(this, expected, update);
+        }
+
+        // Visible for tests: lets unit tests stamp an arbitrary last-access value to
+        // deterministically simulate aged items in clearIdleSnapshots scans, without
+        // resorting to Thread.sleep.
+        void setLastTouched(long nanos) {
+            this.lastAccessNanos = nanos;
         }
 
         @Override
