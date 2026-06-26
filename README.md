@@ -47,6 +47,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
   - [Item Snapshot Settings](#item-snapshot-settings)
     - [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode)
     - [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength)
+    - [`item.snapshot.max.idle.seconds`](#itemsnapshotmaxidleseconds)
   - [Schema Registry](#schema-registry)
     - [`schema.registry.provider`](#schemaregistryprovider)
     - [`schema.registry.url`](#schemaregistryurl)
@@ -1865,6 +1866,18 @@ Example:
 
 ```xml
 <param name="item.snapshot.distinct.length">100</param>
+```
+
+### `item.snapshot.max.idle.seconds`
+
+_Optional but only effective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any  value other than `NONE`_. The maximum idle time in seconds after which the snapshot of an item is discarded, so that the next incoming record starts a fresh one. Must be a non-negative integer; a value of `0` disables the idle check.
+
+Default value: `0`.
+
+Example:
+
+```xml
+<param name="item.snapshot.max.idle.seconds">30</param>
 ```
 
 ## Schema Registry
