@@ -589,7 +589,28 @@
         <param name="field.topic">#{TOPIC}</param>
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
-        <param name="field.key">#{OFFSET}</param>
+
+        <!-- COMMAND-mode field mapping. When the adapter operates in COMMAND mode (enabled by
+             setting "item.snapshot.enabled.mode" to "COMMAND", see below), each Lightstreamer
+             item is managed as a dynamic table whose rows are inserted, updated, and removed
+             through "ADD", "UPDATE", and "DELETE" operations. Two mandatory fields are required
+             in the item's schema - "key" (the row identifier) and "command" (the operation) - and
+             the way they are mapped is a special case of the general "field.FIELD_NAME"
+             mechanism:
+
+             - "key" is mapped explicitly by the user through the "field.key" parameter, like any
+               other field. It identifies the row each record refers to.
+             - "command" is NOT mapped: the connector synthesises it for every record from
+               the record state and the per-item key history:
+
+               - "ADD":    The mapped key has not been seen before on this item.
+               - "UPDATE": The mapped key has already been seen on this item.
+               - "DELETE": The record has a null payload (tombstone record).
+
+             Any other field is mapped with the usual "field.FIELD_NAME" parameters. -->
+        <!--
+        <param name="field.key">#{KEY}</param>
+        -->
 
         <!-- Optional. By enabling the parameter, if a field mapping fails, that specific field's 
              value will simply be omitted from the update sent to Lightstreamer clients, while other 
@@ -622,53 +643,6 @@
         <param name="fields.map.non.scalar.values.enable">true</param>
         -->
 
-        <!-- Optional. Controls COMMAND-mode handling. In COMMAND mode, a single Lightstreamer item
-             is managed as a dynamic list (or table), which is modified through the following 
-             operations:
-
-             - "ADD":    Insert a new element into the item.
-             - "UPDATE": Modify an existing element of the item.
-             - "DELETE": Remove an existing element from the item.
-
-             This parameter selects how the connector produces those operations. Can be one of the 
-             following:
-
-             - DISABLED: No COMMAND-mode handling.
-             - EXPLICIT: The Kafka record carries the operation. The connector reads the values 
-                         of the mandatory "key" and "command" fields from the record:
-
-                         - "key":     Identifies the unique element in the list.
-                         - "command": One of "ADD" / "UPDATE" / "DELETE".
-
-                         For example:
-
-                           <param name="fields.evaluate.command.mode">EXPLICIT</param>
-                           <param name="field.key">#{KEY}</param>
-                           <param name="field.command">#{VALUE.command}</param>
-
-                         When "key" is set to "snapshot", "command" must instead be one of:
-
-                         - "CS":  Clears the current snapshot.
-                         - "EOS": Marks the end of the snapshot.
-
-             - AUTO:     The Kafka record does not carry the operation; the connector synthesises
-                         the "command" field for every update. You only map "key", and the connector
-                         picks the operation from the record state:
-
-                         - "ADD":    The mapped key has not been seen before on this item.
-                         - "UPDATE": The mapped key has already been seen on this item.
-                         - "DELETE": The record has a null payload (tombstone record).
-
-                         For example:
-
-                           <param name="fields.evaluate.command.mode">AUTO</param>
-                           <param name="field.key">#{KEY}</param>
-
-             Default value: DISABLED. -->
-        <!-- 
-        <param name="fields.evaluate.command.mode">AUTO</param>
-        -->
-
         <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
 
         <!-- Optional. Selects the snapshot behavior for subscribed items and, when not set to
@@ -687,8 +661,9 @@
                          receives up to "item.snapshot.distinct.length" snapshot events per item
                          (the most recent ones), followed by realtime updates.
              - COMMAND:  Snapshot enabled; subscription Mode pinned to COMMAND. A new subscriber
-                         receives all rows currently in the per-item table. Requires
-                         "fields.evaluate.command.mode" to be set to "AUTO".
+                         receives all rows currently in the per-item table. The connector
+                         synthesises the "command" field from each record; you only map
+                         "field.key".
 
              Default value: NONE. -->
         <param name="item.snapshot.enabled.mode">MERGE</param>
@@ -700,6 +675,16 @@
              Default value: 10. -->
         <!--
         <param name="item.snapshot.distinct.length">100</param>
+        -->
+
+        <!-- Optional but only effective when "item.snapshot.enabled.mode" is set to any value
+             other than "NONE". The maximum idle time in seconds after which the snapshot of an
+             item is discarded, so that the next incoming record starts a fresh one. Must be a
+             non-negative integer; a value of 0 disables the idle check.
+
+             Default value: 0. -->
+        <!--
+        <param name="item.snapshot.max.idle.seconds">30</param>
         -->
 
         <!-- ##### SCHEMA REGISTRY SETTINGS ##### -->
