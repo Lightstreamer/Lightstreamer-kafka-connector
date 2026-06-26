@@ -56,14 +56,15 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
       - [Encryption Parameters](#encryption-parameters-1)
       - [Confluent Schema Registry Quickstart](#confluent-schema-registry-quickstart)
     - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
+- [Subscription Modes](#subscription-modes)
 - [Snapshot Management](#snapshot-management)
-  - [Server-Managed Snapshot Only](#server-managed-snapshot-only)
-  - [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot)
+  - [Default Behavior (NONE)](#default-behavior-none)
+  - [Connector-Managed Snapshot](#connector-managed-snapshot)
     - [MERGE Snapshot](#merge-snapshot)
     - [DISTINCT Snapshot](#distinct-snapshot)
     - [COMMAND Snapshot](#command-snapshot)
-  - [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command)
-  - [Choosing a Strategy](#choosing-a-strategy)
+    - [Idle Expiration](#idle-expiration)
+    - [Caveats](#caveats)
 - [Client Side Error Handling](#client-side-error-handling)
 - [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
   - [Develop the Extension](#develop-the-extension)
@@ -1467,6 +1468,30 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ..
 ```
 
+#### COMMAND Mode Field Mapping
+
+When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND Snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Broker requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
+
+- **`key`** is mapped explicitly by the user through the `field.key` parameter, like any other field. It identifies the row each record refers to.
+- **`command`** is **not** mapped: the connector synthesises it for every record from the record state and the per-item key history:
+  - **`ADD`** — the mapped key has not been seen before on this item.
+  - **`UPDATE`** — the mapped key has already been seen on this item.
+  - **`DELETE`** — the record has a null payload (_tombstone record_).
+
+Any other field is mapped with the usual `field.FIELD_NAME` parameters.
+
+Example mapping:
+
+```xml
+<param name="item-template.command">command-#{key=KEY}</param>
+<param name="map.commandTopic.to">item-template.command</param>
+<param name="field.key">#{KEY}</param>
+```
+
+**Tip:** the `key` field can be mapped from any part of the Kafka record structure.
+
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
+
 #### Dynamic Field Discovery (`field.*`)
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
@@ -1613,58 +1638,6 @@ Example:
 ```xml
 <param name="fields.map.non.scalar.values">true</param>
 ```
-
-#### Evaluate Command Mode (`fields.evaluate.command.mode`)
-
-_Optional_. Controls _COMMAND_-mode handling. In _COMMAND_ mode, a single Lightstreamer item is managed as a dynamic list (or table), which can be modified through the following operations:
-
-- **`ADD`**: Insert a new element into the item.
-- **`UPDATE`**: Modify an existing element of the item.
-- **`DELETE`**: Remove an existing element from the item.
-
-To utilize _COMMAND_ mode, the Lightstreamer Broker requires the following mandatory field names in the item's schema:
-
-- **`key`**: Identifies the unique key for each element in the list generated from the item.
-- **`command`**: Carries the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item. Depending on the `fields.evaluate.command.mode` setting below, this field is either mapped explicitly from the Kafka record or synthesised by the connector.
-
-This parameter selects how the connector produces those operations. Can be one of the following:
-
-- **`DISABLED`**: No _COMMAND_-mode handling.
-
-- **`EXPLICIT`**: The Kafka record carries the operation. The connector reads the values of the mandatory `key` and `command` fields from the record. For example:
-
-  ```xml
-  <param name="fields.evaluate.command.mode">EXPLICIT</param>
-  <param name="field.key">#{KEY}</param>
-  <param name="field.command">#{VALUE.command}</param>
-  ...
-  ```
-
-  **Tip:** the `key` and `command` fields can be mapped from any part of the Kafka record structure.
-
-  When `EXPLICIT` is used, the producer can also drive the **snapshot** by emitting reserved `key` / `command` values (`snapshot` / `CS` / `EOS`) interleaved with regular updates. This is one of the two snapshot strategies supported by the connector and the only one available with `EXPLICIT`; for the full description and activation rules see [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command).
-
-- **`AUTO`**: The Kafka record does not carry the operation; the connector synthesises the `command` field for every update. You only map `key`, and the connector picks the operation from the record state:
-
-  - **`ADD`**: The mapped key has not been seen before on this item.
-  - **`UPDATE`**: The mapped key has already been seen on this item.
-  - **`DELETE`**: The record has a null payload (_tombstone record_).
-
-  For example:
-
-  ```xml
-  <param name="fields.evaluate.command.mode">AUTO</param>
-  <param name="field.key">#{KEY}</param>
-  ...
-  ```
-
-  **Tip:** the `key` field can be mapped from any part of the Kafka record structure.
-
-  **Note:** `AUTO` is a general-purpose command-synthesis mode and is fully usable on its own, without any snapshot management. It is also a **prerequisite** for [Strategy 1 — Connector-Managed Snapshot](#strategy-1--connector-managed-snapshot) when the subscription _Mode_ is _COMMAND_: when paired with [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode), the connector additionally replays the topic, reconstructs the table state, and delivers it as the snapshot to new subscribers. See [COMMAND Snapshot](#command-snapshot) for the full lifecycle description.
-
-For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
-
-Default value: `DISABLED`.
 
 ### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
 
@@ -1844,7 +1817,7 @@ _Optional_. Selects the snapshot behavior for subscribed items and, when not set
 - **`NONE`**: Snapshot management disabled. Lazy consumer, empty snapshot, subscription _Mode_ not constrained by the adapter.
 - **`MERGE`**: Pins subscription _Mode_ to _MERGE_. See [MERGE Snapshot](#merge-snapshot).
 - **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT Snapshot](#distinct-snapshot).
-- **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. Requires [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) to be set to `AUTO`. See [COMMAND Snapshot](#command-snapshot).
+- **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesises the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND Snapshot](#command-snapshot) and [COMMAND Mode Field Mapping](#command-mode-field-mapping).
 
 Any non-`NONE` value also forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured value.
 
@@ -2036,39 +2009,48 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
 
 See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Azure Event Hubs Quickstart_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
 
+# Subscription Modes
+
+A Lightstreamer client subscribes to an item by choosing a **subscription _Mode_**, which dictates what each item represents on the wire and how the Lightstreamer Server stores incoming updates per item. The Server supports four Modes; the brief recap below covers what is needed to follow the Kafka Connector documentation. For the authoritative reference, see the _General Concepts_ guide shipped with the Lightstreamer Broker (`LS_HOME/docs/General Concepts.pdf`).
+
+- **_MERGE_** — the item represents a **single logical entity** whose fields are progressively overwritten by incoming updates. The Server keeps only the latest value of each field. Suitable for current-state feeds (latest quote, latest sensor reading, latest order status).
+- **_DISTINCT_** — the item represents a **stream of independent events** that must not be merged: every update is preserved as a separate event on the client side. The Server retains a bounded FIFO of the most recent events per item. Suitable for time series of discrete events (trades, log lines, alerts).
+- **_COMMAND_** — the item represents a **dynamic table** whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. Every update carries two mandatory fields, `key` (the row identifier) and `command` (the operation); the Server applies each operation to a per-item, key-addressed row set. Suitable for changelogs of a keyed entity set (positions in a portfolio, online users, items in a cart).
+- **_RAW_** — the item is treated as a pure pass-through: the Server forwards every update without keeping any per-item state. Always compatible with the other Modes on the same item.
+
+The Lightstreamer Server allows each item to be handled in only one of _MERGE_, _DISTINCT_, or _COMMAND_ at a time (plus _RAW_, which is always compatible): the first subscription request for an item effectively pins its Mode, and subsequent requests for a conflicting Mode are silently ignored.
+
+The Mode also determines how the Server materialises the _snapshot_ delivered to a freshly subscribed client — see [Snapshot Management](#snapshot-management). The Kafka Connector can either leave the choice of Mode entirely to the client (the default) or pin it from the adapter side as a side effect of enabling connector-managed snapshot.
+
 # Snapshot Management
 
 In Lightstreamer terminology, the _snapshot_ of an item is the set of events a freshly subscribed client receives **before** realtime updates start to flow, so that the client can render a meaningful initial state without having to wait for the next published event. The exact shape and size of this initial set depend on the subscription _Mode_ chosen for the item.
 
-The Kafka Connector offers two snapshot strategies, and **only one of them can be active in a given Data Adapter**:
+Snapshot behavior is controlled by [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode), which selects one of four modes:
 
-1. **Connector-managed snapshot** — activated by [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) ≠ `NONE`. The connector itself replays the topic from the beginning, maintains a per-item store, and serves it as the snapshot to late subscribers. Available for the _MERGE_, _DISTINCT_, and _COMMAND_ subscription _Modes_.
-2. **Producer-driven snapshot** — activated by [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) = `EXPLICIT` (with `item.snapshot.enabled.mode = NONE`). The producer marks snapshot boundaries through reserved `CS`/`EOS` events embedded in the stream; the Lightstreamer Server delivers them as snapshot to new subscribers. Available only for the _COMMAND_ subscription _Mode_.
+- **`NONE`** — snapshot management disabled; the Lightstreamer Server still applies its own automatic snapshot mechanism. See [Default Behavior (NONE)](#default-behavior-none).
+- **`MERGE`**, **`DISTINCT`**, **`COMMAND`** — the connector takes responsibility for materializing the snapshot: it replays the topic from the beginning, pre-seeds a per-item store on the Lightstreamer Server, and serves that store as the snapshot to late subscribers. See [Connector-Managed Snapshot](#connector-managed-snapshot).
 
-If neither is configured, the connector does **not** manage the snapshot at all — the Lightstreamer Server still applies its own automatic snapshot mechanism, see [Server-Managed Snapshot Only](#server-managed-snapshot-only) below. For a side-by-side picker, see [Choosing a Strategy](#choosing-a-strategy).
+A non-`NONE` value also pins the subscription _Mode_ the adapter is willing to serve and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`; the rest of this section covers those side effects, the per-_Mode_ snapshot shape, the extraction layouts that make the snapshot exact, and the operational notes (idle expiration, caveats). For the parameter reference (valid values, defaults, XML examples) see [Item Snapshot Settings](#item-snapshot-settings).
 
-For the parameter reference (valid values, defaults, XML examples) see [Item Snapshot Settings](#item-snapshot-settings) and [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
+## Default Behavior (NONE)
 
-## Server-Managed Snapshot Only
-
-This is the default behavior, selected by `item.snapshot.enabled.mode = NONE` combined with `fields.evaluate.command.mode ∈ {DISABLED, AUTO}`: the connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies.
+This is the out-of-the-box behavior, selected by `item.snapshot.enabled.mode = NONE`: the connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies.
 
 - **Lazy consumer.** The internal Kafka Consumer is started on the first client subscription, and every record fetched from Kafka is delivered as a realtime update.
 - **Snapshot reflects Server state only.** The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained.
-- **Subscription _Mode_.**
-  - With `fields.evaluate.command.mode = DISABLED`, the Mode is left to the client.
-  - With `fields.evaluate.command.mode = AUTO`, the adapter pins the Mode to _COMMAND_ so that the `command` field can be synthesised from each record. This pinning is a property of `AUTO` alone — it is not part of any snapshot strategy.
+- **Subscription _Mode_.** The adapter does not constrain the _Mode_; each client picks the _Mode_ it wants when it subscribes, within the per-item one-Mode-at-a-time rule recalled in [Subscription Modes](#subscription-modes).
 
-## Strategy 1 — Connector-Managed Snapshot
+## Connector-Managed Snapshot
 
 When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
 
-- The internal Kafka Consumer is started _eagerly_ during adapter initialization, before the Lightstreamer Server is ready to accept any client connection (clients can only connect — and therefore subscribe — once initialization has completed).
+- The internal Kafka Consumer is started _eagerly_ when the Data Adapter binds to the Lightstreamer Server, before any client is allowed to subscribe (clients can only connect — and therefore subscribe — once initialization has completed).
 - The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
 - Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates the Server-side store.
 - A subscriber that joins later receives the current contents of the per-item store as the snapshot, followed by realtime updates.
 
-Because the per-item store backs every future snapshot and the consumer runs even when no client is subscribed, the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting is forced to `IGNORE_AND_CONTINUE` under this strategy: `FORCE_UNSUBSCRIPTION` would either have nothing to unsubscribe (during the initial replay) or, on a single bad record during realtime tailing, would tear down the per-item store and permanently break snapshot delivery for every future subscription on this connection.
+Because the per-item store backs every future snapshot and the consumer runs even when no client is subscribed, the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting is forced to `IGNORE_AND_CONTINUE` under this mode: `FORCE_UNSUBSCRIPTION` would either have nothing to unsubscribe (during the initial replay) or, on a single bad record during realtime tailing, would tear down the per-item store and permanently break snapshot delivery for every future subscription on this connection.
 
 The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) also _pins_ the Lightstreamer subscription _Mode_ the adapter is willing to serve for the affected items: a client requesting a different _Mode_ will be refused. The pairing is one-to-one:
 
@@ -2078,15 +2060,15 @@ The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) als
 | `DISTINCT`                   | _DISTINCT_                                | Up to [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) events |
 | `COMMAND`                    | _COMMAND_                                 | All rows currently in the per-item table                                    |
 
-**Snapshot correctness.** For the snapshot to be exact, **each Kafka record key must map deterministically to a well-defined snapshot entry per matched item**: the item entry itself in _MERGE_, a row inside the item's table in _COMMAND_ (where rows are addressed by `field.key`). When one record fans out to multiple items (multiple templates, or `template1,template2` in `map.X.to`), each item receives its own entry under the same rule. When that mapping holds, the snapshot a late subscriber receives is exactly what Kafka still retains on disk. The per-_Mode_ sections below spell out the **extraction layout** and **topic settings** that achieve that mapping for each Mode, together with the runtime behavior of less suitable configurations.
+**Snapshot correctness.** For the snapshot to be exact, **each Kafka record key must map deterministically to a well-defined snapshot entry per matched item**: the item entry itself in _MERGE_, an entry of the per-item FIFO in _DISTINCT_, a row inside the item's table in _COMMAND_ (where rows are addressed by `field.key`). When one record fans out to multiple items (multiple templates, or `template1,template2` in `map.X.to`), each item receives its own entry under the same rule. When that mapping holds, the snapshot a late subscriber receives is exactly what Kafka still retains on disk. The per-_Mode_ sections below spell out the **extraction layout** and **topic settings** that achieve that mapping for each Mode, together with the runtime behavior of less suitable configurations.
 
 ### MERGE Snapshot
 
-In _MERGE_ mode each Lightstreamer item represents a **single logical record** whose fields are progressively overwritten by incoming updates. Accordingly, the snapshot of a _MERGE_ item is a **single event** carrying the most recent value of every mapped field.
+In _MERGE_ mode each Lightstreamer item represents a **single logical entity** whose fields are progressively overwritten by incoming updates. Accordingly, the snapshot of a _MERGE_ item is a **single event** carrying the most recent value of every mapped field.
 
 With `item.snapshot.enabled.mode = MERGE`:
 
-- The per-item store keeps the latest value seen for each routed item.
+- The per-item store is a single entry holding the latest value seen for the item.
 - A new subscriber receives exactly one snapshot event per item, reflecting that latest value.
 
 #### Recommended Extraction Layout
@@ -2168,15 +2150,15 @@ In _COMMAND_ mode each Lightstreamer item represents a **dynamic table**: rows a
 
 With `item.snapshot.enabled.mode = COMMAND`:
 
-- For every record, the connector synthesises an `ADD`/`UPDATE`/`DELETE` operation from the record state (tombstones — records with a null payload — map to `DELETE`); the Server applies it to the per-item row set keyed by the mapped `key` field, reconstructing the current table.
+- The per-item store is a row set keyed by the `field.key` value mapped from each record.
+- Only the `key` Lightstreamer field is mapped explicitly (via `field.key`); the connector synthesises the `command` field for every record from the record state — `ADD` the first time a key is seen on an item, `UPDATE` afterwards, `DELETE` for tombstones (records with a null payload). The Server applies each synthesised operation to the per-item row set, reconstructing the current table.
 - A new subscriber receives the **resulting** table state as the snapshot: one event per row currently present, each carrying `command = ADD` (the replay sequence of `ADD`/`UPDATE`/`DELETE` operations collapses into the final set of surviving rows).
-- `item.snapshot.enabled.mode = COMMAND` **requires** [`fields.evaluate.command.mode`](#evaluate-command-mode-fieldsevaluatecommandmode) to be set to `AUTO`: only the `key` field is mapped from the record, and the connector synthesises the `command` value for each event from the record state.
 
 #### Recommended Extraction Layout
 
 Snapshot identity is `(item, row)`, with the row addressed by `field.key`. The **union** of the item-template binds and `field.key` must cover the full Kafka key, with every extraction sourced from `KEY` / `KEY.*` and `field.key` resolving to a scalar.
 
-#### Examples
+#### Example
 
 Consider a **brokerage backend** that publishes the **open positions** of each customer account — for every `(account, instrument)` pair the broker holds, a record carries the current quantity, average cost, and realized/unrealized P&L; a tombstone is emitted when a position is fully closed. A client opening the *Portfolio* page for an account expects to see, in one shot, the full set of instruments currently held in that account, and then receive realtime row inserts, updates, and removals as the trader works the book.
 
@@ -2191,7 +2173,7 @@ Two shapes satisfy the snapshot-identity rule, depending on whether the Kafka ke
 
    A record with key `{account=A1, instrument=AAPL}` routes to item `positions-[account=A1]` and addresses row `AAPL` inside that item's table. The union `KEY.account ∪ KEY.instrument` covers the full Kafka key, so distinct Kafka keys land on distinct `(item, row)` pairs and ADD/UPDATE/DELETE on `(positions-[account=A1], AAPL)` always refer to the same Kafka record stream. A late subscriber receives one `ADD` per instrument currently held in the account.
 
-2. **Single global table** — when the Kafka key is scalar, no grouping axis is needed; map the topic to a plain item and put the scalar key on `field.key`. The same pattern applies outside the financial domain: the [airport-demo](examples/airport-demo/README.md) illustrates it with a topic where each record reports the current status of a flight, keyed by the scalar flight number (e.g. `"LS123"`):
+2. **Single global table** — when the Kafka key is scalar, no grouping axis is needed; map the topic to a plain item and put the scalar key on `field.key`. The same pattern applies outside the financial domain: the [airport-demo](/examples/airport-demo/) illustrates it with a topic where each record reports the current status of a flight, keyed by the scalar flight number (e.g. `"LS123"`):
 
    ```xml
    <param name="map.flights.to">flights</param>
@@ -2217,47 +2199,20 @@ Verdicts apply to the union "item-name binds ∪ `field.key`":
 
 As for _MERGE_, a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`) is the natural source: only the latest record per key survives, which is exactly what the connector needs to reconstruct the current table. Tombstones are mapped to `DELETE`, so compaction preserves exactly the records required for an accurate snapshot.
 
-This is the appropriate choice when the topic models a **changelog of a keyed entity set** (for example: positions in a portfolio, online users, items in a cart) and clients need both the current contents of the set and the realtime stream of changes. If your producer already marks the snapshot boundaries explicitly in the stream, consider [Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)](#strategy-2--producer-driven-snapshot-explicit-command) instead.
+This is the appropriate choice when the topic models a **changelog of a keyed entity set** (for example: positions in a portfolio, online users, items in a cart) and clients need both the current contents of the set and the realtime stream of changes.
+
+### Idle Expiration
+
+When [`item.snapshot.max.idle.seconds`](#itemsnapshotmaxidleseconds) is set to a value greater than `0`, the connector also discards the per-item snapshot once the item has been idle for longer than the configured interval, so that the next incoming record starts a fresh one rather than being merged on top of stale state. The idle clock is _sliding_: every record routed to an item refreshes the timestamp, so an item that keeps receiving traffic is never considered idle.
+
+This behavior is opt-in (the default value `0` disables the check) and has no effect when `item.snapshot.enabled.mode = NONE`, since there is no connector-managed snapshot to discard. It is meant for topics whose natural cadence makes a long-stale snapshot misleading (for example: end-of-session data, or partitions that go silent between bursts).
 
 ### Caveats
 
-Two notes that apply to all three Modes above:
+A few notes that apply to all three non-`NONE` Modes:
 
 - **Misconfigurations are not rejected at startup.** Any layout that the per-Mode tables above flag as anything other than _Correct_ — including the ones labelled _Broken_, _silently wrong_, _Degenerate_, _Discouraged_, _Global window_, _Invalid_ — is currently accepted by the connector, which starts cleanly and exhibits the runtime behavior described in the table. If your snapshot looks empty or oversized, recheck the extraction layout before chasing the issue elsewhere.
 - **Regex topic mappings** ([`map.regex.enable = true`](#enable-regular-expression-mapregexenable)) are similarly accepted but not validated against the snapshot pipeline's assumptions; for snapshot-enabled adapters, prefer literal topic names.
-
-## Strategy 2 — Producer-Driven Snapshot (EXPLICIT COMMAND)
-
-When `item.snapshot.enabled.mode = NONE` is paired with `fields.evaluate.command.mode = EXPLICIT`, the connector does not replay the topic or maintain any per-item store; the **producer** drives the snapshot by interleaving reserved sentinel events with regular updates, and the connector simply forwards each record as-is — recognizing the sentinel `key`/`command` combinations and asking the Lightstreamer Server to treat them as snapshot-control events.
-
-- The internal Kafka Consumer is started _lazily_ on the first client subscription, as under [Server-Managed Snapshot Only](#server-managed-snapshot-only). [`record.consume.from`](#recordconsumefrom) is honored (no override): newly assigned partitions use the configured `auto.offset.reset` behavior, and re-assigned partitions resume from their committed offset.
-- The connector does not maintain a per-item store: every record fetched from Kafka is forwarded immediately, with sentinel events translated into the corresponding snapshot-control instructions for the Lightstreamer Server.
-- [`record.extraction.error.strategy`](#recordextractionerrorstrategy) is honored as configured: there is no per-item store to protect, so the Strategy 1 override to `IGNORE_AND_CONTINUE` does not apply.
-- The adapter pins the subscription _Mode_ to _COMMAND_ (a client requesting any other _Mode_ will be refused) and requires the mandatory `key` and `command` field mappings, as documented in [Evaluate Command Mode](#evaluate-command-mode-fieldsevaluatecommandmode).
-
-Reserved sentinel values:
-
-- `key` set to the special value `snapshot`.
-- `command` set to one of:
-  - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Server. If the Server has already determined that the snapshot has ended, the event may be ignored.
-
-A typical producer sequence is therefore: zero or more `ADD` events that constitute the snapshot, followed by an `EOS` sentinel, followed by realtime `ADD`/`UPDATE`/`DELETE` events. Issue a `CS` sentinel at any time to invalidate and rebuild the snapshot from scratch.
-
-This is the appropriate choice when the source-of-truth system already produces an explicit snapshot stream (typically a CDC pipeline or a change-log compaction process) and you want the connector to forward it untouched rather than reconstruct it. If instead you want the connector to reconstruct the table state from a keyed (typically log-compacted) topic, use [COMMAND Snapshot](#command-snapshot) under Strategy 1.
-
-## Choosing a Strategy
-
-| Need | Strategy | `item.snapshot.enabled.mode` | `fields.evaluate.command.mode` | Subscription _Mode_ |
-| --- | --- | --- | --- | --- |
-| No connector-managed snapshot; client picks any _Mode_ | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `DISABLED` | Client's choice |
-| No connector-managed snapshot; _COMMAND_ with `command` synthesised by the connector | [Server-Managed Snapshot Only](#server-managed-snapshot-only) | `NONE` | `AUTO` | _COMMAND_ (pinned) |
-| Snapshot = latest value per item | Strategy 1 — [MERGE Snapshot](#merge-snapshot) | `MERGE` | `DISABLED` | _MERGE_ (pinned) |
-| Snapshot = recent events per item | Strategy 1 — [DISTINCT Snapshot](#distinct-snapshot) | `DISTINCT` | `DISABLED` | _DISTINCT_ (pinned) |
-| Snapshot = current rows of a table, connector reconstructs from the topic | Strategy 1 — [COMMAND Snapshot](#command-snapshot) | `COMMAND` | `AUTO` | _COMMAND_ (pinned) |
-| Snapshot = current rows of a table, producer marks boundaries with `CS`/`EOS` | [Strategy 2 — Producer-Driven Snapshot](#strategy-2--producer-driven-snapshot-explicit-command) | `NONE` | `EXPLICIT` | _COMMAND_ (pinned) |
-
-The first row corresponds to the out-of-the-box defaults (`item.snapshot.enabled.mode = NONE`, `fields.evaluate.command.mode = DISABLED`). All other combinations of `fields.evaluate.command.mode` and `item.snapshot.enabled.mode` are rejected at startup with a configuration error; this is distinct from the **extraction-layout** misconfigurations described in the per-_Mode_ [Caveats](#caveats), which are accepted at startup and surface only as degraded runtime behavior.
 
 # Client Side Error Handling
 
