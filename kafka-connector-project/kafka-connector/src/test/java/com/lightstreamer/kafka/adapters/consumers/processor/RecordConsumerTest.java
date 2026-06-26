@@ -85,6 +85,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -102,8 +104,8 @@ public class RecordConsumerTest {
     private static RecordMapper<String, String> newRecordMapper(
             ConnectionSpec<String, String> spec) {
         return RecordMapper.<String, String>builder()
-                .withCanonicalItemExtractors(spec.itemTemplates().groupExtractors())
-                .withFieldExtractor(spec.fieldsExtractor())
+                .addCanonicalItemExtractors(spec.itemTemplates().groupExtractors())
+                .fieldExtractor(spec.fieldsExtractor())
                 .build();
     }
 
@@ -173,11 +175,11 @@ public class RecordConsumerTest {
                 .offsetService(new MockOffsetService())
                 .logger(logger)
                 .errorStrategy(connectionSpec.errorHandlingStrategy())
-                .enableCommandMode(processAsCommand)
+                .commandModeEnabled(processAsCommand)
                 .threads(threads)
-                .preferSingleThread(preferSingleThread)
-                .ordering(orderStrategy)
-                .enableCatchUp(enableCatchUp)
+                .singleThreadPreferred(preferSingleThread)
+                .orderStrategy(orderStrategy)
+                .catchUpEnabled(enableCatchUp)
                 .build();
     }
 
@@ -256,6 +258,7 @@ public class RecordConsumerTest {
         assertThat(recordConsumer).isNotNull();
         assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
         assertThat(recordConsumer.isParallel()).isTrue();
+        assertThat(recordConsumer.eventListener()).isSameInstanceAs(listener);
 
         ParallelRecordConsumer<String, String> parallelRecordConsumer =
                 (ParallelRecordConsumer<String, String>) recordConsumer;
@@ -274,7 +277,6 @@ public class RecordConsumerTest {
         RecordProcessorImpl<String, String> recordProcessor =
                 (RecordProcessorImpl<String, String>) parallelRecordConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType()).isEqualTo(ProcessUpdatesType.DEFAULT);
         assertThat(recordProcessor.logger).isSameInstanceAs(logger);
         assertThat(recordProcessor.subscribedItems).isSameInstanceAs(subscriptions);
@@ -355,12 +357,12 @@ public class RecordConsumerTest {
                         .eventListener(listener)
                         .offsetService(offsetService)
                         .logger(logger)
-                        .enableCommandMode(processAsCommand)
+                        .commandModeEnabled(processAsCommand)
                         .errorStrategy(error)
                         .threads(threads)
-                        .preferSingleThread(preferSingleThread)
-                        .ordering(order)
-                        .enableCatchUp(enableCatchUp)
+                        .singleThreadPreferred(preferSingleThread)
+                        .orderStrategy(order)
+                        .catchUpEnabled(enableCatchUp)
                         .monitor(monitor)
                         .build();
 
@@ -384,6 +386,7 @@ public class RecordConsumerTest {
             assertThat(recordConsumer.isParallel()).isFalse();
             assertThat(recordConsumer.numOfThreads()).isEqualTo(1);
             assertThat(recordConsumer.ordering()).isEmpty();
+            assertThat(recordConsumer.eventListener()).isSameInstanceAs(listener);
         } else {
             assertThat(recordConsumer).isInstanceOf(ParallelRecordConsumer.class);
             assertThat(recordConsumer.isParallel()).isTrue();
@@ -401,7 +404,6 @@ public class RecordConsumerTest {
         RecordProcessorImpl<String, String> recordProcessor =
                 (RecordProcessorImpl<String, String>) recordConsumer.recordProcessor();
         assertThat(recordProcessor.recordMapper).isSameInstanceAs(recordMapper);
-        assertThat(recordProcessor.listener).isSameInstanceAs(listener);
         assertThat(recordProcessor.processUpdatesType())
                 .isEqualTo(
                         processAsCommand
@@ -485,7 +487,7 @@ public class RecordConsumerTest {
                                     .eventListener(new MockItemEventListener())
                                     .offsetService(new MockOffsetService())
                                     .logger(logger)
-                                    .ordering(null);
+                                    .orderStrategy(null);
                         });
         assertThat(ne).hasMessageThat().isEqualTo("OrderStrategy not set");
 
@@ -567,7 +569,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, false, logger)
+                    () -> SubscribedItems.forceable(testListener, logger)
                 };
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
             SubscribedItems subscribedItems = supplier.get();
@@ -610,6 +612,7 @@ public class RecordConsumerTest {
                 // Reset the listener list for next iteration
                 testListener.reset();
             }
+            recordConsumer.close();
         }
     }
 
@@ -656,7 +659,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, false, logger)
+                    () -> SubscribedItems.forceable(testListener, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -692,6 +695,7 @@ public class RecordConsumerTest {
                 // Reset the listener for next iteration
                 testListener.reset();
             }
+            recordConsumer.close();
         }
     }
 
@@ -728,7 +732,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, false, logger)
+                    () -> SubscribedItems.forceable(testListener, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -766,6 +770,7 @@ public class RecordConsumerTest {
                 // Reset the listener for next iteration
                 testListener.reset();
             }
+            recordConsumer.close();
         }
     }
 
@@ -783,7 +788,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, false, logger)
+                    () -> SubscribedItems.forceable(testListener, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -812,6 +817,7 @@ public class RecordConsumerTest {
                 // Reset the listener for next iteration
                 testListener.reset();
             }
+            recordConsumer.close();
         }
     }
 
@@ -831,7 +837,7 @@ public class RecordConsumerTest {
         Supplier<SubscribedItems>[] subscribedItemsSupplier =
                 new Supplier[] {
                     () -> SubscribedItems.onDemand(),
-                    () -> SubscribedItems.forceable(testListener, false, logger)
+                    () -> SubscribedItems.forceable(testListener, logger)
                 };
 
         for (Supplier<SubscribedItems> supplier : subscribedItemsSupplier) {
@@ -855,6 +861,8 @@ public class RecordConsumerTest {
             List<EventCall> realtimeUpdates = testListener.getSmartRealtimeUpdates();
             assertThat(realtimeUpdates).hasSize(1);
 
+            recordConsumer.close();
+
             // Reset the listener for next iteration
             testListener.reset();
         }
@@ -866,22 +874,39 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("catchUpSettings")
-    public void shouldEndCatchUp(int threads, boolean preferSinglThread) {
+    public void shouldEndCatchUp(int threads, boolean preferSingleThread) {
         final int numOfRecords = 100;
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, List.of("key"), 4);
 
         // Make the RecordConsumer.
         MockItemEventListener testListener = new MockItemEventListener();
-        ForceableSubscribedItems subscribedItems =
-                SubscribedItems.forceable(testListener, false, logger);
+        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(testListener, logger);
+
+        // In production, the Server thread runs activateOrInstall as the subscribe callback
+        // inside forceSubscription (Path-2), binding a handle and switching the placeholder
+        // to direct-dispatch mode. Here the mock listener's forceSubscription is a no-op, so
+        // we must activate the entry manually before endCatchUp drains the buffered snapshot.
+        // subscribedItems.activateOrInstall(Expressions.Subscription("item"), new Object());
+        AtomicBoolean subscriptionGuard = new AtomicBoolean(false);
+        AtomicInteger actualSubscriptionCount = new AtomicInteger(0);
+        testListener.setForceSubscriptionAction(
+                name -> {
+                    if ("item".equals(name)) {
+                        if (subscriptionGuard.compareAndSet(false, true)) {
+                            actualSubscriptionCount.incrementAndGet();
+                            subscribedItems.activateOrInstall(
+                                    Expressions.Subscription("item"), new Object());
+                        }
+                    }
+                });
 
         recordConsumer =
                 mkRecordConsumer(
                         subscribedItems,
                         testListener,
                         threads,
-                        preferSinglThread,
+                        preferSingleThread,
                         false,
                         OrderStrategy.UNORDERED,
                         true);
@@ -890,17 +915,15 @@ public class RecordConsumerTest {
                 RecordBatch.batchFromEager(
                         consumerRecords, deserializerPair, false, (record, ex) -> {});
         recordConsumer.consumeBatch(snapshotBatch);
-        // In production, the Server thread runs activateOrInstall as the subscribe callback
-        // inside forceSubscription (Path-2), binding a handle and switching the placeholder
-        // to direct-dispatch mode. Here the mock listener's forceSubscription is a no-op, so
-        // we must activate the entry manually before endCatchUp drains the buffered snapshot.
-        subscribedItems.activateOrInstall(Expressions.Subscription("item"), new Object());
 
         recordConsumer.endCatchUp();
 
-        List<EventCall> snapshots = testListener.getSmartSnapshotUpdates();
-        assertThat(snapshots).hasSize(numOfRecords);
-        assertThat(snapshots.stream().allMatch(EventCall::isSnapshot));
+        // All events are flagged as no snapshot as we let the server handle internal snapshot
+        // state.
+        // The test listener is only used to verify that the events are delivered.
+        List<EventCall> updates = testListener.getEvents();
+        assertThat(updates).hasSize(numOfRecords);
+        assertThat(updates.stream().noneMatch(EventCall::isSnapshot));
 
         testListener.reset();
 
@@ -912,12 +935,12 @@ public class RecordConsumerTest {
                         (record, ex) -> {});
         recordConsumer.consumeBatch(updateBatch);
         updateBatch.join();
-        List<EventCall> updates = testListener.getEvents();
+        updates = testListener.getEvents();
         assertThat(updates).hasSize(20);
         assertThat(updates.stream().noneMatch(EventCall::isSnapshot));
 
-        // Reset the listener for next iteration
-        testListener.reset();
+        recordConsumer.close();
+        assertThat(actualSubscriptionCount.get()).isEqualTo(1);
     }
 
     static Stream<Arguments> handleErrors() {
@@ -953,7 +976,7 @@ public class RecordConsumerTest {
                         .errorStrategy(RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION)
                         .threads(numOfThreads)
                         // This enforces usage of the SingleThreadedConsumer if numOfThreads is 1
-                        .preferSingleThread(true)
+                        .singleThreadPreferred(true)
                         .build();
 
         RecordBatch<String, String> batch =
@@ -1009,7 +1032,7 @@ public class RecordConsumerTest {
                         .errorStrategy(IGNORE_AND_CONTINUE)
                         .threads(numOfThreads)
                         // This enforces usage of the SingleThreadedConsume if numOfThreads is 1
-                        .preferSingleThread(true)
+                        .singleThreadPreferred(true)
                         .build();
 
         RecordBatch<String, String> batch =
