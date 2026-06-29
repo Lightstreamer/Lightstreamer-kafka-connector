@@ -1493,6 +1493,17 @@ Example mapping:
 
 For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
 
+##### Manual COMMAND Mapping (without Connector-Managed Snapshot)
+
+The synthesis above is tied to `item.snapshot.enabled.mode = COMMAND`. When snapshot management is left to its default (`NONE`), _COMMAND_-mode subscriptions are still supported: the integrator maps **both** `field.key` and `field.command` explicitly, and the connector forwards events as-is.
+
+```xml
+<param name="field.key">#{KEY}</param>
+<param name="field.command">#{VALUE.op}</param>
+```
+
+This route fits pipelines that already emit explicit `ADD`/`UPDATE`/`DELETE` op-codes (typical of CDC). Tombstone records cannot signal deletion (no `VALUE.op` to extract), and late subscribers see an empty table until realtime activity arrives. For the "latest state per key, deletion via tombstone, full row set on subscribe" shape, prefer `item.snapshot.enabled.mode = COMMAND`.
+
 #### Dynamic Field Discovery (`field.*`)
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
