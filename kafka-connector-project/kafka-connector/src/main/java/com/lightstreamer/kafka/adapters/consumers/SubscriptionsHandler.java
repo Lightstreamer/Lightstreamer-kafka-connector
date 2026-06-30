@@ -54,16 +54,16 @@ import java.util.function.Function;
  * delivery. Implementations bridge Lightstreamer's subscribe/unsubscribe calls with the underlying
  * {@link KafkaConsumerWrapper}.
  *
- * @param <K> the deserialized key type
- * @param <V> the deserialized value type
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
  */
 public interface SubscriptionsHandler<K, V> {
 
     /**
      * Creates a new {@code SubscriptionsHandler} builder.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      * @return a new {@link Builder}
      */
     static <K, V> Builder<K, V> builder() {
@@ -113,8 +113,8 @@ public interface SubscriptionsHandler<K, V> {
      * ForceableSubscriptionsHandler} is returned; otherwise an {@link
      * OnDemandSubscriptionsHandler}.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     static class Builder<K, V> {
 
@@ -192,7 +192,8 @@ public interface SubscriptionsHandler<K, V> {
          * Builds the configured {@link SubscriptionsHandler}.
          *
          * @return a new {@link SubscriptionsHandler} instance
-         * @throws IllegalStateException if a required builder property has not been set
+         * @throws IllegalStateException if a required builder property has not been set, or if
+         *     {@code itemSnapshotMaxIdleSeconds} is negative
          */
         public SubscriptionsHandler<K, V> build() {
             if (consumerFactory == null) {
@@ -220,8 +221,8 @@ public interface SubscriptionsHandler<K, V> {
      * implementations. Owns the common fields (logger, record mapper, consumer factory) used by all
      * handler variants.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     abstract class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
@@ -258,6 +259,16 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
+        /**
+         * Subclass hook invoked by {@link #subscribe(String, Object)} after the item name has been
+         * parsed and validated against the configured item templates. Implementations perform the
+         * mode-specific subscription bookkeeping (e.g., installing the item into the {@link
+         * SubscribedItems} collection and starting or activating the underlying consumer).
+         *
+         * @param expression the parsed {@link SubscriptionExpression} for the item
+         * @param handle the opaque handle provided by Lightstreamer for this subscription
+         * @throws SubscriptionException if the subscription cannot be installed
+         */
         abstract void doSubscribe(SubscriptionExpression expression, Object handle)
                 throws SubscriptionException;
 
@@ -287,11 +298,12 @@ public interface SubscriptionsHandler<K, V> {
          *     records into
          * @return a new {@code KafkaConsumerWrapper} instance
          * @throws KafkaException if the consumer cannot be created
+         * @throws IllegalStateException if the {@link ItemEventListener} has not been set
          */
         protected KafkaConsumerWrapper<K, V> newConsumer(
                 boolean eagerLifecycle, SubscribedItems subscribedItems) throws KafkaException {
             if (eventListener == null) {
-                throw new RuntimeException(
+                throw new IllegalStateException(
                         "ItemEventListener must be set before starting the consumer");
             }
             return new KafkaConsumerWrapper<>(
@@ -317,8 +329,8 @@ public interface SubscriptionsHandler<K, V> {
      *
      * <p>Used when {@code item.snapshot.enable} is {@code false}.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     class OnDemandSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
@@ -515,8 +527,8 @@ public interface SubscriptionsHandler<K, V> {
      *
      * <p>Used when {@code item.snapshot.enable} is {@code true}.
      *
-     * @param <K> the deserialized key type
-     * @param <V> the deserialized value type
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     class ForceableSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
@@ -550,31 +562,24 @@ public interface SubscriptionsHandler<K, V> {
                         "Scheduling snapshot idle-expiration check every {} s (max idle {} s)",
                         checkPeriodSeconds,
                         itemSnapshotMaxIdleSeconds);
-                this.scheduled =
-                        Optional.of(
-                                this.idleSnapshotScheduler.scheduleWithFixedDelay(
-                                        () -> {
-                                            // ScheduledExecutorService silently cancels the
-                                            // recurring task
-                                            // if a single execution propagates a Throwable, so
-                                            // catch-and-log
-                                            // here to keep the idle-expiration check alive for the
-                                            // lifetime
-                                            // of the adapter.
-                                            try {
-                                                subscribedItems.clearIdleSnapshots(
-                                                        itemSnapshotMaxIdleSeconds);
-                                            } catch (Throwable t) {
-                                                logger.atError()
-                                                        .setCause(t)
-                                                        .log(
-                                                                "Snapshot idle-expiration check failed");
-                                            }
-                                        },
-                                        checkPeriodSeconds,
-                                        checkPeriodSeconds,
-                                        TimeUnit.SECONDS));
+                this.scheduled = Optional.of(scheduleIdleSnapshotCheck(checkPeriodSeconds));
             }
+        }
+
+        private ScheduledFuture<?> scheduleIdleSnapshotCheck(long checkPeriodSeconds) {
+            return this.idleSnapshotScheduler.scheduleWithFixedDelay(
+                    () -> {
+                        try {
+                            subscribedItems.clearIdleSnapshots(itemSnapshotMaxIdleSeconds);
+                        } catch (Throwable t) {
+                            logger.atError()
+                                    .setCause(t)
+                                    .log("Snapshot idle-expiration check failed");
+                        }
+                    },
+                    checkPeriodSeconds,
+                    checkPeriodSeconds,
+                    TimeUnit.SECONDS);
         }
 
         /** Starts the Kafka consumer eagerly. Called once during initialization. */
