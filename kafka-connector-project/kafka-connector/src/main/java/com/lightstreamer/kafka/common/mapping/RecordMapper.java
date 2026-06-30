@@ -92,6 +92,15 @@ public interface RecordMapper<K, V> {
     interface MappedRecord {
 
         /**
+         * Returns a no-operation {@code MappedRecord} that performs no actions.
+         *
+         * @return a no-op {@code MappedRecord}
+         */
+        static MappedRecord nop() {
+            return MappedRecordImpl.NOPRecord;
+        }
+
+        /**
          * Returns the canonical Lightstreamer item names that this Kafka record maps to after
          * template expansion. Each name represents a distinct Lightstreamer item that should
          * receive data updates when this record is processed.
@@ -167,24 +176,6 @@ public interface RecordMapper<K, V> {
         Map<String, String> fieldsMap() throws ValueException;
 
         /**
-         * Extracts a single Lightstreamer field from the record by evaluating only the extraction
-         * expression bound to {@code field} in the {@code field.<name>=<expression>} mapping
-         * configured at startup. All other field expressions are skipped.
-         *
-         * <p>Used when the full extraction cannot or should not be performed — for example, on
-         * tombstone records where the value is {@code null} but the key still needs to be read to
-         * synthesize a COMMAND-mode {@code DELETE}.
-         *
-         * @param field the Lightstreamer schema field name whose configured expression should be
-         *     evaluated
-         * @return a map containing the extracted name/value pair, or an empty map if no expression
-         *     is configured for {@code field}; never null
-         * @throws ValueException if evaluation of the configured expression fails and the
-         *     underlying extractor is not configured to skip failures
-         */
-        Map<String, String> fieldsMapFromField(String field) throws ValueException;
-
-        /**
          * Determines which subscribed items should receive this record by matching the item names
          * from template expansion against active client subscriptions. This method performs the
          * critical routing function that connects Kafka data to specific Lightstreamer subscribers.
@@ -221,15 +212,6 @@ public interface RecordMapper<K, V> {
         default boolean isPayloadNull() {
             return false;
         }
-
-        /**
-         * Returns a no-operation {@code MappedRecord} that performs no actions.
-         *
-         * @return a no-op {@code MappedRecord}
-         */
-        static MappedRecord nop() {
-            return MappedRecordImpl.NOPRecord;
-        }
     }
 
     /**
@@ -257,11 +239,6 @@ public interface RecordMapper<K, V> {
                 }
 
                 @Override
-                public Map<String, String> getMapFromField(String field) {
-                    return Collections.emptyMap();
-                }
-
-                @Override
                 public boolean isPayloadNull() {
                     return true;
                 }
@@ -276,19 +253,6 @@ public interface RecordMapper<K, V> {
          * @throws ValueException if field extraction fails
          */
         Map<String, String> getMap() throws ValueException;
-
-        /**
-         * Extracts a single Lightstreamer field from the underlying record by evaluating only the
-         * extraction expression bound to {@code field} in the {@code field.<name>=<expression>}
-         * mapping configured at startup.
-         *
-         * @param field the Lightstreamer schema field name whose configured expression should be
-         *     evaluated
-         * @return a single-entry map with the extracted name/value pair, or an empty map if no
-         *     expression is configured for {@code field}; never null
-         * @throws ValueException if evaluation of the configured expression fails
-         */
-        Map<String, String> getMapFromField(String field) throws ValueException;
 
         /**
          * Reports whether the underlying record has a null payload.
@@ -532,7 +496,7 @@ public interface RecordMapper<K, V> {
          * Constructs the {@code RecordMapper} instance with the configured canonical item
          * extractors, field extractor, and options.
          *
-         * @return a new RecordMapper instance ready for Kafka record transformation
+         * @return a new {@code RecordMapper} instance ready for Kafka record transformation
          */
         public RecordMapper<K, V> build() {
             return new RecordMapperImpl<>(this);
@@ -676,21 +640,9 @@ final class FieldsMapSupplierImpl<K, V> implements RecordMapper.FieldsMapSupplie
         this.record = record;
     }
 
-    private FieldsMapSupplierImpl() {
-        this.fieldExtractor = new RecordMapper.NOPDataExtractor<>();
-        this.record = null;
-    }
-
     @Override
     public Map<String, String> getMap() throws ValueException {
         return fieldExtractor.extractMap(record);
-    }
-
-    @Override
-    public Map<String, String> getMapFromField(String field) throws ValueException {
-        Map<String, String> map = new HashMap<>();
-        fieldExtractor.extractFieldIntoMap(field, record, map);
-        return map;
     }
 
     @Override
@@ -749,15 +701,13 @@ final class MappedRecordImpl implements MappedRecord {
         return canonicalItemNames;
     }
 
-    @Deprecated
+    @Override
     public Set<SubscribedItem> route(SubscribedItems items) {
-        int n = canonicalItemNames.length; // ① 1 array.length (1 ns)
-        if (n == 0) return Collections.emptySet(); // ② 1 branch + return
-        if (n == 1) { // ③ 1 branch
+        int n = canonicalItemNames.length;
+        if (n == 0) return Collections.emptySet();
+        if (n == 1) {
             SubscribedItem item = items.getItem(canonicalItemNames[0]);
-            return item != null
-                    ? Collections.singleton(item) // ④ 1 small alloc
-                    : Collections.emptySet();
+            return item != null ? Collections.singleton(item) : Collections.emptySet();
         }
         Set<SubscribedItem> result = new HashSet<>(n * 2); // pre-size
         for (String name : canonicalItemNames) {
@@ -770,11 +720,6 @@ final class MappedRecordImpl implements MappedRecord {
     @Override
     public Map<String, String> fieldsMap() throws ValueException {
         return fieldsMapSupplier.getMap();
-    }
-
-    @Override
-    public Map<String, String> fieldsMapFromField(String field) throws ValueException {
-        return fieldsMapSupplier.getMapFromField(field);
     }
 
     @Override
