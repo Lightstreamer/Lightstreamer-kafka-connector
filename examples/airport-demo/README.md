@@ -129,7 +129,7 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 ### Lightstreamer Server
 
-- Download Lightstreamer Server version 7.4.2 or later (Lightstreamer Server comes with a free non-expiring demo license for 20 connected users) from [Lightstreamer Download page](https://lightstreamer.com/download/), and install it, as explained in the `GETTING_STARTED.TXT` file in the installation home directory.
+- Download Lightstreamer Server version 7.4.8 or later (Lightstreamer Server comes with a free non-expiring demo license for 20 connected users) from [Lightstreamer Download page](https://lightstreamer.com/download/), and install it, as explained in the `GETTING_STARTED.TXT` file in the installation home directory.
 - Make sure that Lightstreamer Server is not running.
 - Deploy a fresh installation of the Lightstreamer Kafka Connector following the instructions provided [here](../../README.md#deploy).
 - Replace the `adapters.xml` file with the one of this project and in the case update the settings as discussed in the previous section.
