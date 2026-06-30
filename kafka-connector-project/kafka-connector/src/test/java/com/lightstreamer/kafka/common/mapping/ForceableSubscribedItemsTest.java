@@ -25,7 +25,7 @@ import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDAT
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
-import com.lightstreamer.kafka.common.mapping.Items.BufferedSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.SubscriptionExpression;
@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <ul>
  *   <li>{@link ForceableSubscribedItems#activateOrInstall(SubscriptionExpression, Object)} is the
- *       single install path; it installs a fresh {@code BufferedSubscribedItem} immediately
+ *       single install path; it installs a fresh {@code ForceableSubscribedItem} immediately
  *       switched to direct-dispatch mode (Path-1 organic), or activates the existing placeholder
  *       (Path-2) by draining it, switching it to direct dispatch, and marking it forced.
  *   <li>{@link ForceableSubscribedItems#getItem(String)} is side-effecting: on a miss, it installs
@@ -99,7 +99,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(items.size()).isEqualTo(0);
         assertThat(items.values()).isEmpty();
 
-        BufferedSubscribedItem item = items.getItem("anItem");
+        ForceableSubscribedItem item = items.getItem("anItem");
         assertThat(item).isNotNull();
     }
 
@@ -116,8 +116,8 @@ public class ForceableSubscribedItemsTest {
                         items.activateOrInstall(Expressions.Subscription("eternal"), forcedHandle);
                     }
                 });
-        BufferedSubscribedItem forced = items.getItem("eternal");
-        BufferedSubscribedItem unforced =
+        ForceableSubscribedItem forced = items.getItem("eternal");
+        ForceableSubscribedItem unforced =
                 items.activateOrInstall(Expressions.Subscription("item2"), unforcedHandle);
 
         assertThat(forced.isForced()).isTrue();
@@ -135,7 +135,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(items.size()).isEqualTo(1);
 
         // Verify forced entry is still accessible.
-        BufferedSubscribedItem still = items.getItem("eternal");
+        ForceableSubscribedItem still = items.getItem("eternal");
         assertThat(still).isNotNull();
         assertThat(still.isForced()).isTrue();
     }
@@ -161,7 +161,7 @@ public class ForceableSubscribedItemsTest {
                 Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
         final Object itemHandle = new Object();
 
-        BufferedSubscribedItem subscribedItem =
+        ForceableSubscribedItem subscribedItem =
                 items.activateOrInstall(
                         Expressions.Subscription("stock-[symbol=AAPL]"), itemHandle);
         assertThat(subscribedItem).isNotNull();
@@ -204,7 +204,7 @@ public class ForceableSubscribedItemsTest {
                 });
 
         // getItem on miss installs placeholder and triggers forceSubscription
-        BufferedSubscribedItem subscribedItem = items.getItem("orders-[k=v]");
+        ForceableSubscribedItem subscribedItem = items.getItem("orders-[k=v]");
         assertThat(subscribedItem).isNotNull();
         assertThat(subscribedItem.canonicalName()).isEqualTo("orders-[k=v]");
         assertThat(subscribedItem.isForced()).isTrue();
@@ -230,7 +230,7 @@ public class ForceableSubscribedItemsTest {
         final Object itemHandle = new Object();
 
         // Path-1 organic: add unforced entry
-        BufferedSubscribedItem unforced =
+        ForceableSubscribedItem unforced =
                 items.activateOrInstall(Expressions.Subscription("stock-[symbol=IBM]"), itemHandle);
         assertThat(unforced.isForced()).isFalse();
         assertThat(items.size()).isEqualTo(1);
@@ -253,7 +253,7 @@ public class ForceableSubscribedItemsTest {
                 });
 
         // getItem on hit-on-unforced: promotes to forced (case 2)
-        BufferedSubscribedItem promoted = items.getItem("stock-[symbol=IBM]");
+        ForceableSubscribedItem promoted = items.getItem("stock-[symbol=IBM]");
         assertThat(promoted).isSameInstanceAs(unforced);
         assertThat(promoted.isForced()).isTrue();
         assertThat(forceSubscriptionCalled.get()).isTrue();
@@ -261,7 +261,7 @@ public class ForceableSubscribedItemsTest {
         listener.reset();
 
         // Subsequent getItem: lock-free fast path, no forceSubscription call
-        BufferedSubscribedItem cached = items.getItem("stock-[symbol=IBM]");
+        ForceableSubscribedItem cached = items.getItem("stock-[symbol=IBM]");
         assertThat(cached).isSameInstanceAs(promoted);
         assertThat(listener.getSmartEndOfSnapshotCalls()).isEmpty(); // No new callbacks
     }
@@ -275,7 +275,7 @@ public class ForceableSubscribedItemsTest {
         final String itemName = "path1-race-[k=v]";
         final Object itemHandle = new Object();
 
-        BufferedSubscribedItem unforced =
+        ForceableSubscribedItem unforced =
                 items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
         assertThat(unforced.isForced()).isFalse();
 
@@ -299,8 +299,8 @@ public class ForceableSubscribedItemsTest {
                 });
 
         CountDownLatch startGate = new CountDownLatch(1);
-        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
-        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> secondRef = new AtomicReference<>();
         AtomicReference<Throwable> firstError = new AtomicReference<>();
         AtomicReference<Throwable> secondError = new AtomicReference<>();
 
@@ -343,8 +343,8 @@ public class ForceableSubscribedItemsTest {
         assertThat(firstError.get()).isNull();
         assertThat(secondError.get()).isNull();
 
-        BufferedSubscribedItem first = firstRef.get();
-        BufferedSubscribedItem second = secondRef.get();
+        ForceableSubscribedItem first = firstRef.get();
+        ForceableSubscribedItem second = secondRef.get();
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(first).isSameInstanceAs(second);
@@ -371,16 +371,16 @@ public class ForceableSubscribedItemsTest {
                                 Expressions.Subscription("orders-[k=v]"), itemHandle);
                     }
                 });
-        BufferedSubscribedItem first = items.getItem("orders-[k=v]");
+        ForceableSubscribedItem first = items.getItem("orders-[k=v]");
         assertThat(first.isForced()).isTrue();
 
         listener.reset();
 
         // Multiple subsequent reads should all return the same instance (lock-free fast path)
-        BufferedSubscribedItem second = items.getItem("orders-[k=v]");
+        ForceableSubscribedItem second = items.getItem("orders-[k=v]");
         assertThat(second).isSameInstanceAs(first);
 
-        BufferedSubscribedItem third = items.getItem("orders-[k=v]");
+        ForceableSubscribedItem third = items.getItem("orders-[k=v]");
         assertThat(third).isSameInstanceAs(first);
 
         // No forceSubscription calls on fast-path hits
@@ -399,8 +399,8 @@ public class ForceableSubscribedItemsTest {
     public void shouldReturnViaInLockBranchWhenForcedRaceWonAfterFastPath() throws Exception {
         final String itemName = "inlock-race";
         final Object handle = new Object();
-        BufferedSubscribedItem racing =
-                new BufferedSubscribedItem(Expressions.Subscription(itemName)) {
+        ForceableSubscribedItem racing =
+                new ForceableSubscribedItem(Expressions.Subscription(itemName)) {
                     private final AtomicInteger calls = new AtomicInteger();
 
                     @Override
@@ -417,8 +417,8 @@ public class ForceableSubscribedItemsTest {
                 ForceableSubscribedItems.class.getDeclaredField("items");
         itemsField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        Map<String, BufferedSubscribedItem> internal =
-                (Map<String, BufferedSubscribedItem>) itemsField.get(items);
+        Map<String, ForceableSubscribedItem> internal =
+                (Map<String, ForceableSubscribedItem>) itemsField.get(items);
         internal.put(itemName, racing);
 
         // Any forceSubscription call would mean we missed the in-lock branch.
@@ -428,7 +428,7 @@ public class ForceableSubscribedItemsTest {
                             "forceSubscription must not be called when case (0) in-lock fires");
                 });
 
-        BufferedSubscribedItem returned = items.getItem(itemName);
+        ForceableSubscribedItem returned = items.getItem(itemName);
 
         assertThat(returned).isSameInstanceAs(racing);
     }
@@ -475,7 +475,7 @@ public class ForceableSubscribedItemsTest {
         final Object handle = new Object();
         listener.setForceSubscriptionAction(
                 name -> items.activateOrInstall(Expressions.Subscription(name), handle));
-        BufferedSubscribedItem item = items.getItem("fresh");
+        ForceableSubscribedItem item = items.getItem("fresh");
         assertThat(item.isForced()).isTrue();
         listener.reset();
 
@@ -491,7 +491,7 @@ public class ForceableSubscribedItemsTest {
         final Object handle = new Object();
         listener.setForceSubscriptionAction(
                 name -> items.activateOrInstall(Expressions.Subscription(name), handle));
-        BufferedSubscribedItem item = items.getItem("item");
+        ForceableSubscribedItem item = items.getItem("item");
         long touchedBefore = item.lastTouched();
         // Spin until nanoTime advances, so the post-clear touch is observably later.
         while (System.nanoTime() == touchedBefore) {
@@ -533,7 +533,7 @@ public class ForceableSubscribedItemsTest {
                         items.activateOrInstall(Expressions.Subscription("fresh"), handleFresh);
                     }
                 });
-        BufferedSubscribedItem aged = items.getItem("aged");
+        ForceableSubscribedItem aged = items.getItem("aged");
         items.getItem("fresh");
         items.activateOrInstall(Expressions.Subscription("unforced"), handleUnforced);
         listener.reset();
@@ -563,8 +563,8 @@ public class ForceableSubscribedItemsTest {
     @Test
     public void shouldSkipDispatchWhenCasLastTouchedRacesAgainstConcurrentTouch() throws Exception {
         final Object handle = new Object();
-        BufferedSubscribedItem racing =
-                new BufferedSubscribedItem(Expressions.Subscription("racing")) {
+        ForceableSubscribedItem racing =
+                new ForceableSubscribedItem(Expressions.Subscription("racing")) {
                     @Override
                     long lastTouched() {
                         // Simulate a concurrent touch landing right after this read: bump the
@@ -584,8 +584,8 @@ public class ForceableSubscribedItemsTest {
                 ForceableSubscribedItems.class.getDeclaredField("items");
         itemsField.setAccessible(true);
         @SuppressWarnings("unchecked")
-        Map<String, BufferedSubscribedItem> internal =
-                (Map<String, BufferedSubscribedItem>) itemsField.get(items);
+        Map<String, ForceableSubscribedItem> internal =
+                (Map<String, ForceableSubscribedItem>) itemsField.get(items);
         internal.put("racing", racing);
         listener.reset();
 
@@ -630,8 +630,8 @@ public class ForceableSubscribedItemsTest {
                 });
 
         CountDownLatch startGate = new CountDownLatch(1);
-        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
-        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> secondRef = new AtomicReference<>();
         AtomicReference<Throwable> firstError = new AtomicReference<>();
         AtomicReference<Throwable> secondError = new AtomicReference<>();
 
@@ -671,8 +671,8 @@ public class ForceableSubscribedItemsTest {
         assertThat(firstError.get()).isNull();
         assertThat(secondError.get()).isNull();
 
-        BufferedSubscribedItem first = firstRef.get();
-        BufferedSubscribedItem second = secondRef.get();
+        ForceableSubscribedItem first = firstRef.get();
+        ForceableSubscribedItem second = secondRef.get();
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(first).isSameInstanceAs(second);
@@ -710,7 +710,7 @@ public class ForceableSubscribedItemsTest {
                     items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
                 });
 
-        AtomicReference<BufferedSubscribedItem> resultRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> resultRef = new AtomicReference<>();
         AtomicReference<Throwable> errorRef = new AtomicReference<>();
         Thread getterThread =
                 new Thread(
@@ -727,16 +727,16 @@ public class ForceableSubscribedItemsTest {
         assertThat(activationEntered.await(3, TimeUnit.SECONDS)).isTrue();
 
         assertThat(items.size()).isEqualTo(1);
-        BufferedSubscribedItem placeholder =
-                (BufferedSubscribedItem) items.values().iterator().next();
+        ForceableSubscribedItem placeholder =
+                (ForceableSubscribedItem) items.values().iterator().next();
 
         Map<String, String> firstUpdate = Map.of("seq", "1");
         Map<String, String> secondUpdate = Map.of("seq", "2");
 
-        placeholder.sendEvent(firstUpdate, listener);
+        placeholder.sendRealTimeEvent(firstUpdate, listener);
         placeholder.clearSnapshot(listener);
         placeholder.endOfSnapshot(listener);
-        placeholder.sendEvent(secondUpdate, listener);
+        placeholder.sendRealTimeEvent(secondUpdate, listener);
 
         // While activation is blocked, events stay buffered and are not dispatched yet.
         assertThat(listener.getEvents()).isEmpty();
@@ -747,7 +747,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(getterThread.isAlive()).isFalse();
         assertThat(errorRef.get()).isNull();
 
-        BufferedSubscribedItem forced = resultRef.get();
+        ForceableSubscribedItem forced = resultRef.get();
         assertThat(forced).isNotNull();
         assertThat(forced.isForced()).isTrue();
 
@@ -801,7 +801,7 @@ public class ForceableSubscribedItemsTest {
                     items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
                 });
 
-        AtomicReference<BufferedSubscribedItem> getterResult = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> getterResult = new AtomicReference<>();
         AtomicReference<Throwable> getterError = new AtomicReference<>();
         Thread getterThread =
                 new Thread(
@@ -818,8 +818,8 @@ public class ForceableSubscribedItemsTest {
         assertThat(activationEntered.await(3, TimeUnit.SECONDS)).isTrue();
 
         assertThat(items.size()).isEqualTo(1);
-        BufferedSubscribedItem placeholder =
-                (BufferedSubscribedItem) items.values().iterator().next();
+        ForceableSubscribedItem placeholder =
+                (ForceableSubscribedItem) items.values().iterator().next();
 
         AtomicReference<Throwable> producerError = new AtomicReference<>();
         Thread producerThread =
@@ -827,7 +827,7 @@ public class ForceableSubscribedItemsTest {
                         () -> {
                             try {
                                 for (int i = 0; i < eventCount; i++) {
-                                    placeholder.sendEvent(
+                                    placeholder.sendRealTimeEvent(
                                             Map.of("seq", Integer.toString(i)), listener);
                                     if (i == (eventCount / 2) - 1) {
                                         firstHalfProduced.countDown();
@@ -857,7 +857,7 @@ public class ForceableSubscribedItemsTest {
         assertThat(producerError.get()).isNull();
         assertThat(getterError.get()).isNull();
 
-        BufferedSubscribedItem forced = getterResult.get();
+        ForceableSubscribedItem forced = getterResult.get();
         assertThat(forced).isNotNull();
         assertThat(forced.isForced()).isTrue();
 
@@ -902,8 +902,8 @@ public class ForceableSubscribedItemsTest {
                     items.activateOrInstall(Expressions.Subscription(itemName), itemHandle);
                 });
 
-        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
-        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> secondRef = new AtomicReference<>();
         AtomicReference<Throwable> firstError = new AtomicReference<>();
         AtomicReference<Throwable> secondError = new AtomicReference<>();
         CountDownLatch startGate = new CountDownLatch(1);
@@ -949,8 +949,8 @@ public class ForceableSubscribedItemsTest {
         assertThat(firstError.get()).isNull();
         assertThat(secondError.get()).isNull();
 
-        BufferedSubscribedItem first = firstRef.get();
-        BufferedSubscribedItem second = secondRef.get();
+        ForceableSubscribedItem first = firstRef.get();
+        ForceableSubscribedItem second = secondRef.get();
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(first).isSameInstanceAs(second);
@@ -997,7 +997,7 @@ public class ForceableSubscribedItemsTest {
                     }
                 });
 
-        AtomicReference<BufferedSubscribedItem> firstRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> firstRef = new AtomicReference<>();
         AtomicReference<Throwable> firstError = new AtomicReference<>();
         Thread firstThread =
                 new Thread(
@@ -1017,7 +1017,7 @@ public class ForceableSubscribedItemsTest {
         allowActivation.countDown();
         assertThat(activated.await(3, TimeUnit.SECONDS)).isTrue();
 
-        AtomicReference<BufferedSubscribedItem> secondRef = new AtomicReference<>();
+        AtomicReference<ForceableSubscribedItem> secondRef = new AtomicReference<>();
         AtomicReference<Throwable> secondError = new AtomicReference<>();
         Thread secondThread =
                 new Thread(
@@ -1042,8 +1042,8 @@ public class ForceableSubscribedItemsTest {
         assertThat(firstThread.isAlive()).isFalse();
         assertThat(firstError.get()).isNull();
 
-        BufferedSubscribedItem first = firstRef.get();
-        BufferedSubscribedItem second = secondRef.get();
+        ForceableSubscribedItem first = firstRef.get();
+        ForceableSubscribedItem second = secondRef.get();
         assertThat(first).isNotNull();
         assertThat(second).isNotNull();
         assertThat(first).isSameInstanceAs(second);
