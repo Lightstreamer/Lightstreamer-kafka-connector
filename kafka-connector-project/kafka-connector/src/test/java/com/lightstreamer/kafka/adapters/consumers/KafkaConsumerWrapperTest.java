@@ -40,7 +40,7 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
 import com.lightstreamer.kafka.common.mapping.Items;
-import com.lightstreamer.kafka.common.mapping.Items.BufferedSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
@@ -449,8 +449,8 @@ public class KafkaConsumerWrapperTest {
 
         // Exactly one forced item is created while consuming the snapshot records.
         assertThat(subscribedItems.values()).hasSize(1);
-        BufferedSubscribedItem item =
-                (BufferedSubscribedItem) subscribedItems.values().iterator().next();
+        ForceableSubscribedItem item =
+                (ForceableSubscribedItem) subscribedItems.values().iterator().next();
 
         // Events are buffered during catch-up: enabling delivery flushes them in order.
         Object handle = new Object();
@@ -513,8 +513,8 @@ public class KafkaConsumerWrapperTest {
         assertThat(recordPolls.get()).isEqualTo(2);
 
         assertThat(subscribedItems.values()).hasSize(1);
-        BufferedSubscribedItem item =
-                (BufferedSubscribedItem) subscribedItems.values().iterator().next();
+        ForceableSubscribedItem item =
+                (ForceableSubscribedItem) subscribedItems.values().iterator().next();
 
         Object handle = new Object();
         item.enableEventsDelivery(handle, itemEventListener);
@@ -571,8 +571,8 @@ public class KafkaConsumerWrapperTest {
         // then the real-time records. There is no snapshot flag on any event (nor an explicit
         // end-of-snapshot event),
         //  as we let the server handle internal snapshot state.
-        BufferedSubscribedItem item =
-                (BufferedSubscribedItem) subscribedItems.values().iterator().next();
+        ForceableSubscribedItem item =
+                (ForceableSubscribedItem) subscribedItems.values().iterator().next();
         item.enableEventsDelivery(new Object(), itemEventListener);
 
         List<EventCall> events = itemEventListener.getEvents();
