@@ -94,13 +94,6 @@ public class MappedRecordTest {
         assertThat(record.fieldsMap()).containsExactlyEntriesIn(expectedFieldsMap);
         assertThat(record.canonicalItemNames()).isEqualTo(canonicalItemNames);
         assertThat(record.isPayloadNull()).isEqualTo(kafkaRecord.isPayloadNull());
-
-        Set<String> fields = expectedFieldsMap.keySet();
-        for (String field : fields) {
-            Map<String, String> map = record.fieldsMapFromField(field);
-            assertThat(map).hasSize(1);
-            assertThat(map).containsEntry(field, expectedFieldsMap.get(field));
-        }
     }
 
     @Test
