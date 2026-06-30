@@ -2,7 +2,7 @@
 
 _Lightstreamer Kafka Connector_ is a ready-made pluggable Lightstreamer Adapter that enables event streaming from a Kafka broker to the internet.
 
-## Getting Started
+## Getting started
 
 ### Requirements
 
