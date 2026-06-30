@@ -188,7 +188,7 @@ public class OnDemandSubscriptionsHandlerTest {
         assertThat(item2.canonicalName()).isEqualTo("anotherItemTemplate");
 
         // Verify that events are dispatched through the expected item handles.
-        item1.sendEvent(Map.of("field1", "event1"), listener);
+        item1.sendRealTimeEvent(Map.of("field1", "event1"), listener);
         List<EventCall> events = listener.getEvents();
         assertThat(events.size()).isEqualTo(1);
         assertThat(events.get(0).handle()).isEqualTo(itemHandle1);
