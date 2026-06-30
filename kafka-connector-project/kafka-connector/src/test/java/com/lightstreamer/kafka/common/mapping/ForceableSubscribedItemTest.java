@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.lightstreamer.kafka.common.mapping.Items.BufferedSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItem;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 import com.lightstreamer.kafka.test_utils.Mocks.EventCall;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
@@ -47,22 +47,22 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class BufferedSubscribedItemTest {
+public class ForceableSubscribedItemTest {
 
     private MockItemEventListener eventListener;
-    private BufferedSubscribedItem subscribedItem;
+    private ForceableSubscribedItem subscribedItem;
 
     @BeforeEach
     public void setUp() throws Exception {
         this.eventListener = new MockItemEventListener();
         this.subscribedItem =
-                new BufferedSubscribedItem(Expressions.Subscription("item-[name=field1]"));
+                new ForceableSubscribedItem(Expressions.Subscription("item-[name=field1]"));
     }
 
     @Test
-    public void shouldCreateBufferedSubscribedItemFromFactory() {
+    public void shouldCreateForceableSubscribedItemFromFactory() {
         String expression = "item-[name=field1]";
-        BufferedSubscribedItem item = Items.bufferedSubscribedFrom(expression);
+        ForceableSubscribedItem item = Items.forceableSubscribedFrom(expression);
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo("item");
         assertThat(item.schema().keys()).containsExactly("name");
@@ -119,13 +119,13 @@ public class BufferedSubscribedItemTest {
 
     @ParameterizedTest
     @MethodSource("provideExpressions")
-    public void shouldCreateBufferedSubscribedItem(
+    public void shouldCreateForceableSubscribedItem(
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
             String expectedCanonicalItemName) {
-        BufferedSubscribedItem item =
-                new BufferedSubscribedItem(Expressions.Subscription(expression));
+        ForceableSubscribedItem item =
+                new ForceableSubscribedItem(Expressions.Subscription(expression));
         assertThat(item).isNotNull();
         assertThat(item.schema().name()).isEqualTo(expectedPrefix);
         assertThat(item.schema().keys()).isEqualTo(expectedKeys);
@@ -134,7 +134,7 @@ public class BufferedSubscribedItemTest {
     }
 
     static Stream<Arguments> deliveryScenarios() {
-        // Each scenario drives BufferedSubscribedItem with a tiny action DSL:
+        // Each scenario drives ForceableSubscribedItem with a tiny action DSL:
         //   'T' -> sendSnapshot(...)   (isSnapshot=true)
         //   'F' -> sendEvent(...)      (isSnapshot=false)
         // expectedFlags is parallel to actions ('1' = snapshot, '0' = realtime).
@@ -155,7 +155,8 @@ public class BufferedSubscribedItemTest {
     @MethodSource("deliveryScenarios")
     public void shouldDeliverEventsCorrectly(
             String scenario, boolean enableBeforeSends, String actions, String expectedFlags) {
-        BufferedSubscribedItem item = new BufferedSubscribedItem(Expressions.Subscription("item"));
+        ForceableSubscribedItem item =
+                new ForceableSubscribedItem(Expressions.Subscription("item"));
         Object handle = new Object();
         if (enableBeforeSends) {
             item.enableEventsDelivery(handle, eventListener);
