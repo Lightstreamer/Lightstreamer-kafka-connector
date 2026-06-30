@@ -203,10 +203,10 @@ public class OnDemandSubscribedItemTest {
         Map<String, String> e3 = Map.of("field1", "event3");
         Map<String, String> e4 = Map.of("field1", "event4");
 
-        subscribedItem.sendEvent(e1, eventListener);
-        subscribedItem.sendEvent(e2, eventListener);
-        subscribedItem.sendEvent(e3, eventListener);
-        subscribedItem.sendEvent(e4, eventListener);
+        subscribedItem.sendRealTimeEvent(e1, eventListener);
+        subscribedItem.sendRealTimeEvent(e2, eventListener);
+        subscribedItem.sendRealTimeEvent(e3, eventListener);
+        subscribedItem.sendRealTimeEvent(e4, eventListener);
 
         List<EventCall> allEvents = eventListener.getEvents();
         assertThat(allEvents).hasSize(4);
