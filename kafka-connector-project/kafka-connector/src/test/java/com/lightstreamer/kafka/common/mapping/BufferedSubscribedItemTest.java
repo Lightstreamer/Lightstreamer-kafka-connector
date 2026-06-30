@@ -165,8 +165,8 @@ public class BufferedSubscribedItemTest {
         for (char action : actions.toCharArray()) {
             Map<String, String> event = Map.of("seq", String.valueOf(seq++));
             switch (action) {
-                case 'T' -> item.sendSnapshot(event, eventListener);
-                case 'F' -> item.sendEvent(event, eventListener);
+                case 'T' -> item.sendSnapshotEvent(event, eventListener);
+                case 'F' -> item.sendRealTimeEvent(event, eventListener);
                 default -> throw new IllegalArgumentException("Unknown action: " + action);
             }
         }
@@ -194,12 +194,12 @@ public class BufferedSubscribedItemTest {
         Map<String, String> snapshotEvent2 = Map.of("field1", "snapshot2");
         Map<String, String> realTimeEvent2 = Map.of("field1", "realTime2");
 
-        subscribedItem.sendSnapshot(snapshotEvent1, eventListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent1, eventListener);
         subscribedItem.clearSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent1, eventListener);
-        subscribedItem.sendSnapshot(snapshotEvent2, eventListener);
+        subscribedItem.sendRealTimeEvent(realTimeEvent1, eventListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent2, eventListener);
         subscribedItem.endOfSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent2, eventListener);
+        subscribedItem.sendRealTimeEvent(realTimeEvent2, eventListener);
 
         // Nothing has been delivered yet.
         assertThat(eventListener.getEvents()).isEmpty();
@@ -253,11 +253,11 @@ public class BufferedSubscribedItemTest {
         Map<String, String> realTimeEvent4 = Map.of("field1", "direct2");
         Map<String, String> snapshotEvent4 = Map.of("field1", "snapshot4");
 
-        subscribedItem.sendEvent(realTimeEvent3, eventListener);
-        subscribedItem.sendSnapshot(snapshotEvent3, eventListener);
+        subscribedItem.sendRealTimeEvent(realTimeEvent3, eventListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent3, eventListener);
         subscribedItem.endOfSnapshot(eventListener);
-        subscribedItem.sendEvent(realTimeEvent4, eventListener);
-        subscribedItem.sendSnapshot(snapshotEvent4, eventListener);
+        subscribedItem.sendRealTimeEvent(realTimeEvent4, eventListener);
+        subscribedItem.sendSnapshotEvent(snapshotEvent4, eventListener);
         subscribedItem.clearSnapshot(eventListener);
 
         allEvents = eventListener.getEvents();
@@ -329,7 +329,7 @@ public class BufferedSubscribedItemTest {
                                     for (int j = 0; j < 20; j++) {
                                         realtimeEventCounter.incrementAndGet();
                                         TimeUnit.MILLISECONDS.sleep((long) (Math.random() * 15));
-                                        subscribedItem.sendEvent(
+                                        subscribedItem.sendRealTimeEvent(
                                                 Map.of(
                                                         "id",
                                                         realtimeEventPrefix
@@ -353,10 +353,10 @@ public class BufferedSubscribedItemTest {
                                 // Buffer snapshot events, a clearSnapshot, and an endOfSnapshot
                                 // before enableEventsDelivery. These exercise all PendingEvent
                                 // types in drainTo.
-                                subscribedItem.sendSnapshot(
+                                subscribedItem.sendSnapshotEvent(
                                         Map.of("id", snapshotEventPrefix + "1"), eventListener);
                                 subscribedItem.clearSnapshot(eventListener);
-                                subscribedItem.sendSnapshot(
+                                subscribedItem.sendSnapshotEvent(
                                         Map.of("id", snapshotEventPrefix + "2"), eventListener);
                                 subscribedItem.endOfSnapshot(eventListener);
 
@@ -365,9 +365,9 @@ public class BufferedSubscribedItemTest {
 
                                 // Send post-transition events (both realtime and snapshot).
                                 for (int i = 1; i <= 3; i++) {
-                                    subscribedItem.sendEvent(
+                                    subscribedItem.sendRealTimeEvent(
                                             Map.of("id", "post" + i), eventListener);
-                                    subscribedItem.sendSnapshot(
+                                    subscribedItem.sendSnapshotEvent(
                                             Map.of("snapshot", "after" + i), eventListener);
                                     Thread.sleep(1);
                                 }
@@ -471,7 +471,7 @@ public class BufferedSubscribedItemTest {
     public void shouldEnableEventsDeliveryBeIdempotent() {
         // Send some events first.
         Map<String, String> event1 = Map.of("field1", "value1");
-        subscribedItem.sendEvent(event1, eventListener);
+        subscribedItem.sendRealTimeEvent(event1, eventListener);
 
         Object itemHandle = new Object();
 
@@ -485,7 +485,7 @@ public class BufferedSubscribedItemTest {
 
         // Send event after.
         Map<String, String> event2 = Map.of("field1", "value2");
-        subscribedItem.sendEvent(event2, eventListener);
+        subscribedItem.sendRealTimeEvent(event2, eventListener);
 
         // Verify events were processed correctly.
         List<EventCall> realtimeUpdates = eventListener.getSmartRealtimeUpdates();
