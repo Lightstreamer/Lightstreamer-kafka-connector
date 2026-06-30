@@ -110,7 +110,7 @@ public class OnDemandSubscribedItemsTest {
                 Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
-        Optional<SubscribedItem> removed = subscribedItems.removeItem("item1");
+        Optional<OnDemandSubscribedItem> removed = subscribedItems.removeItem("item1");
         assertThat(subscribedItems.size()).isEqualTo(0);
         assertThat(subscribedItems.isEmpty()).isTrue();
 
@@ -125,7 +125,7 @@ public class OnDemandSubscribedItemsTest {
 
     @Test
     public void shouldReturnNullWhenRemovingNonExistentItem() {
-        Optional<SubscribedItem> removed = subscribedItems.removeItem("nonexistent");
+        Optional<OnDemandSubscribedItem> removed = subscribedItems.removeItem("nonexistent");
         assertThat(removed).isEmpty();
     }
 }
