@@ -17,15 +17,16 @@
 
 package com.lightstreamer.kafka.adapters.consumers;
 
-import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
 import com.lightstreamer.kafka.common.records.RecordBatch;
 
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.errors.SerializationException;
 import org.slf4j.Logger;
 
 import java.time.Duration;
+import java.util.Objects;
 
 /**
  * Encapsulates the deserialization strategy for Kafka records polled as raw bytes.
@@ -46,19 +47,15 @@ public abstract class RecordDeserializationMode<K, V> {
     }
 
     protected final DeserializationTiming timing;
-    protected final KafkaRecord.DeserializerPair<K, V> deserializerPair;
+    protected final DeserializerPair<K, V> deserializerPair;
     protected final Logger logger;
 
     RecordDeserializationMode(
-            DeserializationTiming timing,
-            KafkaRecord.DeserializerPair<K, V> deserializerPair,
-            Logger logger) {
-        this.timing = timing;
-        this.deserializerPair = deserializerPair;
-        if (logger == null) {
-            throw new NullPointerException("logger must not be null");
-        }
-        this.logger = logger;
+            DeserializationTiming timing, DeserializerPair<K, V> deserializerPair, Logger logger) {
+        this.timing = Objects.requireNonNull(timing, "timing must not be null");
+        this.deserializerPair =
+                Objects.requireNonNull(deserializerPair, "deserializerPair must not be null");
+        this.logger = Objects.requireNonNull(logger, "logger must not be null");
     }
 
     /**
@@ -67,6 +64,9 @@ public abstract class RecordDeserializationMode<K, V> {
      * @param records the raw records returned by {@link Consumer#poll(Duration)}
      * @param joinable whether the batch should support synchronous join semantics
      * @return a new {@link RecordBatch} containing the deserialized records
+     * @throws SerializationException if, under eager timing, every record in a non-empty batch
+     *     fails deserialization (likely a systemic configuration error); records that fail
+     *     individually are skipped and logged instead
      */
     public abstract RecordBatch<K, V> toBatch(
             ConsumerRecords<byte[], byte[]> records, boolean joinable);
@@ -76,16 +76,14 @@ public abstract class RecordDeserializationMode<K, V> {
      *
      * @param records the raw records returned by {@link Consumer#poll(Duration)}
      * @return a new {@link RecordBatch} containing the deserialized records
+     * @throws SerializationException if, under eager timing, every record in a non-empty batch
+     *     fails deserialization (likely a systemic configuration error); records that fail
+     *     individually are skipped and logged instead
      */
     public RecordBatch<K, V> toBatch(ConsumerRecords<byte[], byte[]> records) {
         return toBatch(records, false);
     }
 
-    /**
-     * Returns the {@link DeserializationTiming} strategy used by this instance.
-     *
-     * @return the deserialization timing
-     */
     public DeserializationTiming getTiming() {
         return timing;
     }
@@ -102,6 +100,7 @@ public abstract class RecordDeserializationMode<K, V> {
      * @param deserializerPair the {@link DeserializerPair} for key and value deserialization
      * @param logger the {@link Logger} to use for logging deserialization errors
      * @return a new {@code RecordDeserializationMode} instance
+     * @throws IllegalArgumentException if {@code timing} is not a recognized value
      */
     public static <K, V> RecordDeserializationMode<K, V> forTiming(
             DeserializationTiming timing, DeserializerPair<K, V> deserializerPair, Logger logger) {
@@ -123,8 +122,7 @@ public abstract class RecordDeserializationMode<K, V> {
      */
     private static class DeferredDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
 
-        DeferredDeserializationMode(
-                KafkaRecord.DeserializerPair<K, V> deserializerPair, Logger logger) {
+        DeferredDeserializationMode(DeserializerPair<K, V> deserializerPair, Logger logger) {
             super(DeserializationTiming.DEFERRED, deserializerPair, logger);
         }
 
@@ -146,8 +144,7 @@ public abstract class RecordDeserializationMode<K, V> {
      */
     private static class EagerDeserializationMode<K, V> extends RecordDeserializationMode<K, V> {
 
-        EagerDeserializationMode(
-                KafkaRecord.DeserializerPair<K, V> deserializerPair, Logger logger) {
+        EagerDeserializationMode(DeserializerPair<K, V> deserializerPair, Logger logger) {
             super(DeserializationTiming.EAGER, deserializerPair, logger);
         }
 
