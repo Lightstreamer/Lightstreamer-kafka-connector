@@ -23,8 +23,6 @@ import static com.lightstreamer.kafka.adapters.consumers.processor.RecordConsume
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
-import com.lightstreamer.kafka.adapters.consumers.processor.CommandEvents.Command;
-import com.lightstreamer.kafka.adapters.consumers.processor.CommandEvents.Key;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordMapperStep;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.RecordProcessor;
@@ -64,6 +62,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Factory and implementation support for {@link RecordConsumer} and its builder chain.
@@ -360,7 +361,7 @@ public class RecordConsumerSupport {
 
         @Override
         public void deliverEvent(Map<String, String> event, SubscribedItem sub) {
-            sub.sendSnapshot(event, listener);
+            sub.sendSnapshotEvent(event, listener);
         }
     }
 
@@ -373,7 +374,7 @@ public class RecordConsumerSupport {
 
         @Override
         public void deliverEvent(Map<String, String> event, SubscribedItem sub) {
-            sub.sendEvent(event, listener);
+            sub.sendRealTimeEvent(event, listener);
         }
     }
 
@@ -382,7 +383,7 @@ public class RecordConsumerSupport {
      */
     static class DefaultUpdatesStrategy implements ProcessUpdatesStrategy {
 
-        private Logger logger = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
+        protected Logger logger = LoggerFactory.getLogger(ProcessUpdatesStrategy.class);
 
         @Override
         public void sendUpdates(
@@ -411,6 +412,99 @@ public class RecordConsumerSupport {
     }
 
     /**
+     * Utility interface for COMMAND mode event decoration. Provides methods and constants for
+     * adding command semantics ({@link Command#ADD}, {@link Command#DELETE}, {@link
+     * Command#UPDATE}) to Lightstreamer events derived from Kafka records.
+     */
+    interface CommandEvents {
+
+        /**
+         * Decorates an event map with the given {@link Command}.
+         *
+         * @param event the event map to decorate
+         * @param command the command to attach
+         * @return the same event map, now decorated with the command
+         */
+        static Map<String, String> decorate(Map<String, String> event, Command command) {
+            event.put(Key.COMMAND.key(), command.toString());
+            return event;
+        }
+
+        /**
+         * Decorates an event map with the {@link Command#DELETE} command.
+         *
+         * @param event the event map to decorate
+         * @return the same event map, now decorated with the {@code DELETE} command
+         */
+        static Map<String, String> delete(Map<String, String> event) {
+            return decorate(event, Command.DELETE);
+        }
+
+        /**
+         * Decorates an event map with the {@link Command#ADD} command.
+         *
+         * @param event the event map to decorate
+         * @return the same event map, now decorated with the {@code ADD} command
+         */
+        static Map<String, String> add(Map<String, String> event) {
+            return decorate(event, Command.ADD);
+        }
+
+        /** Commands that can be attached to Lightstreamer events for COMMAND mode subscriptions. */
+        enum Command {
+            ADD,
+            DELETE,
+            UPDATE;
+
+            private static final Map<String, Command> CACHE =
+                    Stream.of(values())
+                            .collect(Collectors.toMap(Command::toString, Function.identity()));
+
+            /**
+             * Looks up the {@code Command} from the command field in the given map.
+             *
+             * @param input the field map to inspect
+             * @return the matching {@code Command}, or an empty {@link Optional} if not found
+             */
+            public static Optional<Command> lookUp(Map<String, String> input) {
+                String command = input.get(Key.COMMAND.key());
+                return Optional.ofNullable(CACHE.get(command));
+            }
+        }
+
+        /** Keys used to locate command mode fields within an event map. */
+        enum Key {
+            KEY("key"),
+            COMMAND("command");
+
+            private final String key;
+
+            Key(String key) {
+                this.key = key;
+            }
+
+            /**
+             * Retrieves the value associated with this key from the given map.
+             *
+             * @param input the field map to look up
+             * @return the value, or {@code null} if not present
+             */
+            public String lookUp(Map<String, String> input) {
+                return input.get(key);
+            }
+
+            /**
+             * Returns the string key used for map lookups.
+             *
+             * @return the key string
+             */
+            public String key() {
+                return key;
+            }
+        }
+    }
+
+    /**
      * Strategy that automatically decorates updates with command mode semantics based on payload
      * content.
      */
@@ -418,16 +512,17 @@ public class RecordConsumerSupport {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
+            Map<String, String> event = record.fieldsMap();
             if (record.isPayloadNull()) {
-                Map<String, String> event = record.fieldsMapFromField(Key.KEY.key());
-                String key = Key.KEY.lookUp(event);
+                // Map<String, String> event = record.fieldsMapFromField(Key.KEY.key());
+                String key = CommandEvents.Key.KEY.lookUp(event);
                 getLogger()
                         .atDebug()
                         .log("Payload is null, sending DELETE command for key: {}", key);
-                return CommandEvents.decorate(event, Command.DELETE);
+                return CommandEvents.delete(event);
             }
 
-            return CommandEvents.decorate(record.fieldsMap(), Command.ADD);
+            return CommandEvents.add(event);
         }
 
         @Override
