@@ -11,76 +11,63 @@
   limitations under the License.
 */
 
-let stocksGrid= null;
-let lsClient= null;
-let itemsList = [ "flights-board" ];
-let fieldsList = ["key", "command", "destination", "departure", "flightNo", "terminal", "status", "airline", "currentTime"];
+let stocksGrid = null;
+let lsClient = null;
+let itemsList = ["flights-board"];
+let fieldsList = ["key", "command", "destination", "departure", "flightNo", "terminal", "status", "airline"];
 
 
 function main() {
 
-    // Connect to Lightstreamer Server
-    let protocolToUse= document.location.protocol != "file:" ? document.location.protocol : "http:";
-    let portToUse= document.location.protocol == "https:" ? LS_HTTPS_PORT : LS_HTTP_PORT;
+  // Connect to Lightstreamer Server
+  let protocolToUse = document.location.protocol != "file:" ? document.location.protocol : "http:";
+  let portToUse = document.location.protocol == "https:" ? LS_HTTPS_PORT : LS_HTTP_PORT;
 
-    lsClient= new Ls.LightstreamerClient(protocolToUse + "//" + LS_HOST + ":" + portToUse, LS_ADAPTER_SET);
+  lsClient = new Ls.LightstreamerClient(protocolToUse + "//" + LS_HOST + ":" + portToUse, LS_ADAPTER_SET);
 
-    lsClient.addListener(new Ls.StatusWidget("left", "0px", true));
+  lsClient.addListener(new Ls.StatusWidget("left", "0px", true));
 
-    // Subscribe to Flights Monitor
-    
-    let dynaGrid = new Ls.DynaGrid("flights", true);
+  // Subscribe to Flights Monitor
 
-    let watch = new Ls.StaticGrid("currtime", true);
+  let dynaGrid = new Ls.DynaGrid("flights", true);
 
-    dynaGrid.setNodeTypes(["div","span","img","a"]);
-    dynaGrid.setAutoCleanBehavior(true, false);
-    dynaGrid.setSort("departure");
-    dynaGrid.addListener({
-      onVisualUpdate: function(_key,info) {
-          if (info == null) {
-            //cleaning
-            return;
-          }
-  
-          const cold = "#dedede";
-          
-          info.setAttribute("lightgreen", cold, "backgroundColor");
+  dynaGrid.setNodeTypes(["div", "span", "img", "a"]);
+  dynaGrid.setAutoCleanBehavior(true, false);
+  dynaGrid.setSort("departure");
+  dynaGrid.addListener({
+    onVisualUpdate: function (_key, info) {
+      if (info == null) {
+        //cleaning
+        return;
       }
-      });
-    
-    let subMonitor = new Ls.Subscription("COMMAND",itemsList,fieldsList);
-    subMonitor.setDataAdapter("AirportDemo");
-    
-    subMonitor.addListener(dynaGrid);
-    subMonitor.addListener({
-      onItemUpdate: function(updateInfo) {
-        console.log("New - " + updateInfo.getValue("key") + ", " + updateInfo.getValue("flightNo"));
-        
-        /*
-        dynaGrid.updateRow(updateInfo.getValue("key")-1, {destination:updateInfo.getValue("destination"),
-        departure:updateInfo.getValue("departure"),flightno:updateInfo.getValue("flightNo"),
-        airline:updateInfo.getValue("airline"),terminal:updateInfo.getValue("terminal"),status:updateInfo.getValue("status")});
-        */
 
-        const value = updateInfo.getValue("currentTime");
-        if (value) {
-          watch.updateRow("time", {currentTime:updateInfo.getValue("currentTime")});
-        } 
-        
-      },
-	  onClearSnapshot: function(itemName, itemPos) {
-		console.log("Clear snapshot for " + itemName);
-	  },
-	  onEndOfSnapshot: function(itemName, itemPos) {
-		console.log("End of snapshot for " + itemName);
-	  }
-    });
-    
-    lsClient.subscribe(subMonitor);
-    
-    lsClient.connect();
-    
+      const cold = "#dedede";
+
+      info.setAttribute("lightgreen", cold, "backgroundColor");
+    }
+  });
+
+  let subMonitor = new Ls.Subscription("COMMAND", itemsList, fieldsList);
+  subMonitor.setDataAdapter("AirportDemo");
+
+  subMonitor.addListener(dynaGrid);
+  subMonitor.addListener({
+    onItemUpdate: function (updateInfo) {
+      console.log("New - " + updateInfo.getValue("key") + ", " + updateInfo.getValue("flightNo"));
+
+    },
+    onClearSnapshot: function (itemName, itemPos) {
+      console.log("Clear snapshot for " + itemName);
+    },
+    onEndOfSnapshot: function (itemName, itemPos) {
+      console.log("End of snapshot for " + itemName);
+    }
+  });
+
+  lsClient.subscribe(subMonitor);
+
+  lsClient.connect();
+
 }
 
 main();
