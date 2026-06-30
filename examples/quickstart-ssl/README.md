@@ -1,4 +1,4 @@
-# SSL Quickstart
+# SSL quickstart
 
 This folder contains a variant of the [_Quickstart_](../../README.md#quick-start-set-up-in-5-minutes) app configured to establish a secure connection with the Kafka broker.
 
@@ -101,4 +101,4 @@ $ ./generate-secrets.sh
 
 ## Run
 
-From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#quick-start-set-up-in-5-minutes) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick start](../../README.md#quick-start-set-up-in-5-minutes) section of the main README file.

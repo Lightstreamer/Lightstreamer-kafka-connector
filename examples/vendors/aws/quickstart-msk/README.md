@@ -1,13 +1,13 @@
-# MSK Quickstart
+# MSK quickstart
 
-This folder contains a variant of the [_SSL Quickstart_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Amazon MSK_](https://aws.amazon.com/msk/) as the target Kafka cluster.
+This folder contains a variant of the [_SSL quickstart_](../../../quickstart-ssl/README.md#quick-start-ssl) app configured to use [_Amazon MSK_](https://aws.amazon.com/msk/) as the target Kafka cluster.
 
 ## Requirements
 
 - AWS CLI installed
 - AWS access keys of a temporary non-production IAM user with no specific permissions
 
-## Set up the MSK Cluster
+## Set up the MSK cluster
 
 1. Create an MSK Provisioned cluster following the [_Getting started_](https://docs.aws.amazon.com/msk/latest/developerguide/getting-started.html) with these specific settings:
 
@@ -121,9 +121,9 @@ This folder contains a variant of the [_SSL Quickstart_](../../../quickstart-ssl
 
    where you have to replace `<Account-ID>` with your 12-digit AWS account ID.
    
-## Set Up the Docker Compose File
+## Set up the Docker Compose file
 
-With respect to the [_SSL Quickstart_](../../../quickstart-ssl/README.md#quick-start-ssl) app, the [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Amazon MSK_ as follows:
+With respect to the [_SSL quickstart_](../../../quickstart-ssl/README.md#quick-start-ssl) app, the [docker-compose.yml](docker-compose.yml) file has been revised to realize the integration with _Amazon MSK_ as follows:
 
 - Removal of the `broker` service, because replaced by the remote cluster.
 
@@ -228,7 +228,7 @@ $ bootstrap_server="<bootstrap_server>" \
 where:
 
 - `<bootstrap_server>` - The public bootstrap server endpoint associated with the IAM Authentication Type
-- `<role_arn>` - The ARN of the IAM role you created at step 3 of the section [`Set Up the MSK Cluster`](#set-up-the-msk-cluster)
+- `<role_arn>` - The ARN of the IAM role you created at step 3 of the section [`Set up the MSK cluster`](#set-up-the-msk-cluster)
 - `<aws_access_key_id>` - The AWS access key ID of the test user
 - `<aws_secret_access_key>` - The AWS secret access key of the test user
 

@@ -1,4 +1,4 @@
-# Kafka Connect Quickstart
+# Kafka Connect quickstart
 
 This folder contains the resources required to build a version of the [_Quickstart_]((../../README.md#quick-start-set-up-in-5-minutes)) app based on the Kafka Connect Lightstreamer Sink Connector plugin.
 
