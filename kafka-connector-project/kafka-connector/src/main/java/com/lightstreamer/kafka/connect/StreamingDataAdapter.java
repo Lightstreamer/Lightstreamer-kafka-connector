@@ -186,7 +186,7 @@ public final class StreamingDataAdapter implements RecordSender {
 
     @Override
     public void unsubscribe(String item) throws SubscriptionException, FailureException {
-        Optional<SubscribedItem> removedItem = subscribed.removeItem(item);
+        Optional<OnDemandSubscribedItem> removedItem = subscribed.removeItem(item);
         if (removedItem.isEmpty()) {
             throw new SubscriptionException(
                     "Unsubscribing from unexpected item [%s]".formatted(item));
