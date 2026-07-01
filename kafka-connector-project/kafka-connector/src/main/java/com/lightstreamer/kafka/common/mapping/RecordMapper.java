@@ -28,9 +28,6 @@ import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -176,6 +173,24 @@ public interface RecordMapper<K, V> {
         Map<String, String> fieldsMap() throws ValueException;
 
         /**
+         * Extracts a single Lightstreamer field from the record by evaluating only the extraction
+         * expression bound to {@code field} in the {@code field.<name>=<expression>} mapping
+         * configured at startup. All other field expressions are skipped.
+         *
+         * <p>Used when the full extraction cannot or should not be performed — for example, on
+         * tombstone records where the value is {@code null} but the key still needs to be read to
+         * synthesize a COMMAND-mode {@code DELETE}.
+         *
+         * @param field the Lightstreamer schema field name whose configured expression should be
+         *     evaluated
+         * @return a map containing the extracted name/value pair, or an empty map if no expression
+         *     is configured for {@code field}; never null
+         * @throws ValueException if evaluation of the configured expression fails and the
+         *     underlying extractor is not configured to skip failures
+         */
+        Map<String, String> fieldsMapFromField(String field) throws ValueException;
+
+        /**
          * Determines which subscribed items should receive this record by matching the item names
          * from template expansion against active client subscriptions. This method performs the
          * critical routing function that connects Kafka data to specific Lightstreamer subscribers.
@@ -239,6 +254,11 @@ public interface RecordMapper<K, V> {
                 }
 
                 @Override
+                public Map<String, String> getMapFromField(String field) {
+                    return Collections.emptyMap();
+                }
+
+                @Override
                 public boolean isPayloadNull() {
                     return true;
                 }
@@ -253,6 +273,19 @@ public interface RecordMapper<K, V> {
          * @throws ValueException if field extraction fails
          */
         Map<String, String> getMap() throws ValueException;
+
+        /**
+         * Extracts a single Lightstreamer field from the underlying record by evaluating only the
+         * extraction expression bound to {@code field} in the {@code field.<name>=<expression>}
+         * mapping configured at startup.
+         *
+         * @param field the Lightstreamer schema field name whose configured expression should be
+         *     evaluated
+         * @return a single-entry map with the extracted name/value pair, or an empty map if no
+         *     expression is configured for {@code field}; never null
+         * @throws ValueException if evaluation of the configured expression fails
+         */
+        Map<String, String> getMapFromField(String field) throws ValueException;
 
         /**
          * Reports whether the underlying record has a null payload.
@@ -516,8 +549,6 @@ public interface RecordMapper<K, V> {
  */
 final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
 
-    private static final Logger log = LoggerFactory.getLogger(RecordMapperImpl.class);
-
     /**
      * Strategy for resolving canonical item extractors for a given topic name.
      *
@@ -646,6 +677,13 @@ final class FieldsMapSupplierImpl<K, V> implements RecordMapper.FieldsMapSupplie
     }
 
     @Override
+    public Map<String, String> getMapFromField(String field) throws ValueException {
+        Map<String, String> map = new HashMap<>();
+        fieldExtractor.extractFieldIntoMap(field, record, map);
+        return map;
+    }
+
+    @Override
     public boolean isPayloadNull() {
         return record.isPayloadNull();
     }
@@ -720,6 +758,11 @@ final class MappedRecordImpl implements MappedRecord {
     @Override
     public Map<String, String> fieldsMap() throws ValueException {
         return fieldsMapSupplier.getMap();
+    }
+
+    @Override
+    public Map<String, String> fieldsMapFromField(String field) throws ValueException {
+        return fieldsMapSupplier.getMapFromField(field);
     }
 
     @Override
