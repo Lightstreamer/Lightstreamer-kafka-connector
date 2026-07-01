@@ -512,9 +512,8 @@ public class RecordConsumerSupport {
 
         @Override
         public Map<String, String> getEvent(MappedRecord record) {
-            Map<String, String> event = record.fieldsMap();
             if (record.isPayloadNull()) {
-                // Map<String, String> event = record.fieldsMapFromField(Key.KEY.key());
+                Map<String, String> event = record.fieldsMapFromField(CommandEvents.Key.KEY.key());
                 String key = CommandEvents.Key.KEY.lookUp(event);
                 getLogger()
                         .atDebug()
@@ -522,7 +521,7 @@ public class RecordConsumerSupport {
                 return CommandEvents.delete(event);
             }
 
-            return CommandEvents.add(event);
+            return CommandEvents.add(record.fieldsMap());
         }
 
         @Override
