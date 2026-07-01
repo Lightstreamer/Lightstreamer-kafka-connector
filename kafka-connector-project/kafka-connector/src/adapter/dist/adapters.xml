@@ -666,7 +666,9 @@
                          "field.key".
 
              Default value: NONE. -->
+        <!--
         <param name="item.snapshot.enabled.mode">MERGE</param>
+        -->
 
         <!-- Optional but only effective when "item.snapshot.enabled.mode" is set to "DISTINCT".
              The maximum allowed length for the snapshot of an item that has been requested with
