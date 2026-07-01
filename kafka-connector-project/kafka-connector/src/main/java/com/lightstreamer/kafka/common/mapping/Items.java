@@ -103,10 +103,399 @@ public class Items {
          */
         Schema schema();
 
-        void sendEvent(Map<String, String> event, ItemEventListener listener);
+        /**
+         * Delivers a real-time (non-snapshot) event for this item to the given listener.
+         *
+         * @param event the field map to deliver
+         * @param listener the {@link ItemEventListener} to dispatch the event through
+         */
+        void sendRealTimeEvent(Map<String, String> event, ItemEventListener listener);
 
-        default void sendSnapshot(Map<String, String> event, ItemEventListener listener) {
-            sendEvent(event, listener);
+        /**
+         * Delivers a snapshot event for this item to the given listener. The default implementation
+         * forwards to {@link #sendRealTimeEvent(Map, ItemEventListener)}.
+         *
+         * @param event the field map to deliver
+         * @param listener the {@link ItemEventListener} to dispatch the event through
+         */
+        default void sendSnapshotEvent(Map<String, String> event, ItemEventListener listener) {
+            sendRealTimeEvent(event, listener);
+        }
+    }
+
+    /**
+     * Default {@link SubscribedItem} implementation, used by the on-demand pipeline. The {@code
+     * itemHandle} is bound at construction and never changes.
+     *
+     * <p>Equality is by canonical item name.
+     */
+    public static class OnDemandSubscribedItem implements SubscribedItem {
+
+        private final String canonicalItemName;
+        private final Schema schema;
+        private final Object itemHandle;
+
+        OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
+            this.canonicalItemName = expression.canonicalItemName();
+            this.schema = expression.schema();
+            this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(canonicalItemName, itemHandle);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            return obj instanceof OnDemandSubscribedItem other
+                    && canonicalItemName.equals(other.canonicalItemName)
+                    && itemHandle.equals(other.itemHandle);
+        }
+
+        @Override
+        public String canonicalName() {
+            return canonicalItemName;
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        @Override
+        public void sendRealTimeEvent(Map<String, String> event, ItemEventListener listener) {
+            listener.smartUpdate(itemHandle, event, false);
+        }
+    }
+
+    /**
+     * Entry type stored by {@link ForceableSubscribedItems} to back the forceable /
+     * forced-subscription snapshot strategy. Carries the {@code forced} flag (eternal-state marker
+     * promoted via {@code forceSubscription}) and the {@code lastAccessNanos} stamp consulted by
+     * {@link ForceableSubscribedItems#clearIdleSnapshots(long)}.
+     *
+     * <p>Operates in two successive modes:
+     *
+     * <ul>
+     *   <li><strong>Queueing mode</strong> (initial state): buffers <em>every</em> event (snapshot
+     *       or real-time, including {@code clearSnapshot} and {@code endOfSnapshot} signals) into
+     *       an internal queue, because no Server-allocated handle has been bound yet.
+     *   <li><strong>Direct-dispatch mode</strong>: activated by the first call to {@link
+     *       #enableEventsDelivery(Object, ItemEventListener)}, which drains the queued events in
+     *       insertion order — each preserving its original {@code isSnapshot} flag — and then
+     *       forwards all subsequent events straight to the bound handle.
+     * </ul>
+     */
+    public static class ForceableSubscribedItem implements SubscribedItem {
+
+        /**
+         * Functional interface for dispatching an event with its {@code isSnapshot} flag.
+         * Implementations may either enqueue the event or deliver it directly to the listener.
+         */
+        private interface EventDispatcher {
+            void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener);
+
+            void clearSnapshot(ItemEventListener listener);
+
+            void endOfSnapshot(ItemEventListener listener);
+        }
+
+        /**
+         * {@link EventDispatcher} that delivers events directly to the {@link ItemEventListener},
+         * keyed by the bound {@code itemHandle}. Used after the item has been activated and is no
+         * longer buffering.
+         */
+        private static final class DirectEventDispatcher implements EventDispatcher {
+            private final Object itemHandle;
+
+            private DirectEventDispatcher(Object itemHandle) {
+                this.itemHandle = itemHandle;
+            }
+
+            @Override
+            public void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
+                listener.smartUpdate(itemHandle, event, isSnapshot);
+            }
+
+            @Override
+            public void clearSnapshot(ItemEventListener listener) {
+                listener.smartClearSnapshot(itemHandle);
+            }
+
+            @Override
+            public void endOfSnapshot(ItemEventListener listener) {
+                listener.smartEndOfSnapshot(itemHandle);
+            }
+        }
+
+        /**
+         * {@link EventDispatcher} that buffers every event into an internal {@link Queue} of {@link
+         * PendingEvent}s. Used while the item is in queueing mode, before a handle has been bound
+         * via {@link #enableEventsDelivery(Object, ItemEventListener)}. The queued events are
+         * drained in insertion order via {@link #drainTo(Object, ItemEventListener)} when the item
+         * is activated.
+         *
+         * <p>Concurrency: every dispatch method is {@code synchronized} on the dispatcher instance,
+         * and activation also synchronizes on the same instance to drain and swap the owner's
+         * dispatcher field atomically. A producer that already entered the synchronized region but
+         * raced behind activation re-reads the owner's dispatcher and routes the event to the
+         * post-activation {@link DirectEventDispatcher} instead of enqueueing into a queue that
+         * nobody will ever drain.
+         */
+        private static final class QueueingEventDispatcher implements EventDispatcher {
+
+            private final ForceableSubscribedItem owner;
+            private final Queue<PendingEvent> pendingEvents = new ArrayDeque<>();
+
+            QueueingEventDispatcher(ForceableSubscribedItem owner) {
+                this.owner = owner;
+            }
+
+            @Override
+            public synchronized void dispatchUpdate(
+                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.dispatchUpdate(event, isSnapshot, listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.update(event, isSnapshot));
+            }
+
+            @Override
+            public synchronized void clearSnapshot(ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.clearSnapshot(listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.clearSnapshot());
+            }
+
+            @Override
+            public synchronized void endOfSnapshot(ItemEventListener listener) {
+                EventDispatcher current = owner.dispatcher;
+                if (current != this) {
+                    current.endOfSnapshot(listener);
+                    return;
+                }
+                pendingEvents.add(PendingEvent.endOfSnapshot());
+            }
+
+            /**
+             * Polls every queued event and dispatches it to {@code listener} keyed by {@code
+             * handle}, preserving each event's original {@code isSnapshot} flag. The caller must
+             * hold {@code synchronized (this)}.
+             */
+            void drainTo(Object handle, ItemEventListener listener) {
+                assert Thread.holdsLock(this);
+                PendingEvent pending;
+                while ((pending = pendingEvents.poll()) != null) {
+                    switch (pending.type()) {
+                        case UPDATE ->
+                                listener.smartUpdate(handle, pending.event(), pending.isSnapshot());
+                        case CLEAR_SNAPSHOT -> listener.smartClearSnapshot(handle);
+                        case END_OF_SNAPSHOT -> listener.smartEndOfSnapshot(handle);
+                    }
+                }
+            }
+        }
+
+        /**
+         * A buffered event, tagged by {@link EventType} and carrying its {@code isSnapshot} flag
+         * for {@link EventType#UPDATE} entries.
+         */
+        private record PendingEvent(EventType type, Map<String, String> event, boolean isSnapshot) {
+
+            enum EventType {
+                UPDATE,
+                CLEAR_SNAPSHOT,
+                END_OF_SNAPSHOT
+            }
+
+            static PendingEvent update(Map<String, String> event, boolean isSnapshot) {
+                return new PendingEvent(EventType.UPDATE, event, isSnapshot);
+            }
+
+            static PendingEvent clearSnapshot() {
+                return new PendingEvent(EventType.CLEAR_SNAPSHOT, null, false);
+            }
+
+            static PendingEvent endOfSnapshot() {
+                return new PendingEvent(EventType.END_OF_SNAPSHOT, null, false);
+            }
+        }
+
+        // VarHandle on lastAccessNanos: lets clearIdleSnapshots atomically claim an
+        // expiration via compareAndSet, rejecting the dispatch if a concurrent touch()
+        // bumped the stamp between the idle check and the claim.
+        private static final VarHandle LAST_ACCESS_NANOS;
+
+        static {
+            try {
+                LAST_ACCESS_NANOS =
+                        MethodHandles.lookup()
+                                .findVarHandle(
+                                        ForceableSubscribedItem.class,
+                                        "lastAccessNanos",
+                                        long.class);
+            } catch (ReflectiveOperationException e) {
+                throw new ExceptionInInitializerError(e);
+            }
+        }
+
+        protected volatile EventDispatcher dispatcher;
+
+        private final String canonicalItemName;
+        private final Schema schema;
+        private volatile boolean forced;
+        private volatile long lastAccessNanos;
+        private QueueingEventDispatcher queueingDispatcher;
+
+        ForceableSubscribedItem(SubscriptionExpression expression) {
+            this.canonicalItemName = expression.canonicalItemName();
+            this.schema = expression.schema();
+            this.queueingDispatcher = new QueueingEventDispatcher(this);
+            this.dispatcher = queueingDispatcher;
+            this.lastAccessNanos = System.nanoTime();
+        }
+
+        @Override
+        public String canonicalName() {
+            return canonicalItemName;
+        }
+
+        @Override
+        public Schema schema() {
+            return schema;
+        }
+
+        /**
+         * Activates this item for direct event delivery. Drains any events buffered while in
+         * queueing mode to the given {@link ItemEventListener} keyed by {@code itemHandle}, then
+         * switches to direct-dispatch mode for all subsequent events. If already activated, this
+         * method is a no-op.
+         *
+         * @param itemHandle the handle allocated by the Lightstreamer Server for this item
+         * @param listener the {@link ItemEventListener} to deliver drained and future events to
+         */
+        public void enableEventsDelivery(Object itemHandle, ItemEventListener listener) {
+            Objects.requireNonNull(itemHandle, "itemHandle");
+            QueueingEventDispatcher q = queueingDispatcher;
+            if (q == null) {
+                // Already activated — nothing to do.
+                return;
+            }
+            // Drain and swap atomically under the queueing dispatcher's monitor. Any producer
+            // contending on the same monitor either finishes its enqueue before us (we drain it)
+            // or enters after the swap and re-routes to DirectEventDispatcher via the redirect
+            // check in QueueingEventDispatcher's synchronized methods.
+            synchronized (q) {
+                q.drainTo(itemHandle, listener);
+                dispatcher = new DirectEventDispatcher(itemHandle);
+            }
+            // Drop the field reference. The QueueingEventDispatcher (with its empty queue) is now
+            // unreachable: producers that observed the swap route through DirectEventDispatcher
+            // and never look at this field again. At 1M items this releases ~150 MB of state.
+            queueingDispatcher = null;
+        }
+
+        @Override
+        public void sendRealTimeEvent(Map<String, String> event, ItemEventListener listener) {
+            dispatcher.dispatchUpdate(event, false, listener);
+        }
+
+        @Override
+        public void sendSnapshotEvent(Map<String, String> event, ItemEventListener listener) {
+            dispatcher.dispatchUpdate(event, true, listener);
+        }
+
+        /**
+         * Dispatches a {@code clearSnapshot} signal for this item. In queueing mode the signal is
+         * buffered; in direct-dispatch mode it is delivered immediately via {@code
+         * smartClearSnapshot} on the bound handle.
+         *
+         * @param listener the {@link ItemEventListener} to dispatch the signal through
+         */
+        public void clearSnapshot(ItemEventListener listener) {
+            dispatcher.clearSnapshot(listener);
+        }
+
+        /**
+         * Dispatches an {@code endOfSnapshot} signal for this item. In queueing mode the signal is
+         * buffered; in direct-dispatch mode it is delivered immediately via {@code
+         * smartEndOfSnapshot} on the bound handle.
+         *
+         * @param listener the {@link ItemEventListener} to dispatch the signal through
+         */
+        public void endOfSnapshot(ItemEventListener listener) {
+            dispatcher.endOfSnapshot(listener);
+        }
+
+        /**
+         * Marks this item as forced (i.e., promoted via {@code forceSubscription}). Used by {@link
+         * ForceableSubscribedItems} as the eternal-state marker; writers hold the per-name lock and
+         * the volatile write publishes the bit to the lock-free fast-path reader. The flag is
+         * monotonic.
+         */
+        void markForced() {
+            this.forced = true;
+        }
+
+        /**
+         * Refreshes the last-access stamp used by the idle-expiration scheduler. Uses {@link
+         * System#nanoTime()} so the elapsed measurement is monotonic and immune to wall-clock jumps
+         * (NTP, leap second, host suspend/resume).
+         */
+        void touch() {
+            this.lastAccessNanos = System.nanoTime();
+        }
+
+        /**
+         * Returns whether this item has been forced. Safe to call without a lock: the field is
+         * {@code volatile} and monotonic ({@code true} is terminal).
+         */
+        boolean isForced() {
+            return forced;
+        }
+
+        /**
+         * Returns the {@link System#nanoTime()} stamp of the last {@link #touch()} (or of
+         * construction, if never touched). Read by {@link
+         * ForceableSubscribedItems#clearIdleSnapshots(long)} to compute idle time; paired with
+         * {@link #casLastTouched(long, long)} to claim an expiration atomically.
+         *
+         * @return the last-access {@code nanoTime} stamp
+         */
+        long lastTouched() {
+            return lastAccessNanos;
+        }
+
+        /**
+         * Atomically updates {@code lastAccessNanos} from {@code expected} to {@code update}. Used
+         * by {@link ForceableSubscribedItems#clearIdleSnapshots(long)} to claim an expiration
+         * decision: if a concurrent {@link #touch()} bumped the stamp after the idle check, this
+         * CAS fails and the scheduler skips the item, preventing a stale {@code clearSnapshot} from
+         * racing past a fresh update on the SDK delivery queue.
+         *
+         * @param expected the value previously read via {@link #lastTouched()}
+         * @param update the new value to install (typically the scan's reference timestamp)
+         * @return {@code true} if the CAS succeeded; {@code false} if a concurrent write bumped the
+         *     stamp first
+         */
+        boolean casLastTouched(long expected, long update) {
+            return LAST_ACCESS_NANOS.compareAndSet(this, expected, update);
+        }
+
+        // Visible for tests: lets unit tests stamp an arbitrary last-access value to
+        // deterministically simulate aged items in clearIdleSnapshots scans, without
+        // resorting to Thread.sleep.
+        void setLastTouched(long nanos) {
+            this.lastAccessNanos = nanos;
         }
     }
 
@@ -196,16 +585,16 @@ public class Items {
      * {@link SubscribedItems} implementation backing the forceable / forced-subscription snapshot
      * strategy, selected when {@code item.snapshot.mode = ENABLED}.
      *
-     * <p>The map holds a single entry type, {@link BufferedSubscribedItem}, regardless of the path
-     * that installed it. A {@code BufferedSubscribedItem} starts in queueing mode (events
+     * <p>The map holds a single entry type, {@link ForceableSubscribedItem}, regardless of the path
+     * that installed it. A {@code ForceableSubscribedItem} starts in queueing mode (events
      * accumulate in an internal queue) and switches to direct-dispatch mode the first time {@link
-     * BufferedSubscribedItem#enableEventsDelivery(Object, ItemEventListener)} is called, which also
-     * drains any queued events against the supplied handle. Each entry also carries a monotonic
-     * {@code forced} flag (see {@link BufferedSubscribedItem#isForced()}) used as the lock-free
-     * fast-path predicate in {@link #getItem(String)}: once set it is never reset, and a forced
-     * entry is eternal for the connection lifetime (per the SDK contract: after a successful {@code
-     * forceSubscription} no further {@code subscribe}/{@code unsubscribe} callbacks fire for the
-     * name).
+     * ForceableSubscribedItem#enableEventsDelivery(Object, ItemEventListener)} is called, which
+     * also drains any queued events against the supplied handle. Each entry also carries a
+     * monotonic {@code forced} flag (see {@link ForceableSubscribedItem#isForced()}) used as the
+     * lock-free fast-path predicate in {@link #getItem(String)}: once set it is never reset, and a
+     * forced entry is eternal for the connection lifetime (per the SDK contract: after a successful
+     * {@code forceSubscription} no further {@code subscribe}/{@code unsubscribe} callbacks fire for
+     * the name).
      *
      * <p>Concurrency model: a per-name {@link ReentrantLock} serializes <em>structural</em>
      * transitions on the entry for a given canonical name (install, activate, prune). The lock is
@@ -222,20 +611,21 @@ public class Items {
      *   <li><strong>Path 1 (organic).</strong> The Server calls {@code subscribe(name, handle)}
      *       because a client expressed interest. {@code ForceableSubscriptionsHandler} routes
      *       through {@link #activateOrInstall(SubscriptionExpression, Object)}, which under the
-     *       per-name lock installs a fresh {@code BufferedSubscribedItem} and immediately switches
+     *       per-name lock installs a fresh {@code ForceableSubscribedItem} and immediately switches
      *       it to direct-dispatch mode bound to the Server-allocated handle, then emits {@code
      *       endOfSnapshot} on the new client subscription. The entry is unforced until the
      *       record-processing thread first observes a record for the name (see {@link
      *       #getItem(String)}).
      *   <li><strong>Path 2 (record-driven).</strong> The record-processing thread calls {@link
-     *       #getItem(String)}; on a miss this installs a {@code BufferedSubscribedItem} placeholder
-     *       in queueing mode, releases the lock, and calls {@code forceSubscription(name)}. The
-     *       Server thread runs {@code subscribe(name, handle)}; the handler routes through {@link
-     *       #activateOrInstall(SubscriptionExpression, Object)}, which under the lock detects the
-     *       placeholder, drains it against the new handle, switches it to direct-dispatch mode, and
-     *       marks it forced. {@code endOfSnapshot} is skipped for this case (the virtual handle has
-     *       no client to receive it). When {@code forceSubscription} returns, the record-processing
-     *       thread re-reads the (now activated and forced) entry.
+     *       #getItem(String)}; on a miss this installs a {@code ForceableSubscribedItem}
+     *       placeholder in queueing mode, releases the lock, and calls {@code
+     *       forceSubscription(name)}. The Server thread runs {@code subscribe(name, handle)}; the
+     *       handler routes through {@link #activateOrInstall(SubscriptionExpression, Object)},
+     *       which under the lock detects the placeholder, drains it against the new handle,
+     *       switches it to direct-dispatch mode, and marks it forced. {@code endOfSnapshot} is
+     *       skipped for this case (the virtual handle has no client to receive it). When {@code
+     *       forceSubscription} returns, the record-processing thread re-reads the (now activated
+     *       and forced) entry.
      * </ul>
      *
      * <p>Forced entries are eternal. Unforced Path-1 entries are pruned on {@code unsubscribe} via
@@ -247,7 +637,7 @@ public class Items {
 
         private final ItemEventListener itemEventListener;
         private final Logger logger;
-        private final Map<String, BufferedSubscribedItem> items = new ConcurrentHashMap<>();
+        private final Map<String, ForceableSubscribedItem> items = new ConcurrentHashMap<>();
         private final Map<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
         ForceableSubscribedItems(ItemEventListener itemEventListener, Logger logger) {
@@ -255,17 +645,13 @@ public class Items {
             this.logger = logger;
         }
 
-        private ReentrantLock lockFor(String name) {
-            return locks.computeIfAbsent(name, k -> new ReentrantLock());
-        }
-
         /**
          * Single install-or-activate primitive for the {@code subscribe(name, handle)} entry point.
-         * If a {@link BufferedSubscribedItem} placeholder is already present for the canonical name
-         * (Path-2 activation in flight, triggered by a record-processing-thread {@code
+         * If a {@link ForceableSubscribedItem} placeholder is already present for the canonical
+         * name (Path-2 activation in flight, triggered by a record-processing-thread {@code
          * forceSubscription}), drains the placeholder against the new handle, switches it to
          * direct-dispatch mode, marks it forced, and returns {@code null}. Otherwise installs a
-         * fresh {@code BufferedSubscribedItem} already in direct-dispatch mode bound to the new
+         * fresh {@code ForceableSubscribedItem} already in direct-dispatch mode bound to the new
          * handle (Path-1 organic install), emits {@code endOfSnapshot} on it, and returns the
          * freshly installed entry.
          *
@@ -274,13 +660,13 @@ public class Items {
          * @return the freshly installed entry on Path-1 organic install, or {@code null} on Path-2
          *     activation
          */
-        public BufferedSubscribedItem activateOrInstall(
+        public ForceableSubscribedItem activateOrInstall(
                 SubscriptionExpression expression, Object handle) {
             String canonicalName = expression.canonicalItemName();
             ReentrantLock lock = lockFor(canonicalName);
             lock.lock();
             try {
-                BufferedSubscribedItem existing = items.get(canonicalName);
+                ForceableSubscribedItem existing = items.get(canonicalName);
                 // Two mutually exclusive cases (per SDK contract C-serial, no concurrent
                 // subscribe/unsubscribe for the same name can race against this method):
                 //
@@ -314,7 +700,7 @@ public class Items {
                     existing.markForced();
                     return null;
                 }
-                BufferedSubscribedItem fresh = new BufferedSubscribedItem(expression);
+                ForceableSubscribedItem fresh = new ForceableSubscribedItem(expression);
                 fresh.enableEventsDelivery(handle, itemEventListener);
                 items.put(canonicalName, fresh);
                 // Path-1 organic: emit end-of-snapshot for the new client subscription.
@@ -329,12 +715,12 @@ public class Items {
         }
 
         @Override
-        public BufferedSubscribedItem getItem(String itemName) {
+        public ForceableSubscribedItem getItem(String itemName) {
             // Lock-free fast path. Once an entry is forced it is eternal (per SDK contract
             // C-eternal: no further subscribe/unsubscribe callbacks fire for the name) and
             // its dispatcher is stable in direct-dispatch mode bound to a fixed handle, so
             // subsequent poll-thread sightings can return it without locking.
-            BufferedSubscribedItem cached = items.get(itemName);
+            ForceableSubscribedItem cached = items.get(itemName);
             if (cached != null && cached.isForced()) {
                 // Sliding-touch on the steady-state hot path: every record sighting
                 // of an eternal item refreshes the idle clock used by
@@ -390,7 +776,7 @@ public class Items {
                     return cached;
                 }
                 if (cached == null) {
-                    cached = new BufferedSubscribedItem(Subscription(itemName));
+                    cached = new ForceableSubscribedItem(Subscription(itemName));
                     items.put(itemName, cached);
                 }
             } finally {
@@ -474,7 +860,7 @@ public class Items {
             // a fresh snapshot.
             long nowNanos = System.nanoTime();
             long maxIdleNanos = TimeUnit.SECONDS.toNanos(maxIdleSeconds);
-            for (BufferedSubscribedItem item : items.values()) {
+            for (ForceableSubscribedItem item : items.values()) {
                 if (!item.isForced()) {
                     continue;
                 }
@@ -507,7 +893,7 @@ public class Items {
             ReentrantLock lock = lockFor(itemName);
             lock.lock();
             try {
-                BufferedSubscribedItem existing = items.get(itemName);
+                ForceableSubscribedItem existing = items.get(itemName);
                 if (existing == null || existing.isForced()) {
                     return false;
                 }
@@ -529,8 +915,12 @@ public class Items {
         }
 
         @Override
-        public Collection<BufferedSubscribedItem> values() {
+        public Collection<ForceableSubscribedItem> values() {
             return Collections.unmodifiableCollection(items.values());
+        }
+
+        private ReentrantLock lockFor(String name) {
+            return locks.computeIfAbsent(name, k -> new ReentrantLock());
         }
     }
 
@@ -557,7 +947,14 @@ public class Items {
             return items.get(itemName);
         }
 
-        public Optional<SubscribedItem> removeItem(String itemName) {
+        /**
+         * Removes the item with the given canonical name from this collection.
+         *
+         * @param itemName the canonical name of the item to remove
+         * @return an {@link Optional} containing the removed {@link OnDemandSubscribedItem}, or
+         *     empty if no item with the given name was present
+         */
+        public Optional<OnDemandSubscribedItem> removeItem(String itemName) {
             return Optional.ofNullable(items.remove(itemName));
         }
 
@@ -574,349 +971,6 @@ public class Items {
         @Override
         public Collection<SubscribedItem> values() {
             return Collections.unmodifiableCollection(items.values());
-        }
-    }
-
-    /**
-     * Default {@link SubscribedItem} implementation, used by the on-demand pipeline. The {@code
-     * itemHandle} is bound at construction and never changes.
-     *
-     * <p>Equality is by canonical item name.
-     */
-    public static class OnDemandSubscribedItem implements SubscribedItem {
-
-        private final String canonicalItemName;
-        private final Schema schema;
-        private final Object itemHandle;
-
-        OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
-            this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(canonicalItemName, itemHandle);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj) return true;
-            return obj instanceof OnDemandSubscribedItem other
-                    && canonicalItemName.equals(other.canonicalItemName)
-                    && itemHandle.equals(other.itemHandle);
-        }
-
-        @Override
-        public String canonicalName() {
-            return canonicalItemName;
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
-        }
-
-        @Override
-        public void sendEvent(Map<String, String> event, ItemEventListener listener) {
-            listener.smartUpdate(itemHandle, event, false);
-        }
-    }
-
-    /**
-     * {@link SubscribedItem} implementation that buffers <em>every</em> event (snapshot or
-     * real-time, including {@code clearSnapshot} and {@code endOfSnapshot} signals) until the item
-     * is activated via {@link #enableEventsDelivery(Object, ItemEventListener)}, at which point the
-     * buffered events are drained in insertion order — each preserving its original {@code
-     * isSnapshot} flag — and the item switches to direct delivery for all subsequent events.
-     */
-    public static class BufferedSubscribedItem implements SubscribedItem {
-
-        /**
-         * Functional interface for dispatching an event with its {@code isSnapshot} flag.
-         * Implementations may either enqueue the event or deliver it directly to the listener.
-         */
-        private interface EventDispatcher {
-            void dispatchUpdate(
-                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener);
-
-            void clearSnapshot(ItemEventListener listener);
-
-            void endOfSnapshot(ItemEventListener listener);
-        }
-
-        /**
-         * {@link EventDispatcher} that delivers events directly to the {@link ItemEventListener},
-         * keyed by the bound {@code itemHandle}. Used after the item has been activated and is no
-         * longer buffering.
-         */
-        private static final class DirectEventDispatcher implements EventDispatcher {
-            private final Object itemHandle;
-
-            private DirectEventDispatcher(Object itemHandle) {
-                this.itemHandle = itemHandle;
-            }
-
-            @Override
-            public void dispatchUpdate(
-                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
-                listener.smartUpdate(itemHandle, event, isSnapshot);
-            }
-
-            @Override
-            public void clearSnapshot(ItemEventListener listener) {
-                listener.smartClearSnapshot(itemHandle);
-            }
-
-            @Override
-            public void endOfSnapshot(ItemEventListener listener) {
-                listener.smartEndOfSnapshot(itemHandle);
-            }
-        }
-
-        /**
-         * {@link EventDispatcher} that buffers every event into an internal {@link Queue} of {@link
-         * PendingEvent}s. Used while the item is in queueing mode, before a handle has been bound
-         * via {@link #enableEventsDelivery(Object, ItemEventListener)}. The queued events are
-         * drained in insertion order via {@link #drainTo(Object, ItemEventListener)} when the item
-         * is activated.
-         *
-         * <p>Concurrency: every dispatch method is {@code synchronized} on the dispatcher instance,
-         * and activation also synchronizes on the same instance to drain and swap the owner's
-         * dispatcher field atomically. A producer that already entered the synchronized region but
-         * raced behind activation re-reads the owner's dispatcher and routes the event to the
-         * post-activation {@link DirectEventDispatcher} instead of enqueueing into a queue that
-         * nobody will ever drain.
-         */
-        private static final class QueueingEventDispatcher implements EventDispatcher {
-
-            private final BufferedSubscribedItem owner;
-            private final Queue<PendingEvent> pendingEvents = new ArrayDeque<>();
-
-            QueueingEventDispatcher(BufferedSubscribedItem owner) {
-                this.owner = owner;
-            }
-
-            @Override
-            public synchronized void dispatchUpdate(
-                    Map<String, String> event, boolean isSnapshot, ItemEventListener listener) {
-                EventDispatcher current = owner.dispatcher;
-                if (current != this) {
-                    current.dispatchUpdate(event, isSnapshot, listener);
-                    return;
-                }
-                pendingEvents.add(PendingEvent.update(event, isSnapshot));
-            }
-
-            @Override
-            public synchronized void clearSnapshot(ItemEventListener listener) {
-                EventDispatcher current = owner.dispatcher;
-                if (current != this) {
-                    current.clearSnapshot(listener);
-                    return;
-                }
-                pendingEvents.add(PendingEvent.clearSnapshot());
-            }
-
-            @Override
-            public synchronized void endOfSnapshot(ItemEventListener listener) {
-                EventDispatcher current = owner.dispatcher;
-                if (current != this) {
-                    current.endOfSnapshot(listener);
-                    return;
-                }
-                pendingEvents.add(PendingEvent.endOfSnapshot());
-            }
-
-            /**
-             * Polls every queued event and dispatches it to {@code listener} keyed by {@code
-             * handle}, preserving each event's original {@code isSnapshot} flag. The caller must
-             * hold {@code synchronized (this)}.
-             */
-            void drainTo(Object handle, ItemEventListener listener) {
-                assert Thread.holdsLock(this);
-                PendingEvent pending;
-                while ((pending = pendingEvents.poll()) != null) {
-                    switch (pending.type()) {
-                        case UPDATE ->
-                                listener.smartUpdate(handle, pending.event(), pending.isSnapshot());
-                        case CLEAR_SNAPSHOT -> listener.smartClearSnapshot(handle);
-                        case END_OF_SNAPSHOT -> listener.smartEndOfSnapshot(handle);
-                    }
-                }
-            }
-        }
-
-        /**
-         * A buffered event, tagged by {@link EventType} and carrying its {@code isSnapshot} flag
-         * for {@link EventType#UPDATE} entries.
-         */
-        private record PendingEvent(EventType type, Map<String, String> event, boolean isSnapshot) {
-
-            enum EventType {
-                UPDATE,
-                CLEAR_SNAPSHOT,
-                END_OF_SNAPSHOT
-            }
-
-            static PendingEvent update(Map<String, String> event, boolean isSnapshot) {
-                return new PendingEvent(EventType.UPDATE, event, isSnapshot);
-            }
-
-            static PendingEvent clearSnapshot() {
-                return new PendingEvent(EventType.CLEAR_SNAPSHOT, null, false);
-            }
-
-            static PendingEvent endOfSnapshot() {
-                return new PendingEvent(EventType.END_OF_SNAPSHOT, null, false);
-            }
-        }
-
-        // VarHandle on lastAccessNanos: lets clearIdleSnapshots atomically claim an
-        // expiration via compareAndSet, rejecting the dispatch if a concurrent touch()
-        // bumped the stamp between the idle check and the claim.
-        private static final VarHandle LAST_ACCESS_NANOS;
-
-        static {
-            try {
-                LAST_ACCESS_NANOS =
-                        MethodHandles.lookup()
-                                .findVarHandle(
-                                        BufferedSubscribedItem.class,
-                                        "lastAccessNanos",
-                                        long.class);
-            } catch (ReflectiveOperationException e) {
-                throw new ExceptionInInitializerError(e);
-            }
-        }
-
-        protected volatile EventDispatcher dispatcher;
-
-        private final String canonicalItemName;
-        private final Schema schema;
-        private volatile boolean forced;
-        private volatile long lastAccessNanos;
-        private QueueingEventDispatcher queueingDispatcher;
-
-        BufferedSubscribedItem(SubscriptionExpression expression) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
-            this.queueingDispatcher = new QueueingEventDispatcher(this);
-            this.dispatcher = queueingDispatcher;
-            this.lastAccessNanos = System.nanoTime();
-        }
-
-        @Override
-        public String canonicalName() {
-            return canonicalItemName;
-        }
-
-        /**
-         * Activates this item for direct event delivery. Drains any events buffered while in
-         * queueing mode to the given {@link ItemEventListener} keyed by {@code itemHandle}, then
-         * switches to direct-dispatch mode for all subsequent events. If already activated, this
-         * method is a no-op.
-         *
-         * @param itemHandle the handle allocated by the Lightstreamer Server for this item
-         * @param listener the {@link ItemEventListener} to deliver drained and future events to
-         */
-        public void enableEventsDelivery(Object itemHandle, ItemEventListener listener) {
-            Objects.requireNonNull(itemHandle, "itemHandle");
-            QueueingEventDispatcher q = queueingDispatcher;
-            if (q == null) {
-                // Already activated — nothing to do.
-                return;
-            }
-            // Drain and swap atomically under the queueing dispatcher's monitor. Any producer
-            // contending on the same monitor either finishes its enqueue before us (we drain it)
-            // or enters after the swap and re-routes to DirectEventDispatcher via the redirect
-            // check in QueueingEventDispatcher's synchronized methods.
-            synchronized (q) {
-                q.drainTo(itemHandle, listener);
-                dispatcher = new DirectEventDispatcher(itemHandle);
-            }
-            // Drop the field reference. The QueueingEventDispatcher (with its empty queue) is now
-            // unreachable: producers that observed the swap route through DirectEventDispatcher
-            // and never look at this field again. At 1M items this releases ~150 MB of state.
-            queueingDispatcher = null;
-        }
-
-        /**
-         * Marks this item as forced (i.e., promoted via {@code forceSubscription}). Used by {@link
-         * ForceableSubscribedItems} as the eternal-state marker; writers hold the per-name lock and
-         * the volatile write publishes the bit to the lock-free fast-path reader. The flag is
-         * monotonic.
-         */
-        void markForced() {
-            this.forced = true;
-        }
-
-        /**
-         * Refreshes the last-access stamp used by the idle-expiration scheduler. Uses {@link
-         * System#nanoTime()} so the elapsed measurement is monotonic and immune to wall-clock jumps
-         * (NTP, leap second, host suspend/resume).
-         */
-        void touch() {
-            this.lastAccessNanos = System.nanoTime();
-        }
-
-        /**
-         * Returns whether this item has been forced. Safe to call without a lock: the field is
-         * {@code volatile} and monotonic ({@code true} is terminal).
-         */
-        boolean isForced() {
-            return forced;
-        }
-
-        long lastTouched() {
-            return lastAccessNanos;
-        }
-
-        /**
-         * Atomically updates {@code lastAccessNanos} from {@code expected} to {@code update}. Used
-         * by {@link ForceableSubscribedItems#clearIdleSnapshots(long)} to claim an expiration
-         * decision: if a concurrent {@link #touch()} bumped the stamp after the idle check, this
-         * CAS fails and the scheduler skips the item, preventing a stale {@code clearSnapshot} from
-         * racing past a fresh update on the SDK delivery queue.
-         *
-         * @param expected the value previously read via {@link #lastTouched()}
-         * @param update the new value to install (typically the scan's reference timestamp)
-         * @return {@code true} if the CAS succeeded; {@code false} if a concurrent write bumped the
-         *     stamp first
-         */
-        boolean casLastTouched(long expected, long update) {
-            return LAST_ACCESS_NANOS.compareAndSet(this, expected, update);
-        }
-
-        // Visible for tests: lets unit tests stamp an arbitrary last-access value to
-        // deterministically simulate aged items in clearIdleSnapshots scans, without
-        // resorting to Thread.sleep.
-        void setLastTouched(long nanos) {
-            this.lastAccessNanos = nanos;
-        }
-
-        @Override
-        public void sendEvent(Map<String, String> event, ItemEventListener listener) {
-            dispatcher.dispatchUpdate(event, false, listener);
-        }
-
-        @Override
-        public void sendSnapshot(Map<String, String> event, ItemEventListener listener) {
-            dispatcher.dispatchUpdate(event, true, listener);
-        }
-
-        public void clearSnapshot(ItemEventListener listener) {
-            dispatcher.clearSnapshot(listener);
-        }
-
-        public void endOfSnapshot(ItemEventListener listener) {
-            dispatcher.endOfSnapshot(listener);
-        }
-
-        @Override
-        public Schema schema() {
-            return schema;
         }
     }
 
@@ -1114,14 +1168,14 @@ public class Items {
     }
 
     /**
-     * Creates a {@link BufferedSubscribedItem} from a canonical item name string.
+     * Creates a {@link ForceableSubscribedItem} from a canonical item name string.
      *
      * @param canonicalName the canonical Lightstreamer item name
-     * @return a new {@code BufferedSubscribedItem}
+     * @return a new {@code ForceableSubscribedItem}
      * @throws ExpressionException if the input cannot be parsed as a valid subscription expression
      */
-    public static BufferedSubscribedItem bufferedSubscribedFrom(String canonicalName) {
-        return new BufferedSubscribedItem(Expressions.Subscription(canonicalName));
+    public static ForceableSubscribedItem forceableSubscribedFrom(String canonicalName) {
+        return new ForceableSubscribedItem(Expressions.Subscription(canonicalName));
     }
 
     /**
