@@ -209,7 +209,6 @@ public class KafkaConsumerWrapper<K, V> {
     private final Monitor monitor;
     private final RecordConsumer<K, V> recordConsumer;
     private final SubscribedItems subscribedItems;
-    private final ItemEventListener eventListener;
     private final boolean eagerLifecycle;
     private final ReentrantLock statusLock = new ReentrantLock();
 
@@ -248,7 +247,6 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         this.connectionSpec = connectionSpec;
         this.subscribedItems = subscribedItems;
-        this.eventListener = eventListener;
         this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
