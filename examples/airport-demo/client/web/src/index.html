@@ -50,17 +50,19 @@
       <table style="width: 100%;">
         <caption>Departures Board</caption>
         <tr class="tableTitle">
-          <td style="text-align: center">Destination</td>
-          <td style="text-align: center">Departure</td>
+          <td style="text-align: center">Scheduled</td>
+          <td style="text-align: center">Effective</td>
           <td style="text-align: center">Flight</td>
+          <td style="text-align: center">Destination</td>
           <td style="text-align: center">Airline</td>
           <td style="text-align: center">Terminal</td>
           <td style="text-align: center">Status</td>
         </tr>
         <tr id="flights"  data-source="lightstreamer" class="lscoldA" border="0" >
-          <td nowrap="nowrap" style="text-align: center"><div class="stockNameOdd" data-source="lightstreamer"  data-field="destination">Loading...</div></td>
-          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="departure">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="scheduled">Loading...</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="effective">-</div></td>
           <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="flightNo">-</div></td>
+          <td nowrap="nowrap" style="text-align: center"><div class="stockNameOdd" data-source="lightstreamer"  data-field="destination">-</div></td>
           <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="airline">-</div></td>
           <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="terminal">-</div></td>
           <td nowrap="nowrap" style="text-align: center"><div class="stockNameEven" data-source="lightstreamer" data-field="status">-</div></td>

@@ -14,7 +14,7 @@
 let stocksGrid = null;
 let lsClient = null;
 let itemsList = ["flights-board"];
-let fieldsList = ["key", "command", "destination", "departure", "flightNo", "terminal", "status", "airline"];
+let fieldsList = ["key", "command", "destination", "scheduled", "effective", "flightNo", "terminal", "status", "airline"];
 
 
 function main() {
@@ -33,7 +33,7 @@ function main() {
 
   dynaGrid.setNodeTypes(["div", "span", "img", "a"]);
   dynaGrid.setAutoCleanBehavior(true, false);
-  dynaGrid.setSort("departure");
+  dynaGrid.setSort("scheduled");
   dynaGrid.addListener({
     onVisualUpdate: function (_key, info) {
       if (info == null) {
