@@ -3,7 +3,7 @@ plugins {
     id 'maven-publish'
     id 'com.github.davidmc24.gradle.plugin.avro' version '1.9.1'
     id 'com.google.protobuf' version '0.9.5'
-    id 'com.diffplug.spotless' version '7.0.3'
+    id 'com.diffplug.spotless' version '8.8.0'
     id 'com.gradleup.shadow' version '8.3.6'
 }
 
