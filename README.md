@@ -202,7 +202,7 @@ Deployment options:
 ### Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.8 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 - A running Kafka broker or Kafka cluster
 
 ### Install
@@ -465,7 +465,7 @@ As you can see, you need to specify a few parameters:
 - `--fields`: the list of requested fields for the items
 
 > [!NOTE]
-> While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
+> While we've provided examples in JavaScript (suitable for web browsers) and Java (geared toward desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
 ![consumer_video](/pictures/consumer.gif)
 
@@ -1473,7 +1473,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Server requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
 
 - **`key`** is mapped explicitly by the user through the `field.key` parameter, like any other field. It identifies the row each record refers to.
-- **`command`** is **not** mapped: the connector synthesises it for every record from the record state and the per-item key history:
+- **`command`** is **not** mapped: the connector synthesizes it for every record from the record state and the per-item key history:
   - **`ADD`** — the mapped key has not been seen before on this item.
   - **`UPDATE`** — the mapped key has already been seen on this item.
   - **`DELETE`** — the record has a null payload (_tombstone record_).
@@ -1829,7 +1829,7 @@ _Optional_. Selects the snapshot behavior for subscribed items and, when not set
 - **`NONE`**: Snapshot management disabled. Lazy consumer, empty snapshot, subscription _Mode_ not constrained by the adapter.
 - **`MERGE`**: Pins subscription _Mode_ to _MERGE_. See [MERGE snapshot](#merge-snapshot).
 - **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT snapshot](#distinct-snapshot).
-- **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesises the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
+- **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesizes the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
 
 Any non-`NONE` value also forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured value.
 
@@ -2032,7 +2032,7 @@ A Lightstreamer client subscribes to an item by choosing a **subscription _Mode_
 
 The Lightstreamer Broker allows each item to be handled in only one of _MERGE_, _DISTINCT_, or _COMMAND_ at a time (plus _RAW_, which is always compatible): the first subscription request for an item effectively pins its Mode, and subsequent requests for a conflicting Mode are silently ignored.
 
-The Mode also determines how the Server materialises the _snapshot_ delivered to a freshly subscribed client — see [Snapshot management](#snapshot-management). The Kafka Connector can either leave the choice of Mode entirely to the client (the default) or pin it from the adapter side as a side effect of enabling connector-managed snapshot.
+The Mode also determines how the Server materializes the _snapshot_ delivered to a freshly subscribed client — see [Snapshot management](#snapshot-management). The Kafka Connector can either leave the choice of Mode entirely to the client (the default) or pin it from the adapter side as a side effect of enabling connector-managed snapshot.
 
 # Snapshot management
 
@@ -2169,7 +2169,7 @@ In _COMMAND_ mode each Lightstreamer item represents a **dynamic table**: rows a
 With `item.snapshot.enabled.mode = COMMAND`:
 
 - The per-item store is a row set keyed by the `field.key` value mapped from each record.
-- Only the `key` Lightstreamer field is mapped explicitly (via `field.key`); the connector synthesises the `command` field for every record from the record state — `ADD` the first time a key is seen on an item, `UPDATE` afterwards, `DELETE` for tombstones (records with a null payload). The Server applies each synthesised operation to the per-item row set, reconstructing the current table.
+- Only the `key` Lightstreamer field is mapped explicitly (via `field.key`); the connector synthesizes the `command` field for every record from the record state — `ADD` the first time a key is seen on an item, `UPDATE` afterwards, `DELETE` for tombstones (records with a null payload). The Server applies each synthesized operation to the per-item row set, reconstructing the current table.
 - A new subscriber receives the **resulting** table state as the snapshot: one event per row currently present, each carrying `command = ADD` (the replay sequence of `ADD`/`UPDATE`/`DELETE` operations collapses into the final set of surviving rows).
 
 #### Recommended extraction layout
@@ -2229,7 +2229,7 @@ This behavior is opt-in (the default value `0` disables the check) and has no ef
 
 A few notes that apply to all three non-`NONE` Modes:
 
-- **Misconfigurations are not rejected at startup.** Any layout that the per-Mode tables above flag as anything other than _Correct_ — including the ones labelled _Broken_, _silently wrong_, _Degenerate_, _Discouraged_, _Global window_, _Invalid_ — is currently accepted by the connector, which starts cleanly and exhibits the runtime behavior described in the table. If your snapshot looks empty or oversized, recheck the extraction layout before chasing the issue elsewhere.
+- **Misconfigurations are not rejected at startup.** Any layout that the per-Mode tables above flag as anything other than _Correct_ — including the ones labeled _Broken_, _silently wrong_, _Degenerate_, _Discouraged_, _Global window_, _Invalid_ — is currently accepted by the connector, which starts cleanly and exhibits the runtime behavior described in the table. If your snapshot looks empty or oversized, recheck the extraction layout before chasing the issue elsewhere.
 - **Regex topic mappings** ([`map.regex.enable = true`](#enable-regular-expression-mapregexenable)) are similarly accepted but not validated against the snapshot pipeline's assumptions; for snapshot-enabled adapters, prefer literal topic names.
 
 # Client-side error handling
@@ -2333,7 +2333,7 @@ Before running the connector, you first need to deploy a Proxy Adapter into the 
 #### Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.8 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 
 #### Steps
 
