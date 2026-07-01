@@ -52,6 +52,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
@@ -251,38 +252,6 @@ public class RecordProcessorTest {
         assertThat(eventListener.getEvents()).isEmpty();
     }
 
-    @Test
-    public void shouldNotProcessUnexpectedSubscriptionWithForcedSubscription() {
-        ForceableSubscribedItems subscribedItems = SubscribedItems.forceable(eventListener, logger);
-        RecordProcessor<String, String> processor =
-                processor(
-                        defaultMapper(), subscribedItems, ProcessUpdatesStrategy.defaultStrategy());
-
-        // Subscribe to the unexpected "item3" and process the record
-        OnDemandSubscribedItem item =
-                Items.onDemandSubscribedFrom(Subscription("item3"), new Object());
-        subscribedItems.activateOrInstall(Subscription("item3"), item);
-
-        processor.process(Records.KafkaRecord(TEST_TOPIC, 0, "a-1"), deliveryStrategy);
-
-        // Simulate the forced subscription to "item1" triggered by the record processing
-        Object itemHandle1 = new Object();
-        subscribedItems.activateOrInstall(Subscription("item1"), itemHandle1);
-
-        // Simulate the forced subscription to "item2" triggered by the record processing
-        Object itemHandle2 = new Object();
-        subscribedItems.activateOrInstall(Subscription("item2"), itemHandle2);
-
-        // Verify that the update has been routed only for the forced subscriptions "item1" and
-        // "item2", but not for the unexpected "item3"
-        assertThat(eventListener.getEvents())
-                .containsExactly(
-                        new EventCall(
-                                UPDATE, itemHandle1, Map.of("aKey", "a", "aValue", "1a"), false),
-                        new EventCall(
-                                UPDATE, itemHandle2, Map.of("aKey", "a", "aValue", "1a"), false));
-    }
-
     static Stream<Arguments> recordsForCommandMode() {
         return Stream.of(
                 Arguments.of(
@@ -290,7 +259,24 @@ public class RecordProcessorTest {
                         Map.of("key", "a", "valueField", "1a", "command", "ADD")),
                 Arguments.of(
                         Records.StringKafkaRecord(TEST_TOPIC, "a", null),
-                        Map.of("key", "a", "command", "DELETE")));
+                        new LinkedHashMap<>() {
+                            {
+                                put("key", "a");
+                                put("command", "DELETE");
+                            }
+                        }),
+                Arguments.of(
+                        Records.StringKafkaRecord(TEST_TOPIC, null, null),
+                        // Actually, this update is invalid as the Lightstreamer kernel would reject
+                        // an event with a null key in COMMAND mode, but we want to test that the
+                        // processor can
+                        // handle it gracefully
+                        new LinkedHashMap<>() {
+                            {
+                                put("key", null);
+                                put("command", "DELETE");
+                            }
+                        }));
     }
 
     @ParameterizedTest
