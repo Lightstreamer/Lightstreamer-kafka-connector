@@ -89,7 +89,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      * @throws MetadataProviderException if an error occurs that prevents the correct behavior of
      *     the Metadata Adapter. This causes the Server not to complete the startup and to exit.
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#init(java.util.Map,java.io.File)">MetadataProvider.init(java.util.Map,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#init(java.util.Map,java.io.File)">MetadataProvider.init(java.util.Map,
      *     java.io.File)</a>
      */
     protected void postInit(Map params, File configDir) throws MetadataProviderException {}
@@ -346,7 +346,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *     sessionID} of a session that is not currently open or inconsistent information about the
      *     Subscription
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyNewTables(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyNewTables(java.lang.String,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyNewTables(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyNewTables(java.lang.String,
      *     java.lang.String, com.lightstreamer.interfaces.metadata.TableInfo)</a>
      */
     public void onSubscription(
@@ -366,7 +366,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *     sessionID} of a session that is not currently open or inconsistent information about the
      *     Subscription
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyTablesClose(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyTablesClose(java.lang.String,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyTablesClose(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyTablesClose(java.lang.String,
      *     com.lightstreamer.interfaces.metadata.TableInfo)</a>
      */
     public void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
