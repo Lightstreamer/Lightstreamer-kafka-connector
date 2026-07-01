@@ -47,7 +47,7 @@ import java.util.stream.Stream;
 
 public class MappedRecordTest {
 
-    static Stream<Arguments> provideRecordsForRouting() {
+    static Stream<Arguments> provideData() {
         return Stream.of(
                 Arguments.of(
                         new String[] {"schema-[key=aKey]"},
@@ -75,7 +75,7 @@ public class MappedRecordTest {
     }
 
     @ParameterizedTest
-    @MethodSource("provideRecordsForRouting")
+    @MethodSource("provideData")
     public void shouldCreateMappedRecord(
             String[] canonicalItemNames,
             Map<String, ExtractionExpression> extractionExpressions,
@@ -94,6 +94,13 @@ public class MappedRecordTest {
         assertThat(record.fieldsMap()).containsExactlyEntriesIn(expectedFieldsMap);
         assertThat(record.canonicalItemNames()).isEqualTo(canonicalItemNames);
         assertThat(record.isPayloadNull()).isEqualTo(kafkaRecord.isPayloadNull());
+
+        Set<String> fields = expectedFieldsMap.keySet();
+        for (String field : fields) {
+            Map<String, String> map = record.fieldsMapFromField(field);
+            assertThat(map).hasSize(1);
+            assertThat(map).containsEntry(field, expectedFieldsMap.get(field));
+        }
     }
 
     @Test
