@@ -5,8 +5,12 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
-      - broker
-      - producer
+      init-broker:
+        condition: service_completed_successfully
+      broker:
+        condition: service_started
+      producer:
+        condition: service_started
     ports:
       - 8080:8080
     configs:
@@ -22,10 +26,11 @@ services:
   producer:
     container_name: producer
     depends_on:
-      - broker
+      init-broker:
+        condition: service_completed_successfully
     build:
       context: producer
-    command: ["broker:29092", "Flights", "1000"]
+    command: ["broker:29092", "Flights", "5000"]
 
   broker:
     image: apache/kafka
@@ -76,42 +81,36 @@ configs:
 
               <param name="bootstrap.servers">broker:29092</param>
 
-              <param name="record.consume.from">EARLIEST</param>
               <param name="record.key.evaluator.type">STRING</param>
               <param name="record.value.evaluator.type">JSON</param>
 
               <param name="map.Flights.to">flights-board</param>
 
-              <!-- Enable support for COMMAND mode. -->
-              <param name="fields.evaluate.command.mode">EXPLICIT</param>
+              <!-- Enable support for snapshot COMMAND mode. -->
+              <param name="item.snapshot.enabled.mode">COMMAND</param>
 
               <!-- Extraction of the record value attributes mapped to corresponding field names. -->
               <param name="field.key">#{KEY}</param>
-              <param name="field.command">#{VALUE.command}</param>
-
-              <param name="field.destination">#{VALUE.destination}</param>
-              <param name="field.departure">#{VALUE.departure}</param>
+              <param name="field.destination">#{VALUE.destinationStr}</param>
+              <param name="field.scheduled">#{VALUE.scheduled}</param>
+              <param name="field.effective">#{VALUE.effective}</param>
               <param name="field.flightNo">#{KEY}</param>
               <param name="field.terminal">#{VALUE.terminal}</param>
               <param name="field.status">#{VALUE.status}</param>
               <param name="field.airline">#{VALUE.airline}</param>
-              <param name="field.currentTime">#{VALUE.currentTime}</param>
-              <param name="field.ts">#{TIMESTAMP}</param>
-              <param name="field.partition">#{PARTITION}</param>
-              <param name="field.offset">#{OFFSET}</param>
           </data_provider>
       </adapters_conf>
   log4j.properties:
     content: |
       log4j.logger.org.apache.kafka=WARN, stdout
-      log4j.logger.AirportDemo=TRACE, AirportDemo
+      log4j.logger.AirportDemo=INFO, AirportDemo
 
       log4j.appender.stdout=org.apache.log4j.ConsoleAppender
       log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
       log4j.appender.stdout.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
       log4j.appender.stdout.Target=System.out
 
-      # Airport logger appender
+      # AirportDemo logger appender
       log4j.appender.AirportDemo=org.apache.log4j.ConsoleAppender
       log4j.appender.AirportDemo.layout=org.apache.log4j.PatternLayout
       log4j.appender.AirportDemo.layout.ConversionPattern=[%d] [%-10c{1}] %-5p %m%n
