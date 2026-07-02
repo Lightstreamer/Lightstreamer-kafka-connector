@@ -31,8 +31,8 @@ The table is then kept sorted by departure time by setting the [setSort](https:/
 The mapping between Kafka topic and Lightstreamer item is one-to-one.
 
 ```xml
-<!-- Map the topic "Flights" to the "flights-board" item. -->
-<param name="map.Flights.to">flights-board</param>
+<!-- Map the topic "flights" to the "flights-board" item. -->
+<param name="map.flights.to">flights-board</param>
 ```
 
 To serve subscriptions in **COMMAND** mode, the demo activates [connector-managed snapshot](../../README.md#connector-managed-snapshot) by setting [`item.snapshot.enabled.mode`](../../README.md#itemsnapshotenabledmode) to `COMMAND`. With this setting the connector pins the subscription _Mode_ to _COMMAND_, synthesizes the `command` field for every record from per-`(item, key)` state (`ADD` the first time a key is seen, `UPDATE` afterwards, `DELETE` for tombstones), and pre-seeds the per-item row set by replaying the topic from the beginning before transitioning to realtime tailing. Late subscribers receive the materialized snapshot followed by realtime updates.
@@ -83,7 +83,7 @@ In the [`connector`](connector/) folder, we found the configuration files needed
 
 ### Kafka cluster
 
-The demo needs a Kafka cluster where a topic `Flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).
+The demo needs a Kafka cluster where a topic `flights` is created. You can use either a locally installed instance of Kafka in your environment, starting perhaps from the latest release of Apache Kafka as explained [here](https://kafka.apache.org/quickstart), or an installation of Confluent Platform (you can find a quickstart [here](https://docs.confluent.io/platform/current/platform-quickstart.html)). Alternatively, you can use one of the cloud services that offer fully managed services such as [Confluent Cloud](https://docs.confluent.io/cloud/current/get-started/index.html) or [AWS MSK](https://aws.amazon.com/msk/?nc2=type_a).
 Based on this choice, you will need to modify the [`adapters.xml`](connector/adapters.xml) files accordingly, particularly the `bootstrap server` parameter. The proposed configuration assumes a local Kafka installation that does not require authentication or the use of TLS communication:
 
 ```xml
@@ -105,7 +105,7 @@ However, in more complex scenarios where authentication and TLS need to be set u
 The demo pairs connector-managed _COMMAND_ snapshot with a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic. Compaction is the natural source for this snapshot shape: since the demo uses the flight number as the record key, the Kafka cluster retains only the latest record per key, which is exactly what the connector needs to reconstruct the current departures board when a late subscriber joins. Tombstones (null-payload records used here to remove a flight from the board) are preserved by compaction long enough for the connector to translate them into `DELETE` operations.
 Further details on the compaction mechanism can be found [here](https://developer.confluent.io/courses/architecture/compaction/#).
 
-To configure our `Flights` topic to be managed in a compacted manner, the following steps are necessary:
+To configure our `flights` topic to be managed in a compacted manner, the following steps are necessary:
 
 1. Set up the Kafka cluster to support this mode, ensuring that the `server.properties` file contains this setting:
    ```java
@@ -114,13 +114,13 @@ To configure our `Flights` topic to be managed in a compacted manner, the follow
 
 2. Create the topic with the following configurations:
    ```sh
-   $ ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic Flights \
+   $ ./bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --topic flights \
               --replication-factor 1 \
               --partitions 1 \
               --config cleanup.policy=compact \
               --config segment.ms=30000
 
-   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name Flights --describe
+   $ ./bin/kafka-configs.sh --bootstrap-server localhost:9092 --entity-type topics --entity-name flights --describe
    ```
 
 ### Lightstreamer Broker
@@ -154,12 +154,12 @@ $ ./build.sh
 Either way, the command generates the _uber_ jar. Then, you can start the simulator producer loop with this command:
 
 ```sh
-$ java -jar build/libs/example-kafka-connector-demo-publisher-2.0.0-all.jar localhost:9092 Flights 1000
+$ java -jar build/libs/airport-demo-producer-2.0.0-all.jar localhost:9092 flights 1000
 ```
 
 where:
 - `localhost:9092` is the bootstrap string for connecting to Kafka and for which the same considerations made above apply.
-- `Flights` is the topic name used to produce the messages with simulated flights info.
+- `flights` is the topic name used to produce the messages with simulated flights info.
 - `1000` is the upper bound, in milliseconds, of the random pause between the generation of one simulated event and the next.
 
 ### Web client
@@ -208,7 +208,8 @@ To simplify the setup, we have also provided two different Docker Compose files 
      $ ./start_demo_redpanda.sh
      ...
       ✔ Network airport-demo-redpanda_default  Created
-      ✔ Container redpanda                     Started
+      ✔ Container redpanda                     Healthy
+      ✔ Container createtopic                  Exited 
       ✔ Container redpanda-console             Started
       ✔ Container producer                     Started
       ✔ Container kafka-connector              Started
