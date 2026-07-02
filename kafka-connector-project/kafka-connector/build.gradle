@@ -117,7 +117,7 @@ javadoc {
     include '**/pub/KafkaConnectorMetadataAdapter.java'
     exclude '**/pub/*ConnectionInfo*'
     destinationDir = externalJavadocDir
-    outputs.dir(externalJavadocDir)  
+    outputs.dir(externalJavadocDir)
     options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
     options.overview = "src/doc/overview.html"
     options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api")
