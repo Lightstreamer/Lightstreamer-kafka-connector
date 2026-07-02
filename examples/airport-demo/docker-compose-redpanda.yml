@@ -31,7 +31,7 @@ services:
   
     build:
       context: producer
-    command: ["redpanda:9092", "Flights", "1000"]      
+    command: ["redpanda:9092", "flights", "1000"]      
 
   redpanda:
     command:
@@ -104,7 +104,7 @@ services:
     command:
       - topic
       - create
-      - Flights
+      - flights
       - -X brokers=redpanda:9092
     image: docker.redpanda.com/redpandadata/redpanda:v26.1.12
     depends_on:
@@ -129,7 +129,7 @@ configs:
               <param name="record.key.evaluator.type">STRING</param>
               <param name="record.value.evaluator.type">JSON</param>
 
-              <param name="map.Flights.to">flights-board</param>
+              <param name="map.flights.to">flights-board</param>
 
               <!-- Enable support for snapshot COMMAND mode. -->
               <param name="item.snapshot.enabled.mode">COMMAND</param>
