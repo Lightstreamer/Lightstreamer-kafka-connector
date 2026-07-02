@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.0.0] (2026-07-02)
+
+> Upgrading from 1.x? See the [Migration guide](MIGRATION.md#migrating-from-1x-to-20).
+
+**Breaking Changes**
+
+- **Connector-managed snapshot replaces explicit COMMAND-mode parameters**: The boolean parameters `fields.evaluate.as.command.enable` (introduced in [1.2.4](#124-2025-04-08)) and `fields.auto.command.mode.enable` (introduced in [1.3.2](#132-2026-01-26)) have been removed and superseded by the unified [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) parameter. _COMMAND_ mode is now activated via `item.snapshot.enabled.mode = COMMAND`, which also enables connector-managed snapshot for the affected items. Manual _COMMAND_-mode subscriptions without connector-managed snapshot remain supported by mapping both `field.key` and `field.command` explicitly while leaving `item.snapshot.enabled.mode` at its default `NONE`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Removed special-case snapshot signaling records**: The convention of injecting Kafka records with `key = snapshot` and `command ∈ {CS, EOS}` to drive snapshot lifecycle from the topic side — only meaningful in combination with `fields.evaluate.as.command.enable = true` (introduced in [1.2.4](#124-2025-04-08)) — has been removed. Snapshot lifecycle is now managed entirely by the connector based on [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode). ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **`record.consume.from` and `record.extraction.error.strategy` semantics under snapshot**: When [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) is set to any value other than `NONE`, the connector manages partition positions explicitly (newly assigned partitions seek to beginning; re-assigned partitions resume from committed offset), making [`record.consume.from`](README.md#recordconsumefrom) ineffective; and [`record.extraction.error.strategy`](README.md#recordextractionerrorstrategy) is forced to `IGNORE_AND_CONTINUE`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Minimum Lightstreamer Broker version bumped to 7.4.8**: The connector now requires [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) version 7.4.8 or newer, as the new connector-managed snapshot feature relies on APIs introduced in that release. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**New Features**
+
+- **Connector-managed snapshot**: Introduced first-class support for connector-managed snapshot via the new [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) parameter, with one mode per Lightstreamer subscription _Mode_:
+
+  - **`MERGE`** — pins subscription _Mode_ to _MERGE_; per-item store keeps the latest value; snapshot is a single event per item. See [MERGE snapshot](README.md#merge-snapshot).
+  - **`DISTINCT`** — pins subscription _Mode_ to _DISTINCT_; per-item store is a FIFO bounded by [`item.snapshot.distinct.length`](README.md#itemsnapshotdistinctlength); snapshot replays the most recent events in publish order. See [DISTINCT snapshot](README.md#distinct-snapshot).
+  - **`COMMAND`** — pins subscription _Mode_ to _COMMAND_; the connector synthesizes the `command` field (`ADD` / `UPDATE` / `DELETE`) from per-`(item, key)` state and tombstones; snapshot is the full row set currently materialized for the item. See [COMMAND snapshot](README.md#command-snapshot).
+
+  When activated, the internal Kafka consumer starts eagerly at bind time, replays the topic from the beginning to pre-seed the Lightstreamer Server per-item store, then transitions to realtime tailing. Late subscribers receive the materialized snapshot followed by realtime updates. See [Snapshot management](README.md#snapshot-management) and [Connector-managed snapshot](README.md#connector-managed-snapshot). ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **DISTINCT snapshot length parameter**: Added the new [`item.snapshot.distinct.length`](README.md#itemsnapshotdistinctlength) parameter (positive integer, default `10`) to cap the per-item FIFO when `item.snapshot.enabled.mode = DISTINCT`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Per-item idle expiration**: Added the new [`item.snapshot.max.idle.seconds`](README.md#itemsnapshotmaxidleseconds) parameter (non-negative integer; `0` disables) to discard the snapshot of an item after a configurable idle period, so that the next incoming record starts a fresh one. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Improvements**
+
+- **Poison-pill tolerance**: A single malformed record no longer aborts consumption. Records that fail deserialization are individually skipped and logged at WARN level (with topic, partition, and offset), and consumption continues with the remaining good records. As a safety net, when _all_ records in a non-empty batch fail — a pattern indicating a systemic misconfiguration (e.g., wrong deserializer) rather than isolated corrupt records — the connector fails fast instead. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded _Gradle_ to version 9.6.1. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Third-Party Library Updates**
+
+- Upgraded the `ls-adapter-inprocess` SDK dependency to version 8.1.0. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the base Lightstreamer Docker image to version 7.4.8. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the `slf4j-reload4j` dependency to version 2.0.18. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the _Spotless plugin for Gradle_ dependency to version 8.8.0. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Examples and Documentation**
+
+- **Snapshot management documentation**: Added the new [Snapshot management](README.md#snapshot-management) chapter covering the default `NONE` behavior, the connector-managed snapshot lifecycle, per-_Mode_ snapshot shape, extraction-layout rules for snapshot correctness, idle expiration, and caveats; plus a new [Item snapshot settings](README.md#item-snapshot-settings) parameter reference. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **COMMAND mode field mapping documentation**: Added the new [COMMAND mode field mapping](README.md#command-mode-field-mapping) subsection describing both routes — connector-managed snapshot (`item.snapshot.enabled.mode = COMMAND`, with synthesized `command` field) and manual mapping (`field.command` mapped explicitly, default `NONE` snapshot mode) — and the trade-offs between them. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) with the new `item.snapshot.*` parameters and aligned `field.key` / `field.command` documentation. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Airport Demo overhaul**: Updated the [Airport Demo](examples/airport-demo/) to showcase _COMMAND_-mode connector-managed snapshot, alongside a broader rewrite of the demo producer, its JSON payload schema, and the corresponding [`adapters.xml`](examples/airport-demo/connector/adapters.xml) field mappings; the [demo README](examples/airport-demo/README.md) has been re-aligned accordingly. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Sample producer Maven coordinates**: The Maven `group` published to _GitHub Packages_ has been unified to `com.lightstreamer.kafka.examples` for both sample producer projects — [`quickstart-producer`](examples/quickstart-producer/) (previously `com.lightstreamer.kafka`) and the airport-demo producer [`example-kafka-connector-demo-publisher`](examples/airport-demo/producer/) (previously `com.lightstreamer.examples`). Consumers pinning the old coordinates must update them. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Quickstart Compose modernization**: Rewrote every quickstart `docker-compose.yml` to the long-form [`depends_on`](https://docs.docker.com/compose/compose-file/05-services/#depends_on) syntax with explicit `condition:` clauses; added broker healthchecks where the broker image supports them (Redpanda-based quickstarts); upgraded the bundled [Redpanda Console](https://docs.redpanda.com/current/manage/console/) image from `v2.4.5` to `v3.8.0` and migrated its embedded config to the v3 schema. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Applied style and formatting consistency pass across all updated `README.md` files (root, `docker/`, `examples/`, and every `examples/**/README.md`) and across the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml): unified heading hierarchy and Table of Contents indentation, parameter naming and link conventions, code-block fencing, and inline-code styling for parameters, values, and identifiers. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+
 ## [1.5.2] (2026-04-16)
 
 **Bug Fixes**
@@ -56,7 +117,7 @@
 
 **Third-Party Library Updates**
 
-- Upgraded the _Spotless Plugin for Gradle_ dependency to version 8.3.0. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- Upgraded the _Spotless plugin for Gradle_ dependency to version 8.3.0. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
 
 ## [1.4.1] (2026-02-27)
@@ -245,7 +306,7 @@
 
 **Bug Fixes**
 
-- Updated the [Airport demo](examples/airport-demo/) example to load the Lightstreamer library from _https_. ([#53](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/53))
+- Updated the [Airport Demo](examples/airport-demo/) example to load the Lightstreamer library from _https_. ([#53](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/53))
 
 - Fixed consumer loop blockage that occurred when errors happened during the commit stage while being notified about partition revocation. ([#54](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/54))
 
@@ -270,7 +331,7 @@
 **Improvements**
 
 - Added support for [COMMAND mode](README.md#evaluate-as-command-fieldsevaluateascommandenable). ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
-- Updated the [Airport demo](examples/airport-demo/) to use COMMAND mode. ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
+- Updated the [Airport Demo](examples/airport-demo/) to use COMMAND mode. ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
 
 
 ## [1.2.3] (2025-04-01)
@@ -322,7 +383,7 @@
 
 - Fixed unit tests to support version numbers that may include pre-release identifiers. ([#38](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/38))
 
-- Fixed the Docker build in the Airport demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
+- Fixed the Docker build in the Airport Demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
 
 - Fixed the name of the [`record.mappings`](README.md#recordmappings) parameter. ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
 
