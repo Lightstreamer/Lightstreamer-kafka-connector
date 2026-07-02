@@ -1503,7 +1503,7 @@ The synthesis above is tied to `item.snapshot.enabled.mode = COMMAND`. When snap
 ```
 
 > [!IMPORTANT]
-> Both mappings are required: the Lightstreamer Server enforces `key` and `command` as the two mandatory fields of a _COMMAND_-mode item and **discards** any update in which either is missing or extracts to `null` (a `WARN` log is emitted for each dropped update, but no error is surfaced to the client at subscription time).
+> Both mappings are required: the Lightstreamer Server enforces `key` and `command` as the two mandatory fields of a _COMMAND_-mode item and **discards** any update in which either is missing or extracts to `null` (a `ERROR` log is emitted for each dropped update, but no error is surfaced to the client).
 
 This route fits pipelines that already emit explicit `ADD`/`UPDATE`/`DELETE` op-codes (typical of CDC). Tombstone records cannot signal deletion (no `VALUE.op` to extract), and late subscribers see an empty table until realtime activity arrives. For the "latest state per key, deletion via tombstone, full row set on subscribe" shape, prefer `item.snapshot.enabled.mode = COMMAND`.
 
