@@ -30,7 +30,7 @@ services:
         condition: service_completed_successfully
     build:
       context: producer
-    command: ["broker:29092", "Flights", "5000"]
+    command: ["broker:29092", "flights", "5000"]
 
   broker:
     image: apache/kafka
@@ -61,7 +61,7 @@ services:
   init-broker:
     container_name: init-broker
     image: apache/kafka
-    command: /opt/kafka/bin/kafka-topics.sh --create --topic Flights --bootstrap-server broker:29092 --config cleanup.policy=compact
+    command: /opt/kafka/bin/kafka-topics.sh --create --topic flights --bootstrap-server broker:29092 --config cleanup.policy=compact
     depends_on:
         broker:
             condition: service_started
@@ -84,7 +84,7 @@ configs:
               <param name="record.key.evaluator.type">STRING</param>
               <param name="record.value.evaluator.type">JSON</param>
 
-              <param name="map.Flights.to">flights-board</param>
+              <param name="map.flights.to">flights-board</param>
 
               <!-- Enable support for snapshot COMMAND mode. -->
               <param name="item.snapshot.enabled.mode">COMMAND</param>
