@@ -1430,6 +1430,9 @@ The synthesis above is tied to `item.snapshot.enabled.mode = COMMAND`. When snap
 <param name="field.command">#{VALUE.op}</param>
 ```
 
+> [!IMPORTANT]
+> Both mappings are required: the Lightstreamer Server enforces `key` and `command` as the two mandatory fields of a _COMMAND_-mode item and **discards** any update in which either is missing or extracts to `null` (a `WARN` log is emitted for each dropped update, but no error is surfaced to the client at subscription time).
+
 This route fits pipelines that already emit explicit `ADD`/`UPDATE`/`DELETE` op-codes (typical of CDC). Tombstone records cannot signal deletion (no `VALUE.op` to extract), and late subscribers see an empty table until realtime activity arrives. For the "latest state per key, deletion via tombstone, full row set on subscribe" shape, prefer `item.snapshot.enabled.mode = COMMAND`.
 
 #### Dynamic field discovery (`field.*`)
@@ -1632,7 +1635,51 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-#### Example
+#### Example 1
+
+Consider the following configuration:
+
+```xml
+<param name="item-template.currencyPair">pair-#{symbol=KEY}</param>
+<param name="map.forex.to">item-template.currencyPair</param>
+```
+
+which specifies how to route records from the topic `forex`, whose Kafka key is the currency-pair symbol (e.g. `EURUSD`, `GBPUSD`, `USDJPY`), to the item template `currencyPair`. The template binds the single parameter `symbol` to the Kafka key, so each subscribed item targets exactly one currency pair.
+
+Let's suppose we have two different Lightstreamer clients:
+
+1. _Client A_ subscribes to two parameterized items:
+   - _SA1_ `pair-[symbol=EURUSD]` for receiving real-time updates relative to the `EUR/USD` pair.
+   - _SA2_ `pair-[symbol=EURGBP]` for receiving real-time updates relative to the `EUR/GBP` pair.
+2. _Client B_ subscribes to the parameterized item _SB1_ `pair-[symbol=USDJPY]` for receiving real-time updates relative to the `USD/JPY` pair.
+
+Now, let's see how filtered routing works for the following incoming Kafka records from the topic `forex`:
+
+- **Record 1** — key `EURUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURUSD]` | _SA1_                   | _Client A_       |
+
+- **Record 2** — key `USDJPY`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=USDJPY]` | _SB1_                   | _Client B_       |
+
+- **Record 3** — key `GBPUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=GBPUSD]` | _None_                  | _None_           |
+
+- **Record 4** — key `EURGBP`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURGBP]` | _SA2_                   | _Client A_       |
+
+#### Example 2
 
 Consider the following configuration:
 
