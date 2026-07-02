@@ -53,7 +53,7 @@ public class LsClient implements Runnable {
     @Option(
             names = "--subscription-mode",
             description = "The subscription mode",
-            defaultValue = "RAW")
+            defaultValue = "MERGE")
     private String subscriptionMode;
 
     @Option(
@@ -80,6 +80,7 @@ public class LsClient implements Runnable {
                 sb.append(", ");
             }
         }
+        sb.append(", isSnapshot = %s");
         sb.append("]");
         return sb.toString();
     }
@@ -98,7 +99,7 @@ public class LsClient implements Runnable {
                             args.add(fields[entry.getKey() - 1]);
                             args.add(entry.getValue());
                         }
-
+                        args.add(obj.isSnapshot());
                         String update = eventRow.formatted(args.toArray());
                         System.out.printf("Update: %s%n", update);
                     } catch (RuntimeException e) {

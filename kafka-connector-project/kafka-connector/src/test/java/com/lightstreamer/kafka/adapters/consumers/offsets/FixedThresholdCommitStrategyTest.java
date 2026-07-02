@@ -25,11 +25,11 @@ import org.junit.jupiter.params.provider.CsvSource;
 
 public class FixedThresholdCommitStrategyTest {
 
-    private Offsets.CommitStrategy strategy;
+    private CommitStrategy strategy;
 
     @BeforeEach
     public void setUp() {
-        this.strategy = Offsets.CommitStrategy.fixedCommitStrategy(5000, 100_000);
+        this.strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
     }
 
     @ParameterizedTest

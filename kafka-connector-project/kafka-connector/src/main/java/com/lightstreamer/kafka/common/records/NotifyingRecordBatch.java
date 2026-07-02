@@ -30,11 +30,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * a completion listener when all records have been processed. It does not support synchronous
  * waiting via {@link #join()}.
  *
- * <p><b>Use case:</b> High-throughput asynchronous processing where completion is signaled via
- * listener notification rather than blocking waits. Lower synchronization overhead than {@link
- * JoinableRecordBatch}.
+ * <p><strong>Use case:</strong> High-throughput asynchronous processing where completion is
+ * signaled via listener notification rather than blocking waits. Lower synchronization overhead
+ * than {@link JoinableRecordBatch}.
  *
- * <p><b>Thread Safety:</b> Safe for concurrent calls to {@link
+ * <p><strong>Thread Safety:</strong> Safe for concurrent calls to {@link
  * #recordProcessed(RecordBatch.RecordBatchListener)} from multiple worker threads.
  *
  * @param <K> the type of the record key
@@ -45,7 +45,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
 
     private final List<KafkaRecord<K, V>> records;
     private final AtomicInteger processedCount = new AtomicInteger(0);
-    private final int recordCount;
+    private int recordCount;
 
     /**
      * Constructs a new {@code NotifyingRecordBatch} with the specified capacity.
@@ -65,7 +65,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * @param record the raw Kafka consumer record
      * @param deserializerPair the deserializers for key and value
      */
-    void addEagerRecord(
+    final void addEagerRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
         this.records.add(KafkaRecord.fromEager(record, deserializerPair, this));
@@ -79,39 +79,49 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * @param record the raw Kafka consumer record
      * @param deserializerPair the deserializers for key and value
      */
-    void addDeferredRecord(
+    final void addDeferredRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
         this.records.add(KafkaRecord.fromDeferred(record, deserializerPair, this));
     }
 
     @Override
-    public List<KafkaRecord<K, V>> getRecords() {
+    public final List<KafkaRecord<K, V>> getRecords() {
         return records;
     }
 
     @Override
-    public boolean isEmpty() {
+    public final boolean isEmpty() {
         return recordCount == 0;
     }
 
     @Override
-    public int count() {
+    public final int count() {
         return recordCount;
     }
 
     @Override
-    public void validate() {
+    public final void validate() {
         if (records.size() != recordCount) {
             throw new IllegalStateException(
                     "Expected " + recordCount + " records but got " + records.size());
         }
     }
 
+    /**
+     * Adjusts the expected record count to match the actual number of records added.
+     *
+     * <p>This is used after eager deserialization when some records are skipped due to
+     * deserialization errors, so that the completion tracking reflects the actual batch size.
+     */
+    void shrink() {
+        this.recordCount = records.size();
+    }
+
     @Override
-    public void recordProcessed(RecordBatchListener monitor) {
+    public void recordProcessed(RecordBatchListener listener) {
         if (processedCount.incrementAndGet() == recordCount) {
-            monitor.onBatchComplete(this);
+            listener.onBatchComplete(this);
         }
     }
 }

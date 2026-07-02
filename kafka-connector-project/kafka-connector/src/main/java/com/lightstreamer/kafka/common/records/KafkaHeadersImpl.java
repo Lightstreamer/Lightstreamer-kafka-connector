@@ -51,7 +51,7 @@ class KafkaHeadersImpl implements KafkaHeaders {
     private final Map<String, List<KafkaHeader>> headersMap = new HashMap<>();
 
     /**
-     * Constructs a {@link KafkaHeadersImpl} from Kafka Consumer API headers.
+     * Constructs a {@code KafkaHeadersImpl} from Kafka Consumer API headers.
      *
      * @param headers the Kafka Consumer API headers
      */
@@ -60,7 +60,7 @@ class KafkaHeadersImpl implements KafkaHeaders {
     }
 
     /**
-     * Constructs a {@link KafkaHeadersImpl} from Kafka Connect headers.
+     * Constructs a {@code KafkaHeadersImpl} from Kafka Connect headers.
      *
      * @param headers the Kafka Connect headers
      */

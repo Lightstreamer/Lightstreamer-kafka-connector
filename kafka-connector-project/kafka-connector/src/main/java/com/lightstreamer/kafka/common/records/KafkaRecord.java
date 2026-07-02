@@ -24,6 +24,8 @@ import org.apache.kafka.connect.sink.SinkRecord;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 /**
  * A generic interface representing a Kafka record with typed key and value.
  *
@@ -166,8 +168,26 @@ public interface KafkaRecord<K, V> {
     public static <K, V> KafkaRecord<K, V> fromDeferred(
             ConsumerRecord<byte[], byte[]> record,
             DeserializerPair<K, V> deserializerPair,
-            RecordBatch<K, V> batch) {
+            @Nullable RecordBatch<K, V> batch) {
         return new DeferredKafkaConsumerRecord<>(record, deserializerPair, batch);
+    }
+
+    /**
+     * Creates a {@link KafkaRecord} with deferred deserialization and no batch association.
+     *
+     * <p>Convenience overload of {@link #fromDeferred(ConsumerRecord, DeserializerPair,
+     * RecordBatch)} for records that are not part of a processing batch.
+     *
+     * @param <K> the type of the deserialized key
+     * @param <V> the type of the deserialized value
+     * @param record the raw Kafka consumer record with byte array key and value
+     * @param deserializerPair the pair of deserializers for key and value
+     * @return a new {@link KafkaRecord} with deferred deserialization
+     * @see DeferredKafkaConsumerRecord
+     */
+    public static <K, V> KafkaRecord<K, V> fromDeferred(
+            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
+        return fromDeferred(record, deserializerPair, null);
     }
 
     /**
@@ -187,8 +207,26 @@ public interface KafkaRecord<K, V> {
     public static <K, V> KafkaRecord<K, V> fromEager(
             ConsumerRecord<byte[], byte[]> record,
             DeserializerPair<K, V> deserializerPair,
-            RecordBatch<K, V> batch) {
+            @Nullable RecordBatch<K, V> batch) {
         return new EagerKafkaConsumerRecord<>(record, deserializerPair, batch);
+    }
+
+    /**
+     * Creates a {@link KafkaRecord} with eager deserialization and no batch association.
+     *
+     * <p>Convenience overload of {@link #fromEager(ConsumerRecord, DeserializerPair, RecordBatch)}
+     * for records that are not part of a processing batch.
+     *
+     * @param <K> the type of the deserialized key
+     * @param <V> the type of the deserialized value
+     * @param record the raw Kafka consumer record with byte array key and value
+     * @param deserializerPair the pair of deserializers for key and value
+     * @return a new {@link KafkaRecord} with eager deserialization
+     * @see EagerKafkaConsumerRecord
+     */
+    public static <K, V> KafkaRecord<K, V> fromEager(
+            ConsumerRecord<byte[], byte[]> record, DeserializerPair<K, V> deserializerPair) {
+        return fromEager(record, deserializerPair, null);
     }
 
     /**
@@ -300,5 +338,5 @@ public interface KafkaRecord<K, V> {
      *
      * @return the parent {@link RecordBatch}, or {@code null} if not associated with a batch
      */
-    RecordBatch<K, V> getBatch();
+    @Nullable RecordBatch<K, V> getBatch();
 }

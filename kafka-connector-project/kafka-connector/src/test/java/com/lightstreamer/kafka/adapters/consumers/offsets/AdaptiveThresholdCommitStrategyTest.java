@@ -19,8 +19,6 @@ package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.CommitStrategy;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

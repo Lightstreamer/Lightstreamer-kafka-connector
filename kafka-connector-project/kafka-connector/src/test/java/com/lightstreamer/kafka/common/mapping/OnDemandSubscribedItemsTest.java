@@ -18,23 +18,27 @@
 package com.lightstreamer.kafka.common.mapping;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.common.mapping.Items.subscribedFrom;
+import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
+import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
-public class SubscribedItemsTest {
+public class OnDemandSubscribedItemsTest {
 
-    private SubscribedItems subscribedItems;
+    private OnDemandSubscribedItems subscribedItems;
 
     @BeforeEach
     public void setUp() {
-        this.subscribedItems = SubscribedItems.create();
+        this.subscribedItems = SubscribedItems.onDemand();
     }
 
     @Test
@@ -45,8 +49,10 @@ public class SubscribedItemsTest {
 
     @Test
     public void shouldAddAndRetrieveSimpleItems() {
-        SubscribedItem testItem1 = Items.subscribedFrom("item1");
-        SubscribedItem testItem2 = Items.subscribedFrom("item2");
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
+        OnDemandSubscribedItem testItem2 =
+                Items.onDemandSubscribedFrom(Subscription("item2"), new Object());
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
         assertThat(subscribedItems.isEmpty()).isFalse();
@@ -56,11 +62,17 @@ public class SubscribedItemsTest {
 
         assertThat(subscribedItems.getItem("item1")).isSameInstanceAs(testItem1);
         assertThat(subscribedItems.getItem("item2")).isSameInstanceAs(testItem2);
+
+        List<SubscribedItem> items = new ArrayList<>();
+        subscribedItems.forEach(items::add);
+
+        assertThat(items).containsExactly(testItem1, testItem2);
     }
 
     @Test
     public void shouldAddAndRetrieveCanonicalItems() {
-        SubscribedItem testItem1 = Items.subscribedFrom("item-[b=2,a=1]");
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item-[b=2,a=1]"), new Object());
         subscribedItems.addItem(testItem1);
 
         // Retrieve the item from its canonical representation
@@ -69,8 +81,10 @@ public class SubscribedItemsTest {
 
     @Test
     public void shouldReplaceItemWhenAddingDuplicate() {
-        SubscribedItem testItem1 = Items.subscribedFrom("item1");
-        SubscribedItem testItem1Duplicate = Items.subscribedFrom("item1");
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
+        OnDemandSubscribedItem testItem1Duplicate =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
 
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
@@ -78,6 +92,11 @@ public class SubscribedItemsTest {
         assertThat(subscribedItems.size()).isEqualTo(1);
 
         assertThat(subscribedItems.getItem("item1")).isSameInstanceAs(testItem1Duplicate);
+
+        List<SubscribedItem> items = new ArrayList<>();
+        subscribedItems.forEach(items::add);
+
+        assertThat(items).containsExactly(testItem1Duplicate);
     }
 
     @Test
@@ -87,34 +106,26 @@ public class SubscribedItemsTest {
 
     @Test
     public void shouldRemoveExistingItem() {
-        SubscribedItem testItem1 = Items.subscribedFrom("item1");
+        OnDemandSubscribedItem testItem1 =
+                Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         subscribedItems.addItem(testItem1);
         assertThat(subscribedItems.size()).isEqualTo(1);
-        Optional<SubscribedItem> removed = subscribedItems.removeItem("item1");
+        Optional<OnDemandSubscribedItem> removed = subscribedItems.removeItem("item1");
         assertThat(subscribedItems.size()).isEqualTo(0);
         assertThat(subscribedItems.isEmpty()).isTrue();
 
         assertThat(removed).hasValue(testItem1);
         assertThat(subscribedItems.getItem("item1")).isNull();
+
+        List<SubscribedItem> items = new ArrayList<>();
+        subscribedItems.forEach(items::add);
+
+        assertThat(items).isEmpty();
     }
 
     @Test
     public void shouldReturnNullWhenRemovingNonExistentItem() {
-        Optional<SubscribedItem> removed = subscribedItems.removeItem("nonexistent");
+        Optional<OnDemandSubscribedItem> removed = subscribedItems.removeItem("nonexistent");
         assertThat(removed).isEmpty();
-    }
-
-    @Test
-    public void shouldNotManageSubscriptionsFromNop() {
-        SubscribedItems subscribedItems = SubscribedItems.nop();
-
-        SubscribedItem item = subscribedFrom("anItem");
-        subscribedItems.addItem(item);
-        assertThat(subscribedItems.getItem("anItem")).isNull();
-        assertThat(subscribedItems.isEmpty()).isTrue();
-        assertThat(subscribedItems.size()).isEqualTo(0);
-
-        Optional<SubscribedItem> removedItem = subscribedItems.removeItem("anItem");
-        assertThat(removedItem).isEmpty();
     }
 }

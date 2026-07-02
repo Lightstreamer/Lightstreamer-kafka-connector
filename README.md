@@ -4,11 +4,11 @@
 _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, anywhere. Scale Kafka to millions of clients._
 
 - [Introduction](#introduction)
-  - [Last-Mile Integration](#last-mile-integration)
-  - [Intelligent Streaming](#intelligent-streaming)
-  - [Comprehensive Client SDKs](#comprehensive-client-sdks)
-  - [Massive Scalability](#massive-scalability)
-  - [Other Features](#other-features)
+  - [Last-mile integration](#last-mile-integration)
+  - [Intelligent streaming](#intelligent-streaming)
+  - [Comprehensive client SDKs](#comprehensive-client-sdks)
+  - [Massive scalability](#massive-scalability)
+  - [Other features](#other-features)
 - [Architecture](#architecture)
   - [Kafka Client vs. Kafka Connect](#kafka-client-vs-kafka-connect)
     - [Lightstreamer Kafka Connector as a Kafka Client](#lightstreamer-kafka-connector-as-a-kafka-client)
@@ -16,52 +16,65 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
 - [QUICK START: Set up in 5 minutes](#quick-start-set-up-in-5-minutes)
   - [Run](#run)
 - [Deployment](#deployment)
-  - [Manual Deployment](#manual-deployment)
+  - [Manual deployment](#manual-deployment)
     - [Requirements](#requirements)
     - [Install](#install)
     - [Configure](#configure)
     - [Start](#start)
-  - [Docker-based Deployment](#docker-based-deployment)
+  - [Docker-based deployment](#docker-based-deployment)
     - [Requirements](#requirements-1)
-    - [Get the Image](#get-the-image)
+    - [Get the image](#get-the-image)
     - [Configure](#configure-1)
     - [Start](#start-1)
-  - [Kubernetes Deployment](#kubernetes-deployment)
-  - [End-to-End Streaming](#end-to-end-streaming)
-    - [Connect a Kafka Producer](#connect-a-kafka-producer)
-    - [Connect a Lightstreamer Consumer](#connect-a-lightstreamer-consumer)
-      - [Connect a Browser-based Consumer](#connect-a-browser-based-consumer)
-      - [Connect a Java Consumer](#connect-a-java-consumer)
+  - [Kubernetes deployment](#kubernetes-deployment)
+  - [End-to-end streaming](#end-to-end-streaming)
+    - [Connect a Kafka producer](#connect-a-kafka-producer)
+    - [Connect a Lightstreamer consumer](#connect-a-lightstreamer-consumer)
+      - [Connect a browser-based consumer](#connect-a-browser-based-consumer)
+      - [Connect a Java consumer](#connect-a-java-consumer)
 - [Configuration](#configuration)
-  - [Global Settings](#global-settings)
-  - [Connection Settings](#connection-settings)
-    - [General Parameters](#general-parameters)
-    - [Encryption Parameters](#encryption-parameters)
-    - [Broker Authentication Parameters](#broker-authentication-parameters)
-  - [Record Processing](#record-processing)
-  - [Topic Mapping](#topic-mapping)
-    - [Data Extraction Language](#data-extraction-language)
-    - [Record Routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
-    - [Record Mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
-    - [Filtered Record Routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
+  - [Global settings](#global-settings)
+  - [Connection settings](#connection-settings)
+    - [General parameters](#general-parameters)
+    - [Encryption parameters](#encryption-parameters)
+    - [Kafka broker authentication parameters](#kafka-broker-authentication-parameters)
+  - [Record processing](#record-processing)
+  - [Topic mapping](#topic-mapping)
+    - [Data extraction language](#data-extraction-language)
+    - [Record routing (`map.TOPIC_NAME.to`)](#record-routing-maptopic_nameto)
+    - [Record mapping (`field.FIELD_NAME`)](#record-mapping-fieldfield_name)
+    - [Filtered record routing (`item-template.TEMPLATE_NAME`)](#filtered-record-routing-item-templatetemplate_name)
+  - [Item snapshot settings](#item-snapshot-settings)
+    - [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode)
+    - [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength)
+    - [`item.snapshot.max.idle.seconds`](#itemsnapshotmaxidleseconds)
   - [Schema Registry](#schema-registry)
     - [`schema.registry.provider`](#schemaregistryprovider)
     - [`schema.registry.url`](#schemaregistryurl)
-    - [Confluent Schema Registry Parameters](#confluent-schema-registry-parameters)
-      - [Basic HTTP Authentication Parameters](#basic-http-authentication-parameters)
-      - [Encryption Parameters](#encryption-parameters-1)
-      - [Confluent Schema Registry Quickstart](#confluent-schema-registry-quickstart)
-    - [Azure Schema Registry Parameters](#azure-schema-registry-parameters)
-- [Client Side Error Handling](#client-side-error-handling)
-- [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class)
-  - [Develop the Extension](#develop-the-extension)
+    - [Confluent Schema Registry parameters](#confluent-schema-registry-parameters)
+      - [Basic HTTP authentication parameters](#basic-http-authentication-parameters)
+      - [Encryption parameters](#encryption-parameters-1)
+      - [Confluent Schema Registry quickstart](#confluent-schema-registry-quickstart)
+    - [Azure Schema Registry parameters](#azure-schema-registry-parameters)
+- [Subscription modes](#subscription-modes)
+- [Snapshot management](#snapshot-management)
+  - [Default behavior (NONE)](#default-behavior-none)
+  - [Connector-managed snapshot](#connector-managed-snapshot)
+    - [MERGE snapshot](#merge-snapshot)
+    - [DISTINCT snapshot](#distinct-snapshot)
+    - [COMMAND snapshot](#command-snapshot)
+    - [Idle expiration](#idle-expiration)
+    - [Caveats](#caveats)
+- [Client-side error handling](#client-side-error-handling)
+- [Customizing the Kafka Connector Metadata Adapter class](#customizing-the-kafka-connector-metadata-adapter-class)
+  - [Develop the extension](#develop-the-extension)
 - [Kafka Connect Lightstreamer Sink Connector](#kafka-connect-lightstreamer-sink-connector)
   - [Usage](#usage)
-    - [Lightstreamer Setup](#lightstreamer-setup)
+    - [Lightstreamer setup](#lightstreamer-setup)
     - [Running](#running)
     - [Running in Docker](#running-in-docker)
-  - [Supported Converters](#supported-converters)
-  - [Configuration Reference](#configuration-reference)
+  - [Supported converters](#supported-converters)
+  - [Configuration reference](#configuration-reference)
 - [Docs](#docs)
 - [Examples](#examples)
 
@@ -69,7 +82,7 @@ _Last-mile data streaming. Stream real-time Kafka data to mobile and web apps, a
 
 Is your product struggling to deliver Kafka events to remote users? The [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/) is an intelligent proxy that bridges the gap, providing seamless, real-time data streaming to web and mobile applications with unmatched ease and reliability. It streams data in real time to your apps over WebSockets, eliminating the need for polling a REST proxy and surpassing the limitations of MQTT.
 
-## Last-Mile Integration
+## Last-mile integration
 
 Kafka, while powerful, isn’t designed for direct internet access—particularly when it comes to the **last mile**, the critical network segment that extends beyond enterprise boundaries and edges (LAN or WAN) to reach end users. Last-mile integration is essential for delivering real-time Kafka data to mobile, web, and desktop applications, addressing challenges that go beyond Kafka’s typical scope, such as:
 - Disruptions from corporate firewalls and client-side proxies blocking Kafka connections.
@@ -79,21 +92,21 @@ Kafka, while powerful, isn’t designed for direct internet access—particularl
 
 ![High-Level Architecture](/pictures/architecture.png)
 
-## Intelligent Streaming
+## Intelligent streaming
 
-With **Intelligent Streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnection seamlessly, keeping your users connected and up-to-date.
+With **Intelligent streaming**, Lightstreamer dynamically adjusts the data flow to match each user’s network conditions, ensuring all users stay in sync regardless of connection quality. By resampling and conflating data on the fly, it delivers real-time updates with adaptive throttling, effectively handling packet loss without buffering delays. It also manages disconnections and reconnection seamlessly, keeping your users connected and up-to-date.
 
-## Comprehensive Client SDKs
+## Comprehensive client SDKs
 
 The rich set of supplied client libraries makes it easy to consume real-time Kafka data across a variety of platforms and languages.
 
 ![Client APIs](/pictures/client-platforms.png)
 
-## Massive Scalability
+## Massive scalability
 
 Connect millions of clients without compromising performance. Fanout real-time messages published on Kafka topics efficiently, preventing overload on the Kafka brokers. Check out the [load tests performed on the Lightstreamer Kafka Connector vs. plain Kafka](https://github.com/Lightstreamer/lightstreamer-kafka-connector-loadtest).
 
-## Other Features
+## Other features
 
 The Lightstreamer Kafka Connector provides a wide range of powerful features, including firewall and proxy traversal, server-side filtering, advanced topic mapping, record processing, Schema Registry support, push notifications, and maximum security. [Explore more details](https://lightstreamer.com/products/kafka-connector/).
 
@@ -119,7 +132,7 @@ In this mode, the Lightstreamer Kafka Connector integrates with the Kafka Connec
 
 # QUICK START: Set up in 5 minutes
 
-To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
+To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, we have prepared an accessible quickstart application located in the [`examples/quickstart`](/examples/quickstart/) directory. This streamlined application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration within the financial market data domain. This demo displays real-time streaming data for ten stocks, generated by a simulated market feed. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world financial scenario.
 
 ![Quickstart Diagram](/pictures/quickstart-diagram.png)
 
@@ -136,7 +149,7 @@ To provide a complete stack, the app is based on _Docker Compose_. The [Docker C
  - [`Axual`](/examples/vendors/axual/quickstart-axual/README.md)
  - [`AutoMQ`](/examples/vendors/automq/quickstart-automq/README.md)
  - [`Amazon MSK`](/examples/vendors/aws/quickstart-msk/README.md)
- - [`Azure Events Hub`](/examples/vendors/azure/quickstart-azure/README.md)
+ - [`Azure Event Hubs`](/examples/vendors/azure/quickstart-azure/README.md)
 2. _kafka-connector_: Lightstreamer Server with the Kafka Connector, based on the [Lightstreamer Kafka Connector Docker image](/docker/), which also includes a web client mounted on `/lightstreamer/pages/QuickStart`
 3. _producer_: a native Kafka Producer, based on the provided [`Dockerfile`](/examples/quickstart-producer/Dockerfile) file from the [`quickstart-producer`](/examples/quickstart-producer/) sample client
 
@@ -175,21 +188,21 @@ This section will guide you through deploying the Kafka Connector quickly and ea
 
 Deployment options:
 
-- **Manual Deployment:**
+- **Manual deployment:**
   Download and configure the Lightstreamer Broker and Kafka Connector from their respective archives.
 
-- **Docker-based Deployment:**
+- **Docker-based deployment:**
   Pull or build a Docker image that seamlessly integrates the Lightstreamer Broker and the Kafka Connector.
 
-- **Kubernetes Deployment:**
+- **Kubernetes deployment:**
   Deploy the Kafka Connector to a Kubernetes cluster using the Lightstreamer Helm Chart.
 
-## Manual Deployment
+## Manual deployment
 
 ### Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.8 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 - A running Kafka broker or Kafka cluster
 
 ### Install
@@ -244,7 +257,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
+  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L41) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -300,13 +313,13 @@ To start the Kafka Connector, run the following from the `LS_HOME/bin/unix-like`
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-## Docker-based Deployment
+## Docker-based deployment
 
 ### Requirements
 
 - Docker
 
-### Get the Image
+### Get the image
 
 Images are published to GitHub Container Registry on each release. You can pull an image from the registry or build it locally.
 
@@ -343,7 +356,7 @@ $ docker run --name kafka-connector -d -p 8080:8080 \
 
 Then, point your browser to [http://localhost:8080](http://localhost:8080) and see a welcome page with some demos running out of the box.
 
-## Kubernetes Deployment
+## Kubernetes deployment
 
 To deploy the Lightstreamer Kafka Connector to a Kubernetes or OpenShift cluster, use the [Lightstreamer Helm Chart](https://github.com/Lightstreamer/helm-charts), which provides built-in support for the Kafka Connector through the `connectors.kafkaConnector` values section.
 
@@ -351,11 +364,11 @@ The Helm Chart handles provisioning, connection setup, topic routing, field mapp
 
 For the full deployment guide, see [Deploying Lightstreamer Broker to Kubernetes](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md), and in particular the [Kafka Connector](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md#kafka-connector) section for connector-specific configuration.
 
-## End-to-End Streaming
+## End-to-end streaming
 
 Once the Lightstreamer Kafka Connector is up and running—whether deployed manually, using Docker, or on Kubernetes—it's time to publish events and connect a Lightstreamer consumer to experience a basic *end-to-end* streaming flow in action.
 
-### Connect a Kafka Producer
+### Connect a Kafka producer
 
 The [`examples/quickstart-producer`](/examples/quickstart-producer/) folder contains a simple native Kafka producer designed to publish simulated market events for the *Quickstart* app.
 
@@ -376,11 +389,11 @@ $ java -jar build/libs/quickstart-producer-<version>-all.jar --bootstrap-servers
 
 ![producer_video](/pictures/producer.gif)
 
-### Connect a Lightstreamer Consumer
+### Connect a Lightstreamer consumer
 
 After starting the publisher, you can connect a client application to consume real-time data and display it in its frontend. Below, we'll demonstrate a browser-based example using **HTML and JavaScript**, and a **Java** example. However, you are encouraged to explore any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments and languages, including **iOS, Android, Python, and more**.
 
-#### Connect a Browser-based Consumer
+#### Connect a browser-based consumer
 
 Download the provided [sample web client](/examples/compose-templates/web), based on HTML and JavaScript. Simply open the `index.html` file and watch real-time updates populate the frontend immediately.
 
@@ -388,7 +401,7 @@ Download the provided [sample web client](/examples/compose-templates/web), base
 
 As shown in the [source code](/examples/compose-templates/web/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
-1. **Establishing a Connection:**
+1. **Establishing a connection:**
    To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
 
    ```js
@@ -397,7 +410,7 @@ As shown in the [source code](/examples/compose-templates/web/index.html), consu
    lsClient.connect();
    ```
 
-2. **Setting up the Data Grid:**
+2. **Setting up the data grid:**
    To visualize real-time updates, a `StaticGrid` object is instantiated and configured to display data from a `Subscription` into statically prepared HTML rows. This is a simple widget provided by the Lightstreamer client library for demonstration purposes. You are free to use any existing JavaScript framework or library to display the data.
 
    ```js
@@ -413,7 +426,7 @@ As shown in the [source code](/examples/compose-templates/web/index.html), consu
    });
    ```
 
-3. **Subscribing to Live Data:**
+3. **Subscribing to live data:**
    To create a subscription, a `Subscription` object is created and configured in `MERGE` mode with a list of items and fields to subscribe to, extracted from the `StaticGrid`.
 
    The subscription references the `QuickStart` data adapter name, as [configured](#data_providername---kafka-connection-name) on the server side through the `name` attribute of the `data_provider` element in the `adapters.xml` file. The `StaticGrid` is attached as a listener to the subscription to receive and display updates.
@@ -425,7 +438,7 @@ As shown in the [source code](/examples/compose-templates/web/index.html), consu
    lsClient.subscribe(stockSubscription);
    ```
 
-#### Connect a Java Consumer
+#### Connect a Java consumer
 
 In addition to the browser-based consumer above, you can set up a Java consumer. The [`kafka-connector-utils`](/kafka-connector-project/kafka-connector-utils) submodule hosts a simple Lightstreamer Java client that can be used to test the consumption of Kafka events from any Kafka topics.
 
@@ -440,7 +453,7 @@ This command generates the `lightstreamer-kafka-connector-utils-consumer-all-<ve
 Then, launch it with:
 
 ```sh
-$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields stock_name,ask,bid,min,max
+$ java -jar kafka-connector-utils/build/libs/lightstreamer-kafka-connector-utils-consumer-all-<version>.jar --address http://localhost:8080 --adapter-set KafkaConnector --data-adapter QuickStart --items stock-[index=1],stock-[index=2],stock-[index=3] --fields name,ask,bid,min,max
 ```
 
 As you can see, you need to specify a few parameters:
@@ -452,7 +465,7 @@ As you can see, you need to specify a few parameters:
 - `--fields`: the list of requested fields for the items
 
 > [!NOTE]
-> While we've provided examples in JavaScript (suitable for web browsers) and Java (geared towards desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
+> While we've provided examples in JavaScript (suitable for web browsers) and Java (geared toward desktop applications), you are encouraged to utilize any of the [Lightstreamer client SDKs](https://lightstreamer.com/download/#client-sdks) for developing clients in other environments, including iOS, Android, Python, and more.
 
 ![consumer_video](/pictures/consumer.gif)
 
@@ -462,7 +475,7 @@ As already anticipated, the Kafka Connector is a Lightstreamer Adapter Set, whic
 
 The following sections will guide you through the configuration details.
 
-## Global Settings
+## Global settings
 
 ### `adapter_conf['id']` - _Kafka Connector Identifier_
 
@@ -518,7 +531,7 @@ Example:
 ...
 ```
 
-## Connection Settings
+## Connection settings
 
 The Kafka Connector allows the configuration of separate independent connections to different Kafka brokers/clusters.
 
@@ -526,7 +539,7 @@ Every single connection is configured via the definition of its own Data Adapter
 
 Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer configuration.
 
-### General Parameters
+### General parameters
 
 #### `data_provider['name']` - _Kafka Connection Name_
 
@@ -608,7 +621,7 @@ Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly gene
 <param name="group.id">kafka-connector-group</param>
 ```
 
-### Encryption Parameters
+### Encryption parameters
 
 A TCP secure connection to Kafka is configured through parameters with the prefix `encryption`.
 
@@ -785,13 +798,13 @@ Example:
 <param name="encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### SSL Quickstart
+#### SSL quickstart
 
 For an example of an encryption configuration, see the [adapters.xml](/examples/quickstart-ssl/adapters.xml#L17) file of the [_SSL Quickstart_](/examples/quickstart-ssl/) app.
 
-### Broker Authentication Parameters
+### Kafka broker authentication parameters
 
-Broker authentication is configured through parameters with the prefix `authentication`.
+Kafka broker authentication is configured through parameters with the prefix `authentication`.
 
 #### `authentication.enable`
 
@@ -971,11 +984,11 @@ When this mechanism is specified, you can configure the following authentication
   ```
 
 > [!NOTE]
-> **Authentication Precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
+> **Authentication precedence**: If both methods are configured, the `iam.credential.profile.name` parameter takes precedence over `iam.role.arn`. If neither parameter is provided, the Kafka Connector falls back to the [AWS SDK default credential provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/credentials-chain.html).
 
 For an example of an AWS_MSK_IAM authentication configuration, see the [adapters.xml](/examples/vendors/aws/quickstart-msk/adapters.xml#L21) file of the [_MSK Quickstart_](/examples/vendors/aws/quickstart-msk/) app.
 
-## Record Processing
+## Record processing
 
 The Kafka Connector can deserialize Kafka records from the following formats:
 
@@ -1011,12 +1024,14 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional_. Specifies where to start consuming events from. Can be one of the following:
+_Optional but ineffective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. Specifies where to start consuming events from. Can be one of the following:
 
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
 The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+
+When snapshot management is active, the connector manages partition positions explicitly: newly assigned partitions are always seeked to the beginning (so that the snapshot replay covers the full topic history), and re-assigned partitions resume from their committed offset. See [Snapshot management](#snapshot-management).
 
 Default value: `LATEST`.
 
@@ -1046,7 +1061,7 @@ _Optional_. The timeout used to detect client failures when using Kafka's group 
 
 The parameter sets the value of the [session.timeout.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_session.timeout.ms) key to configure the internal Kafka Consumer.
 
-Default value: 45000.
+Default value: `45000`.
 
 ```xml
 <param name="record.consume.with.session.timeout.ms">30000</param>
@@ -1058,7 +1073,7 @@ _Optional_. The maximum delay between invocations of poll() when using consumer 
 
 The parameter sets the value of the [max.poll.interval.ms](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_max.poll.interval.ms) key to configure the internal Kafka Consumer.
 
-Default value: 30000.
+Default value: `30000`.
 
 ```xml
 <param name="record.consume.with.max.poll.interval.ms">50000</param>
@@ -1243,10 +1258,12 @@ Examples:
 
 #### `record.extraction.error.strategy`
 
-_Optional_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
+_Optional but forced to `IGNORE_AND_CONTINUE` when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
 - `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
-- `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client Side Error Handling](#client-side-error-handling) section).
+- `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client-side error handling](#client-side-error-handling) section).
+
+See [Snapshot management](#snapshot-management) for the rationale of the override.
 
 Default value: `IGNORE_AND_CONTINUE`.
 
@@ -1256,7 +1273,7 @@ Example:
 <param name="record.extraction.error.strategy">FORCE_UNSUBSCRIPTION</param>
 ```
 
-## Topic Mapping
+## Topic mapping
 
 The Kafka Connector allows the configuration of several routing and mapping strategies, thus enabling the convey of Kafka events streams to a potentially huge amount of devices connected to Lightstreamer with great flexibility.
 
@@ -1264,7 +1281,7 @@ The _Data Extraction Language_ is the _ad hoc_ tool provided for in-depth analys
 - Mapping records to Lightstreamer fields
 - Filtering routing to the designated Lightstreamer items
 
-### Data Extraction Language
+### Data extraction language
 
 To write an extraction expression, the _Data Extraction Language_ provides a pretty minimal syntax with the following basic rules:
 
@@ -1341,7 +1358,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
   - **`#{VALUE.nested.*}`**: Extract all elements from any nested non-scalar structure (objects or maps).
   - **`#{VALUE.items.*}`**: Extract all elements from an array.
 
-  Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic Field Discovery](#dynamic-field-discovery-field).
+  Wildcard expressions can be applied at any level to any non-scalar part of the record. For details on how wildcards are used in field mapping, see [Dynamic field discovery](#dynamic-field-discovery-field).
 
 - Scalar vs Non-Scalar Value Extraction
 
@@ -1351,7 +1368,7 @@ To write an extraction expression, the _Data Extraction Language_ provides a pre
 
   To allow complex data structures to be directly mapped to fields (preserving their structure as generic text), enable the [`fields.map.non.scalar.values`](#map-non-scalar-values-fieldsmapnonscalarvalues) parameter.
 
-### Record Routing (`map.TOPIC_NAME.to`)
+### Record routing (`map.TOPIC_NAME.to`)
 
 To configure a simple routing of Kafka event streams to Lightstreamer items, use at least one `map.TOPIC_NAME.TO` parameter. The general format is:
 
@@ -1395,7 +1412,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
-#### Enable Regular Expression (`map.regex.enable`)
+#### Enable regular expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
 This allows for more flexible routing, where messages from multiple topics matching a specific pattern can be directed to the same Lightstreamer item(s) or item template(s).
@@ -1412,7 +1429,7 @@ Example:
 <param name="map.regex.enable">true</param>
 ```
 
-### Record Mapping (`field.FIELD_NAME`)
+### Record mapping (`field.FIELD_NAME`)
 
 To forward real-time updates to the Lightstreamer clients, a Kafka record must be mapped to Lightstreamer fields, which define the _schema_ of any Lightstreamer item.
 
@@ -1430,7 +1447,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L517) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L574) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1451,7 +1468,46 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 ..
 ```
 
-#### Dynamic Field Discovery (`field.*`)
+#### COMMAND mode field mapping
+
+When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Server requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
+
+- **`key`** is mapped explicitly by the user through the `field.key` parameter, like any other field. It identifies the row each record refers to.
+- **`command`** is **not** mapped: the connector synthesizes it for every record from the record state and the per-item key history:
+  - **`ADD`** — the mapped key has not been seen before on this item.
+  - **`UPDATE`** — the mapped key has already been seen on this item.
+  - **`DELETE`** — the record has a null payload (_tombstone record_).
+
+Any other field is mapped with the usual `field.FIELD_NAME` parameters.
+
+Example mapping:
+
+```xml
+<param name="item-template.command">command-#{key=KEY}</param>
+<param name="map.commandTopic.to">item-template.command</param>
+<param name="field.key">#{KEY}</param>
+```
+
+> [!TIP]
+> The `key` field can be mapped from any part of the Kafka record structure.
+
+For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
+
+##### Manual COMMAND mapping (without connector-managed snapshot)
+
+The synthesis above is tied to `item.snapshot.enabled.mode = COMMAND`. When snapshot management is left to its default (`NONE`), _COMMAND_-mode subscriptions are still supported: the integrator maps **both** `field.key` and `field.command` explicitly, and the connector forwards events as-is.
+
+```xml
+<param name="field.key">#{KEY}</param>
+<param name="field.command">#{VALUE.op}</param>
+```
+
+> [!IMPORTANT]
+> Both mappings are required: the Lightstreamer Server enforces `key` and `command` as the two mandatory fields of a _COMMAND_-mode item and **discards** any update in which either is missing or extracts to `null` (a `ERROR` log is emitted for each dropped update, but no error is surfaced to the client).
+
+This route fits pipelines that already emit explicit `ADD`/`UPDATE`/`DELETE` op-codes (typical of CDC). Tombstone records cannot signal deletion (no `VALUE.op` to extract), and late subscribers see an empty table until realtime activity arrives. For the "latest state per key, deletion via tombstone, full row set on subscribe" shape, prefer `item.snapshot.enabled.mode = COMMAND`.
+
+#### Dynamic field discovery (`field.*`)
 
 Instead of explicitly naming each field, you can configure the connector to automatically discover field names from the record structure at runtime using wildcard expressions. This is particularly useful when:
 
@@ -1553,7 +1609,7 @@ When combining both approaches, static field mappings take precedence over dynam
 > [!IMPORTANT]
 > Wildcard expressions can only be used with the `field.*` parameter. They cannot be used in [item templates](#filtered-record-routing-item-templatetemplate_name) or for explicit field mappings like `field.fieldName`.
 
-#### Skip Failed Mapping (`fields.skip.failed.mapping.enable`)
+#### Skip failed mapping (`fields.skip.failed.mapping.enable`)
 
 _Optional_. Normally, if a field mapping fails during the extraction from the Kafka record because of an issue with the data, it leads to the entire record being discarded or even cause the subscription to be terminated, depending on the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting. By enabling this parameter, the connector becomes more resilient to such errors. If a field mapping fails, that specific field's value will simply be omitted from the update sent to Lightstreamer clients, while other successfully mapped fields from the same record will still be delivered. This allows for partial updates even in the presence of data inconsistencies or transient extraction issues.
 
@@ -1569,7 +1625,7 @@ Example:
 <param name="fields.skip.failed.mapping.enable">true</param>
 ```
 
-#### Map Non-Scalar Values (`fields.map.non.scalar.values`)
+#### Map non-scalar values (`fields.map.non.scalar.values`)
 
 _Optional_. Enabling this parameter allows mapping of non-scalar values to Lightstreamer fields.
 This means that complex data structures from Kafka records can be mapped directly to Lightstreamer fields without requiring them to be flattened into scalar values.
@@ -1598,78 +1654,7 @@ Example:
 <param name="fields.map.non.scalar.values">true</param>
 ```
 
-#### Evaluate As Command (`fields.evaluate.as.command.enable`)
-
-_Optional but ineffective if [`fields.auto.command.mode.enable`](#auto-command-mode-fieldsautocommandmodeenable) is enabled_. Enables support for the _COMMAND_ mode. In _COMMAND_ mode, a single Lightstreamer item is typically managed as a dynamic list or table, which can be modified through the following operations:
-
-- **`ADD`**: Insert a new element into the item.
-- **`UPDATE`**: Modify an existing element of the item.
-- **`DELETE`**: Remove an existing element from the item.
-
-To utilize _COMMAND_ mode, the Lightstreamer Broker requires the following mandatory field names in the item's schema:
-
-- **`key`**: Identifies the unique key for each element in the list generated from the item.
-- **`command`**: Specifies the operation (`ADD`, `UPDATE`, `DELETE`) to be performed on the item.
-
-A Kafka record must be structured to allow the Kafka Connector to map the values for the `key` and `command` fields. For example:
-
-```xml
-<param name="fields.evaluate.as.command.enable">true</param>
-<param name="field.key">#{KEY}</param>
-<param name="field.command">#{VALUE.command}</param>
-...
-```
-
-> [!TIP]
-> The `key` and `command` fields can be mapped from any part of the Kafka record structure.
-
-Additionally, the Lightstreamer Kafka Connector supports specialized snapshot management tailored for _COMMAND_ mode. This involves sending Kafka records where the `key` and `command` mappings are interpreted as special events rather than regular updates. Specifically:
-
-- `key` must contain the special value `snapshot`.
-- `command` can contain:
-  - **`CS`**: Clears the current snapshot. This event is always communicated to all clients subscribed to the item.
-  - **`EOS`**: Marks the end of the snapshot. Communication to clients depends on the internal state reconstructed by the Lightstreamer Broker. If the broker has already determined that the snapshot has ended, the event may be ignored.
-
-For a complete example of configuring _COMMAND_ mode, refer to the [examples/AirportDemo](/examples/airport-demo/) folder.
-
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
-
-##### Auto Command Mode (`fields.auto.command.mode.enable`)
-
-_Optional_. Enables automatic _COMMAND_ mode support by generating appropriate command operations for Lightstreamer items without requiring your Kafka records to contain explicit command fields.
-
-When enabled, the connector:
-
-- Automatically adds a Lightstreamer command field to each update.
-- Assigns the appropriate command value based on the record state:
-  - **`ADD`**: For records with a new mapped key (not previously processed).
-  - **`UPDATE`**: For records with a mapped key that has been previously processed.
-  - **`DELETE`**: For records with a null message payload (_tombstone records_).
-
-You only need to map the `key` field from your record structure. For example:
-
-```xml
-<param name="fields.auto.command.mode.enable">true</param>
-<param name="field.key">#{KEY}</param>
-...
-```
-
-> [!TIP]
-> The `key` field can be mapped from any part of the Kafka record structure.
-
-This parameter differs from [`fields.evaluate.as.command.enable`](#evaluate-as-command-fieldsevaluateascommandenable) in that it generates commands automatically rather than requiring your Kafka records to already contain explicit command operations. This simplifies working with dynamic lists in COMMAND mode when using standard Kafka records.
-
-The parameter can be one of the following:
-- `true`
-- `false`
-
-Default value : `false`.
-
-### Filtered Record Routing (`item-template.TEMPLATE_NAME`)
+### Filtered record routing (`item-template.TEMPLATE_NAME`)
 
 Besides mapping topics to statically predefined items, the Kafka Connector allows you to configure the _item templates_,
 which specify the rules needed to decide if a message can be forwarded to the items specified by the clients, thus enabling a _filtered routing_.
@@ -1722,7 +1707,51 @@ Finally, the message will be mapped and routed only in case the subscribed item 
 
 `filterValue_X == extractValue_X for every paramName_X`
 
-#### Example
+#### Example 1
+
+Consider the following configuration:
+
+```xml
+<param name="item-template.currencyPair">pair-#{symbol=KEY}</param>
+<param name="map.forex.to">item-template.currencyPair</param>
+```
+
+which specifies how to route records from the topic `forex`, whose Kafka key is the currency-pair symbol (e.g. `EURUSD`, `GBPUSD`, `USDJPY`), to the item template `currencyPair`. The template binds the single parameter `symbol` to the Kafka key, so each subscribed item targets exactly one currency pair.
+
+Let's suppose we have two different Lightstreamer clients:
+
+1. _Client A_ subscribes to two parameterized items:
+   - _SA1_ `pair-[symbol=EURUSD]` for receiving real-time updates relative to the `EUR/USD` pair.
+   - _SA2_ `pair-[symbol=EURGBP]` for receiving real-time updates relative to the `EUR/GBP` pair.
+2. _Client B_ subscribes to the parameterized item _SB1_ `pair-[symbol=USDJPY]` for receiving real-time updates relative to the `USD/JPY` pair.
+
+Now, let's see how filtered routing works for the following incoming Kafka records from the topic `forex`:
+
+- **Record 1** — key `EURUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURUSD]` | _SA1_                   | _Client A_       |
+
+- **Record 2** — key `USDJPY`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=USDJPY]` | _SB1_                   | _Client B_       |
+
+- **Record 3** — key `GBPUSD`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=GBPUSD]` | _None_                  | _None_           |
+
+- **Record 4** — key `EURGBP`:
+
+  | Expansion              | Matched Subscribed Item | Routed to Client |
+  | ---------------------- | ----------------------- | ---------------- |
+  | `pair-[symbol=EURGBP]` | _SA2_                   | _Client A_       |
+
+#### Example 2
 
 Consider the following configuration:
 
@@ -1732,7 +1761,7 @@ Consider the following configuration:
 <param name="map.user.to">item-template.by-name,item-template.by-age</param>
 ```
 
-which specifies how to route records published from the topic `user` to the item templates defined to extract some personal data.
+which specifies how to route records from the topic `user` to the item templates defined to extract some personal data. The two templates bind different parameters extracted from the record value: `by-name` binds `firstName` and `lastName` to `VALUE.name` and `VALUE.surname`, while `by-age` binds `age` to `VALUE.age`. Because the topic maps to both templates, every record is evaluated against both and may match items on either or both axes.
 
 Let's suppose we have three different Lightstreamer clients:
 
@@ -1742,9 +1771,9 @@ Let's suppose we have three different Lightstreamer clients:
 2. _Client B_ subscribes to the parameterized item _SB1_ `user-[firstName=Montgomery,lastName=Scotty]` for receiving real-time updates relative to the user `Montgomery Scotty`.
 3. _Client C_ subscribes to the parameterized item _SC1_ `user-[age=37]` for receiving real-time updates relative to any 37 year-old user.
 
-Now, let's see how filtered routing works for the following incoming Kafka records published to the topic `user`:
+Now, let's see how filtered routing works for the following incoming Kafka records from the topic `user`:
 
-- Record 1:
+- **Record 1**:
   ```js
   {
     ...
@@ -1756,12 +1785,11 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                              | Matched Subscribed Item | Routed to Client |
-  | ----------| -------------------------------------- | ----------------------- | -----------------|
+  | --------- | -------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=James,lastName=Kirk]` | _SA1_                   | _Client A_       |
   | `by-age`  | `user-[age=37]`                        | _SC1_                   | _Client C_       |
 
-
-- Record 2:
+- **Record 2**:
   ```js
   {
     ...
@@ -1773,11 +1801,11 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                                     | Matched Subscribed Item | Routed to Client |
-  | --------- | --------------------------------------------- | ----------------------- | -----------------|
+  | --------- | --------------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=Montgomery,lastName=Scotty]` | _SB1_                   | _Client B_       |
   | `by-age`  | `user-[age=45]`                               | _SA2_                   | _Client A_       |
 
-- Record 3:
+- **Record 3**:
   ```js
   {
     ...
@@ -1789,11 +1817,56 @@ Now, let's see how filtered routing works for the following incoming Kafka recor
   ```
 
   | Template  | Expansion                               | Matched Subscribed Item | Routed to Client |
-  | ----------| --------------------------------------- | ----------------------- | -----------------|
+  | --------- | --------------------------------------- | ----------------------- | ---------------- |
   | `by-name` | `user-[firstName=Nyota,lastName=Uhura]` | _None_                  | _None_           |
   | `by-age`  | `user-[age=37]`                         | _SC1_                   | _Client C_       |
 
+## Item snapshot settings
 
+Parameters that control whether the connector manages the _snapshot_ of subscribed items and how that snapshot is shaped. For the underlying concepts (what the snapshot is, what changes when snapshot management is activated, per-_Mode_ snapshot shape and intended use cases), see the [Snapshot management](#snapshot-management) section.
+
+### `item.snapshot.enabled.mode`
+
+_Optional_. Selects the snapshot behavior for subscribed items and, when not set to `NONE`, pins the Lightstreamer subscription _Mode_ the connector is willing to serve. Can be one of the following:
+
+- **`NONE`**: Snapshot management disabled. Lazy consumer, empty snapshot, subscription _Mode_ not constrained by the adapter.
+- **`MERGE`**: Pins subscription _Mode_ to _MERGE_. See [MERGE snapshot](#merge-snapshot).
+- **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT snapshot](#distinct-snapshot).
+- **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesizes the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
+
+Any non-`NONE` value also forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured value.
+
+Default value: `NONE`.
+
+Example:
+
+```xml
+<param name="item.snapshot.enabled.mode">MERGE</param>
+```
+
+### `item.snapshot.distinct.length`
+
+_Optional but only effective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to `DISTINCT`_. The maximum allowed length for the snapshot of an item that has been requested with publishing _Mode_ _DISTINCT_. Must be a positive integer.
+
+Default value: `10`.
+
+Example:
+
+```xml
+<param name="item.snapshot.distinct.length">100</param>
+```
+
+### `item.snapshot.max.idle.seconds`
+
+_Optional but only effective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any  value other than `NONE`_. The maximum idle time in seconds after which the snapshot of an item is discarded, so that the next incoming record starts a fresh one. Must be a non-negative integer; a value of `0` disables the idle check.
+
+Default value: `0`.
+
+Example:
+
+```xml
+<param name="item.snapshot.max.idle.seconds">30</param>
+```
 
 ## Schema Registry
 
@@ -1836,11 +1909,11 @@ Example for the Azure Schema Registry (the URL must point to the Azure Event Hub
 <param name="schema.registry.url">https://my-namespace.servicebus.windows.net</param>
 ```
 
-### Confluent Schema Registry Parameters
+### Confluent Schema Registry parameters
 
 When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `CONFLUENT`), the following parameters could be configured to enable authentication and integration with Azure Event Hubs.
 
-#### Basic HTTP Authentication Parameters
+#### Basic HTTP authentication parameters
 
 [Basic HTTP authentication](https://docs.confluent.io/platform/current/schema-registry/security/index.html#configuring-the-rest-api-for-basic-http-authentication) mechanism is supported through the configuration of parameters with the prefix `schema.registry.confluent.basic.authentication`.
 
@@ -1872,9 +1945,9 @@ When using Confluent Schema Registry ([`schema.registry.provider`](#schemaregist
   <param name="schema.registry.confluent.basic.authentication.password">authorized-schema-registry-user-password</param>
   ```
 
-#### Encryption Parameters
+#### Encryption parameters
 
-To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption Parameters](#encryption-parameters) section:
+To set up a secure connection to the Schema Registry, specify the `https` protocol in the [`schema.registry.url`](#schemaregistryurl) setting and configure the connection using parameters with the prefix `schema.registry.confluent.encryption`. These parameters are equivalent to those defined in the [Encryption parameters](#encryption-parameters) section:
 
 - `schema.registry.confluent.encryption.protocol` (see [encryption.protocol](#encryptionprotocol))
 - `schema.registry.confluent.encryption.enabled.protocols` (see [encryption.enabled.protocols](#encryptionenabledprotocols))
@@ -1911,11 +1984,11 @@ Example:
 <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
-#### Confluent Schema Registry Quickstart
+#### Confluent Schema Registry quickstart
 
 For an example of Schema Registry settings, see the [adapters.xml](/examples/quickstart-schema-registry/adapters.xml#L58) file of the [_Schema Registry Quickstart_](/examples/quickstart-schema-registry/) app.
 
-### Azure Schema Registry Parameters
+### Azure Schema Registry parameters
 
 When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregistryprovider) set to `AZURE`), authentication must be configured through the following parameters:
 
@@ -1951,12 +2024,223 @@ When using the Azure Schema Registry ([`schema.registry.provider`](#schemaregist
 
 See the [Advanced: Schema Registry Integration](/examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration) section of the _Azure Event Hubs Quickstart_ example for a complete walkthrough on how to register an Azure AD application, grant it access to the Schema Registry, and configure all the parameters above.
 
-# Client Side Error Handling
+# Subscription modes
+
+A Lightstreamer client subscribes to an item by choosing a **subscription _Mode_**, which dictates what each item represents on the wire and how the Lightstreamer Broker stores incoming updates per item. The Server supports four Modes; the brief recap below covers what is needed to follow the Kafka Connector documentation. For the authoritative reference, see the _General Concepts_ guide shipped with the Lightstreamer Broker (`LS_HOME/docs/General Concepts.pdf`).
+
+- **_MERGE_** — the item represents a **single logical entity** whose fields are progressively overwritten by incoming updates. The Server keeps only the latest value of each field. Suitable for current-state feeds (latest quote, latest sensor reading, latest order status).
+- **_DISTINCT_** — the item represents a **stream of independent events** that must not be merged: every update is preserved as a separate event on the client side. The Server retains a bounded FIFO of the most recent events per item. Suitable for time series of discrete events (trades, log lines, alerts).
+- **_COMMAND_** — the item represents a **dynamic table** whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. Every update carries two mandatory fields, `key` (the row identifier) and `command` (the operation); the Server applies each operation to a per-item, key-addressed row set. Suitable for changelogs of a keyed entity set (positions in a portfolio, online users, items in a cart).
+- **_RAW_** — the item is treated as a pure pass-through: the Server forwards every update without keeping any per-item state. Always compatible with the other Modes on the same item.
+
+The Lightstreamer Broker allows each item to be handled in only one of _MERGE_, _DISTINCT_, or _COMMAND_ at a time (plus _RAW_, which is always compatible): the first subscription request for an item effectively pins its Mode, and subsequent requests for a conflicting Mode are silently ignored.
+
+The Mode also determines how the Server materializes the _snapshot_ delivered to a freshly subscribed client — see [Snapshot management](#snapshot-management). The Kafka Connector can either leave the choice of Mode entirely to the client (the default) or pin it from the adapter side as a side effect of enabling connector-managed snapshot.
+
+# Snapshot management
+
+In Lightstreamer terminology, the _snapshot_ of an item is the set of events a freshly subscribed client receives **before** realtime updates start to flow, so that the client can render a meaningful initial state without having to wait for the next published event. The exact shape and size of this initial set depend on the subscription _Mode_ chosen for the item.
+
+Snapshot behavior is controlled by [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode), which selects one of four modes:
+
+- **`NONE`** — snapshot management disabled; the Lightstreamer Server still applies its own automatic snapshot mechanism. See [Default Behavior (NONE)](#default-behavior-none).
+- **`MERGE`**, **`DISTINCT`**, **`COMMAND`** — the connector takes responsibility for materializing the snapshot: it replays the topic from the beginning, pre-seeds a per-item store on the Lightstreamer Server, and serves that store as the snapshot to late subscribers. See [Connector-managed snapshot](#connector-managed-snapshot).
+
+A non-`NONE` value also pins the subscription _Mode_ the adapter is willing to serve and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`; the rest of this section covers those side effects, the per-_Mode_ snapshot shape, the extraction layouts that make the snapshot exact, and the operational notes (idle expiration, caveats). For the parameter reference (valid values, defaults, XML examples) see [Item snapshot settings](#item-snapshot-settings).
+
+## Default behavior (NONE)
+
+This is the out-of-the-box behavior, selected by `item.snapshot.enabled.mode = NONE`: the connector does not actively manage the snapshot, but the Lightstreamer Server's built-in snapshot machinery still applies.
+
+- **Lazy consumer.** The internal Kafka Consumer is started on the first client subscription, and every record fetched from Kafka is delivered as a realtime update.
+- **Snapshot reflects Server state only.** The connector does not pre-seed any per-item store on the Lightstreamer Server, so the snapshot a new subscriber receives reflects only the current state the Server has accumulated for that item from prior realtime activity — typically empty for the very first subscriber (before any record has been forwarded), but possibly non-empty for later subscribers, depending on what the Server's per-_Mode_ store has retained.
+- **Subscription _Mode_.** The adapter does not constrain the _Mode_; each client picks the _Mode_ it wants when it subscribes, within the per-item one-Mode-at-a-time rule recalled in [Subscription modes](#subscription-modes).
+
+## Connector-managed snapshot
+
+When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
+
+- The internal Kafka Consumer is started _eagerly_ when the Data Adapter binds to the Lightstreamer Server, before any client is allowed to subscribe (clients can only connect — and therefore subscribe — once initialization has completed).
+- The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
+- Once the historical replay is caught up to the partition end, the consumer transitions to realtime tailing; from that moment on, every new record updates the Server-side store.
+- A subscriber that joins later receives the current contents of the per-item store as the snapshot, followed by realtime updates.
+
+Because the per-item store backs every future snapshot and the consumer runs even when no client is subscribed, the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) setting is forced to `IGNORE_AND_CONTINUE` under this mode: `FORCE_UNSUBSCRIPTION` would either have nothing to unsubscribe (during the initial replay) or, on a single bad record during realtime tailing, would tear down the per-item store and permanently break snapshot delivery for every future subscription on this connection.
+
+The chosen value of [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) also _pins_ the Lightstreamer subscription _Mode_ the adapter is willing to serve for the affected items: a client requesting a different _Mode_ will be refused. The pairing is one-to-one:
+
+| `item.snapshot.enabled.mode` | Subscription _Mode_ pinned by the adapter | Snapshot shape                                                              |
+| ---------------------------- | ----------------------------------------- | --------------------------------------------------------------------------- |
+| `MERGE`                      | _MERGE_                                   | One event per item (the current value)                                      |
+| `DISTINCT`                   | _DISTINCT_                                | Up to [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) events |
+| `COMMAND`                    | _COMMAND_                                 | All rows currently in the per-item table                                    |
+
+**Snapshot correctness.** For the snapshot to be exact, **each Kafka record key must map deterministically to a well-defined snapshot entry per matched item**, where the entry is:
+
+- the item entry itself in _MERGE_;
+- an entry of the per-item FIFO in _DISTINCT_;
+- a row inside the item's table in _COMMAND_ (rows are addressed by `field.key`).
+
+When one record fans out to multiple items (multiple templates, or `template1,template2` in `map.X.to`), each item receives its own entry under the same rule. When that mapping holds, the snapshot a late subscriber receives is exactly what Kafka still retains on disk. The per-_Mode_ sections below spell out the **extraction layout** and **topic settings** that achieve that mapping for each Mode, together with the runtime behavior of less suitable configurations.
+
+### MERGE snapshot
+
+In _MERGE_ mode each Lightstreamer item represents a **single logical entity** whose fields are progressively overwritten by incoming updates. Accordingly, the snapshot of a _MERGE_ item is a **single event** carrying the most recent value of every mapped field.
+
+With `item.snapshot.enabled.mode = MERGE`:
+
+- The per-item store is a single entry holding the latest value seen for the item.
+- A new subscriber receives exactly one snapshot event per item, reflecting that latest value.
+
+#### Recommended extraction layout
+
+Use an item-template whose bind parameters cover the **full Kafka key** with `KEY` / `KEY.*` extractions only. Each distinct Kafka key then maps to a distinct item, and the per-item store ends up holding exactly the latest value per Kafka key.
+
+#### Example
+
+Consider a market data feed that publishes the **current quote** for each listed stock — last price, best bid and ask, volume of the day — with each Kafka record identified by the `(symbol, exchange)` pair that uniquely names the instrument on its trading venue. New quotes for `AAPL` on `NASDAQ` overwrite previous quotes for the same instrument, and a client that opens the page mid-session expects to see the latest snapshot per instrument it is interested in, not the full intraday tape.
+
+Given a topic keyed by `{symbol, exchange}`:
+
+```xml
+<param name="item-template.stock">stock-#{symbol=KEY.symbol,exchange=KEY.exchange}</param>
+```
+
+A record with key `{symbol=AAPL, exchange=NASDAQ}` routes to `stock-[symbol=AAPL,exchange=NASDAQ]`. The two `KEY.*` extractions together reconstruct the full Kafka key, so every distinct Kafka key produces a distinct item; a late subscriber receives exactly the latest value per `(symbol, exchange)` pair it subscribes to.
+
+#### Other layouts
+
+Accepted at startup but degrade the snapshot:
+
+| Item-name shape | Example | Snapshot correctness | What happens |
+| --- | --- | --- | --- |
+| Item-name covers the full Kafka key with `KEY` / `KEY.*` | `stock-#{symbol=KEY}` against a string-keyed topic; `stock-#{symbol=KEY.symbol,exchange=KEY.exchange}` against `{symbol, exchange}` keys | **Correct** — the recommended shape | Each distinct Kafka key produces exactly one item, and the snapshot is exact. |
+| Covers only a subset of the key | `stock-#{symbol=KEY.symbol}` against `{symbol, exchange}` keys | **Consistent but ordering-sensitive** | Two records with different Kafka keys can map to the same item. The snapshot replay delivers both, and the client sees the second value overwrite the first; the final value depends on poll/partition order. The same non-determinism is visible on the realtime path. |
+| Includes any `VALUE.*` extraction | `stock-#{symbol=VALUE.symbol}`; `item-#{id=KEY.id,status=VALUE.status}` | **Broken** / **silently wrong** | Because the Kafka key carries no information about the item name, many Kafka keys collapse onto a single item with no bound. If the item name mutates with the value (mixed `KEY.*` / `VALUE.*`), each value change routes to a different item, so the originally addressed item stops receiving updates — and under log compaction, the matching record can be wiped entirely, leaving the item silently empty. |
+| Plain item name, no bind parameters | `<param name="map.stocks.to">all-stocks</param>` | **Degenerate** | Every record collapses onto the same item; the last record polled wins. Avoid for _MERGE_. |
+
+#### Recommended topic shape
+
+A [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`) is the natural source: only the latest record per key survives, which is exactly what the connector reconstructs as the snapshot, and the replay cost stays bounded. A non-compacted topic still produces a correct snapshot but scans every retained record — startup time and consumer load grow with the topic size.
+
+This is the appropriate choice when the topic models the **current state** of an entity (for example: latest stock quote, latest sensor reading, latest order status) and clients only care about the most recent value plus the realtime stream of changes.
+
+### DISTINCT snapshot
+
+In _DISTINCT_ mode each Lightstreamer item represents a **stream of independent events** that must not be merged: every event is preserved as a separate update on the client side. Accordingly, the snapshot of a _DISTINCT_ item is a **bounded sequence** of the most recent events delivered on that item.
+
+With `item.snapshot.enabled.mode = DISTINCT`:
+
+- The per-item store is a FIFO of the most recent events, bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength) (default `10`); the connector does not buffer or truncate on its side.
+- A new subscriber receives up to `item.snapshot.distinct.length` snapshot events per item, in the original publish order.
+
+#### Recommended extraction layout
+
+Same as _MERGE_ — an item-template whose binds cover the full Kafka key with `KEY` / `KEY.*` only. Because the per-item store is a bounded FIFO rather than a single current value, partial-key coverage degrades into a merged window across keys rather than into overwrite races, but a full-key layout is still the only shape with a "per Kafka key" semantics.
+
+#### Example
+
+Consider a **trade-execution feed** that publishes one event per fill: every record represents a single trade printed on the tape — price, size, aggressor side, execution timestamp — and each fill is identified by the `(symbol, exchange)` pair that names the traded instrument on its venue. Unlike a quote stream, consecutive trades on the same instrument must not be merged: each one is an independent event a client may want to render as a separate row on a recent-trades blotter, alongside the realtime tape.
+
+Given a topic carrying a stream of trade events keyed by `{symbol, exchange}`:
+
+```xml
+<param name="item-template.trades">trades-#{symbol=KEY.symbol,exchange=KEY.exchange}</param>
+```
+
+Each distinct Kafka key routes to a distinct item; a late subscriber to `trades-[symbol=AAPL,exchange=NASDAQ]` receives the most recent N trades on that instrument, in the order they were printed.
+
+#### Other layouts
+
+| Item-name shape | Example | Snapshot correctness | What happens |
+| --- | --- | --- | --- |
+| Item-name covers the full Kafka key with `KEY` / `KEY.*` | `trades-#{symbol=KEY.symbol,exchange=KEY.exchange}` against `{symbol, exchange}` keys | **Correct** — the recommended shape | Each Kafka key produces a distinct item; the per-item FIFO holds the last `item.snapshot.distinct.length` events for that key. |
+| Covers only a subset of the key | `trades-#{symbol=KEY.symbol}` against `{symbol, exchange}` keys | **Acceptable but interleaved** | Records from different Kafka keys land on the same item and share a single FIFO. The bound still applies, so the snapshot is not corrupted — it is just a merged window across keys. |
+| Includes any `VALUE.*` extraction | `trades-#{symbol=VALUE.symbol}` | **Discouraged** | Same fan-out as _MERGE_: many keys collapse onto one item. The FIFO bound keeps the snapshot sized, but its contents become a value-driven window that does not correspond to any "per Kafka key" notion. |
+| Plain item name, no bind parameters | `<param name="map.trades.to">all-trades</param>` | **Global window** | Every record in the topic feeds the same item; the snapshot is the last N events on the whole topic. Valid by construction (the FIFO bound caps it) but rarely the intended semantics. |
+
+#### Recommended topic shape
+
+Because the per-item snapshot is a bounded sequence of recent events rather than a single current value, log compaction is not required: the Lightstreamer Server caps the snapshot at `item.snapshot.distinct.length` regardless of how many records the replay surfaces. A **time- or size-bounded retention policy** sized to cover `item.snapshot.distinct.length` events per item is the natural fit; log compaction is also accepted, since the Server-side cap makes the snapshot shape independent of the topic shape.
+
+This is the appropriate choice when the topic carries a **time series of discrete events** (for example: trades, log lines, alerts) and clients need a short window of recent history alongside the realtime feed.
+
+### COMMAND snapshot
+
+In _COMMAND_ mode each Lightstreamer item represents a **dynamic table**: rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations identified by a per-row `key`. Accordingly, the snapshot of a _COMMAND_ item is the **full set of rows** currently present in the table.
+
+With `item.snapshot.enabled.mode = COMMAND`:
+
+- The per-item store is a row set keyed by the `field.key` value mapped from each record.
+- Only the `key` Lightstreamer field is mapped explicitly (via `field.key`); the connector synthesizes the `command` field for every record from the record state — `ADD` the first time a key is seen on an item, `UPDATE` afterwards, `DELETE` for tombstones (records with a null payload). The Server applies each synthesized operation to the per-item row set, reconstructing the current table.
+- A new subscriber receives the **resulting** table state as the snapshot: one event per row currently present, each carrying `command = ADD` (the replay sequence of `ADD`/`UPDATE`/`DELETE` operations collapses into the final set of surviving rows).
+
+#### Recommended extraction layout
+
+Snapshot identity is `(item, row)`, with the row addressed by `field.key`. The **union** of the item-template binds and `field.key` must cover the full Kafka key, with every extraction sourced from `KEY` / `KEY.*` and `field.key` resolving to a scalar.
+
+#### Example
+
+Consider a **brokerage backend** that publishes the **open positions** of each customer account — for every `(account, instrument)` pair the broker holds, a record carries the current quantity, average cost, and realized/unrealized P&L; a tombstone is emitted when a position is fully closed. A client opening the *Portfolio* page for an account expects to see, in one shot, the full set of instruments currently held in that account, and then receive realtime row inserts, updates, and removals as the trader works the book.
+
+Two shapes satisfy the snapshot-identity rule, depending on whether the Kafka key is structured or scalar:
+
+1. **Table per group** — split the structured Kafka key between the item name (the grouping axis, `account`) and `field.key` (the row axis, `instrument`). For example, given a topic keyed by `{account, instrument}`:
+
+   ```xml
+   <param name="item-template.positions">positions-#{account=KEY.account}</param>
+   <param name="field.key">#{KEY.instrument}</param>
+   ```
+
+   A record with key `{account=A1, instrument=AAPL}` routes to item `positions-[account=A1]` and addresses row `AAPL` inside that item's table. The union `KEY.account ∪ KEY.instrument` covers the full Kafka key, so distinct Kafka keys land on distinct `(item, row)` pairs and ADD/UPDATE/DELETE on `(positions-[account=A1], AAPL)` always refer to the same Kafka record stream. A late subscriber receives one `ADD` per instrument currently held in the account.
+
+2. **Single global table** — when the Kafka key is scalar, no grouping axis is needed; map the topic to a plain item and put the scalar key on `field.key`. The same pattern applies outside the financial domain: the [airport-demo](/examples/airport-demo/) illustrates it with a topic where each record reports the current status of a flight, keyed by the scalar flight number (e.g. `"LS123"`):
+
+   ```xml
+   <param name="map.flights.to">flights</param>
+   <param name="field.key">#{KEY}</param>
+   ```
+
+   Every record routes to the single item `flights`; `field.key=#{KEY}` puts each flight number on its own row. The union is just `{KEY}`, which is the full (scalar) Kafka key, so each flight number occupies exactly one row. A late subscriber receives one `ADD` per flight currently active.
+
+If `field.key` would evaluate to a constant on every record reaching the item (e.g. because the item-name binds already pin every key component), the table degenerates to one row per item and _MERGE_ is the better Mode.
+
+#### Other layouts
+
+Verdicts apply to the union "item-name binds ∪ `field.key`":
+
+| Layout | Example | Snapshot correctness | What happens |
+| --- | --- | --- | --- |
+| Union covers the full Kafka key | `positions-#{account=KEY.account}` + `field.key=#{KEY.instrument}`; or plain item + `field.key=#{KEY}` against a scalar-keyed topic | **Correct** — the recommended shape | Distinct Kafka keys land on distinct `(item, row)` pairs; ADD/UPDATE/DELETE on each row track a single Kafka record stream. |
+| Union covers only a subset of the key | `positions-#{account=KEY.account}` + `field.key=#{VALUE.status}` | **Broken** | Two Kafka keys with the same `account` and the same `VALUE.status` collide on the same row of the same item; ADD/UPDATE/DELETE alias against each other. |
+| Item-name includes `VALUE.*` | `item-#{id=KEY.id,status=VALUE.status}` + `field.key=#{KEY.id}` | **Broken** / **silently wrong** | Same fan-out as _MERGE_, with the same silently-empty trap when the item name mutates as the value changes. |
+| `field.key` does not resolve to a scalar | `field.key=#{KEY}` against a structured Kafka key | **Invalid** | `field.key` must be scalar; a structured `KEY` here is not a valid row identifier. |
+
+#### Recommended topic shape
+
+As for _MERGE_, a [**log-compacted**](https://kafka.apache.org/documentation/#compaction) topic (`cleanup.policy=compact`) is the natural source: only the latest record per key survives, which is exactly what the connector needs to reconstruct the current table. Tombstones are mapped to `DELETE`, so compaction preserves exactly the records required for an accurate snapshot.
+
+This is the appropriate choice when the topic models a **changelog of a keyed entity set** (for example: positions in a portfolio, online users, items in a cart) and clients need both the current contents of the set and the realtime stream of changes.
+
+### Idle expiration
+
+When [`item.snapshot.max.idle.seconds`](#itemsnapshotmaxidleseconds) is set to a value greater than `0`, the connector also discards the per-item snapshot once the item has been idle for longer than the configured interval, so that the next incoming record starts a fresh one rather than being merged on top of stale state. The idle clock is _sliding_: every record routed to an item refreshes the timestamp, so an item that keeps receiving traffic is never considered idle.
+
+This behavior is opt-in (the default value `0` disables the check) and has no effect when `item.snapshot.enabled.mode = NONE`, since there is no connector-managed snapshot to discard. It is meant for topics whose natural cadence makes a long-stale snapshot misleading (for example: end-of-session data, or partitions that go silent between bursts).
+
+### Caveats
+
+A few notes that apply to all three non-`NONE` Modes:
+
+- **Misconfigurations are not rejected at startup.** Any layout that the per-Mode tables above flag as anything other than _Correct_ — including the ones labeled _Broken_, _silently wrong_, _Degenerate_, _Discouraged_, _Global window_, _Invalid_ — is currently accepted by the connector, which starts cleanly and exhibits the runtime behavior described in the table. If your snapshot looks empty or oversized, recheck the extraction layout before chasing the issue elsewhere.
+- **Regex topic mappings** ([`map.regex.enable = true`](#enable-regular-expression-mapregexenable)) are similarly accepted but not validated against the snapshot pipeline's assumptions; for snapshot-enabled adapters, prefer literal topic names.
+
+# Client-side error handling
 
 When a client sends a subscription to the Kafka Connector, several error conditions can occur:
 
 - Connection issues: the Kafka broker may be unreachable due to network problems or an incorrect configuration of the [`bootstrap.servers`](#bootstrapservers) parameter.
-- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the broker.
+- Non-existent topics: none of the Kafka topics mapped in the [record routing](#record-routing-maptopic_nameto) configurations exist in the Kafka broker.
 - Data extraction: issues may arise while [extracting data](#data-extraction-language) from incoming records and the [`record.extraction.error.strategy`](#recordextractionerrorstrategy) parameter is set to `FORCE_UNSUBSCRIPTION`.
 
 In these scenarios, the Kafka Connector triggers the unsubscription from all the items that were subscribed to the [target connection](#data_providername---kafka-connection-name). A client can be notified about the unsubscription event by implementing the `onUnsubscription` event handler, as shown in the following Java code snippet:
@@ -1973,7 +2257,7 @@ subscription.addSubscriptionListener(new SubscriptionListener() {
 
 ```
 
-# Customizing the Kafka Connector Metadata Adapter Class
+# Customizing the Kafka Connector Metadata Adapter class
 
 If you need to customize the _Kafka Connector Metadata Adapter_ (e.g., to implement authentication and authorization or to handle client messages),
 you can create your own implementation by extending the factory class [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html).
@@ -1989,7 +2273,7 @@ To extend such methods, the class offers hook methods that you can override to i
 
 - [_onUnsubscription_](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#onUnsubscription(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)): Called to notify when a subscription is removed.
 
-## Develop the Extension
+## Develop the extension
 
 To develop your extension, you need the Kafka Connector jar library, which is hosted on _Github Packages_.
 
@@ -2045,14 +2329,14 @@ The connector has been developed for Kafka Connect framework version 3.7 and req
 
 ## Usage
 
-### Lightstreamer Setup
+### Lightstreamer setup
 
 Before running the connector, you first need to deploy a Proxy Adapter into the Lightstreamer server instance.
 
 #### Requirements
 
 - JDK (Java Development Kit) v17 or newer
-- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.2 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
+- [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) v7.4.8 or newer. Follow the installation instructions in the `LS_HOME/GETTING_STARTED.TXT` file included in the downloaded package.
 
 #### Steps
 
@@ -2128,11 +2412,11 @@ To manually install the Kafka Connect Lightstreamer Sink Connector to a local Co
 
    You may want to use the provided [connect-standalone-local.properties](./kafka-connector-project/config/kafka-connect-config/connect-standalone-local.properties) file as a starting point.
 
-3. Edit the connector configuration properties file as detailed in the [Configuration Reference](#configuration-reference) section.
+3. Edit the connector configuration properties file as detailed in the [Configuration reference](#configuration-reference) section.
 
-   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties) or [`quickstart-lightstreamer-local.json`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.json) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#installation) for the Lightstreamer Kafka Connector.
+   You may want to use the provided [`quickstart-lightstreamer-local.properties`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.properties) or [`quickstart-lightstreamer-local.json`](./kafka-connector-project/config/kafka-connect-config/quickstart-lightstreamer-local.json) files as starting pint. This file provides the set of pre-configured settings to feed Lightstreamer with stock market events, as already shown in the [installation instruction](#install) for the Lightstreamer Kafka Connector.
 
-4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer Setup](#lightstreamer-setup) section.
+4. Launch the Lightstreamer Server instance already configured in the [Lightstreamer setup](#lightstreamer-setup) section.
 
 5. Start the Connect worker with:
 
@@ -2175,7 +2459,7 @@ If you want to build a local Docker image based on Kafka Connect with the connec
 
 In addition, the [examples/quickstart-kafka-connect](/examples/quickstart-kafka-connect/) folder shows how to use that image in Docker Compose through a Kafka Connect version of the _Quickstart_ app.
 
-## Supported Converters
+## Supported converters
 
 The Kafka Connect Lightstreamer Sink Connector supports all the [converters](https://docs.confluent.io/platform/current/connect/index.html#converters) that come packaged with the Confluent Platform. These include:
 
@@ -2194,7 +2478,7 @@ It also supports the built-in primitive converters:
 - `org.apache.kafka.connect.converters.LongConverter`
 - `org.apache.kafka.connect.converters.ShortConverter`
 
-## Configuration Reference
+## Configuration reference
 
 The Kafka Connect Lightstreamer Sink Connector configuration properties are described below.
 
@@ -2358,7 +2642,7 @@ record.extraction.error.strategy=FORWARD_TO_DLQ
 ### `topic.mappings`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Routing](#record-routing-maptopic_nameto) section.
+> This configuration implements the same concepts already presented in the [Record routing](#record-routing-maptopic_nameto) section.
 
 Semicolon-separated list of mappings between source topics and Lightstreamer items. The list should describe a set of mappings in the form:
 
@@ -2403,7 +2687,7 @@ topic.mappings.regex.enable=true
 ### `record.mappings`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Record Mapping](#record-mapping-fieldfield_name) section.
+> This configuration implements the same concepts already presented in the [Record mapping](#record-mapping-fieldfield_name) section.
 
 The list of mappings between Kafka records and Lightstreamer fields. The list should describe a set of subscribable fields in the following form:
 
@@ -2465,7 +2749,7 @@ record.mappings.map.non.scalar.values.enable=true
 ### `item.templates`
 
 > [!IMPORTANT]
-> This configuration implements the same concepts already presented in the [Filtered Record Routing](#filtered-record-routing-item-templatetemplate_name) section.
+> This configuration implements the same concepts already presented in the [Filtered record routing](#filtered-record-routing-item-templatetemplate_name) section.
 
 Semicolon-separated list of _item templates_, which specify the rules to enable the _filtering routing_. The list should describe a set of templates in the following form:
 
@@ -2501,11 +2785,11 @@ item.templates=by-name:user-#{firstName=VALUE.name,lastName=VALUE.surname}; \
 topic.mappings=user:item-template.by-name,item-template.by-age
 ```
 
-The configuration above specifies how to route records published from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
+The configuration above specifies how to route records from the topic `user` to the item templates `by-name` and `by-age`, which define the rules to extract some personal data by leveraging _Data Extraction Language_ expressions.
 
 # Docs
 
-The [docs](/docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customizing the Kafka Connector Metadata Adapter Class](#customizing-the-kafka-connector-metadata-adapter-class) section.
+The [docs](/docs/) folder contains the complete [Kafka Connector API Reference](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc), which is useful for implementing custom authentication and authorization logic, as described in the [Customizing the Kafka Connector Metadata Adapter class](#customizing-the-kafka-connector-metadata-adapter-class) section.
 
 To learn more about the [Lightstreamer Broker](https://lightstreamer.com/products/lightstreamer/) and the [Lightstreamer Kafka Connector](https://lightstreamer.com/products/kafka-connector/), visit their respective product pages.
 

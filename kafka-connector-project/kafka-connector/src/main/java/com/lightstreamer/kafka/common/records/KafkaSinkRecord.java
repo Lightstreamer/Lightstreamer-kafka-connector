@@ -33,7 +33,7 @@ public final class KafkaSinkRecord implements KafkaRecord<Object, Object> {
     private final SinkRecord record;
 
     /**
-     * Constructs a {@link KafkaSinkRecord} wrapping the given {@link SinkRecord}.
+     * Constructs a {@code KafkaSinkRecord} wrapping the given {@link SinkRecord}.
      *
      * @param record the Kafka Connect {@link SinkRecord} to wrap
      */

@@ -1,17 +1,17 @@
-# Kafka Connect Lightstreamer Sink Connector Docker Image
+# Kafka Connect Lightstreamer Sink Connector Docker image
 
 This folder contains the resources required to build a Docker image of the Kafka Connect Lightstreamer Sink Connector.
 
 The image is based on the [Confluent Docker Base Image for Kafka Connect](https://hub.docker.com/r/confluentinc/cp-kafka-connect-base). Check out the [`Dockerfile`](./Dockerfile) for more details.
 
-## Building Locally
+## Building locally
 
 ### Requirements
 
 - JDK version 17 or newer
 - Docker
 
-### Build Steps
+### Build steps
 
 ```sh
 ./build.sh
@@ -22,7 +22,7 @@ This script will:
 - Build the Docker image
 - Tag the image as `kafka-connect-lightstreamer-<version>`
 
-### Verify the Image
+### Verify the image
 
 ```sh
 docker images kafka-connect-lightstreamer-*

@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -404,7 +405,7 @@ public class DataExtractors {
         private final DataExtractor<K, V>[] extractors;
         private final boolean skipOnFailure;
         private final boolean mapNonScalars;
-        private Set<String> fieldNames;
+        private final Map<String, DataExtractor<K, V>> extractorsByName = new HashMap<>();
 
         @SuppressWarnings("unchecked")
         NamedFieldsExtractorImpl(
@@ -425,16 +426,15 @@ public class DataExtractors {
             this.extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
             ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
 
-            Set<String> fields = new HashSet<>();
             int index = 0;
             for (Map.Entry<String, ExtractionExpression> namedExpression : expressions.entrySet()) {
                 String fieldName = namedExpression.getKey();
-                this.extractors[index++] =
+                DataExtractor<K, V> dataExtractor =
                         provider.createDataExtractor(
                                 fieldName, namedExpression.getValue(), mapNonScalars);
-                fields.add(fieldName);
+                this.extractors[index++] = dataExtractor;
+                extractorsByName.put(fieldName, dataExtractor);
             }
-            this.fieldNames = Collections.unmodifiableSet(fields);
         }
 
         @Override
@@ -453,6 +453,23 @@ public class DataExtractors {
         }
 
         @Override
+        public void extractFieldIntoMap(
+                String field, KafkaRecord<K, V> record, Map<String, String> targetMap) {
+            DataExtractor<K, V> dataExtractor = extractorsByName.get(field);
+            if (dataExtractor == null) {
+                return;
+            }
+            try {
+                Data data = dataExtractor.extract(record);
+                targetMap.put(data.name(), data.text());
+            } catch (ValueException ve) {
+                if (!skipOnFailure) {
+                    throw ve;
+                }
+            }
+        }
+
+        @Override
         public boolean skipOnFailure() {
             return skipOnFailure;
         }
@@ -464,7 +481,7 @@ public class DataExtractors {
 
         @Override
         public Set<String> mappedFields() {
-            return fieldNames;
+            return extractorsByName.keySet();
         }
 
         private static boolean areNamedExpressions(Collection<ExtractionExpression> expressions) {
@@ -511,9 +528,9 @@ public class DataExtractors {
      * <p><strong>Example:</strong> An expression {@code "VALUE.*"} might dynamically extract all
      * fields from a JSON value: {@code {"symbol": "AAPL", "price": "150.25", "volume": "1000000"}}
      *
-     * <p><b>Note:</b> Dynamic extraction always maps non-scalar values (arrays, objects) as the
-     * field structure itself may contain complex types. The {@link #mappedFields()} method returns
-     * an empty set since field names are not statically known.
+     * <p><strong>Note:</strong> Dynamic extraction always maps non-scalar values (arrays, objects)
+     * as the field structure itself may contain complex types. The {@link #mappedFields()} method
+     * returns an empty set since field names are not statically known.
      *
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value
@@ -597,12 +614,12 @@ public class DataExtractors {
      * order they are provided, and each extractor writes its extracted fields into the same target
      * map.
      *
-     * <p><b>Field Override Behavior:</b> When multiple extractors produce values for the same field
-     * name, later extractors will override values set by earlier ones.
+     * <p><strong>Field Override Behavior:</strong> When multiple extractors produce values for the
+     * same field name, later extractors will override values set by earlier ones.
      *
-     * <p><b>Error Handling:</b> The {@link #skipOnFailure()} behavior is determined by evaluating
-     * all composed extractors. The composite extractor will skip on failure only if all individual
-     * extractors indicate they should skip on failure.
+     * <p><strong>Error Handling:</strong> The {@link #skipOnFailure()} behavior is determined by
+     * evaluating all composed extractors. The composite extractor will skip on failure only if all
+     * individual extractors indicate they should skip on failure.
      *
      * @param <K> the type of the Kafka record key
      * @param <V> the type of the Kafka record value

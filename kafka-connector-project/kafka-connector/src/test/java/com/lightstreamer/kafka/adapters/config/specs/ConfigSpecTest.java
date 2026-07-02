@@ -24,7 +24,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.Options;
@@ -41,7 +40,7 @@ import java.util.Optional;
 public class ConfigSpecTest {
 
     @Test
-    void shouldClone() {
+    public void shouldClone() {
         ConfigsSpec parent = new ConfigsSpec("parent");
         parent.add("prop1", ConfType.TEXT);
         parent.add("prop2", Options.evaluatorTypes());
@@ -56,7 +55,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    void shouldReturnSimpleNameSpacedConfigSpec() {
+    public void shouldReturnSimpleNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("source");
         source.add("prop1", ConfType.TEXT);
 
@@ -70,7 +69,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    void shouldReturnNestedNameSpacedConfigSpec() {
+    public void shouldReturnNestedNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("root");
         source.add("prop1", ConfType.TEXT);
         source.add("enabled.nested", true, false, ConfType.BOOL, defaultValue("true"));
@@ -186,20 +185,5 @@ public class ConfigSpecTest {
         Map<String, String> source = Map.of(key, "value");
         Map<String, String> dest = new HashMap<>();
         assertThrows(ConfigException.class, () -> param.fill(source, dest));
-    }
-
-    @Test
-    public void shouldGetCommandModeStrategy() {
-        assertThat(CommandModeStrategy.from(true, false)).isEqualTo(CommandModeStrategy.AUTO);
-        assertThat(CommandModeStrategy.from(true, true)).isEqualTo(CommandModeStrategy.AUTO);
-        assertThat(CommandModeStrategy.from(false, true)).isEqualTo(CommandModeStrategy.ENFORCE);
-        assertThat(CommandModeStrategy.from(false, false)).isEqualTo(CommandModeStrategy.NONE);
-    }
-
-    @Test
-    public void shouldCommandModeStrategyMangeSnapshot() {
-        assertThat(CommandModeStrategy.AUTO.manageSnapshot()).isFalse();
-        assertThat(CommandModeStrategy.ENFORCE.manageSnapshot()).isTrue();
-        assertThat(CommandModeStrategy.NONE.manageSnapshot()).isFalse();
     }
 }

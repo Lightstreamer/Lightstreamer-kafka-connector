@@ -18,8 +18,7 @@
 package com.lightstreamer.kafka.adapters.pub;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE;
-import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -37,13 +36,20 @@ import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
+import com.lightstreamer.kafka.test_utils.Mocks;
+import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
+import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,7 +59,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class AdapterSetTest {
@@ -86,7 +94,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldNotInitDueToMissingRequiredParameters() {
+    public void shouldNotInitDueToMissingRequiredParameters() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -99,7 +107,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldInit() throws MetadataProviderException {
+    public void shouldInit() throws MetadataProviderException {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
@@ -117,16 +125,20 @@ public class AdapterSetTest {
         Optional<KafkaConnectorDataAdapterOpts> connector1 =
                 connectorMetadataAdapter.lookUp("CONNECTOR");
         assertThat(connector1).isPresent();
-        assertThat(connector1.get().dataAdapterName()).isEqualTo("CONNECTOR");
+        KafkaConnectorDataAdapterOpts kafkaConnectorDataAdapterOpts = connector1.get();
+        assertThat(kafkaConnectorDataAdapterOpts.dataAdapterName()).isEqualTo("CONNECTOR");
+        assertThat(kafkaConnectorDataAdapterOpts.enabled()).isTrue();
 
         Optional<KafkaConnectorDataAdapterOpts> connector2 =
                 connectorMetadataAdapter.lookUp("CONNECTOR2");
         assertThat(connector2).isPresent();
-        assertThat(connector2.get().dataAdapterName()).isEqualTo("CONNECTOR2");
+        KafkaConnectorDataAdapterOpts kafkaConnectorDataAdapterOpts2 = connector2.get();
+        assertThat(kafkaConnectorDataAdapterOpts2.dataAdapterName()).isEqualTo("CONNECTOR2");
+        assertThat(kafkaConnectorDataAdapterOpts2.enabled()).isTrue();
     }
 
     @Test
-    void shouldHandleConnectorItems() throws Exception {
+    public void shouldHandleConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -141,7 +153,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldNotHandleNonConnectorItems() throws Exception {
+    public void shouldNotHandleNonConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -155,43 +167,48 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldHandleSnapshot() throws Exception {
+    public void shouldNotHandleSnapshot() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter1.setConsumerFactory(this.getConsumer());
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
-        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
 
-        KafkaConnectorDataAdapter connectorDataAdapter2 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter2.init(
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(
-                                ConnectorConfig.FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}")),
-                adapterDir.toFile());
-        connectorDataAdapter2.setListener(new MockItemEventListener());
-        assertThat(connectorDataAdapter2.isSnapshotAvailable("anItem")).isTrue();
+        assertThat(connectorDataAdapter1.isSnapshotAvailable("anItem")).isFalse();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"COMMAND", "MERGE", "DISTINCT"})
+    public void shouldHandleSnapshot(String mode) throws Exception {
+        doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
+        connectorDataAdapter3.setConsumerFactory(this.getConsumer());
+        Map<String, String> config = new HashMap<>();
+        config.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, mode);
+        if (mode.equals("COMMAND")) {
+            config.put("field.key", "#{KEY}");
+        }
         connectorDataAdapter3.init(
-                ConnectorConfigProvider.minimalConfigWith(
-                        Map.of(
-                                ConnectorConfig.FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}")),
-                adapterDir.toFile());
-        connectorDataAdapter3.setListener(new MockItemEventListener());
-        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isFalse();
+                ConnectorConfigProvider.minimalConfigWith(config), adapterDir.toFile());
+        // Here we don't call setListener because snapshot availability should not depend on it, but
+        // rather on the configuration only
+        assertThat(connectorDataAdapter3.isSnapshotAvailable("anItem")).isTrue();
+    }
+
+    private Function<Properties, Consumer<byte[], byte[]>> getConsumer() {
+        MockConsumer consumer = new Mocks.MockConsumer(StrategyType.LATEST.toString());
+
+        TopicPartition tp = new TopicPartition("topic", 0);
+        consumer.updatePartitions(
+                tp.topic(),
+                List.of(new PartitionInfo(tp.topic(), tp.partition(), null, null, null)));
+        return props -> consumer;
     }
 
     @Test
-    void shouldDenyNotEnabledConnection() throws Exception {
+    public void shouldDenyNotEnabledConnection() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -211,7 +228,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    void shouldHandleCustomAdapter() throws Exception {
+    public void shouldHandleCustomAdapter() throws Exception {
         record NotifiedNewTables(String user, String sessionId, TableInfo[] tables) {}
 
         record NotifiedCloseTables(String sessionId, TableInfo[] tables) {}
@@ -265,7 +282,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideRemapItems")
-    void shouldRemapItems(String input, List<String> expected)
+    public void shouldRemapItems(String input, List<String> expected)
             throws MetadataProviderException, ItemsException {
         doInit();
 
@@ -284,7 +301,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideGetIItems")
-    void shouldGetItems(String input, List<String> normalizedItems)
+    public void shouldGetItems(String input, List<String> normalizedItems)
             throws MetadataProviderException, ItemsException {
         doInit();
 
@@ -295,70 +312,38 @@ public class AdapterSetTest {
 
     static Stream<Arguments> modes() {
         return Stream.of(
-                // Test with with no usage of command mode
+                // Test with with no snapshot mode configured, which should allow all modes by
+                // default
                 Arguments.of(Mode.DISTINCT, Collections.emptyMap(), true),
                 Arguments.of(Mode.MERGE, Collections.emptyMap(), true),
                 Arguments.of(Mode.COMMAND, Collections.emptyMap(), true),
                 Arguments.of(Mode.RAW, Collections.emptyMap(), true),
-                // Test with usage of command mode through
-                // "fields.evaluate.as.command.enable"
+                // Test with specific snapshot modes configured, which should allow only the
+                // matching mode
+                Arguments.of(Mode.DISTINCT, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), true),
+                Arguments.of(Mode.DISTINCT, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
                 Arguments.of(
                         Mode.DISTINCT,
-                        Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
                         false),
+                Arguments.of(Mode.MERGE, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), true),
+                Arguments.of(Mode.MERGE, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
                 Arguments.of(
                         Mode.MERGE,
-                        Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
-                        false),
-                Arguments.of(
-                        Mode.RAW,
-                        Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
                         false),
                 Arguments.of(
                         Mode.COMMAND,
-                        Map.of(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                "true",
-                                "field.key",
-                                "#{KEY}",
-                                "field.command",
-                                "#{VALUE}"),
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
                         true),
-                // Test with usage of command mode through "fields.auto.command.mode.enable"
-                Arguments.of(
-                        Mode.DISTINCT,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
-                        false),
-                Arguments.of(
-                        Mode.MERGE,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
-                        false),
+                Arguments.of(Mode.COMMAND, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
+                Arguments.of(Mode.COMMAND, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
+                Arguments.of(Mode.RAW, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "DISTINCT"), false),
+                Arguments.of(Mode.RAW, Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "MERGE"), false),
                 Arguments.of(
                         Mode.RAW,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
-                        false),
-                Arguments.of(
-                        Mode.COMMAND,
-                        Map.of(FIELDS_AUTO_COMMAND_MODE_ENABLE, "true", "field.key", "#{KEY}"),
-                        true));
+                        Map.of(ITEM_SNAPSHOT_ENABLED_MODE, "COMMAND", "field.key", "#{KEY}"),
+                        false));
     }
 
     @ParameterizedTest

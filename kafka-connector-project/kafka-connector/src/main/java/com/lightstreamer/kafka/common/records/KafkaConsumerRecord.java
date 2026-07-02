@@ -19,6 +19,8 @@ package com.lightstreamer.kafka.common.records;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
+import javax.annotation.Nullable;
+
 /**
  * An abstract sealed base class for {@link KafkaRecord} implementations based on Kafka consumer
  * records.
@@ -41,15 +43,16 @@ abstract sealed class KafkaConsumerRecord<K, V> implements KafkaRecord<K, V>
     /** The underlying Kafka consumer record with byte array key and value. */
     protected final ConsumerRecord<byte[], byte[]> record;
 
-    protected final RecordBatch<K, V> batch;
+    /** The batch this record belongs to, or {@code null} if standalone. */
+    protected final @Nullable RecordBatch<K, V> batch;
 
     /**
-     * Constructs a {@link KafkaConsumerRecord} with the given consumer record.
+     * Constructs a {@code KafkaConsumerRecord} with the given consumer record.
      *
      * @param record the raw Kafka consumer record
-     * @param batch the batch this record belongs to
+     * @param batch the batch this record belongs to, or {@code null} if standalone
      */
-    KafkaConsumerRecord(ConsumerRecord<byte[], byte[]> record, RecordBatch<K, V> batch) {
+    KafkaConsumerRecord(ConsumerRecord<byte[], byte[]> record, @Nullable RecordBatch<K, V> batch) {
         this.record = record;
         this.batch = batch;
     }
@@ -80,7 +83,7 @@ abstract sealed class KafkaConsumerRecord<K, V> implements KafkaRecord<K, V>
     }
 
     @Override
-    public final RecordBatch<K, V> getBatch() {
+    public final @Nullable RecordBatch<K, V> getBatch() {
         return batch;
     }
 }

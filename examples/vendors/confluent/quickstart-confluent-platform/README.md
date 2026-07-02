@@ -1,8 +1,8 @@
-# Confluent Platform Quickstart
+# Confluent Platform quickstart
 
 To efficiently showcase the functionalities of the Lightstreamer Kafka Connector, this quick start application facilitates real-time streaming of data from a Kafka topic directly to a web interface. It leverages a modified version of the [Stock List Demo](https://github.com/Lightstreamer/Lightstreamer-example-StockList-client-javascript?tab=readme-ov-file#basic-stock-list-demo---html-client), specifically adapted to demonstrate Kafka integration. This setup is designed for rapid comprehension, enabling you to swiftly grasp and observe the connector's performance in a real-world scenario.
 
-![Quickstart Diagram](/pictures/quickstart-diagram.png)
+![Quickstart diagram](/pictures/quickstart-diagram.png)
 
 The diagram above illustrates how, in this setup, a stream of simulated market events is channeled from Kafka to the web client via the Lightstreamer Kafka Connector.
 

@@ -1,79 +1,29 @@
 <?xml version="1.0"?>
-
-<!--
-    This is the configuration file of the Lightstreamer Kafka Connector pluggable into Lightstreamer Server.
-
-    A very simple variable-expansion feature is available; see
-    <enable_expansion_for_adapters_config> in the Server's main configuration file.
--->
-
-<!-- Mandatory. Define the Kafka Connector Adapter Set and its unique ID. -->
 <adapters_conf id="KafkaConnector">
     <metadata_provider>
-        <!-- Mandatory. Java class name of the Kafka Connector Metadata Adapter. It is possible to provide a
-             custom implementation by extending this class. -->
         <adapter_class>com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter</adapter_class>
-
-        <!-- Mandatory. The path of the reload4j configuration file, relative to the deployment folder
-             (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
-
     </metadata_provider>
 
-    <!-- Mandatory. The Kafka Connector allows the configuration of different independent connections to different Kafka
-         broker/clusters.
-
-         Every single connection is configured via the definition of its own Lightstreamer Data Adapter. At least one connection
-         configuration must be provided.
-
-         Since the Kafka Connector manages the physical connection to Kafka by wrapping an internal Kafka Consumer, several
-         configuration settings in the Data Adapter are identical to those required by the usual Kafka Consumer
-         configuration.
-
-         The Kafka Connector leverages the "name" attribute of the <data_provider> tag as the connection name, which will
-         be used by the Clients to request real-time data from this specific Kafka connection through a Subscription object.
-
-         The connection name is also used to group all logging messages belonging to the same connection.
-
-         Its default value is "DEFAULT", but only one "DEFAULT" configuration is permitted. -->
-	<data_provider name="AirportDemo">
-        <!-- ##### GENERAL PARAMETERS ##### -->
-
-        <!-- Java class name of the Kafka Connector Data Adapter. DO NOT EDIT IT. -->
+    <data_provider name="AirportDemo">
         <adapter_class>com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapter</adapter_class>
-
-        <!-- The Kafka cluster address -->
-        <param name="bootstrap.servers">localhost:9092</param>
-
-        <!-- ##### RECORD PROCESSING SETTINGS ##### -->
-        <param name="record.consume.from">EARLIEST</param>
+        <param name="bootstrap.servers">broker:29092</param>
         <param name="record.key.evaluator.type">STRING</param>
         <param name="record.value.evaluator.type">JSON</param>
-
-        <!-- ##### RECORD ROUTING SETTINGS ##### -->
-
-        <!-- Map the topic "Flights" to the "flights-board" item. -->
         <param name="map.Flights.to">flights-board</param>
 
-        <!-- ##### RECORD MAPPING SETTINGS ##### -->
-
-        <!-- Enable support for COMMAND mode. -->
-        <param name="fields.evaluate.as.command.enable">true</param>
+        <!-- Enable support for snapshot COMMAND mode. -->
+        <param name="item.snapshot.enabled.mode">COMMAND</param>
 
         <!-- Extraction of the record value attributes mapped to corresponding field names. -->
         <param name="field.key">#{KEY}</param>
-        <param name="field.command">#{VALUE.command}</param>
-
-        <param name="field.destination">#{VALUE.destination}</param>
-        <param name="field.departure">#{VALUE.departure}</param>
+        <param name="field.destination">#{VALUE.destinationStr}</param>
+        <param name="field.scheduled">#{VALUE.scheduled}</param>
+        <param name="field.effective">#{VALUE.effective}</param>
         <param name="field.flightNo">#{KEY}</param>
         <param name="field.terminal">#{VALUE.terminal}</param>
         <param name="field.status">#{VALUE.status}</param>
         <param name="field.airline">#{VALUE.airline}</param>
-        <param name="field.currentTime">#{VALUE.currentTime}</param>
-        <param name="field.ts">#{TIMESTAMP}</param>
-        <param name="field.partition">#{PARTITION}</param>
-        <param name="field.offset">#{OFFSET}</param>
-
     </data_provider>
+
 </adapters_conf>

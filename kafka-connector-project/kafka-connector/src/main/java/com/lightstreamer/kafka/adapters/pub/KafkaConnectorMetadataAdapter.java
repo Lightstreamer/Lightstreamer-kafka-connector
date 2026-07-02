@@ -89,7 +89,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      * @throws MetadataProviderException if an error occurs that prevents the correct behavior of
      *     the Metadata Adapter. This causes the Server not to complete the startup and to exit.
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#init(java.util.Map,java.io.File)">MetadataProvider.init(java.util.Map,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#init(java.util.Map,java.io.File)">MetadataProvider.init(java.util.Map,
      *     java.io.File)</a>
      */
     protected void postInit(Map params, File configDir) throws MetadataProviderException {}
@@ -118,19 +118,26 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *
      * @param dataAdapterName the name of the Kafka Connector Data Adapter
      * @param enabled indicates whether the calling DataProvider is enabled
-     * @param useCommandMode indicates whether the Kafka Connector is configured to use the command
-     *     mode through one of the available settings ({@code fields.auto.command.mode.enable} and
-     *     {@code fields.evaluate.as.command.enable} )
+     * @param subscriptionMode indicates the subscription mode for the Kafka Connector Data Adapter
      * @hidden
      */
     public static record KafkaConnectorDataAdapterOpts(
-            String dataAdapterName, boolean enabled, boolean useCommandMode) {
+            String dataAdapterName,
+            boolean enabled,
+            Optional<Mode> subscriptionMode,
+            int itemSnapshotDistinctLength) {
+        public KafkaConnectorDataAdapterOpts {
+            subscriptionMode.ifPresent(
+                    mode -> {
+                        if (Mode.RAW.equals(mode)) {
+                            throw new IllegalArgumentException(
+                                    "RAW is not a valid configurable subscription mode");
+                        }
+                    });
+        }
 
         boolean supportMode(Mode mode) {
-            if (useCommandMode()) {
-                return Mode.COMMAND.equals(mode);
-            }
-            return true;
+            return subscriptionMode.map(m -> m.equals(mode)).orElse(true);
         }
     }
 
@@ -339,7 +346,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *     sessionID} of a session that is not currently open or inconsistent information about the
      *     Subscription
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyNewTables(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyNewTables(java.lang.String,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyNewTables(java.lang.String,java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyNewTables(java.lang.String,
      *     java.lang.String, com.lightstreamer.interfaces.metadata.TableInfo)</a>
      */
     public void onSubscription(
@@ -359,7 +366,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
      *     sessionID} of a session that is not currently open or inconsistent information about the
      *     Subscription
      * @see <a
-     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyTablesClose(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyTablesClose(java.lang.String,
+     *     href="https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#notifyTablesClose(java.lang.String,com.lightstreamer.interfaces.metadata.TableInfo%5B%5D)">MetadataProvider.notifyTablesClose(java.lang.String,
      *     com.lightstreamer.interfaces.metadata.TableInfo)</a>
      */
     public void onUnsubscription(@Nonnull String sessionID, @Nonnull TableInfo[] tables)
@@ -397,12 +404,22 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
                 mode,
                 item,
                 dataAdapter);
-
+        boolean modeMayBeAllowed;
         Optional<KafkaConnectorDataAdapterOpts> opts = lookUp(dataAdapter);
         if (opts.isPresent()) {
-            return opts.get().supportMode(mode);
+            modeMayBeAllowed = opts.get().supportMode(mode);
+        } else {
+            modeMayBeAllowed = super.modeMayBeAllowed(item, dataAdapter, mode);
         }
+        return modeMayBeAllowed;
+    }
 
-        return super.modeMayBeAllowed(item, dataAdapter, mode);
+    @Override
+    public int getDistinctSnapshotLength(@Nonnull String item, @Nonnull String dataAdapter) {
+        Optional<KafkaConnectorDataAdapterOpts> opts = lookUp(dataAdapter);
+        if (opts.isPresent()) {
+            return opts.get().itemSnapshotDistinctLength();
+        }
+        return super.getDistinctSnapshotLength(item, dataAdapter);
     }
 }

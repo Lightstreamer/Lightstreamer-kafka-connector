@@ -53,7 +53,7 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
     private K cachedKey = (K) UNINITIALIZED;
 
     /**
-     * Constructs a {@link DeferredKafkaConsumerRecord}.
+     * Constructs a {@code DeferredKafkaConsumerRecord}.
      *
      * @param record the raw Kafka consumer record with byte array key and value
      * @param deserializerPair the pair of deserializers for key and value

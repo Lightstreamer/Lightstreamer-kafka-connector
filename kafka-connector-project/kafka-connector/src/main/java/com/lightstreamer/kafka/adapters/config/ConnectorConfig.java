@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.SNAPSHOT_ENABLED_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
@@ -51,9 +52,10 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
 
+import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
@@ -68,6 +70,8 @@ import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.FieldConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.Constant;
+import com.lightstreamer.kafka.common.mapping.selectors.Expressions.ExtractionExpression;
 import com.lightstreamer.kafka.common.utils.Split;
 
 import org.apache.kafka.clients.CommonClientConfigs;
@@ -78,14 +82,22 @@ import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+/**
+ * Configuration for a Kafka Connector data adapter instance.
+ *
+ * <p>Parses and validates adapter parameters, builds the underlying Kafka consumer properties, and
+ * exposes typed accessors for all supported settings (encryption, authentication, schema registry,
+ * command mode, etc.).
+ *
+ * @see AbstractConfig
+ */
 public final class ConnectorConfig extends AbstractConfig {
-
-    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
     public static final String ENABLE = "enable";
 
@@ -98,7 +110,12 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String ITEM_TEMPLATE = "item-template";
 
     public static final String TOPIC_MAPPING = "map";
-    private static final String MAP_SUFFIX = "to";
+
+    public static final String ITEM_SNAPSHOT_ENABLED_MODE = "item.snapshot.enabled.mode";
+
+    public static final String ITEM_SNAPSHOT_DISTINCT_LENGTH = "item.snapshot.distinct.length";
+
+    public static final String ITEM_SNAPSHOT_MAX_IDLE_SECONDS = "item.snapshot.max.idle.seconds";
 
     public static final String MAP_REG_EX_ENABLE = "map.regex.enable";
 
@@ -108,11 +125,6 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String FIELDS_MAP_NON_SCALAR_VALUES_ENABLE =
             "fields.map.non.scalar.values.enable";
-
-    public static final String FIELDS_EVALUATE_AS_COMMAND_ENABLE =
-            "fields.evaluate.as.command.enable";
-
-    public static final String FIELDS_AUTO_COMMAND_MODE_ENABLE = "fields.auto.command.mode.enable";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_KEY_EVALUATOR_SCHEMA_PATH =
@@ -195,6 +207,9 @@ public final class ConnectorConfig extends AbstractConfig {
     public static final String CONSUMER_RETRIES =
             CONNECTOR_PREFIX + AdminClientConfig.RETRIES_CONFIG;
 
+    static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
+
+    private static final String MAP_SUFFIX = "to";
     private static final ConfigsSpec CONFIG_SPEC;
 
     static {
@@ -225,6 +240,24 @@ public final class ConnectorConfig extends AbstractConfig {
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
                         .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(
+                                ITEM_SNAPSHOT_ENABLED_MODE,
+                                false,
+                                false,
+                                SNAPSHOT_ENABLED_MODE,
+                                defaultValue(ItemSnapshotEnabledMode.NONE.toString()))
+                        .add(
+                                ITEM_SNAPSHOT_DISTINCT_LENGTH,
+                                false,
+                                false,
+                                POSITIVE_INT,
+                                defaultValue("10"))
+                        .add(
+                                ITEM_SNAPSHOT_MAX_IDLE_SECONDS,
+                                false,
+                                false,
+                                NON_NEGATIVE_INT,
+                                defaultValue("0"))
                         .add(MAP_REG_EX_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(FIELD_MAPPING, true, true, TEXT)
                         .add(
@@ -245,18 +278,6 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 EVALUATOR,
                                 defaultValue(EvaluatorType.STRING.toString()))
-                        .add(
-                                FIELDS_EVALUATE_AS_COMMAND_ENABLE,
-                                false,
-                                false,
-                                BOOL,
-                                defaultValue("false"))
-                        .add(
-                                FIELDS_AUTO_COMMAND_MODE_ENABLE,
-                                false,
-                                false,
-                                BOOL,
-                                defaultValue("false"))
                         .add(RECORD_KEY_EVALUATOR_SCHEMA_PATH, false, false, FILE)
                         .add(
                                 RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
@@ -320,7 +341,9 @@ public final class ConnectorConfig extends AbstractConfig {
                                 false,
                                 false,
                                 ORDER_STRATEGY,
-                                defaultValue("ORDER_BY_PARTITION"))
+                                defaultValue(
+                                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION
+                                                .toString()))
                         .add(ENCRYPTION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(AUTHENTICATION_ENABLE, false, false, BOOL, defaultValue("false"))
                         .add(
@@ -425,26 +448,34 @@ public final class ConnectorConfig extends AbstractConfig {
     private final List<TopicMappingConfig> topicMappings;
 
     private FieldConfigs fieldConfigs;
+    private RecordErrorHandlingStrategy effectiveErrorStrategy;
+    private Optional<Mode> subscriptionMode;
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
         this.consumerProps = initProps();
-        itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
-        topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
-        fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
+        this.itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
+        this.topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
+        this.fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
         postValidate();
     }
 
+    /**
+     * Constructs a new {@code ConnectorConfig} by parsing and validating the given parameters.
+     *
+     * @param configs the raw adapter parameters
+     * @throws ConfigException if any parameter is missing, invalid, or conflicts with another
+     */
     public ConnectorConfig(Map<String, String> configs) throws ConfigException {
         this(CONFIG_SPEC, configs);
     }
 
-    @Override
-    protected final void postValidate() throws ConfigException {
+    private void postValidate() throws ConfigException {
         checkSchemaConfig(true);
         checkSchemaConfig(false);
         checkTopicMappingRegex();
-        checkCommandMode();
+        resolveSubscriptionMode();
+        resolveRecordErrorStrategy();
     }
 
     private void checkSchemaConfig(boolean isKey) {
@@ -501,32 +532,59 @@ public final class ConnectorConfig extends AbstractConfig {
                         });
     }
 
-    private void checkCommandMode() {
-        if (isAutoCommandModeEnabled()) {
-            checkCommandKey();
-            return;
-        }
-
-        if (isCommandEnforceEnabled()) {
-            if (getRecordConsumeWithNumThreads() != 1) {
-                throw new ConfigException(
-                        "Command mode requires exactly one consumer thread. Parameter [%s] must be set to [1]"
-                                .formatted(RECORD_CONSUME_WITH_NUM_THREADS));
+    private void resolveSubscriptionMode() {
+        ItemSnapshotEnabledMode snapshotMode = getItemSnapshotMode();
+        switch (snapshotMode) {
+            case NONE -> {
+                this.subscriptionMode = Optional.empty();
             }
-            checkCommandKey();
-            if (fieldConfigs.namedFieldsExpressions().get("command") == null) {
-                throw new ConfigException(
-                        "Command mode requires a command field. Parameter [%s] must be set"
-                                .formatted("field.command"));
+
+            case COMMAND -> {
+                checkCommandKey();
+                this.subscriptionMode = Optional.of(Mode.COMMAND);
+            }
+
+            case MERGE, DISTINCT -> {
+                this.subscriptionMode = snapshotMode.toMode();
             }
         }
     }
 
     private void checkCommandKey() {
-        if (fieldConfigs.namedFieldsExpressions().get("key") == null) {
+        ExtractionExpression extractionExpression =
+                fieldConfigs.namedFieldsExpressions().get("key");
+        if (extractionExpression == null) {
             throw new ConfigException(
-                    "Command mode requires a key field. Parameter [%s] must be set"
-                            .formatted("field.key"));
+                    "Parameter [%s] set to [%s] requires [field.key] to be set"
+                            .formatted(
+                                    ITEM_SNAPSHOT_ENABLED_MODE, ItemSnapshotEnabledMode.COMMAND));
+        }
+        if (!extractionExpression.constant().equals(Constant.KEY)) {
+            throw new ConfigException(
+                    "Parameter [field.key] must be set to a constant expression referencing [KEY] when [%s] is set to [%s]"
+                            .formatted(
+                                    ITEM_SNAPSHOT_ENABLED_MODE, ItemSnapshotEnabledMode.COMMAND));
+        }
+    }
+
+    /**
+     * Resolves the effective record-extraction error strategy.
+     *
+     * <p>The eager pipeline activated by {@code item.snapshot.enable=true} cannot be restarted by a
+     * client reconnect: a terminated eager consumer would leave the Server's item store permanently
+     * stale. A configured {@link RecordErrorHandlingStrategy#FORCE_UNSUBSCRIPTION
+     * FORCE_UNSUBSCRIPTION} is therefore overridden to {@link
+     * RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE}.
+     */
+    private void resolveRecordErrorStrategy() {
+        RecordErrorHandlingStrategy configured =
+                RecordErrorHandlingStrategy.valueOf(
+                        get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+        if (getItemSnapshotMode() != ItemSnapshotEnabledMode.NONE
+                && configured == RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION) {
+            this.effectiveErrorStrategy = RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+        } else {
+            this.effectiveErrorStrategy = configured;
         }
     }
 
@@ -577,16 +635,35 @@ public final class ConnectorConfig extends AbstractConfig {
         return CONFIG_SPEC;
     }
 
+    /**
+     * Creates a new {@code ConnectorConfig} with file paths resolved against the adapter directory.
+     *
+     * @param adapterDir the adapter's base directory for resolving relative file paths
+     * @param params the raw adapter parameters
+     * @return a validated {@code ConnectorConfig}
+     * @throws ConfigException if any parameter is missing, invalid, or conflicts with another
+     */
     public static ConnectorConfig newConfig(File adapterDir, Map<String, String> params)
             throws ConfigException {
         return new ConnectorConfig(
                 AbstractConfig.resolveFilePaths(CONFIG_SPEC, params, adapterDir));
     }
 
+    /**
+     * Returns the base Kafka consumer properties derived from this configuration.
+     *
+     * @return an unmodifiable {@link Properties} instance
+     */
     public Properties baseConsumerProps() {
         return consumerProps;
     }
 
+    /**
+     * Returns a copy of the base consumer properties extended with the given overrides.
+     *
+     * @param props additional properties to merge (overriding base values on conflict)
+     * @return a new map containing both base and overridden properties
+     */
     public Map<String, ?> extendsConsumerProps(Map<String, String> props) {
         Map<String, String> extendedProps =
                 new HashMap<>(
@@ -611,25 +688,22 @@ public final class ConnectorConfig extends AbstractConfig {
         return EvaluatorType.valueOf(get(configKey, EVALUATOR, false));
     }
 
-    public boolean isCommandEnforceEnabled() {
-        return getBoolean(FIELDS_EVALUATE_AS_COMMAND_ENABLE);
-    }
-
-    public boolean isAutoCommandModeEnabled() {
-        return getBoolean(FIELDS_AUTO_COMMAND_MODE_ENABLE);
-    }
-
-    public CommandModeStrategy getCommandModeStrategy() {
-        return CommandModeStrategy.from(isAutoCommandModeEnabled(), isCommandEnforceEnabled());
-    }
-
     public final RecordConsumeFrom getRecordConsumeFrom() {
         return RecordConsumeFrom.valueOf(get(RECORD_CONSUME_FROM, CONSUME_FROM, false));
     }
 
+    /**
+     * Returns the effective error-handling strategy for record-extraction failures, as resolved
+     * during post-validation.
+     *
+     * <p>When {@code item.snapshot.enable=true} a configured {@code FORCE_UNSUBSCRIPTION} is
+     * substituted by {@link RecordErrorHandlingStrategy#IGNORE_AND_CONTINUE IGNORE_AND_CONTINUE};
+     * see {@link #resolveRecordErrorStrategy()} for the rationale.
+     *
+     * @return the active {@link RecordErrorHandlingStrategy}
+     */
     public final RecordErrorHandlingStrategy getRecordExtractionErrorHandlingStrategy() {
-        return RecordErrorHandlingStrategy.valueOf(
-                get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
+        return effectiveErrorStrategy;
     }
 
     public final RecordConsumeWithOrderStrategy getRecordConsumeWithOrderStrategy() {
@@ -1080,6 +1154,23 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public List<TopicMappingConfig> getTopicMappings() {
         return topicMappings;
+    }
+
+    public Optional<Mode> getSubscriptionMode() {
+        return subscriptionMode;
+    }
+
+    public ItemSnapshotEnabledMode getItemSnapshotMode() {
+        return ItemSnapshotEnabledMode.valueOf(
+                get(ITEM_SNAPSHOT_ENABLED_MODE, SNAPSHOT_ENABLED_MODE, false));
+    }
+
+    public int getItemSnapshotDistinctLength() {
+        return Integer.parseInt(getPositiveInt(ITEM_SNAPSHOT_DISTINCT_LENGTH));
+    }
+
+    public int getItemSnapshotMaxIdleSeconds() {
+        return Integer.parseInt(getNonNegativeInt(ITEM_SNAPSHOT_MAX_IDLE_SECONDS));
     }
 
     public boolean isMapRegExEnabled() {

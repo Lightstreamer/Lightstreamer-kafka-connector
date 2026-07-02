@@ -21,9 +21,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -46,6 +46,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +61,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class DataExtractorBenchmarks {
 
+    static final Logger logger = LoggerFactory.getLogger("Benchmark");
     static String[] TOPICS = {"users"};
 
     @State(Scope.Thread)
@@ -80,7 +83,8 @@ public class DataExtractorBenchmarks {
             ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
 
             this.canonicalItemExtractor =
                     config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
@@ -95,7 +99,7 @@ public class DataExtractorBenchmarks {
                             BenchmarksUtils.valueDeserializer(type, configurator.getConfig()));
             var deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.EAGER, deserializerPair);
+                            DeserializationTiming.EAGER, deserializerPair, logger);
             RecordBatch<String, V> recordBatch = deserializationMode.toBatch(consumerRecords);
             this.kafkaRecord = recordBatch.getRecords().get(0);
         }

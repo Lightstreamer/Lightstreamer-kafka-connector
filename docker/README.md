@@ -1,10 +1,10 @@
-# Lightstreamer Kafka Connector Docker Image
+# Lightstreamer Kafka Connector Docker image
 
 This folder contains the resources to build the Docker image for the Lightstreamer Kafka Connector.
 
 The image derives from the official [Lightstreamer Docker image](https://hub.docker.com/_/lightstreamer) and adds the Kafka Connector adapter.
 
-## Quick Start
+## Quick start
 
 Images are published to GitHub Container Registry on each release.
 
@@ -44,7 +44,7 @@ docker run --name kafka-connector -d -p 8080:8080 \
 
 **Logging**: The Docker image uses a container-optimized `log4j.properties` that sends all logs to stdout (compatible with `docker logs`). To use file-based logging or custom log levels, mount your own `log4j.properties`.
 
-## Building Locally
+## Building locally
 
 If you want to build the image from source:
 
@@ -53,7 +53,7 @@ If you want to build the image from source:
 - JDK version 17 or newer
 - Docker
 
-### Build Steps
+### Build steps
 
 ```sh
 ./build.sh
@@ -64,7 +64,7 @@ This script will:
 - Build the Docker image
 - Tag the image as `lightstreamer-kafka-connector:<version>` and `lightstreamer-kafka-connector:latest`
 
-### Run the Image
+### Run the image
 
 ```sh
 # Run the container
@@ -74,15 +74,15 @@ docker run --name kafka-connector -d -p 8080:8080 lightstreamer-kafka-connector:
 docker logs kafka-connector
 ```
 
-**Note**: Configuration works the same as in Quick Start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
+**Note**: Configuration works the same as in Quick start (see above). Use Docker volumes to mount custom `adapters.xml`, `log4j.properties`, or SSL certificates.
 
 ---
 
-## For Maintainers
+## For maintainers
 
-### Publishing to Registry
+### Publishing to registry
 
-#### Automated Publishing (GitHub Actions)
+#### Automated publishing (GitHub Actions)
 
 The project includes a GitHub Actions workflow (`.github/workflows/docker-publish.yml`) that automatically builds and publishes images when a release is created:
 
@@ -94,7 +94,7 @@ The project includes a GitHub Actions workflow (`.github/workflows/docker-publis
 
 **First-time setup**: After the first automated push, set the package visibility to "public" in GitHub package settings.
 
-#### Manual Publishing
+#### Manual publishing
 
 **Prerequisites**: Login to the registry first:
 ```sh
@@ -119,13 +119,13 @@ The `push.sh` script will:
 - Tag for the specified registry
 - Push both versioned and `latest` tags
 
-### Technical Details
+### Technical details
 
-**Multi-stage Build**: The Dockerfile uses a multi-stage build pattern that extracts the distribution ZIP in one stage and copies only the extracted files to the final image, reducing the image size by ~30-50MB.
+**Multi-stage build**: The Dockerfile uses a multi-stage build pattern that extracts the distribution ZIP in one stage and copies only the extracted files to the final image, reducing the image size by ~30-50MB.
 
-**OCI Labels**: The image includes standard OCI-compliant labels for version, source, and documentation metadata.
+**OCI labels**: The image includes standard OCI-compliant labels for version, source, and documentation metadata.
 
-**Build Script**: The `build.sh` script is designed to work both locally and in CI/CD environments (exports version for GitHub Actions).
+**Build script**: The `build.sh` script is designed to work both locally and in CI/CD environments (exports version for GitHub Actions).
 
 View image labels:
 ```sh

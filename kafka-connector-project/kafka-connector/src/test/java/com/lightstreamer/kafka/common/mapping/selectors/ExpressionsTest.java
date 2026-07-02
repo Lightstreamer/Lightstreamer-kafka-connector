@@ -53,7 +53,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.stream.Stream;
 
 public class ExpressionsTest {
@@ -373,9 +372,9 @@ public class ExpressionsTest {
         SubscriptionExpression subscription = Subscription(expression);
         assertThat(subscription.prefix()).isEqualTo(expectedPrefix);
         assertThat(subscription.schema().name()).isEqualTo(expectedPrefix);
-        assertThat(subscription.asCanonicalItemName()).isEqualTo(expectedCanonicalItem);
+        assertThat(subscription.canonicalItemName()).isEqualTo(expectedCanonicalItem);
 
-        SortedSet<Data> subscriptionParams = subscription.dataSet();
+        Set<Data> subscriptionParams = subscription.dataSet();
         assertThat(subscriptionParams).isEqualTo(expectedParams);
     }
 
