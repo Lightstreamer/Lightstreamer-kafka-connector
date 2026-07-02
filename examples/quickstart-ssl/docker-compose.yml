@@ -5,8 +5,8 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
-      - broker
-      - producer
+      broker:
+        condition: service_started
     ports:
       - 8080:8080
     volumes:
@@ -18,12 +18,13 @@ services:
   producer:
     container_name: producer
     depends_on:
-      - broker    
+      broker:
+        condition: service_started
     build:
       context: ../quickstart-producer
     configs:
       - source: producer.properties
-        target: /usr/app/producer.properties        
+        target: /usr/app/producer.properties
     volumes:
       - ./secrets/producer:/usr/app/secrets
     command: ["--bootstrap-servers", "broker:29094", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
