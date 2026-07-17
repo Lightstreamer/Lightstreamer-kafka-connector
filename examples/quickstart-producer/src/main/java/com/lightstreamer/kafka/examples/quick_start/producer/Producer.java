@@ -118,14 +118,14 @@ public class Producer implements Runnable, FeedSimulator.ExternalFeedListener {
         public static SerializationFormat fromString(String className) {
             return switch (className) {
                 case "io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer",
-                                "com.lightstreamer.kafka.examples.quick_start.producer.protobuf.CustomProtobufSerializer" ->
+                        "com.lightstreamer.kafka.examples.quick_start.producer.protobuf.CustomProtobufSerializer" ->
                         PROTOBUF;
                 case "io.confluent.kafka.serializers.KafkaJsonSerializer" -> JSON;
                 case "io.confluent.kafka.serializers.json.KafkaJsonSchemaSerializer",
-                                "com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer" ->
+                        "com.microsoft.azure.schemaregistry.kafka.json.KafkaJsonSerializer" ->
                         JSON_SCHEMA;
                 case "io.confluent.kafka.serializers.KafkaAvroSerializer",
-                                "com.microsoft.azure.schemaregistry.kafka.avro.KafkaAvroSerializer" ->
+                        "com.microsoft.azure.schemaregistry.kafka.avro.KafkaAvroSerializer" ->
                         AVRO;
 
                 default ->

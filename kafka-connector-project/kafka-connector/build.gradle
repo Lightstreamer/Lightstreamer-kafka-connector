@@ -41,9 +41,9 @@ configurations {
 }
 
 dependencies {
-    api("com.lightstreamer:ls-adapter-inprocess:8.0.0")
+    api("com.lightstreamer:ls-adapter-inprocess:8.1.0")
 
-    implementation("org.slf4j:slf4j-reload4j:2.0.17")
+    implementation("org.slf4j:slf4j-reload4j:2.0.18")
     implementation("org.apache.kafka:kafka-clients:8.1.1-ccs")
     implementation("io.confluent:kafka-avro-serializer:8.1.1")
     implementation("io.confluent:kafka-json-serializer:8.1.1")
@@ -111,13 +111,16 @@ tasks.register("kafkaConnectJar", Jar) {
     archiveBaseName = connect_componentName
 }
 
+def externalJavadocDir = file("${project.rootDir}/../docs/javadoc")
+
 javadoc {
     include '**/pub/KafkaConnectorMetadataAdapter.java'
     exclude '**/pub/*ConnectionInfo*'
-    destinationDir = file("${project.rootDir}/../docs/javadoc")
+    destinationDir = externalJavadocDir
+    outputs.dir(externalJavadocDir)
     options.addStringOption("doctitle", "<h1>$brandedProjectName <br>API Specification</h1>")
     options.overview = "src/doc/overview.html"
-    options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api")
+    options.addStringOption("link", "https://sdk.lightstreamer.com/ls-adapter-inprocess/8.1.0/api")
 }
 
 protobuf {
@@ -223,6 +226,10 @@ tasks.register('listJars') {
                 .sort()
                 .each { println it }
     }
+}
+
+clean {
+    delete externalJavadocDir                                    // (3)
 }
 
 build.dependsOn javadoc, compileJmhJava

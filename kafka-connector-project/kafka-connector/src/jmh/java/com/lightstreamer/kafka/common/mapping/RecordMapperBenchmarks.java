@@ -20,9 +20,9 @@ package com.lightstreamer.kafka.common.mapping;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
@@ -45,6 +45,8 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -57,6 +59,7 @@ import java.util.concurrent.TimeUnit;
 @Fork(1)
 public class RecordMapperBenchmarks {
 
+    static final Logger logger = LoggerFactory.getLogger("Benchmark");
     static String[] TOPICS = {"users"};
 
     @State(Scope.Thread)
@@ -74,6 +77,9 @@ public class RecordMapperBenchmarks {
         @Param({"1", "2", "3"})
         int numOfTemplateParams = 3;
 
+        @Param({"1", "2", "4", "8"})
+        int numOfTemplates = 1;
+
         private RecordMapper<String, V> mapper;
         private SubscribedItems subscribedItems;
         private MappedRecord mappedRecord;
@@ -83,13 +89,18 @@ public class RecordMapperBenchmarks {
         @Setup(Level.Iteration)
         public void setUp(Blackhole bh) throws Exception {
             ConnectorConfigurator configurator =
-                    BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
+                    BenchmarksUtils.newConfigurator(
+                            TOPICS, type, numOfTemplateParams, numOfTemplates);
 
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
             this.subscribedItems =
-                    BenchmarksUtils.subscriptions(
-                            numOfSubscriptions, new FakeEventListener(bh), numOfTemplateParams);
+                    BenchmarksUtils.onDemandSubscriptions(
+                            numOfSubscriptions,
+                            new FakeEventListener(bh),
+                            numOfTemplateParams,
+                            numOfTemplates);
 
             // Generate the test records.
             ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -101,7 +112,7 @@ public class RecordMapperBenchmarks {
 
             var deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.EAGER, deserializerPair);
+                            DeserializationTiming.EAGER, deserializerPair, logger);
             RecordBatch<String, V> recordBatch = deserializationMode.toBatch(consumerRecords);
 
             this.mapper = BenchmarksUtils.newRecordMapper(config);
@@ -118,7 +129,7 @@ public class RecordMapperBenchmarks {
      * @param plan the benchmark state containing the mapper and record to be mapped
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
+    // @Benchmark
     public <V> void map(Plan<V> plan, Blackhole bh) {
         MappedRecord map = plan.mapper.map(plan.record);
         bh.consume(map);
@@ -137,7 +148,7 @@ public class RecordMapperBenchmarks {
      * @param plan the benchmark state containing the mapper and test records
      * @param bh the JMH blackhole used to consume the benchmark result and prevent optimization
      */
-    @Benchmark
+    // @Benchmark
     public <V> void mapAndFieldsMap(Plan<V> plan, Blackhole bh) {
         MappedRecord map = plan.mapper.map(plan.record);
         Map<String, String> filtered = map.fieldsMap();

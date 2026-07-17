@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.records;
 
+import javax.annotation.Nullable;
+
 /**
  * A simple Java record implementation of {@link KafkaRecord} for testing purposes.
  *
@@ -55,7 +57,7 @@ record SimpleKafkaRecord<K, V>(
     }
 
     @Override
-    public RecordBatch<K, V> getBatch() {
+    public @Nullable RecordBatch<K, V> getBatch() {
         return null;
     }
 }

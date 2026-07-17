@@ -1,10 +1,10 @@
-# Quickstart Producer
+# Quickstart producer
 
 This folder contains the Gradle project for the Kafka producer used across all _Quickstart_ examples. The producer simulates a real-time stock market feed and continuously publishes stock price update events to a configured Kafka topic.
 
-It is automatically built and packaged into a Docker image as part of the `start.sh` script used by every example, but can also be run standalone. See the [Quick Start](../../README.md#quick-start-set-up-in-5-minutes) section for more details.
+It is automatically built and packaged into a Docker image as part of the `start.sh` script used by every example, but can also be run standalone. See the [Quick start](../../README.md#quick-start-set-up-in-5-minutes) section for more details.
 
-## Supported Serialization Formats
+## Supported serialization formats
 
 The producer automatically detects the serialization format from the `value.serializer` property in the configuration file and supports:
 
@@ -32,7 +32,7 @@ $ docker build -t quickstart-producer .
 > [!IMPORTANT]
 > The `Dockerfile` copies the pre-built jar from `build/libs/`, so `./build.sh` must be run first.
 
-## Running Standalone
+## Running standalone
 
 ```sh
 $ java -jar build/libs/quickstart-producer-<version>-all.jar \
@@ -47,13 +47,13 @@ $ java -jar build/libs/quickstart-producer-<version>-all.jar \
 | `--bootstrap-servers` | No | The Kafka broker connection string; can be provided via the config file instead |
 | `--config-file` | No | Path to a Kafka producer configuration file (properties format) |
 
-## Configuration Examples
+## Configuration examples
 
 Pick one configuration from each section and combine them in your `config.properties` file, then pass it via `--config-file`.
 
-### Connection & Authentication
+### Connection and authentication
 
-#### No Authentication (Plaintext)
+#### No authentication (plaintext)
 
 No config file is needed. Pass the broker address directly on the command line:
 
@@ -136,7 +136,7 @@ sasl.jaas.config=software.amazon.msk.auth.iam.IAMLoginModule required \
 sasl.client.callback.handler.class=software.amazon.msk.auth.iam.IAMClientCallbackHandler
 ```
 
-### Serialization Format
+### Serialization format
 
 By default (no `value.serializer` specified), messages are sent as plain JSON using the built-in Kafka serializer. To use a schema registry, add one of the following blocks to your config.
 

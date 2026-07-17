@@ -1,6 +1,6 @@
-# Schema Registry Quickstart
+# Schema Registry quickstart
 
-This folder contains a variant of the [_SSL Quickstart_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
+This folder contains a variant of the [_SSL quickstart_](../quickstart-ssl/README.md#quick-start-ssl) app configured to use the _Confluent Schema Registry_.
 
 The [docker-compose.yml](docker-compose.yml) file has been revised to configure the integration with [_Confluent Docker Image for Schema Registry_](https://hub.docker.com/r/confluentinc/cp-schema-registry) as follows:
 
@@ -77,4 +77,4 @@ $ ./generate-secrets.sh
 
 ## Run
 
-From this directory, follow the same instructions you can find in the [Quick Start](../../README.md#quick-start-set-up-in-5-minutes) section of the main README file.
+From this directory, follow the same instructions you can find in the [Quick start](../../README.md#quick-start-set-up-in-5-minutes) section of the main README file.

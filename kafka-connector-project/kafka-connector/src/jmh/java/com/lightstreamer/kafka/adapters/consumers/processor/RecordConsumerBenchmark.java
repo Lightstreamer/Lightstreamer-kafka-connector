@@ -23,17 +23,15 @@ import static org.apache.kafka.common.serialization.Serdes.String;
 
 import com.google.protobuf.DynamicMessage;
 import com.lightstreamer.kafka.adapters.ConnectorConfigurator;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeEventListener;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.FakeOffsetService;
 import com.lightstreamer.kafka.adapters.consumers.BenchmarksUtils.PriceInfoRecords;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets;
-import com.lightstreamer.kafka.adapters.consumers.offsets.Offsets.OffsetService;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode;
+import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
+import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.DeserializationTiming;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapper.RecordDeserializationMode;
-import com.lightstreamer.kafka.adapters.consumers.wrapper.KafkaConsumerWrapperConfig.Config;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
 import com.lightstreamer.kafka.common.records.KafkaRecord.DeserializerPair;
@@ -76,6 +74,9 @@ public class RecordConsumerBenchmark {
 
     @State(Scope.Thread)
     public static class Plan<V> {
+
+        @Param({"ON_DEMAND", "BUFFERED"})
+        String subscriptionType;
 
         @Param({"JSON", "PROTOBUF"})
         String type;
@@ -128,26 +129,28 @@ public class RecordConsumerBenchmark {
             ConnectorConfigurator configurator =
                     BenchmarksUtils.newConfigurator(TOPICS, type, numOfTemplateParams);
             @SuppressWarnings("unchecked")
-            Config<String, V> config = (Config<String, V>) configurator.consumerConfig();
+            ConnectionSpec<String, V> config =
+                    (ConnectionSpec<String, V>) configurator.connectionSpec();
 
             // Configure the RecordMapper.
             RecordMapper<String, V> recordMapper = BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
             this.subscribedItems =
-                    BenchmarksUtils.subscriptions(
-                            numOfSubscriptions, listener, numOfTemplateParams);
+                    "ON_DEMAND".equals(subscriptionType)
+                            ? BenchmarksUtils.onDemandSubscriptions(
+                                    numOfSubscriptions, listener, numOfTemplateParams)
+                            : BenchmarksUtils.forceableSubscriptions(
+                                    numOfSubscriptions, listener, numOfTemplateParams);
             this.recordConsumer =
                     RecordConsumer.recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
-                            .errorStrategy(config.errorHandlingStrategy())
                             .logger(logger)
                             .threads(threads)
-                            .ordering(OrderStrategy.valueOf(ordering))
-                            .preferSingleThread(preferSingleThread)
+                            .orderStrategy(OrderStrategy.valueOf(ordering))
+                            .singleThreadPreferred(preferSingleThread)
                             .build();
 
             // Generate the test records.
@@ -159,7 +162,9 @@ public class RecordConsumerBenchmark {
                             BenchmarksUtils.valueDeserializer(type, configurator.getConfig()));
             this.deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
+                            DeserializationTiming.valueOf(deserializationTiming),
+                            deserializerPair,
+                            logger);
             this.batch = this.deserializationMode.toBatch(consumerRecords, true);
         }
 
@@ -176,6 +181,9 @@ public class RecordConsumerBenchmark {
         static String TOPIC = "ltest";
 
         static String[] TOPICS = {TOPIC};
+
+        @Param({"ON_DEMAND", "BUFFERED"})
+        String subscriptionType;
 
         @Param({"1"})
         int threads;
@@ -210,36 +218,36 @@ public class RecordConsumerBenchmark {
             this.priceInfoRecords = new PriceInfoRecords(TOPIC, descriptorPath);
             this.listener = new FakeEventListener(bh);
             this.offsetService =
-                    Offsets.OffsetService(
+                    OffsetService.commit(
                             new MockConsumer<>(StrategyType.LATEST.toString()), logger);
-            this.offsetService.initStore(false);
         }
 
         @Setup(Level.Iteration)
         public void setUp() {
             ConnectorConfigurator configurator = priceInfoRecords.newConfigurator();
             @SuppressWarnings("unchecked")
-            Config<String, DynamicMessage> config =
-                    (Config<String, DynamicMessage>) configurator.consumerConfig();
+            ConnectionSpec<String, DynamicMessage> config =
+                    (ConnectionSpec<String, DynamicMessage>) configurator.connectionSpec();
 
             // Configure the RecordMapper.
             RecordMapper<String, DynamicMessage> recordMapper =
                     BenchmarksUtils.newRecordMapper(config);
 
             // Make the RecordConsumer.
-            this.subscribedItems = priceInfoRecords.subscriptions(numOfSubscriptions, listener);
+            this.subscribedItems =
+                    "ON_DEMAND".equals(subscriptionType)
+                            ? priceInfoRecords.onDemandSubscriptions(numOfSubscriptions, listener)
+                            : priceInfoRecords.forceableSubscriptions(numOfSubscriptions, listener);
 
             this.recordConsumer =
                     RecordConsumer.<String, DynamicMessage>recordMapper(recordMapper)
                             .subscribedItems(subscribedItems)
-                            .commandMode(CommandModeStrategy.NONE)
                             .eventListener(listener)
                             .offsetService(offsetService)
-                            .errorStrategy(config.errorHandlingStrategy())
                             .logger(logger)
                             .threads(threads)
-                            .ordering(OrderStrategy.ORDER_BY_KEY)
-                            .preferSingleThread(false)
+                            .orderStrategy(OrderStrategy.ORDER_BY_KEY)
+                            .singleThreadPreferred(false)
                             .build();
 
             var deserializerPair =
@@ -251,7 +259,9 @@ public class RecordConsumerBenchmark {
             this.consumerRecords = BenchmarksUtils.pollRecordsFromRaw(TOPICS, 1, rawRecords);
             this.deserializationMode =
                     RecordDeserializationMode.forTiming(
-                            DeserializationTiming.valueOf(deserializationTiming), deserializerPair);
+                            DeserializationTiming.valueOf(deserializationTiming),
+                            deserializerPair,
+                            logger);
         }
 
         @TearDown(Level.Iteration)

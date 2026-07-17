@@ -54,8 +54,8 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
  *       matching.
  * </ul>
  *
- * <p><b>Example:</b> {@code "stock-[exchange=NASDAQ,symbol=AAPL]"} where "exchange" precedes
- * "symbol" alphabetically.
+ * <p><strong>Example:</strong> {@code "stock-[exchange=NASDAQ,symbol=AAPL]"} where "exchange"
+ * precedes "symbol" alphabetically.
  *
  * <h2>Usage Example</h2>
  *

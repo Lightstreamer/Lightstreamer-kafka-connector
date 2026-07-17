@@ -1,7 +1,8 @@
 plugins {
     id 'java'
     id 'maven-publish'
-    id 'com.gradleup.shadow' version '8.3.6'
+    id 'com.gradleup.shadow' version '9.4.3'
+    id 'com.diffplug.spotless' version '8.8.0'
 }
 
 repositories {
@@ -9,24 +10,58 @@ repositories {
     maven {
         url = uri('https://packages.confluent.io/maven')
     }
-
 }
 
+spotless {
+    groovyGradle {
+        target '**/*.gradle'
+        greclipse()
+        trimTrailingWhitespace()
+        leadingTabsToSpaces()
+        endWithNewline()
+    }
+    java {
+        target 'src/main/**/*.java','src/test/**/*.java'
+        googleJavaFormat()
+                .aosp()
+                .reorderImports(true)
+                .reflowLongStrings(false)
+                .groupArtifact('com.google.googlejavaformat:google-java-format')
+        removeUnusedImports()
+        formatAnnotations()
+        licenseHeader '''
+/*
+ * Copyright (C) $YEAR Lightstreamer Srl
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+*/
+
+'''
+    }
+}
+
+
 dependencies {
-    implementation libs.org.apache.logging.log4j.log4j.api
-    implementation libs.org.apache.logging.log4j.log4j.core
+    implementation libs.org.slf4j.slf4j.reload4j
     implementation libs.org.apache.kafka.kafka.clients
     implementation libs.io.confluent.kafka.json.serializer
     implementation libs.com.fasterxml.jackson.core.jackson.annotations
-    implementation libs.org.apache.logging.log4j.log4j.slf4j.impl
     // https://mvnrepository.com/artifact/com.google.code.gson/gson
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.7'
-
 }
 
-group = 'com.lightstreamer.examples'
-version = '1.0.0'
-java.sourceCompatibility = JavaVersion.VERSION_1_8
+group = 'com.lightstreamer.kafka.examples'
+version = '2.0.0'
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
@@ -38,17 +73,12 @@ tasks.withType(Javadoc) {
 
 shadowJar {
     manifest {
-        attributes 'Main-Class': 'com.lightstreamer.examples.kafkademo.producer.DemoPublisher'
+        attributes 'Main-Class': 'com.lightstreamer.kafka.examples.airport.producer.Producer'
     }
-    archiveClassifier = 'all'
 }
 
 tasks.named('jar') {
     enabled = false
-}
-
-tasks.named('assemble') {
-    dependsOn shadowJar
 }
 
 publishing {
@@ -64,8 +94,7 @@ publishing {
     }
     publications {
         gpr(MavenPublication) {
-            artifactId = project.name + '-all'
-            artifact shadowJar
+            from components.shadow
         }
     }
 }

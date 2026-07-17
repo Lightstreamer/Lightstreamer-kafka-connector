@@ -26,9 +26,9 @@ import java.util.List;
  * logs, consoles, or external monitoring systems. Implementations determine the output format and
  * delivery mechanism.
  *
- * <p><b>Thread Safety:</b> Implementations must be thread-safe as reporters are typically shared
- * across multiple threads in monitoring contexts (e.g., scheduled executors, concurrent metric
- * collection). The standard implementations in {@link Reporters} are thread-safe.
+ * <p><strong>Thread Safety:</strong> Implementations must be thread-safe as reporters are typically
+ * shared across multiple threads in monitoring contexts (e.g., scheduled executors, concurrent
+ * metric collection). The standard implementations in {@link Reporters} are thread-safe.
  *
  * <p>Example usage:
  *

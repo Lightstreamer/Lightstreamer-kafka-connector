@@ -1,20 +1,109 @@
 # Changelog
 
+## [2.0.0] (2026-07-02)
+
+> Upgrading from 1.x? See the [Migration guide](MIGRATION.md#migrating-from-1x-to-20).
+
+**Breaking Changes**
+
+- **Connector-managed snapshot replaces explicit COMMAND-mode parameters**: The boolean parameters `fields.evaluate.as.command.enable` (introduced in [1.2.4](#124-2025-04-08)) and `fields.auto.command.mode.enable` (introduced in [1.3.2](#132-2026-01-26)) have been removed and superseded by the unified [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) parameter. _COMMAND_ mode is now activated via `item.snapshot.enabled.mode = COMMAND`, which also enables connector-managed snapshot for the affected items. Manual _COMMAND_-mode subscriptions without connector-managed snapshot remain supported by mapping both `field.key` and `field.command` explicitly while leaving `item.snapshot.enabled.mode` at its default `NONE`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Removed special-case snapshot signaling records**: The convention of injecting Kafka records with `key = snapshot` and `command ∈ {CS, EOS}` to drive snapshot lifecycle from the topic side — only meaningful in combination with `fields.evaluate.as.command.enable = true` (introduced in [1.2.4](#124-2025-04-08)) — has been removed. Snapshot lifecycle is now managed entirely by the connector based on [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode). ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **`record.consume.from` and `record.extraction.error.strategy` semantics under snapshot**: When [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) is set to any value other than `NONE`, the connector manages partition positions explicitly (newly assigned partitions seek to beginning; re-assigned partitions resume from committed offset), making [`record.consume.from`](README.md#recordconsumefrom) ineffective; and [`record.extraction.error.strategy`](README.md#recordextractionerrorstrategy) is forced to `IGNORE_AND_CONTINUE`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Minimum Lightstreamer Broker version bumped to 7.4.8**: The connector now requires [Lightstreamer Broker](https://lightstreamer.com/download/) (also referred to as _Lightstreamer Server_) version 7.4.8 or newer, as the new connector-managed snapshot feature relies on APIs introduced in that release. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**New Features**
+
+- **Connector-managed snapshot**: Introduced first-class support for connector-managed snapshot via the new [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) parameter, with one mode per Lightstreamer subscription _Mode_:
+
+  - **`MERGE`** — pins subscription _Mode_ to _MERGE_; per-item store keeps the latest value; snapshot is a single event per item. See [MERGE snapshot](README.md#merge-snapshot).
+  - **`DISTINCT`** — pins subscription _Mode_ to _DISTINCT_; per-item store is a FIFO bounded by [`item.snapshot.distinct.length`](README.md#itemsnapshotdistinctlength); snapshot replays the most recent events in publish order. See [DISTINCT snapshot](README.md#distinct-snapshot).
+  - **`COMMAND`** — pins subscription _Mode_ to _COMMAND_; the connector synthesizes the `command` field (`ADD` / `UPDATE` / `DELETE`) from per-`(item, key)` state and tombstones; snapshot is the full row set currently materialized for the item. See [COMMAND snapshot](README.md#command-snapshot).
+
+  When activated, the internal Kafka consumer starts eagerly at bind time, replays the topic from the beginning to pre-seed the Lightstreamer Server per-item store, then transitions to realtime tailing. Late subscribers receive the materialized snapshot followed by realtime updates. See [Snapshot management](README.md#snapshot-management) and [Connector-managed snapshot](README.md#connector-managed-snapshot). ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **DISTINCT snapshot length parameter**: Added the new [`item.snapshot.distinct.length`](README.md#itemsnapshotdistinctlength) parameter (positive integer, default `10`) to cap the per-item FIFO when `item.snapshot.enabled.mode = DISTINCT`. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Per-item idle expiration**: Added the new [`item.snapshot.max.idle.seconds`](README.md#itemsnapshotmaxidleseconds) parameter (non-negative integer; `0` disables) to discard the snapshot of an item after a configurable idle period, so that the next incoming record starts a fresh one. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Improvements**
+
+- **Poison-pill tolerance**: A single malformed record no longer aborts consumption. Records that fail deserialization are individually skipped and logged at WARN level (with topic, partition, and offset), and consumption continues with the remaining good records. As a safety net, when _all_ records in a non-empty batch fail — a pattern indicating a systemic misconfiguration (e.g., wrong deserializer) rather than isolated corrupt records — the connector fails fast instead. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded _Gradle_ to version 9.6.1. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Third-Party Library Updates**
+
+- Upgraded the `ls-adapter-inprocess` SDK dependency to version 8.1.0. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the base Lightstreamer Docker image to version 7.4.8. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the `slf4j-reload4j` dependency to version 2.0.18. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Upgraded the _Spotless plugin for Gradle_ dependency to version 8.8.0. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+**Examples and Documentation**
+
+- **Snapshot management documentation**: Added the new [Snapshot management](README.md#snapshot-management) chapter covering the default `NONE` behavior, the connector-managed snapshot lifecycle, per-_Mode_ snapshot shape, extraction-layout rules for snapshot correctness, idle expiration, and caveats; plus a new [Item snapshot settings](README.md#item-snapshot-settings) parameter reference. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **COMMAND mode field mapping documentation**: Added the new [COMMAND mode field mapping](README.md#command-mode-field-mapping) subsection describing both routes — connector-managed snapshot (`item.snapshot.enabled.mode = COMMAND`, with synthesized `command` field) and manual mapping (`field.command` mapped explicitly, default `NONE` snapshot mode) — and the trade-offs between them. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) with the new `item.snapshot.*` parameters and aligned `field.key` / `field.command` documentation. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Airport Demo overhaul**: Updated the [Airport Demo](examples/airport-demo/) to showcase _COMMAND_-mode connector-managed snapshot, alongside a broader rewrite of the demo producer, its JSON payload schema, and the corresponding [`adapters.xml`](examples/airport-demo/connector/adapters.xml) field mappings; the [demo README](examples/airport-demo/README.md) has been re-aligned accordingly. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Sample producer Maven coordinates**: The Maven `group` published to _GitHub Packages_ has been unified to `com.lightstreamer.kafka.examples` for both sample producer projects — [`quickstart-producer`](examples/quickstart-producer/) (previously `com.lightstreamer.kafka`) and the airport-demo producer [`example-kafka-connector-demo-publisher`](examples/airport-demo/producer/) (previously `com.lightstreamer.examples`). Consumers pinning the old coordinates must update them. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- **Quickstart Compose modernization**: Rewrote every quickstart `docker-compose.yml` to the long-form [`depends_on`](https://docs.docker.com/compose/compose-file/05-services/#depends_on) syntax with explicit `condition:` clauses; added broker healthchecks where the broker image supports them (Redpanda-based quickstarts); upgraded the bundled [Redpanda Console](https://docs.redpanda.com/current/manage/console/) image from `v2.4.5` to `v3.8.0` and migrated its embedded config to the v3 schema. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+- Applied style and formatting consistency pass across all updated `README.md` files (root, `docker/`, `examples/`, and every `examples/**/README.md`) and across the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml): unified heading hierarchy and Table of Contents indentation, parameter naming and link conventions, code-block fencing, and inline-code styling for parameters, values, and identifiers. ([#88](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/88))
+
+
+## [1.5.2] (2026-04-16)
+
+**Bug Fixes**
+
+- **Concurrent subscribe/unsubscribe race condition**: Fixed a race condition where rapid subscribe/unsubscribe/subscribe sequences could leave the Kafka consumer in an inconsistent state. ([#85](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/85))
+
+**Documentation**
+
+- **Kubernetes and Helm Chart deployment references**: Restructured the _Installation_ section of [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) into a new _Deployment_ section covering Manual, Docker-based, and Kubernetes or OpenShift deployment options, with references to the [Lightstreamer Helm Charts](https://github.com/Lightstreamer/helm-charts) repository and its [deployment guide](https://github.com/Lightstreamer/helm-charts/blob/main/DEPLOYMENT.md). ([#86](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/86))
+
+
+## [1.5.1] (2026-04-14)
+
+**Documentation**
+
+- **CHANGELOG style**: Minor formatting improvements for consistency.
+
+- **Schema Registry encryption protocol parameter**: Added the missing example for the Schema Registry encryption protocol parameter to the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#81](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/81))
+
+- **Schema Registry URL in examples**: Fixed incorrect Schema Registry URL examples in the [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md) files. ([#83](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/83))
+
+**Bug Fixes**
+
+- **XML syntax in `adapters.xml`**: Fixed malformed XML syntax for the commented-out `group.id` parameter example in the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#82](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/82))
+
+- **Subscribe/unsubscribe/subscribe race condition**: Fixed a race condition that could leave the connector in an inconsistent state when a client subscribed to an item, immediately unsubscribed, and then re-subscribed in quick succession. The Kafka consumer initialization is now completed synchronously and fully validated before any new subscription requests can trigger a new consumer creation. Additionally, cleanup on connection failure is now always executed correctly and in the right order, regardless of where the failure occurred. ([#84](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/84))
+
+
 ## [1.5.0] (2026-03-18)
 
 **Breaking Changes**
 
-- **Schema Registry Parameter Namespace**: Confluent Schema Registry-specific parameters previously under the `schema.registry` prefix have been moved to the `schema.registry.confluent` prefix. Update any existing configuration accordingly. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- **Schema Registry parameter namespace**: Confluent Schema Registry-specific parameters previously under the `schema.registry` prefix have been moved to the `schema.registry.confluent` prefix. Update any existing configuration accordingly. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
-- **Renamed Parameter**: `record.consume.max.poll.records` has been renamed to [`record.consume.with.max.poll.records`](README.md#recordconsumewithmaxpollrecords) for consistency with other `record.consume.with.*` parameters. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- **Renamed parameter**: `record.consume.max.poll.records` has been renamed to [`record.consume.with.max.poll.records`](README.md#recordconsumewithmaxpollrecords) for consistency with other `record.consume.with.*` parameters. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
 **Improvements**
 
-- **Azure Schema Registry Support**: Added native support for [_Azure Schema Registry_](README.md#azure-schema-registry-parameters) as a schema provider for both JSON and Avro message deserialization. Introduced the new [`schema.registry.provider`](README.md#schemaregistryprovider) parameter to select between `CONFLUENT` and `AZURE` as the Schema Registry provider. A dedicated [_Azure Event Hubs Quickstart_](examples/vendors/azure/quickstart-azure/) is also provided, including an advanced section covering [Azure Schema Registry integration](examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration). ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- **Azure Schema Registry support**: Added native support for [_Azure Schema Registry_](README.md#azure-schema-registry-parameters) as a schema provider for both JSON and Avro message deserialization. Introduced the new [`schema.registry.provider`](README.md#schemaregistryprovider) parameter to select between `CONFLUENT` and `AZURE` as the Schema Registry provider. A dedicated [_Azure Event Hubs Quickstart_](examples/vendors/azure/quickstart-azure/) is also provided, including an advanced section covering [Azure Schema Registry integration](examples/vendors/azure/quickstart-azure/README.md#advanced-schema-registry-integration). ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
-- **Configurable Session Timeout**: Exposed the [`record.consume.with.session.timeout.ms`](README.md#recordconsumewithsessiontimeoutms) parameter to configure the timeout used to detect client failures when using Kafka's group management facility. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- **Configurable session timeout**: Exposed the [`record.consume.with.session.timeout.ms`](README.md#recordconsumewithsessiontimeoutms) parameter to configure the timeout used to detect client failures when using Kafka's group management facility. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
-- **Configurable Max Poll Interval**: Exposed the [`record.consume.with.max.poll.interval.ms`](README.md#recordconsumewithmaxpollintervalms) parameter to configure the maximum delay between invocations of `poll()` when using consumer group management. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- **Configurable max poll interval**: Exposed the [`record.consume.with.max.poll.interval.ms`](README.md#recordconsumewithmaxpollintervalms) parameter to configure the maximum delay between invocations of `poll()` when using consumer group management. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
 **Examples and Documentation**
 
@@ -28,16 +117,16 @@
 
 **Third-Party Library Updates**
 
-- Upgraded the _Spotless Plugin for Gradle_ dependency to version 8.3.0. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
+- Upgraded the _Spotless plugin for Gradle_ dependency to version 8.3.0. ([#80](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/80))
 
 
 ## [1.4.1] (2026-02-27)
 
 **Improvements**
 
-- **Official Docker Image**: Introduced official Docker images published to GitHub Container Registry (`ghcr.io/lightstreamer/lightstreamer-kafka-connector`), with automated builds via GitHub Actions on each release. Moved Docker resources from `examples/docker` to the new `/docker` folder with production-ready build scripts and Dockerfile. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
+- **Official Docker image**: Introduced official Docker images published to GitHub Container Registry (`ghcr.io/lightstreamer/lightstreamer-kafka-connector`), with automated builds via GitHub Actions on each release. Moved Docker resources from `examples/docker` to the new `/docker` folder with production-ready build scripts and Dockerfile. ([#77](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/77))
 
-- **Absolute Path Support**: Extended file path configuration parameters (such as `logging.configuration.path`, `encryption.truststore.path`, `encryption.keystore.path`, `authentication.gssapi.key.tab.path`, and `record.*.evaluator.schema.path`) to also accept absolute paths, in addition to paths relative to the deployment folder. Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) and [`README.md`](README.md) files accordingly. ([#79](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/79))
+- **Absolute path support**: Extended file path configuration parameters (such as `logging.configuration.path`, `encryption.truststore.path`, `encryption.keystore.path`, `authentication.gssapi.key.tab.path`, and `record.*.evaluator.schema.path`) to also accept absolute paths, in addition to paths relative to the deployment folder. Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) and [`README.md`](README.md) files accordingly. ([#79](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/79))
 
 **Examples and Documentation**
 
@@ -52,13 +141,13 @@
 
 **Improvements**
 
-- **Polling Lifecycle Optimization**: Significantly enhanced the polling lifecycle to improve throughput and minimize record lag. Introduced an adaptive commit strategy that dynamically adjusts commit frequency based on message rate. This optimization also removes previous constraints that prevented concurrent processing when using compacted topics. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+- **Polling lifecycle optimization**: Significantly enhanced the polling lifecycle to improve throughput and minimize record lag. Introduced an adaptive commit strategy that dynamically adjusts commit frequency based on message rate. This optimization also removes previous constraints that prevented concurrent processing when using compacted topics. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
 
-- **Monitor Logger**: Added a dedicated logger to track essential performance metrics including records received, records processed, and internal ring buffer utilization rates. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+- **Monitor logger**: Added a dedicated logger to track essential performance metrics including records received, records processed, and internal ring buffer utilization rates. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
 
-- **Configurable Max Poll Records**: Exposed the [`record.consume.max.poll.records`](README.md#recordconsumemaxpollrecords) parameter to configure the maximum number of records fetched in each polling cycle of the internal Kafka consumer. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+- **Configurable max poll records**: Exposed the [`record.consume.max.poll.records`](README.md#recordconsumemaxpollrecords) parameter to configure the maximum number of records fetched in each polling cycle of the internal Kafka consumer. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
 
-- **Microbenchmarks Consolidation**: Refactored and consolidated the internal microbenchmarking suite to improve performance testing capabilities. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
+- **Microbenchmarks consolidation**: Refactored and consolidated the internal microbenchmarking suite to improve performance testing capabilities. ([#76](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/76))
 
 **Examples and Documentation**
 
@@ -89,9 +178,9 @@
 
 **Improvements**
 
-- **Deferred Deserialization**: Refactored the deserialization pipeline to defer the conversion of raw bytes to deserialized objects. This architectural change makes the Kafka Connector open for further extension by allowing custom implementations to intercept and access raw bytes from Kafka records before or instead of automatic deserialization. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+- **Deferred deserialization**: Refactored the deserialization pipeline to defer the conversion of raw bytes to deserialized objects. This architectural change makes the Kafka Connector open for further extension by allowing custom implementations to intercept and access raw bytes from Kafka records before or instead of automatic deserialization. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
-- **Auto COMMAND Mode**: Added support for the [Auto COMMAND mode](README.md#auto-command-mode-fieldsautocommandmodeenable) feature that generates _command_ operations for Lightstreamer items without requiring explicit command fields in the Kafka records. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+- **Auto COMMAND mode**: Added support for the [Auto COMMAND mode](README.md#auto-command-mode-fieldsautocommandmodeenable) feature that generates _command_ operations for Lightstreamer items without requiring explicit command fields in the Kafka records. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
 - Consolidated the script for running microbenchmarks. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
@@ -99,14 +188,14 @@
 
 **Bug Fixes**
 
-- **Null Value Deserialization**: Fixed incorrect handling of null values during deserialization when using ProtoBuf, JSON, and Avro formats. The deserializers now properly process null payloads without triggering unexpected errors or data loss. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
+- **Null value deserialization**: Fixed incorrect handling of null values during deserialization when using ProtoBuf, JSON, and Avro formats. The deserializers now properly process null payloads without triggering unexpected errors or data loss. ([#75](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/75))
 
 
 ## [1.3.1] (2025-12-19)
 
 **Improvements**
 
-- **Data Extraction Language Enhancement and Dynamic Field Discovery**: Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support wildcard expressions (e.g., `#{VALUE.*}`, `#{KEY.*}`, `#{HEADERS.*}`), enabling the new [_Dynamic Field Discovery_](README.md#dynamic-field-discovery-field) mechanism with the `field.*` configuration parameter. This allows automatic mapping of Kafka record fields to Lightstreamer fields at runtime, eliminating the need to explicitly configure each field individually – especially useful for records with numerous or dynamically varying fields (also available for the Sink connector). ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
+- **Data Extraction Language enhancement and dynamic field discovery**: Extended the [_Data Extraction Language_](README.md#data-extraction-language) to support wildcard expressions (e.g., `#{VALUE.*}`, `#{KEY.*}`, `#{HEADERS.*}`), enabling the new [_Dynamic Field Discovery_](README.md#dynamic-field-discovery-field) mechanism with the `field.*` configuration parameter. This allows automatic mapping of Kafka record fields to Lightstreamer fields at runtime, eliminating the need to explicitly configure each field individually – especially useful for records with numerous or dynamically varying fields (also available for the Sink connector). ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
 
 - Upgraded _Gradle_ to version 9.2.1. ([#72](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/72))
 
@@ -126,33 +215,33 @@
 
 **Breaking Changes**
 
-- **KafkaConnectorMetadataAdapter Class Hierarchy Change**: The [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html) class now extends [`com.lightstreamer.adapters.metadata.MetadataProviderAdapter`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) directly instead of [`com.lightstreamer.adapters.metadata.LiteralBasedProvider`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html). This change affects any custom implementations that relied on `com.lightstreamer.adapters.metadata.LiteralBasedProvider`-specific functionality. Additionally, a new [`remapItems`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#remapItems(java.lang.String,java.lang.String,java.lang.String,java.lang.String))  method has been introduced that provides a hook for custom item resolution logic. Custom metadata adapters extending `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter` should override the new `remapItems` method to provide custom item resolution logic, rather than overriding [`getItems`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#getItems(java.lang.String,java.lang.String,java.lang.String,java.lang.String)) directly. Other methods that were previously provided by [`com.lightstreamer.adapters.metadata.LiteralBasedProvider`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html), such as [`getSchema`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#getSchema(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String)) and other metadata resolution methods, may also need to be implemented. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **KafkaConnectorMetadataAdapter class hierarchy change**: The [`com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html) class now extends [`com.lightstreamer.adapters.metadata.MetadataProviderAdapter`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProviderAdapter.html) directly instead of [`com.lightstreamer.adapters.metadata.LiteralBasedProvider`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html). This change affects any custom implementations that relied on `com.lightstreamer.adapters.metadata.LiteralBasedProvider`-specific functionality. Additionally, a new [`remapItems`](https://lightstreamer.github.io/Lightstreamer-kafka-connector/javadoc/com/lightstreamer/kafka/adapters/pub/KafkaConnectorMetadataAdapter.html#remapItems(java.lang.String,java.lang.String,java.lang.String,java.lang.String))  method has been introduced that provides a hook for custom item resolution logic. Custom metadata adapters extending `com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter` should override the new `remapItems` method to provide custom item resolution logic, rather than overriding [`getItems`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#getItems(java.lang.String,java.lang.String,java.lang.String,java.lang.String)) directly. Other methods that were previously provided by [`com.lightstreamer.adapters.metadata.LiteralBasedProvider`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/adapters/metadata/LiteralBasedProvider.html), such as [`getSchema`](https://sdk.lightstreamer.com/ls-adapter-inprocess/8.0.0/api/com/lightstreamer/interfaces/metadata/MetadataProvider.html#getSchema(java.lang.String,java.lang.String,java.lang.String,java.lang.String,java.lang.String)) and other metadata resolution methods, may also need to be implemented. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
 **Improvements**
 
-- **Core Algorithm Optimizations**: Enhanced overall system performance through optimizations in data processing, record mapping, and routing logic. These improvements result in faster record processing and reduced resource consumption during high-throughput scenarios. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Core algorithm optimizations**: Enhanced overall system performance through optimizations in data processing, record mapping, and routing logic. These improvements result in faster record processing and reduced resource consumption during high-throughput scenarios. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Data Access Pattern Optimization**: Optimized record routing algorithm to use more efficient data access patterns, improving throughput when delivering messages to multiple subscribed clients. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Data access pattern optimization**: Optimized record routing algorithm to use more efficient data access patterns, improving throughput when delivering messages to multiple subscribed clients. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Comprehensive Benchmarking Suite**: Added comprehensive performance benchmarking infrastructure to enable systematic performance monitoring and optimization of core components including data extraction, record mapping, and expression evaluation. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Comprehensive benchmarking suite**: Added comprehensive performance benchmarking infrastructure to enable systematic performance monitoring and optimization of core components including data extraction, record mapping, and expression evaluation. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Improved Logging**: Refined logging levels to reduce verbosity in production environments while maintaining debugging capabilities when needed. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Improved logging**: Refined logging levels to reduce verbosity in production environments while maintaining debugging capabilities when needed. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
 **Bug Fixes**
 
-- **Consumer Shutdown Robustness**: Enhanced error handling during Kafka consumer shutdown to prevent hanging or incomplete disconnections. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Consumer shutdown robustness**: Enhanced error handling during Kafka consumer shutdown to prevent hanging or incomplete disconnections. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Configuration Cleanup**: Removed `group.id` assignment from the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Configuration cleanup**: Removed `group.id` assignment from the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) file. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Protobuf Deserialization**: Improved robustness of Protobuf message deserialization by ensuring that the specified message type exists in the provided schema file. ([#70](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/70))
+- **Protobuf deserialization**: Improved robustness of Protobuf message deserialization by ensuring that the specified message type exists in the provided schema file. ([#70](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/70))
 
 **Code Quality Improvements**
 
-- **Import Organization**: Cleaned up unused imports across multiple files. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Import organization**: Cleaned up unused imports across multiple files. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Documentation Enhancement**: Improved inline documentation and method signatures. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Documentation enhancement**: Improved inline documentation and method signatures. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
-- **Code Structure**: Removed commented-out code and unnecessary blank lines for cleaner codebase. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
+- **Code structure**: Removed commented-out code and unnecessary blank lines for cleaner codebase. ([#71](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/71))
 
 
 ## [1.2.10] (2025-09-18)
@@ -217,7 +306,7 @@
 
 **Bug Fixes**
 
-- Updated the [Airport demo](examples/airport-demo/) example to load the Lightstreamer library from _https_. ([#53](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/53))
+- Updated the [Airport Demo](examples/airport-demo/) example to load the Lightstreamer library from _https_. ([#53](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/53))
 
 - Fixed consumer loop blockage that occurred when errors happened during the commit stage while being notified about partition revocation. ([#54](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/54))
 
@@ -242,7 +331,7 @@
 **Improvements**
 
 - Added support for [COMMAND mode](README.md#evaluate-as-command-fieldsevaluateascommandenable). ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
-- Updated the [Airport demo](examples/airport-demo/) to use COMMAND mode. ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
+- Updated the [Airport Demo](examples/airport-demo/) to use COMMAND mode. ([#49](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/49))
 
 
 ## [1.2.3] (2025-04-01)
@@ -294,7 +383,7 @@
 
 - Fixed unit tests to support version numbers that may include pre-release identifiers. ([#38](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/38))
 
-- Fixed the Docker build in the Airport demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
+- Fixed the Docker build in the Airport Demo. ([#36](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/36))
 
 - Fixed the name of the [`record.mappings`](README.md#recordmappings) parameter. ([#34](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/34))
 

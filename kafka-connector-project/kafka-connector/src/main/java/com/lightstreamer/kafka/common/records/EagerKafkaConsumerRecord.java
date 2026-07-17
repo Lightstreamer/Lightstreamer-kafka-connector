@@ -35,7 +35,7 @@ public final class EagerKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K,
     private final V value;
 
     /**
-     * Constructs an {@link EagerKafkaConsumerRecord}, immediately deserializing the key and value.
+     * Constructs an {@code EagerKafkaConsumerRecord}, immediately deserializing the key and value.
      *
      * @param record the raw Kafka consumer record with byte array key and value
      * @param deserializerPair the pair of deserializers for key and value

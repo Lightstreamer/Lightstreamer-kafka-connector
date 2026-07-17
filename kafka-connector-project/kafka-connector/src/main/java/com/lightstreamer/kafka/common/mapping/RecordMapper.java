@@ -21,27 +21,22 @@ import static java.util.Collections.emptySet;
 
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItem;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
+import com.lightstreamer.kafka.common.mapping.RecordMapper.FieldsMapSupplier;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * The {@code RecordMapper} interface provides a mechanism for transforming Kafka records into
@@ -92,6 +87,15 @@ public interface RecordMapper<K, V> {
      * definition order in the template.
      */
     interface MappedRecord {
+
+        /**
+         * Returns a no-operation {@code MappedRecord} that performs no actions.
+         *
+         * @return a no-op {@code MappedRecord}
+         */
+        static MappedRecord nop() {
+            return MappedRecordImpl.NOPRecord;
+        }
 
         /**
          * Returns the canonical Lightstreamer item names that this Kafka record maps to after
@@ -169,6 +173,24 @@ public interface RecordMapper<K, V> {
         Map<String, String> fieldsMap() throws ValueException;
 
         /**
+         * Extracts a single Lightstreamer field from the record by evaluating only the extraction
+         * expression bound to {@code field} in the {@code field.<name>=<expression>} mapping
+         * configured at startup. All other field expressions are skipped.
+         *
+         * <p>Used when the full extraction cannot or should not be performed — for example, on
+         * tombstone records where the value is {@code null} but the key still needs to be read to
+         * synthesize a COMMAND-mode {@code DELETE}.
+         *
+         * @param field the Lightstreamer schema field name whose configured expression should be
+         *     evaluated
+         * @return a map containing the extracted name/value pair, or an empty map if no expression
+         *     is configured for {@code field}; never null
+         * @throws ValueException if evaluation of the configured expression fails and the
+         *     underlying extractor is not configured to skip failures
+         */
+        Map<String, String> fieldsMapFromField(String field) throws ValueException;
+
+        /**
          * Determines which subscribed items should receive this record by matching the item names
          * from template expansion against active client subscriptions. This method performs the
          * critical routing function that connects Kafka data to specific Lightstreamer subscribers.
@@ -208,6 +230,104 @@ public interface RecordMapper<K, V> {
     }
 
     /**
+     * Lazy supplier of the field map extracted from a Kafka record, decoupling routing from the
+     * cost of field extraction.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
+    interface FieldsMapSupplier<K, V> {
+
+        /**
+         * Returns a no-operation {@code FieldsMapSupplier} that yields empty maps and reports the
+         * payload as null.
+         *
+         * @param <K> the type of the key in the Kafka record
+         * @param <V> the type of the value in the Kafka record
+         * @return a new no-op {@code FieldsMapSupplier}
+         */
+        static <K, V> FieldsMapSupplier<K, V> nop() {
+            return new FieldsMapSupplier<K, V>() {
+                @Override
+                public Map<String, String> getMap() {
+                    return Collections.emptyMap();
+                }
+
+                @Override
+                public Map<String, String> getMapFromField(String field) {
+                    return Collections.emptyMap();
+                }
+
+                @Override
+                public boolean isPayloadNull() {
+                    return true;
+                }
+            };
+        }
+
+        /**
+         * Extracts the full field map from the underlying record.
+         *
+         * @return a map of Lightstreamer field names to their extracted string values; never null
+         *     but may be empty
+         * @throws ValueException if field extraction fails
+         */
+        Map<String, String> getMap() throws ValueException;
+
+        /**
+         * Extracts a single Lightstreamer field from the underlying record by evaluating only the
+         * extraction expression bound to {@code field} in the {@code field.<name>=<expression>}
+         * mapping configured at startup.
+         *
+         * @param field the Lightstreamer schema field name whose configured expression should be
+         *     evaluated
+         * @return a single-entry map with the extracted name/value pair, or an empty map if no
+         *     expression is configured for {@code field}; never null
+         * @throws ValueException if evaluation of the configured expression fails
+         */
+        Map<String, String> getMapFromField(String field) throws ValueException;
+
+        /**
+         * Reports whether the underlying record has a null payload.
+         *
+         * @return {@code true} if the payload is null, {@code false} otherwise
+         */
+        boolean isPayloadNull();
+    }
+
+    /**
+     * Creates a new {@link Builder} for constructing a {@code RecordMapper}.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     * @return a new {@link Builder} instance
+     */
+    static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
+    }
+
+    /**
+     * Creates a {@code RecordMapper} from the given {@link Items.ItemTemplates} and {@link
+     * FieldsExtractor}. This is a convenience factory method for the common construction path where
+     * the mapper is built from a complete set of item templates and a field extractor.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     * @param templates the {@code ItemTemplates} providing canonical item extractors and regex
+     *     configuration
+     * @param fieldsExtractor the {@code FieldsExtractor} for generating structured data updates
+     * @return a new {@code RecordMapper} instance
+     */
+    static <K, V> RecordMapper<K, V> from(
+            Items.ItemTemplates<K, V> templates, FieldsExtractor<K, V> fieldsExtractor) {
+        return RecordMapper.<K, V>builder()
+                .addCanonicalItemExtractors(templates.groupExtractors())
+                .regexEnabled(templates.isRegexEnabled())
+                .fieldExtractor(fieldsExtractor)
+                .build();
+    }
+
+    /**
      * Retrieves the set of canonical item extractors configured for the specified Kafka topic.
      * Canonical item extractors are responsible for generating canonical Lightstreamer item names
      * through template expansion when records from the given topic are processed by {@link
@@ -238,7 +358,7 @@ public interface RecordMapper<K, V> {
      *   <li>Evaluates each template against the record data to produce canonical item names with
      *       parameters sorted in alphanumeric order
      *   <li>Sets up lazy field extraction using the configured field extractor
-     *   <li>Returns a {@code MappedRecord} containing both routing and data information
+     *   <li>Returns a {@link MappedRecord} containing both routing and data information
      * </ol>
      *
      * <p><strong>Example:</strong> A record from topic "stocks" with value containing {@code
@@ -286,15 +406,14 @@ public interface RecordMapper<K, V> {
      */
     boolean isRegexEnabled();
 
-    static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
     /**
      * A no-operation data extractor that produces empty results for all extraction operations. This
      * extractor serves as the default field extractor when no specific field extraction
      * configuration is provided, ensuring that {@link MappedRecord#fieldsMap()} operations complete
      * successfully without actual data extraction.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     static class NOPDataExtractor<K, V> implements FieldsExtractor<K, V> {
 
@@ -319,14 +438,17 @@ public interface RecordMapper<K, V> {
     }
 
     /**
-     * Builder for constructing {@code RecordMapper} instances with template extractors, field
+     * Builder for constructing {@code RecordMapper} instances with canonical item extractors, field
      * extractors, and configuration options for Kafka-to-Lightstreamer record transformation.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
      */
     static class Builder<K, V> {
 
         static final FieldsExtractor<?, ?> NOP = new NOPDataExtractor<>();
 
-        final Map<String, Set<CanonicalItemExtractor<K, V>>> extractorsByTopicSubscription =
+        final Map<String, Set<CanonicalItemExtractor<K, V>>> canonicalItemExtractors =
                 new HashMap<>();
 
         @SuppressWarnings("unchecked")
@@ -337,17 +459,17 @@ public interface RecordMapper<K, V> {
         private Builder() {}
 
         /**
-         * Adds multiple template extractors for canonical item name generation. Template extractors
-         * are used by {@link RecordMapper#map(KafkaRecord)} to produce routing targets through
-         * template expansion.
+         * Adds multiple canonical item extractors for canonical item name generation. Canonical
+         * item extractors are used by {@link RecordMapper#map(KafkaRecord)} to produce routing
+         * targets through template expansion.
          *
-         * @param canonicalItemExtractors a map of topic names (or patterns) to sets of template
-         *     extractors
+         * @param canonicalItemExtractors a map of topic names (or patterns) to sets of canonical
+         *     item extractors
          * @return this builder for method chaining
          */
-        public Builder<K, V> withCanonicalItemExtractors(
+        public Builder<K, V> addCanonicalItemExtractors(
                 Map<String, Set<CanonicalItemExtractor<K, V>>> canonicalItemExtractors) {
-            this.extractorsByTopicSubscription.putAll(canonicalItemExtractors);
+            this.canonicalItemExtractors.putAll(canonicalItemExtractors);
             return this;
         }
 
@@ -364,7 +486,7 @@ public interface RecordMapper<K, V> {
          */
         public final Builder<K, V> addCanonicalItemExtractor(
                 String subscription, CanonicalItemExtractor<K, V> canonicalItemExtractor) {
-            this.extractorsByTopicSubscription.compute(
+            this.canonicalItemExtractors.compute(
                     subscription,
                     (t, extractors) -> {
                         if (extractors == null) {
@@ -380,12 +502,12 @@ public interface RecordMapper<K, V> {
          * Enables or disables regex pattern matching for topic-to-extractor associations. When
          * enabled, topic names in extractor configurations are treated as regular expressions.
          *
-         * @param enable {@code true} to enable regex matching, {@code false} for exact topic name
-         *     matching
+         * @param regexEnabled {@code true} to enable regex matching, {@code false} for exact topic
+         *     name matching
          * @return this builder for method chaining
          */
-        public final Builder<K, V> enableRegex(boolean enable) {
-            this.regexEnabled = enable;
+        public final Builder<K, V> regexEnabled(boolean regexEnabled) {
+            this.regexEnabled = regexEnabled;
             return this;
         }
 
@@ -394,49 +516,69 @@ public interface RecordMapper<K, V> {
          * used by {@link MappedRecord#fieldsMap()} to provide field data for Lightstreamer client
          * updates.
          *
-         * @param extractor the field extractor for data extraction; if not set, a no-operation
+         * @param fieldExtractor the field extractor for data extraction; if not set, a no-operation
          *     extractor will be used
          * @return this builder for method chaining
          */
-        public final Builder<K, V> withFieldExtractor(FieldsExtractor<K, V> extractor) {
-            this.fieldExtractor = extractor;
+        public final Builder<K, V> fieldExtractor(FieldsExtractor<K, V> fieldExtractor) {
+            this.fieldExtractor = fieldExtractor;
             return this;
         }
 
         /**
-         * Constructs the {@code RecordMapper} instance with the configured template extractors,
-         * field extractor, and options.
+         * Constructs the {@code RecordMapper} instance with the configured canonical item
+         * extractors, field extractor, and options.
          *
-         * @return a new RecordMapper instance ready for Kafka record transformation
+         * @return a new {@code RecordMapper} instance ready for Kafka record transformation
          */
         public RecordMapper<K, V> build() {
-            return new DefaultRecordMapper<>(this);
+            return new RecordMapperImpl<>(this);
         }
     }
 }
 
-final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
+/**
+ * Default implementation of {@link RecordMapper} that transforms Kafka records into {@link
+ * MappedRecord} instances using template-based canonical item extraction and lazy field mapping.
+ *
+ * <p>Supports both literal and regex-based topic matching via a pluggable {@link
+ * ExtractorsSupplier} strategy selected at construction time.
+ *
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
+ */
+final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
 
-    protected static Logger log = LoggerFactory.getLogger(DefaultRecordMapper.class);
-
+    /**
+     * Strategy for resolving canonical item extractors for a given topic name.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     interface ExtractorsSupplier<K, V> {
 
         Collection<CanonicalItemExtractor<K, V>> getExtractors(String topic);
     }
 
+    /**
+     * Associates a compiled regex {@link Pattern} with its corresponding set of canonical item
+     * extractors for regex-based topic matching.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
     static record PatternAndExtractors<K, V>(
             Pattern pattern, Set<CanonicalItemExtractor<K, V>> extractors) {}
 
     private final FieldsExtractor<K, V> fieldExtractor;
-    private final Map<String, Set<CanonicalItemExtractor<K, V>>> templateExtractors;
+    private final Map<String, Set<CanonicalItemExtractor<K, V>>> canonicalItemExtractors;
     private final Collection<PatternAndExtractors<K, V>> patterns;
     private final ExtractorsSupplier<K, V> extractorsSupplier;
     private final boolean regexEnabled;
 
-    DefaultRecordMapper(Builder<K, V> builder) {
+    RecordMapperImpl(Builder<K, V> builder) {
         this.fieldExtractor = builder.fieldExtractor;
-        this.templateExtractors =
-                Collections.unmodifiableMap(builder.extractorsByTopicSubscription);
+        this.canonicalItemExtractors = Collections.unmodifiableMap(builder.canonicalItemExtractors);
         this.regexEnabled = builder.regexEnabled;
         this.patterns = mayFillPatternsList();
         this.extractorsSupplier =
@@ -449,17 +591,17 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         }
 
         Collection<PatternAndExtractors<K, V>> pe = new ArrayList<>();
-        Set<String> topics = templateExtractors.keySet();
+        Set<String> topics = canonicalItemExtractors.keySet();
         for (String topicRegEx : topics) {
             pe.add(
                     new PatternAndExtractors<>(
-                            Pattern.compile(topicRegEx), templateExtractors.get(topicRegEx)));
+                            Pattern.compile(topicRegEx), canonicalItemExtractors.get(topicRegEx)));
         }
         return pe;
     }
 
     private Collection<CanonicalItemExtractor<K, V>> getAssociatedExtractors(String topic) {
-        return templateExtractors.getOrDefault(topic, emptySet());
+        return canonicalItemExtractors.getOrDefault(topic, emptySet());
     }
 
     private Collection<CanonicalItemExtractor<K, V>> getMatchingExtractors(String topic) {
@@ -475,12 +617,12 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
 
     @Override
     public Set<CanonicalItemExtractor<K, V>> getExtractorsByTopicSubscription(String topicName) {
-        return templateExtractors.get(topicName);
+        return canonicalItemExtractors.get(topicName);
     }
 
     @Override
     public boolean hasCanonicalItemExtractors() {
-        return !templateExtractors.isEmpty();
+        return !canonicalItemExtractors.isEmpty();
     }
 
     @Override
@@ -498,7 +640,7 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
         var extractors = extractorsSupplier.getExtractors(record.topic());
 
         if (extractors.isEmpty()) {
-            return DefaultMappedRecord.NOPRecord;
+            return MappedRecordImpl.NOPRecord;
         }
 
         String[] canonicalItems = new String[extractors.size()];
@@ -507,73 +649,129 @@ final class DefaultRecordMapper<K, V> implements RecordMapper<K, V> {
             canonicalItems[i++] = dataExtractor.extractCanonicalItem(record);
         }
 
-        return new DefaultMappedRecord(
-                canonicalItems, () -> fieldExtractor.extractMap(record), record.isPayloadNull());
+        return new MappedRecordImpl(
+                canonicalItems, new FieldsMapSupplierImpl<>(fieldExtractor, record));
     }
 }
 
-final class DefaultMappedRecord implements MappedRecord {
+/**
+ * Default implementation of {@link RecordMapper.FieldsMapSupplier} that defers field extraction to
+ * the supplied {@link FieldsExtractor} and underlying {@link KafkaRecord}.
+ *
+ * @param <K> the type of the key in the Kafka record
+ * @param <V> the type of the value in the Kafka record
+ */
+final class FieldsMapSupplierImpl<K, V> implements RecordMapper.FieldsMapSupplier<K, V> {
 
-    private static final Supplier<Map<String, String>> EMPTY_FIELDS_MAP = Collections::emptyMap;
+    private final FieldsExtractor<K, V> fieldExtractor;
+    private final KafkaRecord<K, V> record;
 
-    static final MappedRecord NOPRecord = new DefaultMappedRecord();
-
-    private final String[] itemNames;
-
-    // Lazy supplier for fieldsMap. It is used to avoid computing the fieldsMap
-    // when not needed (i.e. when routing only).
-    private final Supplier<Map<String, String>> fieldsMapSupplier;
-
-    private boolean payloadNull;
-
-    private DefaultMappedRecord() {
-        this(new String[0], EMPTY_FIELDS_MAP, true);
+    FieldsMapSupplierImpl(FieldsExtractor<K, V> fieldExtractor, KafkaRecord<K, V> record) {
+        this.fieldExtractor = fieldExtractor;
+        this.record = record;
     }
 
-    DefaultMappedRecord(String[] itemNames) {
-        this(itemNames, EMPTY_FIELDS_MAP, true);
+    @Override
+    public Map<String, String> getMap() throws ValueException {
+        return fieldExtractor.extractMap(record);
     }
 
-    DefaultMappedRecord(
-            String[] canonicalItems, Supplier<Map<String, String>> fieldsMap, boolean payloadNull) {
-        this.itemNames = canonicalItems;
-        this.fieldsMapSupplier = fieldsMap;
-        this.payloadNull = payloadNull;
+    @Override
+    public Map<String, String> getMapFromField(String field) throws ValueException {
+        Map<String, String> map = new HashMap<>();
+        fieldExtractor.extractFieldIntoMap(field, record, map);
+        return map;
+    }
+
+    @Override
+    public boolean isPayloadNull() {
+        return record.isPayloadNull();
+    }
+}
+
+/**
+ * Default implementation of {@link MappedRecord} that holds pre-computed canonical item names and a
+ * lazy supplier for the extracted field map.
+ *
+ * <p>A singleton {@link #NOPRecord} instance represents an empty mapping with no routable items.
+ */
+final class MappedRecordImpl implements MappedRecord {
+
+    private static final String[] EMPTY_ITEMS = new String[0];
+
+    // Singleton no-operation record with no item names and an empty fields map.
+    static final MappedRecord NOPRecord = new MappedRecordImpl();
+
+    private final String[] canonicalItemNames;
+    private final FieldsMapSupplier<?, ?> fieldsMapSupplier;
+
+    /**
+     * Constructs a no-operation instance with no item names, an empty fields map, and null payload.
+     */
+    private MappedRecordImpl() {
+        this(EMPTY_ITEMS, FieldsMapSupplier.nop());
+    }
+
+    /**
+     * Constructs a {@code MappedRecordImpl} with the given canonical item names, an empty fields
+     * map, and null payload.
+     *
+     * @param canonicalItemNames the canonical Lightstreamer item names this record maps to
+     */
+    MappedRecordImpl(String[] canonicalItemNames) {
+        this(canonicalItemNames, FieldsMapSupplier.nop());
+    }
+
+    /**
+     * Constructs a {@code MappedRecordImpl} with the given canonical item names and lazy fields map
+     * supplier.
+     *
+     * @param canonicalItemNames the canonical Lightstreamer item names this record maps to
+     * @param fieldsMapSupplier the lazy supplier for the extracted field name-value pairs
+     */
+    MappedRecordImpl(String[] canonicalItemNames, FieldsMapSupplier<?, ?> fieldsMapSupplier) {
+        this.canonicalItemNames = canonicalItemNames;
+        this.fieldsMapSupplier = fieldsMapSupplier;
     }
 
     @Override
     public String[] canonicalItemNames() {
-        return itemNames;
+        return canonicalItemNames;
     }
 
     @Override
     public Set<SubscribedItem> route(SubscribedItems items) {
-        Set<SubscribedItem> result = new HashSet<>();
-
-        for (String itemName : itemNames) {
-            SubscribedItem item = items.getItem(itemName);
-            if (item != null) {
-                result.add(item);
-            }
+        int n = canonicalItemNames.length;
+        if (n == 0) return Collections.emptySet();
+        if (n == 1) {
+            SubscribedItem item = items.getItem(canonicalItemNames[0]);
+            return item != null ? Collections.singleton(item) : Collections.emptySet();
+        }
+        Set<SubscribedItem> result = new HashSet<>(n * 2); // pre-size
+        for (String name : canonicalItemNames) {
+            SubscribedItem item = items.getItem(name);
+            if (item != null) result.add(item);
         }
         return result;
     }
 
     @Override
-    public Map<String, String> fieldsMap() {
-        return fieldsMapSupplier.get();
+    public Map<String, String> fieldsMap() throws ValueException {
+        return fieldsMapSupplier.getMap();
+    }
+
+    @Override
+    public Map<String, String> fieldsMapFromField(String field) throws ValueException {
+        return fieldsMapSupplier.getMapFromField(field);
     }
 
     @Override
     public boolean isPayloadNull() {
-        return payloadNull;
+        return fieldsMapSupplier.isPayloadNull();
     }
 
     @Override
     public String toString() {
-        String data = Arrays.stream(itemNames).collect(Collectors.joining(","));
-        return String.format(
-                "MappedRecord (canonicalItemNames=[%s], fieldsMap=%s)",
-                data, fieldsMapSupplier.get());
+        return "MappedRecord(canonicalItemNames=[" + String.join(",", canonicalItemNames) + "])";
     }
 }
