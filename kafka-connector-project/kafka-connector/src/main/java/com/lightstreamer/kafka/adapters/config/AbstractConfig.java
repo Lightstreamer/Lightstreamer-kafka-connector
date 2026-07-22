@@ -100,6 +100,18 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return Arrays.asList(elements);
     }
 
+    public final List<String> getRangeList(String configKey) {
+        String value = get(configKey, ConfigsSpec.ConfType.RANGE_LIST, false);
+        String[] elements = new String[0];
+        if (value != null) {
+            elements = value.split(",");
+            if (elements.length == 1 && elements[0].isBlank()) {
+                return Collections.emptyList();
+            }
+        }
+        return Arrays.asList(elements);
+    }
+
     public final String getBooleanStr(String configKey) {
         return get(configKey, BOOL, false);
     }
@@ -151,7 +163,11 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final Map<String, String> getValues(String configKey) {
-        ConfParameter param = configSpec.findParameter(configKey);
+        return getValues(configKey, null);
+    }
+
+    public final Map<String, String> getValues(String configKey, String suffix) {
+        ConfParameter param = configSpec.findParameter(configKey, suffix);
         if (param.multiple()) {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {
