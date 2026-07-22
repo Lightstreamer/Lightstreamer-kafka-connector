@@ -24,7 +24,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ERROR_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.GROUP_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
@@ -55,7 +54,8 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_M
 
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -172,7 +172,7 @@ public final class ConnectorConfig extends AbstractConfig {
 
     public static final String RECORD_CONSUME_FROM = "record.consume.from";
 
-    public static final String CONSUMER_GROUP_MODE = "group.mode";
+    public static final String CONSUMER_MODE = "consumer.mode";
 
     // Kafka consumer specific settings
     public static final String RECORD_CONSUME_WITH_MAX_POLL_RECORDS =
@@ -213,7 +213,8 @@ public final class ConnectorConfig extends AbstractConfig {
 
     static final String LIGHTSTREAMER_CLIENT_ID = "cwc|5795fea5-2ddf-41c7-b44c-c6cb0982d7b|";
 
-    private static final String MAP_SUFFIX = "to";
+    static final String MAP_TO_ITEMS_SUFFIX = "to";
+    static final String MAP_FROM_PARTITIONS_SUFFIX = "from.partitions";
     private static final ConfigsSpec CONFIG_SPEC;
 
     static {
@@ -243,7 +244,8 @@ public final class ConnectorConfig extends AbstractConfig {
                                                             suffix);
                                         }))
                         .add(ITEM_TEMPLATE, false, true, TEXT)
-                        .add(TOPIC_MAPPING, true, true, MAP_SUFFIX, TEXT_LIST)
+                        .add(TOPIC_MAPPING, true, true, MAP_TO_ITEMS_SUFFIX, TEXT_LIST)
+                        .add(TOPIC_MAPPING, false, true, MAP_FROM_PARTITIONS_SUFFIX, TEXT_LIST)
                         .add(
                                 ITEM_SNAPSHOT_ENABLED_MODE,
                                 false,
@@ -357,12 +359,11 @@ public final class ConnectorConfig extends AbstractConfig {
                                 CONSUME_FROM,
                                 defaultValue(RecordConsumeFrom.LATEST.toString()))
                         .add(
-                                CONSUMER_GROUP_MODE,
+                                CONSUMER_MODE,
                                 false,
                                 false,
-                                GROUP_MODE,
-                                defaultValue(
-                                        ConsumerGroupMode.GROUP.toString()))
+                                ConfType.CONSUMER_MODE,
+                                defaultValue(ConsumerMode.GROUP.toString()))
                         .add(
                                 CONSUMER_CLIENT_ID,
                                 true,
@@ -466,7 +467,10 @@ public final class ConnectorConfig extends AbstractConfig {
         super(spec, configs);
         this.consumerProps = initProps();
         this.itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
-        this.topicMappings = TopicMappingConfig.from(getValues(TOPIC_MAPPING));
+        Map<String, String> topicMappings = getValues(TOPIC_MAPPING, MAP_TO_ITEMS_SUFFIX);
+        Map<String, String> partitionMappings =
+                getValues(TOPIC_MAPPING, MAP_FROM_PARTITIONS_SUFFIX);
+        this.topicMappings = TopicMappingConfig.from(topicMappings, partitionMappings);
         this.fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
         postValidate();
     }
@@ -482,11 +486,11 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     private void postValidate() throws ConfigException {
+        checkConsumerMode();
         checkSchemaConfig(true);
         checkSchemaConfig(false);
         checkTopicMappingRegex();
         resolveSubscriptionMode();
-        checkStandaloneMode();
         resolveRecordErrorStrategy();
     }
 
@@ -600,21 +604,39 @@ public final class ConnectorConfig extends AbstractConfig {
         }
     }
 
-    private void checkStandaloneMode() {
-        if (isStandalone() && isMapRegExEnabled()) {
-            throw new ConfigException(
-                    "Standalone consumer group mode does not support regex topic matching."
-                            + " Parameter [%s] must be set to [false] when [%s] is set to [STANDALONE]"
-                                    .formatted(MAP_REG_EX_ENABLE, CONSUMER_GROUP_MODE));
+    private void checkConsumerMode() {
+        if (isManual()) {
+            if (isMapRegExEnabled()) {
+                throw new ConfigException(
+                        "Manual mode does not support regex topic matching."
+                                + " Parameter [%s] must be set to [false] when [%s] is set to [%s]"
+                                        .formatted(
+                                                MAP_REG_EX_ENABLE,
+                                                CONSUMER_MODE,
+                                                ConfigTypes.ConsumerMode.MANUAL));
+            }
+        } else {
+            for (TopicMappingConfig mapping : topicMappings) {
+                if (!mapping.partitions().isEmpty()) {
+                    throw new ConfigException(
+                            "Group mode does not support partition mappings."
+                                    + " Parameter [map.%s.%s] must be empty when [%s] is set to [%s]"
+                                            .formatted(
+                                                    mapping.topic(),
+                                                    MAP_FROM_PARTITIONS_SUFFIX,
+                                                    CONSUMER_MODE,
+                                                    ConfigTypes.ConsumerMode.GROUP));
+                }
+            }
         }
     }
 
     private Properties initProps() {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        // In standalone mode, skip group.id: no consumer group coordination
+        // In MANUAL mode, skip group.id: no consumer group at all,
         // and no offset commits.
-        if (!isStandalone()) {
+        if (!isManual()) {
             properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         }
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
@@ -736,13 +758,12 @@ public final class ConnectorConfig extends AbstractConfig {
                 get(RECORD_CONSUME_WITH_ORDER_STRATEGY, ORDER_STRATEGY, false));
     }
 
-    public final ConsumerGroupMode getConsumerGroupMode() {
-        return ConsumerGroupMode.valueOf(
-                get(CONSUMER_GROUP_MODE, ConfType.GROUP_MODE, false));
+    public final ConsumerMode getConsumerMode() {
+        return ConsumerMode.valueOf(get(CONSUMER_MODE, ConfType.CONSUMER_MODE, false));
     }
 
-    public final boolean isStandalone() {
-        return getConsumerGroupMode() == ConsumerGroupMode.STANDALONE;
+    public final boolean isManual() {
+        return getConsumerMode() == ConsumerMode.MANUAL;
     }
 
     public final int getRecordConsumeWithNumThreads() {
