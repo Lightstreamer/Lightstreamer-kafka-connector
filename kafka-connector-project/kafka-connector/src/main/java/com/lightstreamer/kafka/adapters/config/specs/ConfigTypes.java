@@ -270,9 +270,9 @@ public interface ConfigTypes {
         }
     }
 
-    enum ConsumerGroupMode {
+    enum ConsumerMode {
         GROUP,
-        STANDALONE;
+        MANUAL;
 
         public static Set<String> names() {
             return enumNames(values());
