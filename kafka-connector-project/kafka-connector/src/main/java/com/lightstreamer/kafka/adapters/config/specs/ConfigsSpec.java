@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.config.specs;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
@@ -24,6 +25,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFr
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.common.config.ConfigException;
@@ -130,6 +132,27 @@ public class ConfigsSpec {
             }
         },
 
+        RANGE {
+            public boolean checkValidity(String param) {
+                if (param == null || param.isBlank()) {
+                    return false;
+                }
+                List<String> parts = Split.bySeparator('-', param);
+                if (parts.size() != 2) {
+                    return false;
+                }
+                try {
+                    int start = Integer.parseInt(parts.get(0));
+                    int end = Integer.parseInt(parts.get(1));
+                    return start >= 0 && end >= 0 && start <= end;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
+        RANGE_LIST(new ListType(RANGE)),
+
         THREADS {
             @Override
             public boolean checkValidity(String param) {
@@ -228,7 +251,7 @@ public class ConfigsSpec {
 
         SSL_ENABLED_PROTOCOLS(new ListType(new Options(ConfigTypes.SslProtocol.names()))),
 
-        GROUP_MODE(Options.consumerGroupModes()),
+        CONSUMER_MODE(Options.consumerModes()),
 
         SASL_MECHANISM(Options.saslMechanisms());
 
@@ -510,12 +533,12 @@ public class ConfigsSpec {
             return new Options(SaslMechanism.names());
         }
 
-        static Options consumerGroupModes() {
-            return new Options(ConfigTypes.ConsumerGroupMode.names());
+        static Options consumerModes() {
+            return new Options(ConsumerMode.names());
         }
 
         static Options schemaRegistryProviders() {
-            return new Options(ConfigTypes.SchemaRegistryProvider.names());
+            return new Options(SchemaRegistryProvider.names());
         }
 
         private Set<String> choices;
@@ -635,7 +658,8 @@ public class ConfigsSpec {
                                     confParameter.type(),
                                     confParameter.mutable(),
                                     confParameter.defaultHolder());
-                    paramSpec.put(name, p);
+                    // paramSpec.put(name, p);
+                    add(p);
                 });
         for (ChildSpec childSpec : from.specChildren) {
             withChildConfigs(childSpec.spec(), childSpec.evalStrategy(), childSpec.enablingKey());
@@ -707,9 +731,10 @@ public class ConfigsSpec {
             Type type,
             boolean mutable,
             DefaultHolder<String> defaultValue) {
-        paramSpec.put(
-                name,
-                new ConfParameter(name, required, multiple, null, type, mutable, defaultValue));
+        // paramSpec.put(
+        //         name,
+        //         new ConfParameter(name, required, multiple, null, type, mutable, defaultValue));
+        add(new ConfParameter(name, required, multiple, null, type, mutable, defaultValue));
         return this;
     }
 
@@ -719,14 +744,20 @@ public class ConfigsSpec {
             boolean multiple,
             Type type,
             DefaultHolder<String> defaultValue) {
-        paramSpec.put(
-                name, new ConfParameter(name, required, multiple, null, type, true, defaultValue));
+        // paramSpec.put(
+        //         name, new ConfParameter(name, required, multiple, null, type, true,
+        // defaultValue));
+        add(new ConfParameter(name, required, multiple, null, type, true, defaultValue));
         return this;
     }
 
     public ConfigsSpec add(String name, boolean required, boolean multiple, Type type) {
-        paramSpec.put(
-                name,
+        // paramSpec.put(
+        //         name,
+        //         new ConfParameter(
+        //                 name, required, multiple, null, type, true,
+        // DefaultHolder.defaultNull()));
+        add(
                 new ConfParameter(
                         name, required, multiple, null, type, true, DefaultHolder.defaultNull()));
         return this;
@@ -734,26 +765,34 @@ public class ConfigsSpec {
 
     public ConfigsSpec add(
             String name, boolean required, boolean multiple, String suffix, Type type) {
-        paramSpec.put(
-                name,
+        // paramSpec.put(
+        //         name,
+        //         new ConfParameter(
+        //                 name, required, multiple, suffix, type, true,
+        // DefaultHolder.defaultNull()));
+        add(
                 new ConfParameter(
                         name, required, multiple, suffix, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
     public ConfigsSpec add(String name, boolean required, Type type) {
-        paramSpec.put(
-                name,
+        // paramSpec.put(
+        //         name,
+        //         new ConfParameter(
+        //                 name, required, false, null, type, true, DefaultHolder.defaultNull()));
+        add(
                 new ConfParameter(
                         name, required, false, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
     public ConfigsSpec add(String name, Type type) {
-        paramSpec.put(
-                name,
-                new ConfParameter(
-                        name, true, false, null, type, true, DefaultHolder.defaultNull()));
+        // paramSpec.put(
+        //         name,
+        //         new ConfParameter(
+        //                 name, true, false, null, type, true, DefaultHolder.defaultNull()));
+        add(new ConfParameter(name, true, false, null, type, true, DefaultHolder.defaultNull()));
         return this;
     }
 
@@ -793,13 +832,18 @@ public class ConfigsSpec {
     }
 
     public ConfParameter findParameter(String name) {
-        ConfParameter parameter = lookUpParameter(name);
+        return findParameter(name, null);
+    }
+
+    public ConfParameter findParameter(String configKey, String suffix) {
+        String paramKey = configKey + (suffix != null ? "." + suffix : "");
+        ConfParameter parameter = lookUpParameter(paramKey);
         if (parameter != null) {
             return parameter;
         }
 
         for (ChildSpec trigger : specChildren) {
-            parameter = trigger.spec().findParameter(name);
+            parameter = trigger.spec().findParameter(paramKey);
             if (parameter != null) {
                 return parameter;
             }
@@ -840,7 +884,12 @@ public class ConfigsSpec {
     }
 
     ConfigsSpec add(ConfParameter confParameter) {
-        paramSpec.put(confParameter.name(), confParameter);
+        String paramKey = confParameter.name();
+        if (confParameter.multiple() && confParameter.suffix() != null) {
+            String suffix = confParameter.suffix();
+            paramKey = paramKey + "." + suffix;
+        }
+        paramSpec.put(paramKey, confParameter);
         return this;
     }
 }
