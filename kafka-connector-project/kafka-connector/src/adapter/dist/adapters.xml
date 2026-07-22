@@ -74,26 +74,26 @@
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id 
              for more details.
 
-             This parameter is only relevant when "group.mode" is set to "GROUP". When using "STANDALONE" mode,
-             this parameter is ignored.
+             This parameter is only relevant when "consumer.mode" is set to "GROUP". When using 
+             "MANUAL" mode, this parameter is ignored.
 
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
         <<param name="group.id">kafka-connector-group</param>
         -->
 
-        <!-- Optional. The consumer group mode for this connection. Can be one of the following:
-             - GROUP:      The internal Kafka Consumer joins a consumer group and uses the group coordination protocol
-                           (partition assignment, offset commits via __consumer_offsets). The consumer group is
-                           identified by the "group.id" parameter.
-             - STANDALONE: The internal Kafka Consumer operates independently, using manual partition assignment
-                           without joining any consumer group and without persisting offsets to Kafka.
-                           The "group.id" parameter is ignored.
+        <!-- Optional. The consumer mode for this connection. Can be one of the following:
+             - GROUP:  The internal Kafka Consumer joins a consumer group and uses the group 
+                       coordination protocol partition assignment, offset commits via 
+                       __consumer_offsets). The consumer group is identified by the "group.id" 
+                       parameter.
+             - MANUAL: The internal Kafka Consumer operates independently, using manual partition 
+                       assignment without joining any consumer group and without persisting offsets 
+                       to Kafka. The "group.id" parameter is ignored.
 
              Default value: GROUP. -->
-        <!--
-        <param name="group.mode">STANDALONE</param>
-        -->
+        <!-- -->
+        <param name="consumer.mode">MANUAL</param>
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
 
@@ -353,17 +353,22 @@
              - EARLIEST: Start consuming events from the beginning of the topic partition.
              - LATEST:   Start consuming events from the end of the topic partition.
 
+             How this parameter is applied depends on the consumer mode:
 
-             The parameter sets the value of the "auto.offset.reset"  key to configure the internal 
-             Kafka Consumer.
-             See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset 
-             for more details.
+             - In GROUP mode, it sets the value of the "auto.offset.reset" key on the internal Kafka
+               Consumer and therefore only takes effect for partitions that have no committed offset
+               yet; partitions with a committed offset resume from there.
+               See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset 
+               for more details.
+             - In MANUAL mode, since offsets are never committed, the connector explicitly seeks
+               every manually assigned partition to the requested position on every startup. The
+               setting therefore applies uniformly to all assigned partitions on every restart.
 
-             When snapshot management is active, the connector manages partition positions 
-             explicitly: newly assigned partitions are always seeked to the beginning (so that 
-             the snapshot replay covers the full topic history), and re-assigned partitions 
-             resume from their committed offset. See the "Snapshot Management" section in the 
-             README for details.
+             When snapshot management is active, the connector manages partition positions  
+             explicitly: newly assigned partitions are always seeked to the beginning (so that the
+             snapshot replay covers the full topic history), and re-assigned partitions resume from
+             their committed offset. See the "Snapshot Management" section in the README for 
+             details.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
@@ -558,6 +563,20 @@
         -->
         <param name="map.stocks.to">item-template.stock</param>
 
+        <!-- Optional but only effective when "consumer.mode" is set to "MANUAL". Lists the 
+             partitions of the topic TOPIC_NAME to be manually assigned to this consumer.
+
+             The value is a comma-separated list of non-negative partition numbers and inclusive
+             ranges (e.g. "0,2,4-6").
+
+             If omitted, all partitions of the topic are assigned. -->
+        <!-- Example 1:
+        <param name="map.aTopicName.from.partitions">0,1,2,3</param>
+        -->
+        <!-- Example 2:
+        <param name="map.aTopicName.from.partitions">0-3,4-6,9</param>
+        -->
+
         <!-- Optional. Enables the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be 
              treated as a regular expression rather than of a literal topic name.
         -->
@@ -682,9 +701,8 @@
                          "field.key".
 
              Default value: NONE. -->
-        <!--
+        <!-- -->
         <param name="item.snapshot.enabled.mode">MERGE</param>
-        -->
 
         <!-- Optional but only effective when "item.snapshot.enabled.mode" is set to "DISTINCT".
              The maximum allowed length for the snapshot of an item that has been requested with
