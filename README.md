@@ -627,7 +627,7 @@ _Optional_. Selects how the internal Kafka Consumer acquires the topic partition
 
 - `GROUP`: The consumer joins a [Kafka consumer group](https://kafka.apache.org/documentation/#intro_consumers) and lets the group coordinator assign partitions dynamically. Partition ownership is redistributed automatically as members of the group join or leave, and offsets are committed to and fetched from the `__consumer_offsets` topic under the configured [`group.id`](#groupid). This is the default and matches the pre-existing behavior of the connector.
 
-- `MANUAL`: The consumer uses manual partition assignment via `KafkaConsumer.assign(...)`. No consumer group is joined, no rebalance protocol runs, and [`group.id`](#groupid) is suppressed (no offsets are committed or fetched). On every startup the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](#recordconsumefrom).
+- `MANUAL`: The consumer uses manual partition assignment via `KafkaConsumer.assign(...)`. No consumer group is joined, no rebalance protocol runs, and [`group.id`](#groupid) is suppressed (no offsets are committed or fetched). On every startup the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](#recordconsumefrom). This is the pattern commonly referred to in the Kafka community as a _standalone consumer_.
 
   Use `MANUAL` together with [`map.TOPIC_NAME.from.partitions`](#consume-from-specific-partitions-maptopic_namefrompartitions) to declaratively pin this connector instance to a specific subset of partitions, typically for [partition-affinity sharding](#partition-affinity-sharding) across multiple connector instances.
 
