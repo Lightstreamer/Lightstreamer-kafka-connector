@@ -19,12 +19,17 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.CommandModeStrategy;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerGroupMode;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import com.lightstreamer.interfaces.data.ItemEventListener;
+import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AbstractSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandSubscriptionsHandler;
@@ -257,14 +262,18 @@ public class SubscriptionsHandlerTest {
         return new ConnectionSpec<>(
                 "TestConnection",
                 new Properties(),
-                ItemTemplatesUtils.itemTemplates("aTopic", "anItemTemplate,anotherItemTemplate"),
-                ItemTemplatesUtils.fieldsExtractor(),
                 new KafkaRecord.DeserializerPair<>(
                         OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
                         OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer()),
-                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                processAsCommand,
-                new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                ConsumerMode.GROUP,
+                RecordConsumeFrom.LATEST,
+                new RecordPipeline<>(
+                        ItemTemplatesUtils.itemTemplates(
+                                "aTopic", "anItemTemplate,anotherItemTemplate"),
+                        ItemTemplatesUtils.fieldsExtractor(),
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        processAsCommand,
+                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
     }
 
     static class TestSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
