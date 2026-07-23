@@ -24,10 +24,13 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
@@ -74,9 +77,6 @@ public class ForceableSubscriptionHandlerTest {
                 new ConnectionSpec<>(
                         "TestConnection",
                         properties,
-                        ItemTemplatesUtils.itemTemplates(
-                                templateTopic, "anItemTemplate,anotherItemTemplate"),
-                        ItemTemplatesUtils.fieldsExtractor(),
                         new KafkaRecord.DeserializerPair<>(
                                 OthersSelectorSuppliers.String()
                                         .keySelectorSupplier()
@@ -84,9 +84,16 @@ public class ForceableSubscriptionHandlerTest {
                                 OthersSelectorSuppliers.String()
                                         .valueSelectorSupplier()
                                         .deserializer()),
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        false,
-                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                        ConsumerMode.GROUP,
+                        RecordConsumeFrom.EARLIEST,
+                        new RecordPipeline<>(
+                                ItemTemplatesUtils.itemTemplates(
+                                        templateTopic, "anItemTemplate,anotherItemTemplate"),
+                                ItemTemplatesUtils.fieldsExtractor(),
+                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                                false,
+                                new Concurrency(
+                                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
                 props -> {
