@@ -104,8 +104,8 @@ public class RecordConsumerTest {
     private static RecordMapper<String, String> newRecordMapper(
             ConnectionSpec<String, String> spec) {
         return RecordMapper.<String, String>builder()
-                .addCanonicalItemExtractors(spec.itemTemplates().groupExtractors())
-                .fieldExtractor(spec.fieldsExtractor())
+                .addCanonicalItemExtractors(spec.pipeline().itemTemplates().groupExtractors())
+                .fieldExtractor(spec.pipeline().fieldsExtractor())
                 .build();
     }
 
@@ -174,7 +174,7 @@ public class RecordConsumerTest {
                 .eventListener(listener)
                 .offsetService(new MockOffsetService())
                 .logger(logger)
-                .errorStrategy(connectionSpec.errorHandlingStrategy())
+                .errorStrategy(connectionSpec.pipeline().errorHandlingStrategy())
                 .commandModeEnabled(processAsCommand)
                 .threads(threads)
                 .singleThreadPreferred(preferSingleThread)
