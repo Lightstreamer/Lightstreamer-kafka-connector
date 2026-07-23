@@ -17,8 +17,10 @@
 
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -28,29 +30,90 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * A no-operation {@link OffsetService} that never commits offsets to Kafka.
+ * {@link OffsetService} implementation for {@code consumer.mode = MANUAL}: never commits offsets to
+ * Kafka, and seeks each newly assigned partition to the position dictated by the connection's
+ * {@link RecordConsumeFrom} (beginning for {@code EARLIEST}, end for {@code LATEST}).
  *
- * <p>Designed for the implicit item snapshot strategy where the consumer uses manual partition
- * assignment ({@code assign()} + {@code seekToBeginning()}) and always reads from the beginning on
- * startup. Since no consumer group is involved and resume semantics are not needed, offset tracking
- * and committing are unnecessary overhead.
+ * <p>All commit-related lifecycle methods are no-ops (there is no {@code group.id} in MANUAL mode
+ * and therefore no {@code __consumer_offsets} target to write to). The {@link
+ * org.apache.kafka.clients.consumer.ConsumerRebalanceListener} callbacks are not invoked by the
+ * Kafka client under manual assignment; {@code onPartitionsAssigned} is instead invoked directly by
+ * the consumer wrapper after {@code assign()} to perform the initial seek. The {@code
+ * onPartitionsRevoked} and {@code onPartitionsLost} callbacks remain wired for defence in depth and
+ * log partition changes only.
  *
- * <p>All lifecycle methods are no-ops. The {@link
- * org.apache.kafka.clients.consumer.ConsumerRebalanceListener} callbacks log partition changes but
- * perform no commit operations — rebalance events do not occur with manual assignment, but the
- * implementation handles them gracefully in case of unexpected invocation.
+ * @see CommitOffsetService
+ * @see OffsetService
  */
 final class NoCommitOffsetService implements OffsetService {
 
+    private final Consumer<?, ?> consumer;
     private final Logger logger;
+    private final RecordConsumeFrom consumeFrom;
 
-    NoCommitOffsetService(Logger logger) {
+    /**
+     * Creates a new instance that seeks each assigned partition per the supplied {@link
+     * RecordConsumeFrom}.
+     *
+     * @param consumer the underlying Kafka {@link Consumer} against which the initial seek is
+     *     performed on partition assignment
+     * @param logger the {@link Logger} used for lifecycle tracing
+     * @param consumeFrom the {@link RecordConsumeFrom} dictating the initial-seek position for
+     *     each newly assigned partition ({@link RecordConsumeFrom#EARLIEST} for the beginning,
+     *     {@link RecordConsumeFrom#LATEST} for the end)
+     */
+    NoCommitOffsetService(Consumer<?, ?> consumer, Logger logger, RecordConsumeFrom consumeFrom) {
+        this.consumer = consumer;
         this.logger = logger;
+        this.consumeFrom = consumeFrom;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>In addition to the interface contract, seeks the assigned partitions to the position
+     * dictated by the connection's {@link RecordConsumeFrom} (beginning for {@code EARLIEST}, end
+     * for {@code LATEST}). This method is invoked directly by the consumer wrapper after {@code
+     * assign()} in MANUAL mode, since no rebalance protocol runs.
+     */
+    @Override
+    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+        logger.atInfo().log("Assigned partitions {}", partitions);
+        switch (consumeFrom) {
+            case EARLIEST -> {
+                logger.atInfo().log("Seeking assigned partitions to beginning: {}", partitions);
+                consumer.seekToBeginning(partitions);
+            }
+            case LATEST -> {
+                logger.atInfo().log("Seeking assigned partitions to end: {}", partitions);
+                consumer.seekToEnd(partitions);
+            }
+        }
+    }
+
+    @Override
+    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+        logger.atWarn().log("Unexpected onPartitionsRevoked in MANUAL mode: {}", partitions);
+    }
+
+    @Override
+    public void onPartitionsLost(Collection<TopicPartition> partitions) {
+        logger.atWarn().log("Unexpected onPartitionsLost in MANUAL mode: {}", partitions);
+    }
+
+    @Override
+    public void onConsumerShutdown() {
+        logger.atDebug().log("Consumer shutdown — no offsets to commit");
     }
 
     @Override
     public void maybeCommit() {
         // No-op: offsets are never committed
+    }
+
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
+        return Collections.emptyMap();
     }
 
     @Override
@@ -64,32 +127,7 @@ final class NoCommitOffsetService implements OffsetService {
     }
 
     @Override
-    public void onConsumerShutdown() {
-        logger.atDebug().log("Consumer shutdown — no offsets to commit");
-    }
-
-    @Override
     public Throwable getFirstFailure() {
         return null;
-    }
-
-    @Override
-    public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
-        return Collections.emptyMap();
-    }
-
-    @Override
-    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        logger.atDebug().log("Partitions assigned: {}", partitions);
-    }
-
-    @Override
-    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        logger.atDebug().log("Partitions revoked: {} — no offsets to commit", partitions);
-    }
-
-    @Override
-    public void onPartitionsLost(Collection<TopicPartition> partitions) {
-        logger.atDebug().log("Partitions lost: {}", partitions);
     }
 }
