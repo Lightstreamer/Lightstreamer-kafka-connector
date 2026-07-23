@@ -568,8 +568,8 @@ public class BenchmarksUtils {
 
     public static <T> RecordMapper<String, T> newRecordMapper(ConnectionSpec<String, T> config) {
         return RecordMapper.<String, T>builder()
-                .addCanonicalItemExtractors(config.itemTemplates().groupExtractors())
-                .fieldExtractor(config.fieldsExtractor())
+                .addCanonicalItemExtractors(config.pipeline().itemTemplates().groupExtractors())
+                .fieldExtractor(config.pipeline().fieldsExtractor())
                 .build();
     }
 

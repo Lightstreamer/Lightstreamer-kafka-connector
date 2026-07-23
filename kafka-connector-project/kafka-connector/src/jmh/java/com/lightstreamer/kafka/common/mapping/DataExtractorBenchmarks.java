@@ -87,8 +87,13 @@ public class DataExtractorBenchmarks {
                     (ConnectionSpec<String, V>) configurator.connectionSpec();
 
             this.canonicalItemExtractor =
-                    config.itemTemplates().groupExtractors().get(TOPICS[0]).iterator().next();
-            this.fieldsExtractor = config.fieldsExtractor();
+                    config.pipeline()
+                            .itemTemplates()
+                            .groupExtractors()
+                            .get(TOPICS[0])
+                            .iterator()
+                            .next();
+            this.fieldsExtractor = config.pipeline().fieldsExtractor();
 
             // Generate the test records.
             ConsumerRecords<byte[], byte[]> consumerRecords =
