@@ -611,11 +611,9 @@ Example:
 
 #### `group.id`
 
-_Optional_. The name of the consumer group this connection belongs to.
+_Optional but only effective when [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
 
 The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
-
-> **Note:** This parameter is only relevant when [`consumer.mode`](#consumermode) is set to `GROUP`. When [`consumer.mode`](#consumermode) is set to `MANUAL`, this parameter is ignored: the connector deliberately suppresses `group.id` so that no offsets are committed to or fetched from the `__consumer_offsets` topic for this consumer.
 
 Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
 
