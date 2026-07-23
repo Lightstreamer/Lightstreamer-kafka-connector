@@ -17,16 +17,12 @@
 
 package com.lightstreamer.kafka.adapters;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
-
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.mapping.selectors.avro.GenericRecordSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.json.JsonNodeSelectorsSuppliers;
 import com.lightstreamer.kafka.adapters.mapping.selectors.kvp.KvpSelectorsSuppliers;
@@ -42,6 +38,11 @@ import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliersMaker;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 /**
  * Translates a {@link ConnectorConfig} into the {@link ConnectionSpec} consumed by the Kafka
@@ -84,8 +85,8 @@ public class ConnectorConfigurator {
      */
     public ConnectionSpec<?, ?> connectionSpec() throws ConfigException {
         try {
-            return doConnectionSpec(config, mkKeyValueSelectorSuppliers(config));
-        } catch (Exception e) {
+            return doConnectionSpec(config, makeKeyValueSelectorSuppliers(config));
+        } catch (ExtractionException e) {
             throw new ConfigException(e.getMessage(), e);
         }
     }
@@ -116,33 +117,36 @@ public class ConnectorConfigurator {
         return new ConnectionSpec<>(
                 config.getAdapterName(),
                 config.baseConsumerProps(),
-                itemTemplates,
-                fieldsExtractor,
                 deserializerPair,
-                config.getRecordExtractionErrorHandlingStrategy(),
-                config.getItemSnapshotMode().equals(ItemSnapshotEnabledMode.COMMAND),
-                new Concurrency(
-                        config.getRecordConsumeWithOrderStrategy(),
-                        config.getRecordConsumeWithNumThreads()),
-                config.getConsumerGroupMode());
+                config.getConsumerMode(),
+                config.getRecordConsumeFrom(),
+                new RecordPipeline<>(
+                        itemTemplates,
+                        fieldsExtractor,
+                        config.getRecordExtractionErrorHandlingStrategy(),
+                        config.getItemSnapshotMode().equals(ItemSnapshotEnabledMode.COMMAND),
+                        new Concurrency(
+                                config.getRecordConsumeWithOrderStrategy(),
+                                config.getRecordConsumeWithNumThreads())));
     }
 
-    static KeyValueSelectorSuppliers<?, ?> mkKeyValueSelectorSuppliers(ConnectorConfig config) {
-        Map<EvaluatorType, KeyValueSelectorSuppliersMaker<?>> t = new HashMap<>();
+    static KeyValueSelectorSuppliers<?, ?> makeKeyValueSelectorSuppliers(ConnectorConfig config) {
+        // Cache the maker per evaluator type so that when the key and value evaluators share the
+        // same type we build a single KeyValueSelectorSuppliersMaker instance rather than two.
+        Map<EvaluatorType, KeyValueSelectorSuppliersMaker<?>> makerCache = new HashMap<>();
         Function<? super EvaluatorType, ? extends KeyValueSelectorSuppliersMaker<?>> getMaker =
-                type -> {
-                    return switch (type) {
-                        case JSON -> new JsonNodeSelectorsSuppliers(config);
-                        case AVRO -> new GenericRecordSelectorsSuppliers(config);
-                        case PROTOBUF -> new DynamicMessageSelectorSuppliers(config);
-                        case KVP -> new KvpSelectorsSuppliers(config);
-                        default -> new OthersSelectorSuppliers(config);
-                    };
-                };
+                type ->
+                        switch (type) {
+                            case JSON -> new JsonNodeSelectorsSuppliers(config);
+                            case AVRO -> new GenericRecordSelectorsSuppliers(config);
+                            case PROTOBUF -> new DynamicMessageSelectorSuppliers(config);
+                            case KVP -> new KvpSelectorsSuppliers(config);
+                            default -> new OthersSelectorSuppliers(config);
+                        };
         KeyValueSelectorSuppliersMaker<?> keyMaker =
-                t.computeIfAbsent(config.getKeyEvaluator(), getMaker);
+                makerCache.computeIfAbsent(config.getKeyEvaluator(), getMaker);
         KeyValueSelectorSuppliersMaker<?> valueMaker =
-                t.computeIfAbsent(config.getValueEvaluator(), getMaker);
+                makerCache.computeIfAbsent(config.getValueEvaluator(), getMaker);
 
         return KeyValueSelectorSuppliers.of(
                 keyMaker.makeKeySelectorSupplier(), valueMaker.makeValueSelectorSupplier());
