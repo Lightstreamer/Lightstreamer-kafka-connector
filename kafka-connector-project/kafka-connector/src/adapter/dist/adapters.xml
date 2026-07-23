@@ -67,24 +67,22 @@
         -->
         <param name="bootstrap.servers">broker:29092</param>
 
-        <!-- Optional. The name of the consumer group this connection belongs to.
+        <!-- Optional but only effective when "consumer.mode" is set to "GROUP" (the default). The 
+             name of the consumer group this connection belongs to.
 
              The parameter sets the value of the "group.id" key to configure the internal Kafka 
              Consumer.
              See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id 
              for more details.
 
-             This parameter is only relevant when "consumer.mode" is set to "GROUP". When using 
-             "MANUAL" mode, this parameter is ignored.
-
              Default value: Adapter Set id + the Data Adapter name + randomly generated suffix. -->
         <!--
-        <<param name="group.id">kafka-connector-group</param>
+        <param name="group.id">kafka-connector-group</param>
         -->
 
         <!-- Optional. The consumer mode for this connection. Can be one of the following:
              - GROUP:  The internal Kafka Consumer joins a consumer group and uses the group 
-                       coordination protocol partition assignment, offset commits via 
+                       coordination protocol (partition assignment, offset commits via 
                        __consumer_offsets). The consumer group is identified by the "group.id" 
                        parameter.
              - MANUAL: The internal Kafka Consumer operates independently, using manual partition 
@@ -92,8 +90,9 @@
                        to Kafka. The "group.id" parameter is ignored.
 
              Default value: GROUP. -->
-        <!-- -->
+        <!--
         <param name="consumer.mode">MANUAL</param>
+        -->
 
         <!-- ##### ENCRYPTION SETTINGS ##### -->
 
@@ -347,8 +346,9 @@
         <!-- ##### RECORD PROCESSING SETTINGS ##### -->
 
         <!-- Optional but ineffective when "item.snapshot.enabled.mode" is set to any value other 
-             than "NONE". Specifies where to start consuming events from. Can be one of the 
-             following:
+             than "NONE" (see the "Snapshot Management" section in the README for the 
+             partition-position behavior in that case). Specifies where to start consuming events 
+             from. Can be one of the following:
 
              - EARLIEST: Start consuming events from the beginning of the topic partition.
              - LATEST:   Start consuming events from the end of the topic partition.
@@ -360,15 +360,9 @@
                yet; partitions with a committed offset resume from there.
                See https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset 
                for more details.
-             - In MANUAL mode, since offsets are never committed, the connector explicitly seeks
-               every manually assigned partition to the requested position on every startup. The
-               setting therefore applies uniformly to all assigned partitions on every restart.
-
-             When snapshot management is active, the connector manages partition positions  
-             explicitly: newly assigned partitions are always seeked to the beginning (so that the
-             snapshot replay covers the full topic history), and re-assigned partitions resume from
-             their committed offset. See the "Snapshot Management" section in the README for 
-             details.
+             - In MANUAL mode, since offsets are never committed, the connector seeks every assigned
+               partition to the requested position on every startup. The setting therefore applies
+               uniformly to all assigned partitions on every restart.
 
              Default value: LATEST. -->
         <param name="record.consume.from">EARLIEST</param>
@@ -579,6 +573,9 @@
 
         <!-- Optional. Enables the "TOPIC_NAME" part of the "map.TOPIC_NAME.to" parameter to be 
              treated as a regular expression rather than of a literal topic name.
+
+             Not supported when "consumer.mode" is set to "MANUAL"; the setting will be rejected
+             at startup.
         -->
         <!--
         <param name="map.regex.enable">true</param>
