@@ -100,18 +100,6 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return Arrays.asList(elements);
     }
 
-    public final List<String> getRangeList(String configKey) {
-        String value = get(configKey, ConfigsSpec.ConfType.RANGE_LIST, false);
-        String[] elements = new String[0];
-        if (value != null) {
-            elements = value.split(",");
-            if (elements.length == 1 && elements[0].isBlank()) {
-                return Collections.emptyList();
-            }
-        }
-        return Arrays.asList(elements);
-    }
-
     public final String getBooleanStr(String configKey) {
         return get(configKey, BOOL, false);
     }
