@@ -69,8 +69,8 @@ final class SeekingOffsetService implements OffsetService {
      * @param delegate the {@link OffsetService} to decorate; all callbacks other than {@link
      *     #onPartitionsAssigned(Collection)} and {@link #getCatchUpEndOffsets()} are forwarded
      *     verbatim
-     * @param consumer the underlying Kafka {@link Consumer} used to perform the initial seek and
-     *     to fetch end offsets on each assignment
+     * @param consumer the underlying Kafka {@link Consumer} used to perform the initial seek and to
+     *     fetch end offsets on each assignment
      * @param logger the {@link Logger} used for lifecycle tracing
      */
     SeekingOffsetService(OffsetService delegate, Consumer<?, ?> consumer, Logger logger) {
