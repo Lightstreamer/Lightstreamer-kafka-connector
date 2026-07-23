@@ -38,7 +38,7 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -158,7 +158,7 @@ public class ConnectorConfiguratorTest {
 
         ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
         KeyValueSelectorSuppliers<?, ?> wrapper =
-                ConnectorConfigurator.mkKeyValueSelectorSuppliers(config);
+                ConnectorConfigurator.makeKeyValueSelectorSuppliers(config);
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(expectedKeyDeserializer);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
@@ -182,15 +182,15 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        FieldsExtractor<?, ?> fieldExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldExtractor = connectionSpec.pipeline().fieldsExtractor();
         assertThat(fieldExtractor.skipOnFailure()).isFalse();
         assertThat(fieldExtractor.mapNonScalars()).isFalse();
 
         Set<String> fieldNames = fieldExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1");
 
         Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
@@ -201,11 +201,11 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
 
-        assertThat(connectionSpec.errorHandlingStrategy())
+        assertThat(connectionSpec.pipeline().errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.processAsCommand()).isFalse();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isFalse();
 
-        Concurrency concurrency = connectionSpec.concurrency();
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
         assertThat(concurrency.orderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
@@ -236,15 +236,15 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         assertThat(fieldsExtractor.mapNonScalars()).isTrue();
 
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
@@ -262,11 +262,11 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
 
-        assertThat(connectionSpec.errorHandlingStrategy())
+        assertThat(connectionSpec.pipeline().errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.processAsCommand()).isTrue();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isTrue();
 
-        Concurrency concurrency = connectionSpec.concurrency();
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
         assertThat(concurrency.isParallel()).isTrue();
@@ -293,12 +293,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
@@ -316,7 +316,7 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
 
-        assertThat(connectionSpec.processAsCommand()).isTrue();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isTrue();
     }
 
     @Test
@@ -338,12 +338,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
