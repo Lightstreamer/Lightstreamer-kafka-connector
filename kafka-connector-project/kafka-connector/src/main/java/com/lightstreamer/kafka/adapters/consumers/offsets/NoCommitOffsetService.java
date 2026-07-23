@@ -58,9 +58,9 @@ final class NoCommitOffsetService implements OffsetService {
      * @param consumer the underlying Kafka {@link Consumer} against which the initial seek is
      *     performed on partition assignment
      * @param logger the {@link Logger} used for lifecycle tracing
-     * @param consumeFrom the {@link RecordConsumeFrom} dictating the initial-seek position for
-     *     each newly assigned partition ({@link RecordConsumeFrom#EARLIEST} for the beginning,
-     *     {@link RecordConsumeFrom#LATEST} for the end)
+     * @param consumeFrom the {@link RecordConsumeFrom} dictating the initial-seek position for each
+     *     newly assigned partition ({@link RecordConsumeFrom#EARLIEST} for the beginning, {@link
+     *     RecordConsumeFrom#LATEST} for the end)
      */
     NoCommitOffsetService(Consumer<?, ?> consumer, Logger logger, RecordConsumeFrom consumeFrom) {
         this.consumer = consumer;
