@@ -31,18 +31,25 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_F
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELD_MAPPING;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_DISTINCT_LENGTH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_MAX_IDLE_SECONDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_FROM_PARTITIONS_SUFFIX;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_REG_EX_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_TO_ITEMS_SUFFIX;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS;
@@ -90,10 +97,12 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE;
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
 
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
@@ -226,7 +235,7 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter topicMapping = configSpec.findParameter(TOPIC_MAPPING);
+        ConfParameter topicMapping = configSpec.findParameter(TOPIC_MAPPING, MAP_TO_ITEMS_SUFFIX);
         assertThat(topicMapping.name()).isEqualTo(TOPIC_MAPPING);
         assertThat(topicMapping.required()).isTrue();
         assertThat(topicMapping.multiple()).isTrue();
@@ -235,8 +244,18 @@ public class ConnectorConfigTest {
         assertThat(topicMapping.defaultValue()).isNull();
         assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
 
-        ConfParameter mapRegExEnable = configSpec.findParameter(ConnectorConfig.MAP_REG_EX_ENABLE);
-        assertThat(mapRegExEnable.name()).isEqualTo(ConnectorConfig.MAP_REG_EX_ENABLE);
+        ConfParameter partitionMapping =
+                configSpec.findParameter(TOPIC_MAPPING, MAP_FROM_PARTITIONS_SUFFIX);
+        assertThat(partitionMapping.name()).isEqualTo(TOPIC_MAPPING);
+        assertThat(partitionMapping.required()).isFalse();
+        assertThat(partitionMapping.multiple()).isTrue();
+        assertThat(partitionMapping.suffix()).isEqualTo("from.partitions");
+        assertThat(partitionMapping.mutable()).isTrue();
+        assertThat(partitionMapping.defaultValue()).isNull();
+        assertThat(partitionMapping.type()).isEqualTo(ConfType.TEXT_LIST);
+
+        ConfParameter mapRegExEnable = configSpec.findParameter(MAP_REG_EX_ENABLE);
+        assertThat(mapRegExEnable.name()).isEqualTo(MAP_REG_EX_ENABLE);
         assertThat(mapRegExEnable.required()).isFalse();
         assertThat(mapRegExEnable.multiple()).isFalse();
         assertThat(mapRegExEnable.suffix()).isNull();
@@ -244,8 +263,8 @@ public class ConnectorConfigTest {
         assertThat(mapRegExEnable.defaultValue()).isEqualTo("false");
         assertThat(mapRegExEnable.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter fieldMapping = configSpec.findParameter(ConnectorConfig.FIELD_MAPPING);
-        assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
+        ConfParameter fieldMapping = configSpec.findParameter(FIELD_MAPPING);
+        assertThat(fieldMapping.name()).isEqualTo(FIELD_MAPPING);
         assertThat(fieldMapping.required()).isTrue();
         assertThat(fieldMapping.multiple()).isTrue();
         assertThat(fieldMapping.suffix()).isNull();
@@ -254,9 +273,9 @@ public class ConnectorConfigTest {
         assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter fieldsSkipFailedMappingEnable =
-                configSpec.findParameter(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+                configSpec.findParameter(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.name())
-                .isEqualTo(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+                .isEqualTo(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.required()).isFalse();
         assertThat(fieldsSkipFailedMappingEnable.multiple()).isFalse();
         assertThat(fieldsSkipFailedMappingEnable.suffix()).isNull();
@@ -265,9 +284,9 @@ public class ConnectorConfigTest {
         assertThat(fieldsSkipFailedMappingEnable.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter fieldsMapNonScalarValuesEnable =
-                configSpec.findParameter(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+                configSpec.findParameter(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.name())
-                .isEqualTo(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+                .isEqualTo(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.required()).isFalse();
         assertThat(fieldsMapNonScalarValuesEnable.multiple()).isFalse();
         assertThat(fieldsMapNonScalarValuesEnable.suffix()).isNull();
@@ -595,7 +614,7 @@ public class ConnectorConfigTest {
         standardParams.put(BOOTSTRAP_SERVERS, "server:8080,server:8081");
         standardParams.put(RECORD_VALUE_EVALUATOR_TYPE, "STRING");
         // standardParams.put(RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-        // valueSchemaFile.getFileName().toString());
+        // valueScheFile.getFileName().toString());
         standardParams.put(RECORD_KEY_EVALUATOR_TYPE, "JSON");
         // standardParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,keySchemaFile.getFileName().toString());
         standardParams.put(ADAPTERS_CONF_ID, "KAFKA");
@@ -852,7 +871,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldNotModifyEnableAutoCommitConfig() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, "true");
+        updatedConfig.put(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, "true");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG)).isFalse();
     }
@@ -1257,7 +1276,7 @@ public class ConnectorConfigTest {
     @ValueSource(strings = {"==", ";;"})
     public void shouldFailDueToInvalidKvpPairsSeparator(String delimiter) {
         Map<String, String> configs1 = new HashMap<>();
-        configs1.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
+        configs1.put(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
 
         ConfigException ce =
                 assertThrows(
@@ -1309,7 +1328,7 @@ public class ConnectorConfigTest {
                         "Specify a valid value for parameter [record.key.evaluator.kvp.key-value.separator]");
 
         Map<String, String> configs2 = new HashMap<>();
-        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
+        configs2.put(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
 
         ce =
                 assertThrows(
@@ -1327,120 +1346,108 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getText(GROUP_ID)).isEqualTo("lightstreamer-kafka-consumer-group");
+        assertThat(config.baseConsumerProps())
+                .containsEntry(GROUP_ID_CONFIG, "lightstreamer-kafka-consumer-group");
     }
 
     @Test
-    public void shouldDefaultToGroupMode() {
+    public void shouldDefaultConsumerMode() {
         ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getConsumerGroupMode())
-                .isEqualTo(
-                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
-                                .ConsumerGroupMode.GROUP);
-        assertThat(config.isStandalone()).isFalse();
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
+        assertThat(config.isManual()).isFalse();
+
+        config = ConnectorConfigProvider.minimalWith(Map.of(CONSUMER_MODE, "GROUP"));
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
+        assertThat(config.isManual()).isFalse();
     }
 
     @Test
-    public void shouldAcceptStandaloneGroupMode() {
+    public void shouldAcceptManualMode() {
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE"));
-        assertThat(config.getConsumerGroupMode())
-                .isEqualTo(
-                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
-                                .ConsumerGroupMode.STANDALONE);
-        assertThat(config.isStandalone()).isTrue();
+                ConnectorConfigProvider.minimalWith(Map.of(CONSUMER_MODE, "MANUAL"));
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.MANUAL);
+        assertThat(config.isManual()).isTrue();
+        assertThat(config.baseConsumerProps().containsKey(GROUP_ID_CONFIG)).isFalse();
     }
 
     @Test
-    public void shouldExcludeGroupIdInStandaloneMode() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
-        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-
-        Properties baseConsumerProps = config.baseConsumerProps();
-        assertThat(baseConsumerProps.containsKey(ConsumerConfig.GROUP_ID_CONFIG)).isFalse();
-    }
-
-    @Test
-    public void shouldIncludeGroupIdInGroupMode() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "GROUP");
-        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-
-        Properties baseConsumerProps = config.baseConsumerProps();
-        assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
-                .startsWith("KAFKA-CONNECTOR-");
-    }
-
-    @Test
-    public void shouldRejectRegexWithStandaloneMode() {
-        Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
-
+    public void shouldFailDueToInvalidConsumerMode() {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(CONSUMER_MODE, "INVALID")));
         assertThat(ce)
                 .hasMessageThat()
-                .contains("Standalone consumer group mode does not support regex topic matching");
+                .isEqualTo("Specify a valid value for parameter [consumer.mode]");
     }
 
     @Test
-    public void shouldDefaultToGroupMode() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
-        assertThat(config.getConsumerGroupMode())
-                .isEqualTo(
-                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
-                                .ConsumerGroupMode.GROUP);
-        assertThat(config.isStandalone()).isFalse();
-    }
-
-    @Test
-    public void shouldAcceptStandaloneGroupMode() {
-        ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(
-                        Map.of(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE"));
-        assertThat(config.getConsumerGroupMode())
-                .isEqualTo(
-                        com.lightstreamer.kafka.adapters.config.specs.ConfigTypes
-                                .ConsumerGroupMode.STANDALONE);
-        assertThat(config.isStandalone()).isTrue();
-    }
-
-    @Test
-    public void shouldExcludeGroupIdInStandaloneMode() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
-        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-
-        Properties baseConsumerProps = config.baseConsumerProps();
-        assertThat(baseConsumerProps.containsKey(ConsumerConfig.GROUP_ID_CONFIG)).isFalse();
-    }
-
-    @Test
-    public void shouldIncludeGroupIdInGroupMode() {
-        Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_GROUP_MODE, "GROUP");
-        ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
-
-        Properties baseConsumerProps = config.baseConsumerProps();
-        assertThat(baseConsumerProps.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
-                .startsWith("KAFKA-CONNECTOR-");
-    }
-
-    @Test
-    public void shouldRejectRegexWithStandaloneMode() {
-        Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.CONSUMER_GROUP_MODE, "STANDALONE");
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
-
+    public void shouldFailDueToRegexEnabledInManualMode() {
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                CONSUMER_MODE,
+                                                "MANUAL",
+                                                MAP_REG_EX_ENABLE,
+                                                "true")));
         assertThat(ce)
                 .hasMessageThat()
-                .contains("Standalone consumer group mode does not support regex topic matching");
+                .isEqualTo(
+                        "Manual mode does not support regex topic matching. Parameter [map.regex.enable] must be set to [false] when [consumer.mode] is set to [MANUAL]");
+    }
+
+    @Test
+    public void shouldFailDueToPartitionsMappingWithGroupMode() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of("map.topic.from.partitions", "1,2,3")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Group mode does not support partition mappings. Parameter [map.topic.from.partitions] must be empty when [consumer.mode] is set to [GROUP]");
+    }
+
+    @Test
+    public void shouldFailDueToPartitionsMappingWithMissingTopic() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                "consumer.mode",
+                                                "MANUAL",
+                                                "map.not-mapped-topic1.from.partitions",
+                                                "1,2,3",
+                                                "map.not-mapped-topic2.from.partitions",
+                                                "4-5")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Partition mappings found for topics with no item mappings: [not-mapped-topic1, not-mapped-topic2]");
+    }
+
+    @Test
+    public void shouldFailDueToInvalidPartitionsMapping() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        Map.of(
+                                                "consumer.mode",
+                                                "MANUAL",
+                                                "map.topic.from.partitions",
+                                                "A-1")));
+        assertThat(ce).hasMessageThat().isEqualTo("Partition range bounds must be integers: [A-1]");
     }
 
     @Test
@@ -1469,6 +1476,23 @@ public class ConnectorConfigTest {
         TopicMappingConfig tm1 = topicMappings.get(0);
         assertThat(tm1.topic()).isEqualTo("topic-test");
         assertThat(tm1.mappings()).containsExactly("item-template.template1", "item1", "item2");
+    }
+
+    @Test
+    public void shouldGetTopicMappingWithPartitions() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put(CONSUMER_MODE, "MANUAL");
+        updatedConfigs.put("map.topic-test.to", "item-template.template1");
+        updatedConfigs.put("map.topic-test.from.partitions", "0-4,8-10,12,13");
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+
+        List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
+        assertThat(topicMappings).hasSize(2);
+
+        TopicMappingConfig tm1 = topicMappings.get(0);
+        assertThat(tm1.topic()).isEqualTo("topic-test");
+        assertThat(tm1.mappings()).containsExactly("item-template.template1");
+        assertThat(tm1.partitions()).containsExactly(0, 1, 2, 3, 4, 8, 9, 10, 12, 13);
     }
 
     @Test
@@ -1506,7 +1530,7 @@ public class ConnectorConfigTest {
         assertThat(config.isMapRegExEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        updatedConfig.put(MAP_REG_EX_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isMapRegExEnabled()).isTrue();
     }
@@ -1514,7 +1538,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldFailDueToInvalidMapRegExFlag() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "t");
+        configs.put(MAP_REG_EX_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
@@ -1707,7 +1731,7 @@ public class ConnectorConfigTest {
         assertThat(config.isFieldsSkipFailedMappingEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
+        updatedConfig.put(FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isFieldsSkipFailedMappingEnabled()).isTrue();
     }
@@ -1718,7 +1742,7 @@ public class ConnectorConfigTest {
         assertThat(config.isFieldsMapNonScalarValuesEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        updatedConfig.put(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isFieldsMapNonScalarValuesEnabled()).isTrue();
     }
@@ -1726,7 +1750,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldFailDueToFieldsSkipFailedMapping() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
+        configs.put(FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
@@ -1740,7 +1764,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldFailDueToFieldsMapNonScalarValues() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "t");
+        configs.put(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
@@ -1754,7 +1778,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldFailDueToInvalidRegularExpressionInTopicMapping() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        configs.put(MAP_REG_EX_ENABLE, "true");
         configs.put("map.topic_\\d.to", "item"); // Valid regular expression
         configs.put("map.\\k.to", "item"); // Invalid regular expression
 
@@ -1983,7 +2007,7 @@ public class ConnectorConfigTest {
     @Test
     public void shouldGetOverriddenMaxPollIntervalMs() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "35000");
+        updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "35000");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.baseConsumerProps())
                 .containsEntry(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "35000");
@@ -1993,8 +2017,7 @@ public class ConnectorConfigTest {
     @ValueSource(strings = {"0", "-1", "abc"})
     public void shouldFailDueToInvalidMaxPollIntervalMs(String invalidMaxPollIntervalMs) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(
-                ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, invalidMaxPollIntervalMs);
+        updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, invalidMaxPollIntervalMs);
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
