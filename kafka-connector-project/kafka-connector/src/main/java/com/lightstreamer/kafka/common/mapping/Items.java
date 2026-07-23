@@ -68,7 +68,8 @@ import java.util.regex.Pattern;
  *   <li>{@link SubscribedItem} — the item abstraction for event delivery
  *   <li>{@link SubscribedItems} — thread-safe collections of subscribed items
  *   <li>{@link ItemTemplates} — topic-to-item mapping via canonical extraction
- *   <li>Factory methods ({@code subscribedItem}, {@code templatesFrom}) for creating instances
+ *   <li>Factory methods ({@code onDemandSubscribedFrom}, {@code forceableSubscribedFrom}, {@code
+ *       templatesFrom}) for creating instances
  * </ul>
  */
 public class Items {
@@ -348,6 +349,13 @@ public class Items {
             }
         }
 
+        /**
+         * Current event dispatcher. Starts as a {@link QueueingEventDispatcher} that buffers every
+         * event (queueing mode), and is atomically swapped to a {@link DirectEventDispatcher} the
+         * first time {@link #enableEventsDelivery(Object, ItemEventListener)} runs (direct-dispatch
+         * mode). Declared {@code volatile} because the swap must be observed by producer threads
+         * dispatching on the event path.
+         */
         protected volatile EventDispatcher dispatcher;
 
         private final String canonicalItemName;
@@ -992,6 +1000,13 @@ public class Items {
         boolean matches(Schema schema);
 
         /**
+         * Returns the topic configurations underlying the configured templates.
+         *
+         * @return the set of {@link TopicConfiguration}s covered by the templates
+         */
+        Set<TopicConfiguration> topicConfigurations();
+
+        /**
          * Returns extractors grouped by topic name.
          *
          * @return a map from topic name to the set of {@link CanonicalItemExtractor}s for that
@@ -1013,7 +1028,9 @@ public class Items {
          *
          * @return the set of topic names
          */
-        Set<String> topics();
+        default Set<String> topicNames() {
+            return topicConfigurations().stream().map(TopicConfiguration::topic).collect(toSet());
+        }
 
         /**
          * Returns the set of topics that have at least one template matching the given item's
@@ -1041,38 +1058,6 @@ public class Items {
     }
 
     /**
-     * Associates a topic with a {@link CanonicalItemExtractor} and the resulting {@link Schema} for
-     * template matching.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    private static class ItemTemplate<K, V> {
-
-        private final Schema schema;
-        private final String topic;
-        private final CanonicalItemExtractor<K, V> extractor;
-
-        ItemTemplate(String topic, CanonicalItemExtractor<K, V> extractor) {
-            this.topic = Objects.requireNonNull(topic);
-            this.extractor = Objects.requireNonNull(extractor);
-            this.schema = extractor.schema();
-        }
-
-        public boolean matches(Schema schema) {
-            return this.schema.equals(schema);
-        }
-
-        CanonicalItemExtractor<K, V> extractor() {
-            return extractor;
-        }
-
-        String topic() {
-            return topic;
-        }
-    }
-
-    /**
      * Default implementation of {@link ItemTemplates} backed by an immutable list of {@link
      * ItemTemplate} entries.
      *
@@ -1096,7 +1081,7 @@ public class Items {
                 return Optional.of(
                         Pattern.compile(
                                 templates.stream()
-                                        .map(t -> "(?:%s)".formatted(t.topic()))
+                                        .map(t -> "(?:%s)".formatted(t.topic().topic()))
                                         .distinct()
                                         .sorted() // Only helps to simplify unit tests
                                         .collect(joining("|"))));
@@ -1114,12 +1099,12 @@ public class Items {
             return templates.stream()
                     .collect(
                             groupingBy(
-                                    ItemTemplate::topic,
+                                    i -> i.topic().topic(),
                                     mapping(ItemTemplate::extractor, toSet())));
         }
 
         @Override
-        public Set<String> topics() {
+        public Set<TopicConfiguration> topicConfigurations() {
             return templates.stream().map(ItemTemplate::topic).collect(toSet());
         }
 
@@ -1127,7 +1112,7 @@ public class Items {
         public Set<String> topicsFor(Schema schema) {
             return templates.stream()
                     .filter(t -> t.matches(schema))
-                    .map(ItemTemplate::topic)
+                    .map(t -> t.topic().topic())
                     .collect(toSet());
         }
 
@@ -1151,6 +1136,39 @@ public class Items {
         @Override
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
+        }
+    }
+
+    /**
+     * Associates a topic with a {@link CanonicalItemExtractor} and the resulting {@link Schema} for
+     * template matching. Internal helper used by {@link DefaultItemTemplates} to hold each entry of
+     * its template list.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
+    private static class ItemTemplate<K, V> {
+
+        private final Schema schema;
+        private final TopicConfiguration topic;
+        private final CanonicalItemExtractor<K, V> extractor;
+
+        ItemTemplate(TopicConfiguration topic, CanonicalItemExtractor<K, V> extractor) {
+            this.topic = Objects.requireNonNull(topic);
+            this.extractor = Objects.requireNonNull(extractor);
+            this.schema = extractor.schema();
+        }
+
+        public boolean matches(Schema schema) {
+            return this.schema.equals(schema);
+        }
+
+        CanonicalItemExtractor<K, V> extractor() {
+            return extractor;
+        }
+
+        TopicConfiguration topic() {
+            return topic;
         }
     }
 
@@ -1197,7 +1215,7 @@ public class Items {
             for (TemplateExpression template : topicConfig.itemReferences()) {
                 templates.add(
                         new ItemTemplate<>(
-                                topicConfig.topic(), canonicalItemExtractor(sSuppliers, template)));
+                                topicConfig, canonicalItemExtractor(sSuppliers, template)));
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());
