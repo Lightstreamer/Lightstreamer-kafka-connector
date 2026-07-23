@@ -132,27 +132,6 @@ public class ConfigsSpec {
             }
         },
 
-        RANGE {
-            public boolean checkValidity(String param) {
-                if (param == null || param.isBlank()) {
-                    return false;
-                }
-                List<String> parts = Split.bySeparator('-', param);
-                if (parts.size() != 2) {
-                    return false;
-                }
-                try {
-                    int start = Integer.parseInt(parts.get(0));
-                    int end = Integer.parseInt(parts.get(1));
-                    return start >= 0 && end >= 0 && start <= end;
-                } catch (NumberFormatException e) {
-                    return false;
-                }
-            }
-        },
-
-        RANGE_LIST(new ListType(RANGE)),
-
         THREADS {
             @Override
             public boolean checkValidity(String param) {
