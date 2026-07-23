@@ -191,14 +191,6 @@ public class SeekingOffsetServiceTest {
         assertThat(service.getCatchUpEndOffsets()).isNull();
     }
 
-    @Test
-    public void shouldDelegateOnPartitionsAssigned() {
-        Set<TopicPartition> partitions = Set.of(TP0, TP1);
-        service.onPartitionsAssigned(partitions);
-
-        assertThat(delegate.lastAssigned).containsExactlyElementsIn(partitions);
-    }
-
     @ParameterizedTest
     @MethodSource("partitionLifecycleEvents")
     public void shouldDelegatePartitionLifecycleEvent(
@@ -271,14 +263,14 @@ public class SeekingOffsetServiceTest {
 
     @Test
     public void shouldBeCreatableViaFactoryMethod() {
-        OffsetService seekingService = OffsetService.seekingCommit(mockConsumer, logger);
+        OffsetService seekingService =
+                OffsetService.seekingCommit(new SpyOffsetService(), mockConsumer, logger);
         assertThat(seekingService).isInstanceOf(SeekingOffsetService.class);
     }
 
     /** Hand-written spy that records all delegate calls for verification. */
     private static class SpyOffsetService implements OffsetService {
 
-        Collection<TopicPartition> lastAssigned;
         Collection<TopicPartition> lastRevoked;
         Collection<TopicPartition> lastLost;
         boolean maybeCommitCalled;
@@ -289,9 +281,7 @@ public class SeekingOffsetServiceTest {
         Map<TopicPartition, OffsetAndMetadata> snapshot = Map.of();
 
         @Override
-        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            lastAssigned = partitions;
-        }
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
