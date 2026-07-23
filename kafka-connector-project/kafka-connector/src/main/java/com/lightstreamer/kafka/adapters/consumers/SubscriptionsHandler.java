@@ -108,115 +108,6 @@ public interface SubscriptionsHandler<K, V> {
     boolean unsubscribe(String item);
 
     /**
-     * Builder for creating {@link SubscriptionsHandler} instances. The implementation is selected
-     * from the connection's {@code item.snapshot.enable} flag: when {@code true} a {@link
-     * ForceableSubscriptionsHandler} is returned; otherwise an {@link
-     * OnDemandSubscriptionsHandler}.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    static class Builder<K, V> {
-
-        private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
-        private ConnectionSpec<K, V> connectionSpec;
-        private MetadataListener metadataListener;
-        private long itemSnapshotMaxIdleSeconds = 0;
-        private boolean snapshotEnabled;
-
-        private Builder() {}
-
-        /**
-         * Sets the factory used to create the underlying Kafka {@link Consumer}.
-         *
-         * @param consumerFactory the consumer factory
-         * @return this builder
-         */
-        public Builder<K, V> consumerFactory(
-                Function<Properties, Consumer<byte[], byte[]>> consumerFactory) {
-            this.consumerFactory = consumerFactory;
-            return this;
-        }
-
-        /**
-         * Sets the {@link ConnectionSpec} describing the Kafka connection and its mapping
-         * configuration.
-         *
-         * @param connectionSpec the connection spec
-         * @return this builder
-         */
-        public Builder<K, V> connectionSpec(ConnectionSpec<K, V> connectionSpec) {
-            this.connectionSpec = connectionSpec;
-            return this;
-        }
-
-        /**
-         * Sets the {@link MetadataListener} used to force unsubscriptions when the consumer cannot
-         * recover. Required when snapshot support is disabled.
-         *
-         * @param metadataListener the metadata listener
-         * @return this builder
-         */
-        public Builder<K, V> metadataListener(MetadataListener metadataListener) {
-            this.metadataListener = metadataListener;
-            return this;
-        }
-
-        /**
-         * Selects the handler implementation: {@code true} returns a {@link
-         * ForceableSubscriptionsHandler} with eager consumer lifecycle and snapshot support; {@code
-         * false} returns an {@link OnDemandSubscriptionsHandler}.
-         *
-         * @param snapshotEnabled {@code true} to enable snapshot support, {@code false} otherwise
-         * @return this builder
-         */
-        public Builder<K, V> snapshotEnabled(boolean snapshotEnabled) {
-            this.snapshotEnabled = snapshotEnabled;
-            return this;
-        }
-
-        /**
-         * Sets the maximum idle time, in seconds, after which a snapshotted item that has received
-         * no record-driven access is considered stale and a {@code clearSnapshot} is pushed to the
-         * Lightstreamer kernel. A value of {@code 0} disables the sliding-expiration check.
-         *
-         * @param itemSnapshotMaxIdleSeconds the max idle in seconds; must be non-negative
-         * @return this builder
-         */
-        public Builder<K, V> itemSnapshotMaxIdleSeconds(long itemSnapshotMaxIdleSeconds) {
-            this.itemSnapshotMaxIdleSeconds = itemSnapshotMaxIdleSeconds;
-            return this;
-        }
-
-        /**
-         * Builds the configured {@link SubscriptionsHandler}.
-         *
-         * @return a new {@link SubscriptionsHandler} instance
-         * @throws IllegalStateException if a required builder property has not been set, or if
-         *     {@code itemSnapshotMaxIdleSeconds} is negative
-         */
-        public SubscriptionsHandler<K, V> build() {
-            if (consumerFactory == null) {
-                throw new IllegalStateException("ConsumerFactory not set");
-            }
-
-            if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
-            if (snapshotEnabled) {
-                if (itemSnapshotMaxIdleSeconds < 0) {
-                    throw new IllegalStateException(
-                            "itemSnapshotMaxIdleSeconds must be non-negative");
-                }
-                return new ForceableSubscriptionsHandler<>(this);
-            }
-            if (metadataListener == null) {
-                throw new IllegalStateException("MetadataListener not set");
-            }
-
-            return new OnDemandSubscriptionsHandler<>(this);
-        }
-    }
-
-    /**
      * Abstract base providing shared infrastructure for {@link SubscriptionsHandler}
      * implementations. Owns the common fields (logger, record mapper, consumer factory) used by all
      * handler variants.
@@ -226,14 +117,39 @@ public interface SubscriptionsHandler<K, V> {
      */
     abstract class AbstractSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
 
+        /**
+         * The {@link ConnectionSpec} describing this handler's Kafka connection and mapping
+         * configuration.
+         */
         protected final ConnectionSpec<K, V> connectionSpec;
+
+        /** Factory used to instantiate the underlying Kafka {@link Consumer}. */
         protected final Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
+
+        /**
+         * {@link Logger} scoped to this connection, keyed by the connection name from {@link
+         * ConnectionSpec#connectionName()}.
+         */
         protected final Logger logger;
+
+        /**
+         * Single-thread executor on which the underlying {@link KafkaConsumerWrapper} runs its poll
+         * loop.
+         */
         protected final ExecutorService pool;
 
+        /**
+         * The {@link ItemEventListener} used to deliver events to Lightstreamer clients; set by
+         * {@link #setListener(ItemEventListener)} before any subscription is accepted.
+         */
         protected ItemEventListener eventListener;
 
-        /** Constructs the shared infrastructure from the given builder. */
+        /**
+         * Constructs the shared infrastructure from the given builder.
+         *
+         * @param builder the {@link Builder} whose {@code connectionSpec} and {@code
+         *     consumerFactory} are copied into this instance
+         */
         AbstractSubscriptionsHandler(Builder<K, V> builder) {
             this.connectionSpec = builder.connectionSpec;
             this.consumerFactory = builder.consumerFactory;
@@ -247,14 +163,14 @@ public interface SubscriptionsHandler<K, V> {
             try {
                 SubscriptionExpression expression = Expressions.Subscription(item);
                 Schema schema = expression.schema();
-                if (!connectionSpec.itemTemplates().matches(schema)) {
+                if (!connectionSpec.pipeline().itemTemplates().matches(schema)) {
                     throw new SubscriptionException(
                             "Item does not match any defined item templates");
                 }
                 doSubscribe(expression, itemHandle);
                 logger.atInfo().log("Subscribed to item [{}]", expression.canonicalItemName());
             } catch (ExpressionException e) {
-                logger.atError().setCause(e).log();
+                logger.atError().setCause(e).log("Invalid subscription expression");
                 throw new SubscriptionException(e.getMessage());
             }
         }
@@ -327,16 +243,30 @@ public interface SubscriptionsHandler<K, V> {
      *       consumer when no subscriptions remain.
      * </ul>
      *
-     * <p>Used when {@code item.snapshot.enable} is {@code false}.
+     * <p>Used when {@code item.snapshot.enabled.mode} is set to {@code NONE} (snapshot disabled).
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
      */
     class OnDemandSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
+        /**
+         * Serializes structural transitions (start/stop of the underlying consumer) against
+         * increments to {@code itemsCount}.
+         */
         protected final ReentrantLock consumerLock = new ReentrantLock();
-        protected KafkaConsumerWrapper<K, V> consumer; // guarded by consumerLock
-        protected FutureStatus lifecycleStatus; // guarded by consumerLock
+
+        /**
+         * The underlying {@link KafkaConsumerWrapper}, non-{@code null} while at least one item is
+         * subscribed. Guarded by {@link #consumerLock}.
+         */
+        protected KafkaConsumerWrapper<K, V> consumer;
+
+        /**
+         * Latest lifecycle status of the underlying consumer, or {@code null} before the first
+         * start. Guarded by {@link #consumerLock}.
+         */
+        protected FutureStatus lifecycleStatus;
 
         // Only for testing purposes: hook invoked before acquiring lock in
         // decrementAndMaybeStopConsuming().
@@ -346,7 +276,13 @@ public interface SubscriptionsHandler<K, V> {
         private final OnDemandSubscribedItems subscribedItems;
         private int itemsCount; // guarded by consumerLock
 
-        /** Constructs an {@code OnDemandSubscriptionsHandler} from the given builder. */
+        /**
+         * Constructs an {@code OnDemandSubscriptionsHandler} from the given builder.
+         *
+         * @param builder the {@link Builder} whose {@code metadataListener} is copied into this
+         *     instance, in addition to the fields inherited via {@link
+         *     AbstractSubscriptionsHandler#AbstractSubscriptionsHandler(Builder)}
+         */
         OnDemandSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
             this.metadataListener = builder.metadataListener;
@@ -361,7 +297,7 @@ public interface SubscriptionsHandler<K, V> {
                 subscribedItems.addItem(newItem);
                 incrementAndMaybeStartConsuming(newItem);
             } catch (ExpressionException e) {
-                logger.atError().setCause(e).log();
+                logger.atError().setCause(e).log("Invalid subscription expression");
                 throw new SubscriptionException(e.getMessage());
             }
         }
@@ -449,6 +385,7 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
+        // Only for testing purposes
         boolean isConsuming() {
             consumerLock.lock();
             try {
@@ -525,7 +462,7 @@ public interface SubscriptionsHandler<K, V> {
      *       a snapshot.
      * </ul>
      *
-     * <p>Used when {@code item.snapshot.enable} is {@code true}.
+     * <p>Used when {@code item.snapshot.enabled.mode} is set to any value other than {@code NONE}.
      *
      * @param <K> the type of the key in the Kafka record
      * @param <V> the type of the value in the Kafka record
@@ -538,7 +475,13 @@ public interface SubscriptionsHandler<K, V> {
         private FutureStatus lifecycleStatus;
         private Optional<ScheduledFuture<?>> scheduled = Optional.empty();
 
-        /** Constructs a {@code ForceableSubscriptionsHandler} from the given builder. */
+        /**
+         * Constructs a {@code ForceableSubscriptionsHandler} from the given builder.
+         *
+         * @param builder the {@link Builder} whose {@code itemSnapshotMaxIdleSeconds} is copied
+         *     into this instance, in addition to the fields inherited via {@link
+         *     AbstractSubscriptionsHandler#AbstractSubscriptionsHandler(Builder)}
+         */
         ForceableSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
             this.itemSnapshotMaxIdleSeconds = builder.itemSnapshotMaxIdleSeconds;
@@ -642,6 +585,115 @@ public interface SubscriptionsHandler<K, V> {
         // Only for testing purposes
         Optional<ScheduledFuture<?>> getScheduled() {
             return scheduled;
+        }
+    }
+
+    /**
+     * Builder for creating {@link SubscriptionsHandler} instances. The implementation is selected
+     * based on whether snapshot support is enabled (see {@link #snapshotEnabled(boolean)}): when
+     * enabled a {@link ForceableSubscriptionsHandler} is returned; otherwise an {@link
+     * OnDemandSubscriptionsHandler}.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
+    static class Builder<K, V> {
+
+        private Function<Properties, Consumer<byte[], byte[]>> consumerFactory;
+        private ConnectionSpec<K, V> connectionSpec;
+        private MetadataListener metadataListener;
+        private long itemSnapshotMaxIdleSeconds = 0;
+        private boolean snapshotEnabled;
+
+        private Builder() {}
+
+        /**
+         * Sets the factory used to create the underlying Kafka {@link Consumer}.
+         *
+         * @param consumerFactory the consumer factory
+         * @return this builder
+         */
+        public Builder<K, V> consumerFactory(
+                Function<Properties, Consumer<byte[], byte[]>> consumerFactory) {
+            this.consumerFactory = consumerFactory;
+            return this;
+        }
+
+        /**
+         * Sets the {@link ConnectionSpec} describing the Kafka connection and its mapping
+         * configuration.
+         *
+         * @param connectionSpec the connection spec
+         * @return this builder
+         */
+        public Builder<K, V> connectionSpec(ConnectionSpec<K, V> connectionSpec) {
+            this.connectionSpec = connectionSpec;
+            return this;
+        }
+
+        /**
+         * Sets the {@link MetadataListener} used to force unsubscriptions when the consumer cannot
+         * recover. Required when snapshot support is disabled.
+         *
+         * @param metadataListener the metadata listener
+         * @return this builder
+         */
+        public Builder<K, V> metadataListener(MetadataListener metadataListener) {
+            this.metadataListener = metadataListener;
+            return this;
+        }
+
+        /**
+         * Selects the handler implementation: {@code true} returns a {@link
+         * ForceableSubscriptionsHandler} with eager consumer lifecycle and snapshot support; {@code
+         * false} returns an {@link OnDemandSubscriptionsHandler}.
+         *
+         * @param snapshotEnabled {@code true} to enable snapshot support, {@code false} otherwise
+         * @return this builder
+         */
+        public Builder<K, V> snapshotEnabled(boolean snapshotEnabled) {
+            this.snapshotEnabled = snapshotEnabled;
+            return this;
+        }
+
+        /**
+         * Sets the maximum idle time, in seconds, after which a snapshotted item that has received
+         * no record-driven access is considered stale and a {@code clearSnapshot} is pushed to the
+         * Lightstreamer kernel. A value of {@code 0} disables the sliding-expiration check.
+         *
+         * @param itemSnapshotMaxIdleSeconds the max idle in seconds; must be non-negative
+         * @return this builder
+         */
+        public Builder<K, V> itemSnapshotMaxIdleSeconds(long itemSnapshotMaxIdleSeconds) {
+            this.itemSnapshotMaxIdleSeconds = itemSnapshotMaxIdleSeconds;
+            return this;
+        }
+
+        /**
+         * Builds the configured {@link SubscriptionsHandler}.
+         *
+         * @return a new {@link SubscriptionsHandler} instance
+         * @throws IllegalStateException if a required builder property has not been set, or if
+         *     {@code itemSnapshotMaxIdleSeconds} is negative
+         */
+        public SubscriptionsHandler<K, V> build() {
+            if (consumerFactory == null) {
+                throw new IllegalStateException("ConsumerFactory not set");
+            }
+
+            if (connectionSpec == null) throw new IllegalStateException("ConnectionSpec not set");
+            if (snapshotEnabled) {
+                if (itemSnapshotMaxIdleSeconds < 0) {
+                    throw new IllegalStateException(
+                            "itemSnapshotMaxIdleSeconds must be non-negative");
+                }
+                return new ForceableSubscriptionsHandler<>(this);
+            }
+            if (metadataListener == null) {
+                throw new IllegalStateException("MetadataListener not set");
+            }
+
+            return new OnDemandSubscriptionsHandler<>(this);
         }
     }
 }
