@@ -527,21 +527,20 @@ public class KafkaConsumerWrapper<K, V> {
         ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
-            logger.atDebug().log("Subscribing to the requested pattern {}", pattern.pattern());
+            logger.atInfo().log("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
             return SubscriptionOutcome.PATTERN;
         }
         // Original requested topics.
         Set<String> topics = templates.topicNames();
         logger.atInfo().log("Subscribing to requested topics [{}]", topics);
-        logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
         Map<String, List<PartitionInfo>> listTopics = consumer.listTopics(Duration.ofMillis(30000));
 
         // Retain from the original requests topics the available ones.
         Set<String> existingTopics = listTopics.keySet();
-        logger.atDebug().log("Existing topics on Kafka: [{}]", existingTopics);
+        logger.atInfo().log("Existing topics on Kafka: [{}]", existingTopics);
         boolean notAllPresent = topics.retainAll(existingTopics);
 
         // Can't subscribe at all.
