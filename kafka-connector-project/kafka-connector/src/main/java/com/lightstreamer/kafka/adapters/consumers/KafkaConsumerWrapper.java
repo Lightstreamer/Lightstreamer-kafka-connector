@@ -424,18 +424,106 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     /**
-     * Subscribes the consumer to the configured topics or topic pattern.
+     * Attaches the consumer to the configured topics, dispatching to the mechanism selected by the
+     * {@link ConnectionSpec}: consumer-group subscription (GROUP mode) or direct partition
+     * assignment (MANUAL mode).
      *
-     * <p>Supports both regex-based and literal topic subscriptions. The {@link OffsetService} is
-     * registered as the {@link org.apache.kafka.clients.consumer.ConsumerRebalanceListener}.
+     * <p>In GROUP mode, supports both regex-based and literal topic subscriptions, and the {@link
+     * OffsetService} is registered as the {@link
+     * org.apache.kafka.clients.consumer.ConsumerRebalanceListener}.
      *
-     * @return the {@link SubscriptionOutcome} describing how the subscription was performed, or
-     *     {@link SubscriptionOutcome#NONE} if no topics were available to subscribe to
+     * @return the {@link SubscriptionOutcome} describing how the consumer was attached, or {@link
+     *     SubscriptionOutcome#NONE} if no topics were available
      */
     SubscriptionOutcome trySubscribe() {
         if (connectionSpec.isManual()) {
             return assignManually();
         }
+        return subscribeToGroup();
+    }
+
+    /**
+     * Assigns partitions directly without joining a consumer group. All partitions for the
+     * requested topics are manually assigned to this consumer.
+     *
+     * <p>Regex-based topic matching is not supported in MANUAL mode.
+     */
+    private SubscriptionOutcome assignManually() {
+        ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
+        Set<TopicConfiguration> topicConfigurations = templates.topicConfigurations();
+        List<TopicPartition> assignedPartitions = new ArrayList<>();
+        for (TopicConfiguration topicConfig : topicConfigurations) {
+            logger.atInfo().log("Checking existing partitions for topic [{}]", topicConfig.topic());
+            String topic = topicConfig.topic();
+
+            // Fetch the partitions for the topic from the broker, with a 30-second timeout.
+            List<PartitionInfo> partitionsInfo =
+                    consumer.partitionsFor(topic, Duration.ofMillis(30000));
+            // Per the KafkaConsumer.partitionsFor contract, an empty list means the topic is
+            // not present on the broker.
+            if (partitionsInfo.isEmpty()) {
+                logger.atWarn().log("Topic [{}] not found on the broker; skipping", topic);
+                continue;
+            }
+
+            logger.atInfo().log(
+                    "Found partitions {} for topic [{}] on the broker",
+                    partitionsInfo.stream().map(PartitionInfo::partition).toList(),
+                    topic);
+
+            // When specific partitions were requested, warn about any that do not exist on the
+            // broker.
+            Set<Integer> requestedPartitions = topicConfig.partitions();
+            if (!requestedPartitions.isEmpty()) {
+                Set<Integer> availablePartitions =
+                        partitionsInfo.stream()
+                                .map(PartitionInfo::partition)
+                                .collect(Collectors.toSet());
+                LinkedHashSet<Integer> missing = new LinkedHashSet<>(requestedPartitions);
+                missing.removeAll(availablePartitions);
+                if (!missing.isEmpty()) {
+                    logger.atWarn()
+                            .log(
+                                    "Requested partitions {} for topic [{}] are not present on the broker; skipping",
+                                    missing,
+                                    topic);
+                }
+            } else {
+                logger.atInfo().log(
+                        "No specific partitions requested for topic [{}]; assigning all available partitions",
+                        topic);
+            }
+
+            // If no partitions were specified, assign all available partitions for the topic.
+            partitionsInfo.stream()
+                    .filter(
+                            pi ->
+                                    requestedPartitions.isEmpty()
+                                            || requestedPartitions.contains(pi.partition()))
+                    .map(pi -> new TopicPartition(pi.topic(), pi.partition()))
+                    .forEach(assignedPartitions::add);
+        }
+
+        if (assignedPartitions.isEmpty()) {
+            logger.atWarn().log("No partitions found for requested topics");
+            return SubscriptionOutcome.NONE;
+        }
+
+        consumer.assign(assignedPartitions);
+        logger.atInfo().log("Assigned partitions {}", assignedPartitions);
+        offsetService.onPartitionsAssigned(assignedPartitions);
+        return SubscriptionOutcome.PARTITIONS;
+    }
+
+    /**
+     * Subscribes the consumer to the configured topics or topic pattern, letting the broker assign
+     * partitions through the standard consumer-group protocol.
+     *
+     * <p>When a regex pattern is configured, subscribes to the pattern directly. Otherwise resolves
+     * the requested topic set against the broker's currently available topics and subscribes to the
+     * intersection, warning if some requested topics are missing.
+     */
+    private SubscriptionOutcome subscribeToGroup() {
         ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
@@ -475,71 +563,6 @@ public class KafkaConsumerWrapper<K, V> {
         }
         consumer.subscribe(topics, offsetService);
         return SubscriptionOutcome.TOPICS;
-    }
-
-    /**
-     * Assigns partitions directly without joining a consumer group. All partitions for the
-     * requested topics are manually assigned to this consumer.
-     *
-     * <p>Regex-based topic matching is not supported in MANUAL mode.
-     */
-    private SubscriptionOutcome assignManually() {
-        ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
-        Set<TopicConfiguration> topicConfigurations = templates.topicConfigurations();
-        topicConfigurations.stream()
-                .forEach(
-                        t ->
-                                logger.atInfo().log(
-                                        "Assigning partitions {} for requested topic [{}]",
-                                        t.partitions(),
-                                        t.topic()));
-
-        List<TopicPartition> assignedPartitions = new ArrayList<>();
-        for (TopicConfiguration topicConfig : topicConfigurations) {
-            String topic = topicConfig.topic();
-            Set<Integer> requestedPartitions = topicConfig.partitions();
-            List<PartitionInfo> infos = consumer.partitionsFor(topic, Duration.ofMillis(30000));
-            // Per the KafkaConsumer.partitionsFor contract, an empty list means the topic is
-            // not present on the broker.
-            if (infos.isEmpty()) {
-                logger.atWarn().log("Topic [{}] not found on the broker; skipping", topic);
-                continue;
-            }
-
-            // When specific partitions were requested, warn about any that do not exist on the
-            // broker.
-            if (!requestedPartitions.isEmpty()) {
-                Set<Integer> availablePartitions =
-                        infos.stream().map(PartitionInfo::partition).collect(Collectors.toSet());
-                LinkedHashSet<Integer> missing = new LinkedHashSet<>(requestedPartitions);
-                missing.removeAll(availablePartitions);
-                if (!missing.isEmpty()) {
-                    logger.atWarn()
-                            .log(
-                                    "Requested partitions {} for topic [{}] are not present on the broker; skipping",
-                                    missing,
-                                    topic);
-                }
-            }
-
-            // If no partitions were specified, assign all available partitions for the topic.
-            infos.stream()
-                    .filter(
-                            pi ->
-                                    requestedPartitions.isEmpty()
-                                            || requestedPartitions.contains(pi.partition()))
-                    .map(pi -> new TopicPartition(pi.topic(), pi.partition()))
-                    .forEach(assignedPartitions::add);
-        }
-        if (assignedPartitions.isEmpty()) {
-            logger.atWarn().log("No partitions found for requested topics");
-            return SubscriptionOutcome.NONE;
-        }
-
-        consumer.assign(assignedPartitions);
-        logger.atInfo().log("Manual mode: assigned partitions {}", assignedPartitions);
-        offsetService.onPartitionsAssigned(assignedPartitions);
-        return SubscriptionOutcome.PARTITIONS;
     }
 
     /**
