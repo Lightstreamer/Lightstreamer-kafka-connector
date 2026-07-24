@@ -81,12 +81,12 @@ final class NoCommitOffsetService implements OffsetService {
         logger.atInfo().log("Assigned partitions {}", partitions);
         switch (consumeFrom) {
             case EARLIEST -> {
-                logger.atInfo().log("Seeking assigned partitions to beginning: {}", partitions);
                 consumer.seekToBeginning(partitions);
+                logger.atInfo().log("Sought assigned partitions to beginning: {}", partitions);
             }
             case LATEST -> {
-                logger.atInfo().log("Seeking assigned partitions to end: {}", partitions);
                 consumer.seekToEnd(partitions);
+                logger.atInfo().log("Sought assigned partitions to end: {}", partitions);
             }
         }
     }
