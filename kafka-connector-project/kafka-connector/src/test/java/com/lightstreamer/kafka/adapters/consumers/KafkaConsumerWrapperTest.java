@@ -67,6 +67,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -600,14 +601,12 @@ public class KafkaConsumerWrapperTest {
         assertThat(mockConsumer.subscription()).isEqualTo(expectedSubscriptions);
     }
 
-    @Test
-    public void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    public void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // Begin offsets equal end offsets: both partitions are already at their end, so catch-up
         // completes on the very first poll without consuming any record.
@@ -615,11 +614,30 @@ public class KafkaConsumerWrapperTest {
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 0L, partition1, 0L));
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapperAsGroupConsumer(
-                        Collections.singleton(topic),
-                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
-                        false,
-                        true);
+                switch (consumerMode) {
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
@@ -630,19 +648,44 @@ public class KafkaConsumerWrapperTest {
         assertThat(itemEventListener.getEvents()).isEmpty();
     }
 
-    @Test
-    public void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    public void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets(
+            ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // partition0 ends at offset 2, partition1 ends at offset 2: a single record-bearing poll
         // brings both partitions to their end, so catch-up completes without polling again.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 2L, partition1, 2L));
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         // Counts the record-bearing polls actually performed by the catch-up loop.
         AtomicInteger recordPolls = new AtomicInteger();
@@ -656,13 +699,6 @@ public class KafkaConsumerWrapperTest {
                     mockConsumer.addRecord(record(topic, 1, 0));
                     mockConsumer.addRecord(record(topic, 1, 1));
                 });
-
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapperAsGroupConsumer(
-                        Collections.singleton(topic),
-                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
-                        false,
-                        true);
 
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
@@ -687,19 +723,44 @@ public class KafkaConsumerWrapperTest {
         assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
-    @Test
-    public void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    public void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets(
+            ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // partition0 ends at offset 2, partition1 ends at offset 4: catch-up must keep polling
         // until BOTH partitions have been fully consumed.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 2L, partition1, 4L));
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         // Counts the record-bearing polls actually performed by the catch-up loop. Each scheduled
         // task runs on a distinct poll() invocation, so the counter directly measures how many
@@ -725,13 +786,6 @@ public class KafkaConsumerWrapperTest {
                     mockConsumer.addRecord(record(topic, 1, 3));
                 });
 
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapperAsGroupConsumer(
-                        Collections.singleton(topic),
-                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
-                        false,
-                        true);
-
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
         assertThat(status.isStateAvailable()).isFalse();
@@ -754,32 +808,49 @@ public class KafkaConsumerWrapperTest {
         assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
-    @Test
-    public void shouldDeliverRealTimeUpdatesAfterCatchUp() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    public void shouldDeliverRealTimeUpdatesAfterCatchUp(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // Both partitions end at offset 10: catch-up must consume offsets 0..9 on both partitions
         // before completing.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 10L, partition1, 10L));
 
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
+
         // 22 records (offsets 0..10 per partition) complete catch-up.
         ConsumerRecords<byte[], byte[]> snapshotRecords =
                 Records.generateRecords(topic, 22, List.of("a", "b"), 2);
         mockConsumer.schedulePollTask(
                 () -> snapshotRecords.forEach(record -> mockConsumer.addRecord(record)));
-
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapperAsGroupConsumer(
-                        Collections.singleton(topic),
-                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
-                        false,
-                        true);
 
         // After catch-up, the consume loop processes two records arriving just past the end
         // offsets (offset 11 per partition), then a scheduled shutdown terminates the loop
