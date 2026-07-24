@@ -1081,6 +1081,9 @@ public class Items {
                 return Optional.of(
                         Pattern.compile(
                                 templates.stream()
+                                        // Wrap each user-supplied pattern in a non-capturing
+                                        // group so top-level '|' alternation preserves each
+                                        // pattern's precedence without allocating capture indices.
                                         .map(t -> "(?:%s)".formatted(t.topic().topic()))
                                         .distinct()
                                         .sorted() // Only helps to simplify unit tests
