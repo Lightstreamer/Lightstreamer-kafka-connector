@@ -86,6 +86,7 @@ public class Mocks {
 
         private RuntimeException commitException;
         private KafkaException listTopicException;
+        private KafkaException listPartitionsException;
 
         public MockConsumer(String strategyType) {
             super(strategyType);
@@ -108,6 +109,11 @@ public class Mocks {
 
         public void setListTopicException(Exception exception) {
             this.listTopicException = new KafkaException("Mocked listTopics exception", exception);
+        }
+
+        public void setListPartitionsException(Exception exception) {
+            this.listPartitionsException =
+                    new KafkaException("Mocked listPartitions exception", exception);
         }
 
         @Override
@@ -138,6 +144,14 @@ public class Mocks {
                 throw listTopicException;
             }
             return super.listTopics();
+        }
+
+        @Override
+        public synchronized List<PartitionInfo> partitionsFor(String topic) {
+            if (listPartitionsException != null) {
+                throw listPartitionsException;
+            }
+            return super.partitionsFor(topic);
         }
 
         public static Function<Properties, Consumer<byte[], byte[]>> factory() {
