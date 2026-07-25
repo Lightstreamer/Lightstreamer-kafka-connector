@@ -627,7 +627,7 @@ _Optional_. Selects how the internal Kafka Consumer acquires the topic partition
 
 - `GROUP`: The consumer joins a [Kafka consumer group](https://kafka.apache.org/documentation/#intro_consumers) and lets the group coordinator assign partitions dynamically. Partition ownership is redistributed automatically as members of the group join or leave, and offsets are committed to and fetched from the `__consumer_offsets` topic under the configured [`group.id`](#groupid). This is the default and matches the pre-existing behavior of the connector.
 
-- `MANUAL`: The consumer uses manual partition assignment via `KafkaConsumer.assign(...)`. No consumer group is joined, no rebalance protocol runs, and [`group.id`](#groupid) is suppressed (no offsets are committed or fetched). On every startup the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](#recordconsumefrom). This is the pattern commonly referred to in the Kafka community as a _standalone consumer_.
+- `MANUAL`: The consumer uses manual partition assignment via `KafkaConsumer.assign(...)`. No consumer group is joined, no rebalance protocol runs, and [`group.id`](#groupid) is suppressed (no offsets are committed or fetched). On every startup the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](#recordconsumefrom) — unless [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`, in which case snapshot management takes over the partition positioning (see [Snapshot management](#snapshot-management)). This is the pattern commonly referred to in the Kafka community as a _standalone consumer_.
 
   Use `MANUAL` together with [`map.TOPIC_NAME.from.partitions`](#consume-from-specific-partitions-maptopic_namefrompartitions) to declaratively pin this connector instance to a specific subset of partitions, typically for [partition-affinity sharding](#partition-affinity-sharding) across multiple connector instances.
 
@@ -1899,7 +1899,7 @@ _Optional_. Selects the snapshot behavior for subscribed items and, when not set
 - **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT snapshot](#distinct-snapshot).
 - **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesizes the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
 
-Any non-`NONE` value also forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured value.
+Any non-`NONE` value also bypasses [`record.consume.from`](#recordconsumefrom) (snapshot management takes over partition positioning — see [Snapshot management](#snapshot-management) for details) and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured values.
 
 Default value: `NONE`.
 
