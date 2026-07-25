@@ -1827,7 +1827,7 @@ _Optional_. Selects the snapshot behavior for subscribed items and, when not set
 - **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT snapshot](#distinct-snapshot).
 - **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesizes the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
 
-Any non-`NONE` value also bypasses [`record.consume.from`](#recordconsumefrom) (snapshot management takes over partition positioning — see [Snapshot management](#snapshot-management) for details) and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured values.
+Any non-`NONE` value also bypasses [`record.consume.from`](#recordconsumefrom) and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured values.
 
 Default value: `NONE`.
 
