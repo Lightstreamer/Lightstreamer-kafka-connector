@@ -697,9 +697,9 @@
                          synthesises the "command" field from each record; you only map
                          "field.key".
 
-             Any non-"NONE" value also bypasses "record.consume.from" (snapshot management takes
-             over partition positioning) and forces "record.extraction.error.strategy" to
-             "IGNORE_AND_CONTINUE", overriding the configured values.
+             Any non-"NONE" value also bypasses "record.consume.from" and forces
+             "record.extraction.error.strategy" to "IGNORE_AND_CONTINUE", overriding the
+             configured values.
 
              Default value: NONE. -->
         <!-- -->
