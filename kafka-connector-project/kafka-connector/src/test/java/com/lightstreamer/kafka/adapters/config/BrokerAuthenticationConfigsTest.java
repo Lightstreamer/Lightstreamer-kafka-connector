@@ -28,7 +28,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 
 import org.junit.jupiter.api.Test;
 
-public class BrokerAuthenticationConfigsTest {
+class BrokerAuthenticationConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
