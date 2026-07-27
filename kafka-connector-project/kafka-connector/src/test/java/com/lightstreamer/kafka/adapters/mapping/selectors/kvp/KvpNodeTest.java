@@ -162,7 +162,7 @@ class KvpNodeTest {
                 key1@value1-key2@value2 $ {key1=value1, key2=value2}  $ -         $ @
                 key1@value1|key2@value2 $ {key1=value1, key2=value2}  $ |         $ @
                     """)
-    public void shouldReturnAsText(String input, String expected, char pairsSep, char keyValSep) {
+    void shouldReturnAsText(String input, String expected, char pairsSep, char keyValSep) {
         KvpNode csvMap = KvpNode.fromString("root", input, Split.on(pairsSep), Split.on(keyValSep));
         assertThat(csvMap.size()).isEqualTo(0);
         assertThat(csvMap.isScalar()).isFalse();

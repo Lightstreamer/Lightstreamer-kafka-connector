@@ -147,7 +147,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -195,7 +195,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -243,7 +243,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[1].children[1]['name'] | name          | terence
                 VALUE.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
@@ -341,7 +341,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                 VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -383,7 +383,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray[0]         | Field not found at index [0]
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -414,7 +414,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray                | emptyArray    | []
                 VALUE.nullValue                 | nullValue     |
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
@@ -456,7 +456,7 @@ class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -514,7 +514,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.children[1].children[1]['name'] | name          | terence
                 KEY.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<GenericRecord> keySelector = keySelector(expression);
 
@@ -612,7 +612,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.nullValue[0]          | Cannot retrieve index [0] from a null object
                 KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -652,7 +652,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.type.attrib            | Cannot retrieve field [attrib] from a scalar object
                 KEY.nullValue[0]           | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -683,7 +683,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.emptyArray                | emptyArray    | []
                 KEY.nullValue                 | nullValue     |
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         Data autoBoundValue =
@@ -722,7 +722,7 @@ class GenericRecordSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(

@@ -63,7 +63,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DynamicMessageSelectorSuppliersTest {
+class DynamicMessageSelectorSuppliersTest {
 
     static ConnectorConfig CONFIG =
             ConnectorConfigProvider.minimalWith(
@@ -112,7 +112,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -128,7 +128,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
         // RECORD_VALUE_EVALUATOR_TYPE (String)
         ConnectorConfig config = ConnectorConfigProvider.minimal();
@@ -139,7 +139,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
+    void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
         Path adapterDir = Paths.get("src/test/resources");
         Path protoKeySchemaFile = adapterDir.resolve("person.proto.desc");
 
@@ -166,7 +166,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<DynamicMessage> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -183,14 +183,14 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -206,7 +206,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
         // Configure the value evaluator type, but leave default settings for
         // RECORD_VALUE_EVALUATOR_TYPE (String)
         ConnectorConfig config = ConnectorConfigProvider.minimal();
@@ -217,7 +217,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
+    void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
         Path adapterDir = Paths.get("src/test/resources");
         Path protoValueSchemaFile = adapterDir.resolve("person.proto.desc");
 
@@ -244,7 +244,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<DynamicMessage> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -261,14 +261,14 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<DynamicMessage> keyDeserializer =
                 new DynamicMessageSelectorSuppliers(CONFIG)
                         .makeKeySelectorSupplier()
@@ -311,7 +311,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.any.type_url                        | type_url        | type.googleapis.com/Car
                 VALUE.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException {
         ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
 
@@ -326,7 +326,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, DynamicMessage> record = KafkaRecordFromValue(SAMPLE_MESSAGE);
 
@@ -398,7 +398,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends.name             | Cannot retrieve field [name] from an array object
                 VALUE.*                        | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -436,7 +436,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -461,7 +461,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[0]   | friends[0]    | name: "alex"\\n
                 VALUE.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
@@ -478,7 +478,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+    void shouldHandleNullValue() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 valueSelector("VALUE").extractValue(KafkaRecordFromValue((DynamicMessage) null));
         assertThat(autoBoundValue.name()).isEqualTo("VALUE");
@@ -502,7 +502,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -554,7 +554,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.any.type_url                        | type_url        | type.googleapis.com/Car
                 KEY.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
         KeySelector<DynamicMessage> keySelector = keySelector(expression);
 
@@ -569,7 +569,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<DynamicMessage, ?> record = KafkaRecordFromKey(SAMPLE_MESSAGE);
 
@@ -641,7 +641,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends.name             | Cannot retrieve field [name] from an array object
                 KEY.*                        | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -670,7 +670,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -695,7 +695,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[0]   | friends[0]    | name: "alex"\\n
                 KEY.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException, InvalidEscapeSequenceException {
         KeySelector<DynamicMessage> keySelector = keySelector(expression);
@@ -711,7 +711,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+    void shouldHandleNullKey() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 keySelector("KEY").extractKey(KafkaRecordFromKey((DynamicMessage) null));
         assertThat(autoBoundValue.name()).isEqualTo("KEY");
@@ -734,7 +734,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.children[0].no_attrib  | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]         | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(

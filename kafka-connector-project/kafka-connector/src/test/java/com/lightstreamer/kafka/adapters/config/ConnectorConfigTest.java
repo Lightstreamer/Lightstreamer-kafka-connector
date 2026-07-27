@@ -912,7 +912,7 @@ class ConnectorConfigTest {
                 "BYTE_ARRAY",
                 "BYTE_BUFFER"
             })
-    public void shouldGetRecordEvaluatorTypes(String type) {
+    void shouldGetRecordEvaluatorTypes(String type) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(RECORD_VALUE_EVALUATOR_TYPE, type);

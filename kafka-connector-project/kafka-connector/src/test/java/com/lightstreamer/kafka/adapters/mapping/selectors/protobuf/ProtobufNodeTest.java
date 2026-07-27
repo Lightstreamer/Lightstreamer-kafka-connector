@@ -166,7 +166,7 @@ class ProtobufNodeTest {
                     signature, abcd
                     email,     ''
                     """)
-    public void shouldGetStringScalarField(String field, String expectedValue) {
+    void shouldGetStringScalarField(String field, String expectedValue) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode fieldNode = personMessageWrapperNode.getProperty("fieldNode", field);
         assertThat(fieldNode.name()).isEqualTo("fieldNode");
@@ -194,7 +194,7 @@ class ProtobufNodeTest {
                     mainAddress | ''
                     car         | brand: "BMW"
                     """)
-    public void shouldGetMessageField(String field, String expectedValue) {
+    void shouldGetMessageField(String field, String expectedValue) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode node = personMessageWrapperNode.getProperty("fieldNode", field);
         assertThat(node).isInstanceOf(MessageWrapperNode.class);

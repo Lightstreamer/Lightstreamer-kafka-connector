@@ -492,7 +492,7 @@ class ConnectorConfiguratorTest {
                 "item-#{{{}}}",
                 "item-#{}}"
             })
-    public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
+    void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = minimalConfig();
         updatedConfigs.put("map.topic1.to", "item-template.template1");
         updatedConfigs.put("item-template.template1", expression);

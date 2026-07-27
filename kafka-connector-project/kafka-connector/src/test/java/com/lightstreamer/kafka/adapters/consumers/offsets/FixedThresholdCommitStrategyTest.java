@@ -57,7 +57,7 @@ class FixedThresholdCommitStrategyTest {
         // 3 seconds ago (< 5s), 0 messages (< 100k) -> below both thresholds
         "5000, 2000, 0, false"
     })
-    public void shouldCommitWhenThresholdsExceeded(
+    void shouldCommitWhenThresholdsExceeded(
             long now, long lastCommitTimeMs, int messagesSinceLastCommit, boolean expected) {
         assertThat(strategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit))
                 .isEqualTo(expected);

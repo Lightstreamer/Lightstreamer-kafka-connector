@@ -128,7 +128,7 @@ class ConfigSpecTest {
                 item-template |        | item-template              | ''
                 item-template |        | item-template.             | ''
                     """)
-    public void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
+    void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Optional<String> infix = ConfigsSpec.extractInfix(param, key);
@@ -153,8 +153,7 @@ class ConfigSpecTest {
                 item-template |        | item-template.template | my-template
                 item-template |        | item-template..        | my-template
                     """)
-    public void shouldFillMultipleParam(
-            String config, String suffix, String key, String expectedValue) {
+    void shouldFillMultipleParam(String config, String suffix, String key, String expectedValue) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, expectedValue);
@@ -178,8 +177,7 @@ class ConfigSpecTest {
                 item-template |        | item-template
                 item-template |        | item-template.
                     """)
-    public void shouldNotFillMultipleParamDueToMissingInfix(
-            String config, String suffix, String key) {
+    void shouldNotFillMultipleParamDueToMissingInfix(String config, String suffix, String key) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, "value");

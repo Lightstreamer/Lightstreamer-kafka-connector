@@ -56,7 +56,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class RecordProcessorTest {
+class RecordProcessorTest {
 
     private static final String TEST_TOPIC = "topic";
     private static final Logger logger = LogFactory.getLogger("TestConnection");
@@ -69,7 +69,7 @@ public class RecordProcessorTest {
     private RealtimeDeliveryStrategy deliveryStrategy;
 
     @BeforeEach
-    public void setUp() throws ExtractionException {
+    void before() throws ExtractionException {
         this.eventListener = new MockItemEventListener();
         this.deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
     }
@@ -164,7 +164,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("records")
-    public void shouldProcess(
+    void shouldProcess(
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
@@ -207,7 +207,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("records")
-    public void shouldProcessForcedSubscriptions(
+    void shouldProcessForcedSubscriptions(
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
@@ -234,7 +234,7 @@ public class RecordProcessorTest {
     }
 
     @Test
-    public void shouldNotProcessUnexpectedSubscription() {
+    void shouldNotProcessUnexpectedSubscription() {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -281,7 +281,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("recordsForCommandMode")
-    public void shouldProcessRecordWithCommandMode(
+    void shouldProcessRecordWithCommandMode(
             KafkaRecord<String, String> record, Map<String, String> expectedFields) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =

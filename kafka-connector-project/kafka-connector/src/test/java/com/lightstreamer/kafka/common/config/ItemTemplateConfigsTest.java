@@ -133,7 +133,7 @@ class ItemTemplateConfigsTest {
                 "prefix-#{}",
                 "prefix-#{VALUE}",
             })
-    public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
+    void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

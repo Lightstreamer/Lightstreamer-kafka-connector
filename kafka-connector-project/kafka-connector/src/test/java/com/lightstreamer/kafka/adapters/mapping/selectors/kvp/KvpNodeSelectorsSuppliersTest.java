@@ -146,7 +146,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.attrib[],     Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a],    Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotCreateKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -190,7 +190,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.attrib[],     Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a],    Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -232,7 +232,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.NOVALUE      | NOVALUE            | ''
                 VALUE.NOVALUE2     | NOVALUE2           | ''
                     """)
-    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector(expression);
 
@@ -310,7 +310,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
                 VALUE.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage)
+    void shouldNotExtractValue(String expression, String errorMessage)
             throws ValueException, ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -347,7 +347,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
                 VALUE.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage)
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage)
             throws ValueException, ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -384,7 +384,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.A    | A             | 1
                 VALUE.B    | B             | 2
                     """)
-    public void shouldExtractValueWithNonDefaultSettings(
+    void shouldExtractValueWithNonDefaultSettings(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ConnectorConfig config =
@@ -443,7 +443,7 @@ class KvpNodeSelectorsSuppliersTest {
                 VALUE.A    | Cannot retrieve field [A] from a null object
                 VALUE.B    | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -499,7 +499,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.NOVALUE      | NOVALUE            | ''
                 KEY.NOVALUE2     | NOVALUE2           | ''
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<String> keySelector = keySelector(expression);
 
@@ -577,7 +577,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
                 KEY.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -610,7 +610,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.QCHARTTOT.no_key    | Cannot retrieve field [no_key] from a scalar object
                 KEY.NOVALUE.no_key      | Cannot retrieve field [no_key] from a scalar object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage)
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage)
             throws ValueException, ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -646,7 +646,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.A      | A             | 1
                 KEY.B      | B             | 2
                     """)
-    public void shouldExtractKeyWithNonDefaultSettings(
+    void shouldExtractKeyWithNonDefaultSettings(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ConnectorConfig config =
@@ -704,7 +704,7 @@ class KvpNodeSelectorsSuppliersTest {
                 KEY.A      | Cannot retrieve field [A] from a null object
                 KEY.B      | Cannot retrieve field [B] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
