@@ -33,11 +33,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KvpNodeTest {
+class KvpNodeTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"key1=value1;key2=value2", "key1=value1;key2=value2;"})
-    public void shouldParseValidString(String text) {
+    void shouldParseValidString(String text) {
         KvpNode kvpMap = KvpNode.fromString("root", text);
         assertThat(kvpMap.name()).isEqualTo("root");
         assertKvpMap(kvpMap);
@@ -45,7 +45,7 @@ public class KvpNodeTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"key1@value1|key2@value2", "key1@value1|key2@value2|"})
-    public void shouldParseValidStringWithNonDefaultSeparators(String text) {
+    void shouldParseValidStringWithNonDefaultSeparators(String text) {
         KvpNode kvpMap = KvpNode.fromString("root", text, Split.on('|'), Split.on('@'));
         assertThat(kvpMap.name()).isEqualTo("root");
         assertKvpMap(kvpMap);
@@ -113,7 +113,7 @@ public class KvpNodeTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"key1", "key1;"})
-    public void shouldParseKeysOnly(String text) {
+    void shouldParseKeysOnly(String text) {
         KvpNode csvMap = KvpNode.fromString("root", text);
         assertThat(csvMap.size()).isEqualTo(0);
         assertThat(csvMap.isScalar()).isFalse();
@@ -132,7 +132,7 @@ public class KvpNodeTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" ", "   ", "\t", "\n"})
-    public void shouldHandleEmptyOrNullString(String text) {
+    void shouldHandleEmptyOrNullString(String text) {
         KvpNode nullNode = KvpNode.fromString("root", text);
         assertThat(nullNode.size()).isEqualTo(0);
         assertThat(nullNode.isScalar()).isTrue();

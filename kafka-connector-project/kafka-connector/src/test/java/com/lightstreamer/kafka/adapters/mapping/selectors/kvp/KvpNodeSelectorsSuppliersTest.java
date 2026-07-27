@@ -58,7 +58,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KvpNodeSelectorsSuppliersTest {
+class KvpNodeSelectorsSuppliersTest {
 
     private static final String INPUT =
             "QCHARTTOT=2032,TRow=12790,QV=9,PV=43,TMSTMP=2024-04-3013:23:07,QCHART=1,VTOT=81316,QTOT=2032,O=30/04/2024-13:23:07,QA=9012,Q=1,PA=40,PCHART=43,NTRAD=106,NOVALUE,NOVALUE2=";
@@ -69,7 +69,7 @@ public class KvpNodeSelectorsSuppliersTest {
     private ConnectorConfig config;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         config =
                 ConnectorConfigProvider.minimalWith(
@@ -82,7 +82,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
@@ -109,7 +109,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, KVP.toString()));
@@ -119,7 +119,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
         // RECORD_KEY_EVALUATOR_TYPE (String).
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
@@ -130,7 +130,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<String> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -153,7 +153,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(), Map.of(RECORD_VALUE_EVALUATOR_TYPE, KVP.toString()));
@@ -163,7 +163,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
         // RECORD_KEY_EVALUATOR_TYPE (String).
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
@@ -174,7 +174,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<String> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -197,7 +197,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<String> keyDeserializer =
                 new KvpSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(StringDeserializer.class);
@@ -246,7 +246,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, String> record = KafkaRecordFromValue(INPUT);
 
@@ -360,7 +360,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueWithNonScalars() throws ExtractionException {
+    void shouldExtractValueWithNonScalars() throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector("VALUE");
 
         Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue("A=1,B=2"), false);
@@ -420,7 +420,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ExtractionException {
+    void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<String> valueSelector = valueSelector("VALUE");
 
         Data autoBoundData = valueSelector.extractValue(KafkaRecordFromValue((String) null), false);
@@ -513,7 +513,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<String, ?> record = KafkaRecordFromKey(INPUT);
 
@@ -623,7 +623,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyWithNonScalars() throws ExtractionException {
+    void shouldExtractKeyWithNonScalars() throws ExtractionException {
         KeySelector<String> keySelector = keySelector("KEY");
 
         Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey("A=1,B=2"), false);
@@ -682,7 +682,7 @@ public class KvpNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ExtractionException {
+    void shouldHandleNullKey() throws ExtractionException {
         KeySelector<String> keySelector = keySelector("KEY");
 
         Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey((String) null), false);

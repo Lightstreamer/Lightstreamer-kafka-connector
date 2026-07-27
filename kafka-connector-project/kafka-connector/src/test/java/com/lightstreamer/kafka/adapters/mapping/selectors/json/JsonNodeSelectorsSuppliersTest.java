@@ -60,7 +60,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonNodeSelectorsSuppliersTest {
+class JsonNodeSelectorsSuppliersTest {
 
     private static final JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
 
@@ -68,7 +68,7 @@ public class JsonNodeSelectorsSuppliersTest {
     private ConnectorConfig config;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         // A configuration with proper evaluator type settings for key and value.
         config =
@@ -82,7 +82,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
@@ -99,7 +99,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
@@ -109,7 +109,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
         // RECORD_KEY_EVALUATOR_TYPE (String).
         ConnectorConfig config =
@@ -123,7 +123,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<JsonNode> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -147,7 +147,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() throws ExtractionException {
+    void shouldMakeValueSelectorSupplier() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -158,7 +158,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
         // RECORD_VALUE_EVALUATOR_TYPE (String).
         ConnectorConfig config =
@@ -171,7 +171,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<JsonNode> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -195,7 +195,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<JsonNode> keyDeserializer =
                 new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
@@ -253,7 +253,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap()
+    void shouldExtractValueIntoMap()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         ObjectMapper om = new ObjectMapper();
         JsonNode message =
@@ -465,7 +465,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ExtractionException {
+    void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<JsonNode> valueSelector = valueSelector("VALUE");
 
         Data autoBoundData =
@@ -561,7 +561,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap()
+    void shouldExtractKeyIntoMap()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         ObjectMapper om = new ObjectMapper();
         JsonNode message =
@@ -753,7 +753,7 @@ public class JsonNodeSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ExtractionException {
+    void shouldHandleNullKey() throws ExtractionException {
         KeySelector<JsonNode> keySelector = keySelector("KEY");
 
         Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey((JsonNode) null), false);

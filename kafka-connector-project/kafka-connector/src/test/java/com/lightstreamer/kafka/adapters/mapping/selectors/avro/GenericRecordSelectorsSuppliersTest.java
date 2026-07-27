@@ -58,7 +58,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GenericRecordSelectorsSuppliersTest {
+class GenericRecordSelectorsSuppliersTest {
 
     // A configuration with proper evaluator type settings for key and value
     static ConnectorConfig CONFIG =
@@ -95,17 +95,17 @@ public class GenericRecordSelectorsSuppliersTest {
     private Path adapterDir;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("myadapter_dir");
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         "src/test/resources",
@@ -120,7 +120,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
@@ -129,7 +129,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<GenericRecord> selector = keySelector("KEY");
 
         assertThat(selector.expression().expression()).isEqualTo("KEY");
@@ -154,7 +154,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         "src/test/resources",
@@ -169,7 +169,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
@@ -178,7 +178,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<GenericRecord> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -202,7 +202,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<GenericRecord> keyDeserializer =
                 new GenericRecordSelectorsSuppliers(CONFIG)
                         .makeKeySelectorSupplier()
@@ -257,7 +257,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, GenericRecord> record = KafkaRecordFromValue(SAMPLE_MESSAGE);
 
@@ -432,7 +432,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+    void shouldHandleNullValue() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 valueSelector("VALUE").extractValue(KafkaRecordFromValue((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("VALUE");
@@ -528,7 +528,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<GenericRecord, ?> record = KafkaRecordFromKey(SAMPLE_MESSAGE);
 
@@ -699,7 +699,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+    void shouldHandleNullKey() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 keySelector("KEY").extractKey(KafkaRecordFromKey((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("KEY");

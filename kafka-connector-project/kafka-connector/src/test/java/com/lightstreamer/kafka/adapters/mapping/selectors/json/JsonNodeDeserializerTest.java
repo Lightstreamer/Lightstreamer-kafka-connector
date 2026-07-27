@@ -51,7 +51,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class JsonNodeDeserializerTest {
+class JsonNodeDeserializerTest {
 
     private static final String SCHEMA_FOLDER = "src/test/resources";
     private static final String TEST_SCHEMA_FILE = "flights.json";
@@ -59,17 +59,17 @@ public class JsonNodeDeserializerTest {
     private Path adapterDir;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
-    public void shouldDeserializeWithNoSchema() {
+    void shouldDeserializeWithNoSchema() {
         String s = "{\"stock_name\":\"Ations Europe\"}";
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -82,7 +82,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeWithLocalSchema() {
+    void shouldDeserializeWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -114,7 +114,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeNullWithLocalSchema() {
+    void shouldDeserializeNullWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -134,7 +134,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldNotDeserializeWithLocalSchemaDueToInvalidRecord() {
+    void shouldNotDeserializeWithLocalSchemaDueToInvalidRecord() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -164,7 +164,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithNoSchema() {
+    void shouldGetKeyAndValueDeserializerWithNoSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -184,7 +184,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGeKeyDeserializerWithConfluentSchemaRegistry() {
+    void shouldGeKeyDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -202,7 +202,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
+    void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -221,7 +221,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
+    void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -248,7 +248,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
+    void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -275,7 +275,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
+    void shouldGetValueDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -303,7 +303,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
+    void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -319,7 +319,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithLocalSchema() throws IOException {
+    void shouldGetValueDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -336,7 +336,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
+    void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -388,7 +388,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
+    void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -414,7 +414,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
+    void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -448,7 +448,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverConfluentSchemaRegistry()
+    void shouldDeserializationWithLocalSchemaTakePrecedenceOverConfluentSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -480,7 +480,7 @@ public class JsonNodeDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverAzureSchemaRegistry()
+    void shouldDeserializationWithLocalSchemaTakePrecedenceOverAzureSchemaRegistry()
             throws IOException {
         Map<String, String> configs =
                 Map.of(
