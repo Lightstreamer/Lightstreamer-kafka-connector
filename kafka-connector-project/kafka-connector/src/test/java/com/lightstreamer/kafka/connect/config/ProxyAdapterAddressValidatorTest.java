@@ -30,12 +30,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class ProxyAdapterAddressValidatorTest {
+class ProxyAdapterAddressValidatorTest {
 
     ProxyAdapterAddressValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new ProxyAdapterAddressValidator();
     }
 

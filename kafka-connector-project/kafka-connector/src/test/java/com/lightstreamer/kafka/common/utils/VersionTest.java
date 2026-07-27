@@ -24,12 +24,12 @@ import com.lightstreamer.kafka.test_utils.VersionUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class VersionTest {
+class VersionTest {
 
     static String VERSION;
 
     @BeforeAll
-    public static void before() {
+    static void before() {
         VERSION = VersionUtils.currentVersion();
     }
 

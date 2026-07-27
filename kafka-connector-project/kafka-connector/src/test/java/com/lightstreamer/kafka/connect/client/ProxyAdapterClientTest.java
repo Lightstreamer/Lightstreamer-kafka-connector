@@ -40,7 +40,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-public class ProxyAdapterClientTest {
+class ProxyAdapterClientTest {
 
     @Test
     void shouldStartWithCredentials() throws RemotingException, IOException {

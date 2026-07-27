@@ -30,12 +30,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class TopicMappingValidatorTest {
+class TopicMappingValidatorTest {
 
     TopicMappingsValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new TopicMappingsValidator();
     }
 
@@ -79,7 +79,7 @@ public class TopicMappingValidatorTest {
     }
 
     @Test
-    public void shouldNotValidateDueToNonStringValue() {
+    void shouldNotValidateDueToNonStringValue() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

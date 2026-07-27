@@ -31,12 +31,12 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class ItemTemplateValidatorTest {
+class ItemTemplateValidatorTest {
 
     ItemTemplateValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new ItemTemplateValidator();
     }
 
@@ -79,7 +79,7 @@ public class ItemTemplateValidatorTest {
     }
 
     @Test
-    public void shouldNotValidateDueToNonStringValue() {
+    void shouldNotValidateDueToNonStringValue() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

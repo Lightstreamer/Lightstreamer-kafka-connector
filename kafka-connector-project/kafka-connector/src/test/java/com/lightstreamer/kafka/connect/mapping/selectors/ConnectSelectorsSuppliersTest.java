@@ -52,7 +52,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class ConnectSelectorsSuppliersTest {
+class ConnectSelectorsSuppliersTest {
 
     private static final SchemaBuilder FLAT_SCHEMA_BUILDER =
             SchemaBuilder.struct()
@@ -102,14 +102,14 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
         assertThat(keySelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<Object> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -133,14 +133,14 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
         assertThat(valueSelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<Object> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -164,7 +164,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotGetDeserializer() {
+    void shouldNotGetDeserializer() {
         KeySelectorSupplier<Object> keySelectorSupplier =
                 new ConnectSelectorsSuppliers().makeKeySelectorSupplier();
         assertThrows(UnsupportedOperationException.class, () -> keySelectorSupplier.deserializer());
@@ -210,7 +210,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
+    void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
         ValueSelector<Object> valueSelector = valueSelector("VALUE.*");
         KafkaRecord<Object, Object> record =
                 sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
@@ -328,7 +328,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotExtractValueDueToMissingSchema() {
+    void shouldNotExtractValueDueToMissingSchema() {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -339,7 +339,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ExtractionException {
+    void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector("VALUE");
 
         Data autoBoundData =
@@ -435,7 +435,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
+    void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
         KeySelector<Object> keySelector = keySelector("KEY.*");
         KafkaRecord<Object, Object> record =
                 sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
@@ -552,7 +552,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotExtractKeyDueToMissingSchema() {
+    void shouldNotExtractKeyDueToMissingSchema() {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -561,7 +561,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ExtractionException {
+    void shouldHandleNullKey() throws ExtractionException {
         KeySelector<Object> keySelector = keySelector("KEY");
 
         Data autoBoundData =
@@ -638,7 +638,7 @@ public class ConnectSelectorsSuppliersTest {
 
     @ParameterizedTest
     @MethodSource("scalars")
-    public void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
+    void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
         // Make a very generic SinkRecord by populating either key and value so that we can test
         // selectors for each
         // of them
@@ -665,7 +665,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromFlatStruct() throws ExtractionException {
+    void shouldExtractFromFlatStruct() throws ExtractionException {
         Struct struct = makeFlatStruct();
         Schema schema = struct.schema();
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
@@ -695,7 +695,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromNested() throws ExtractionException {
+    void shouldExtractFromNested() throws ExtractionException {
         Struct struct = new Struct(NESTED_SCHEMA).put("nested", makeFlatStruct());
         struct.validate();
         Schema schema = struct.schema();
@@ -720,7 +720,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMap() throws ExtractionException {
+    void shouldExtractFromMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA).put("map", Collections.singletonMap("key", "value"));
         struct.validate();
@@ -748,7 +748,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromComplexMap() throws ExtractionException {
+    void shouldExtractFromComplexMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put("complexMap", Collections.singletonMap("key", makeFlatStruct()));
@@ -785,7 +785,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMapOfMap() throws ExtractionException {
+    void shouldExtractFromMapOfMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put(
