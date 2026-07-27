@@ -46,35 +46,54 @@ import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 public class JsonNodeSelectorsSuppliersTest {
 
-    // A configuration with proper evaluator type settings for key and value
-    static ConnectorConfig CONFIG =
-            ConnectorConfigProvider.minimalWith(
-                    Map.of(
-                            RECORD_KEY_EVALUATOR_TYPE,
-                            JSON.toString(),
-                            RECORD_VALUE_EVALUATOR_TYPE,
-                            JSON.toString()));
+    private static final JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
 
-    static JsonNode SAMPLE_MESSAGE = SampleJsonNodeProvider().sampleMessage();
+    private Path adapterDir;
+    private ConnectorConfig config;
 
-    static KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
-        return new JsonNodeSelectorsSuppliers(CONFIG)
+    @BeforeEach
+    public void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+        // A configuration with proper evaluator type settings for key and value.
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                JSON.toString(),
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                JSON.toString()));
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
+    KeySelector<JsonNode> keySelector(String expression) throws ExtractionException {
+        return new JsonNodeSelectorsSuppliers(config)
                 .makeKeySelectorSupplier()
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
-    static ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
-        return new JsonNodeSelectorsSuppliers(CONFIG)
+    ValueSelector<JsonNode> valueSelector(String expression) throws ExtractionException {
+        return new JsonNodeSelectorsSuppliers(config)
                 .makeValueSelectorSupplier()
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
@@ -83,7 +102,7 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
+                        adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         KeySelectorSupplier<JsonNode> keySelectorSupplier = s.makeKeySelectorSupplier();
         assertThat(keySelectorSupplier.evaluatorType()).isEqualTo(EvaluatorType.JSON);
@@ -92,9 +111,10 @@ public class JsonNodeSelectorsSuppliersTest {
     @Test
     public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
-        // RECORD_KEY_EVALUATOR_TYPE (String)
+        // RECORD_KEY_EVALUATOR_TYPE (String).
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
@@ -130,6 +150,7 @@ public class JsonNodeSelectorsSuppliersTest {
     public void shouldMakeValueSelectorSupplier() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         ValueSelectorSupplier<JsonNode> valueSelectorSupplier = s.makeValueSelectorSupplier();
@@ -139,10 +160,10 @@ public class JsonNodeSelectorsSuppliersTest {
     @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
         // Configure the key evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
+        // RECORD_VALUE_EVALUATOR_TYPE (String).
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
+                        adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, JSON.toString()));
         JsonNodeSelectorsSuppliers s = new JsonNodeSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
@@ -176,11 +197,11 @@ public class JsonNodeSelectorsSuppliersTest {
     @Test
     public void shouldGetDeserializer() {
         Deserializer<JsonNode> keyDeserializer =
-                new JsonNodeSelectorsSuppliers(CONFIG).makeKeySelectorSupplier().deserializer();
+                new JsonNodeSelectorsSuppliers(config).makeKeySelectorSupplier().deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
 
         Deserializer<JsonNode> valueDeserializer =
-                new JsonNodeSelectorsSuppliers(CONFIG).makeValueSelectorSupplier().deserializer();
+                new JsonNodeSelectorsSuppliers(config).makeValueSelectorSupplier().deserializer();
         assertThat(valueDeserializer).isInstanceOf(KafkaJsonDeserializer.class);
     }
 
@@ -251,7 +272,6 @@ public class JsonNodeSelectorsSuppliersTest {
                              [4,5,6],
                              [7,8,9]
                          ]
-                         }
                     }
                         """);
 
@@ -305,10 +325,6 @@ public class JsonNodeSelectorsSuppliersTest {
         valueSelector("VALUE.matrix[1]").extractValueInto(record, target);
         assertThat(target)
                 .containsExactly("matrix[1][0]", "4", "matrix[1][1]", "5", "matrix[1][2]", "6");
-        target.clear();
-
-        valueSelector("VALUE.nullValue").extractValueInto(record, target);
-        assertThat(target).isEmpty();
         target.clear();
 
         valueSelector("VALUE.nullValue").extractValueInto(record, target);
@@ -539,10 +555,9 @@ public class JsonNodeSelectorsSuppliersTest {
         assertThat(autoBoundData.name()).isEqualTo(expectedName);
         assertThat(autoBoundData.text()).isEqualTo(expectedValue);
 
-        Data boundValueData =
-                keySelector.extractKey(expectedName, KafkaRecordFromKey(SAMPLE_MESSAGE));
-        assertThat(boundValueData.name()).isEqualTo(expectedName);
-        assertThat(boundValueData.text()).isEqualTo(expectedValue);
+        Data boundData = keySelector.extractKey(expectedName, KafkaRecordFromKey(SAMPLE_MESSAGE));
+        assertThat(boundData.name()).isEqualTo(expectedName);
+        assertThat(boundData.text()).isEqualTo(expectedValue);
     }
 
     @Test
@@ -762,7 +777,7 @@ public class JsonNodeSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldHandleNullKey(String expression, String errorMessage)
+    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
