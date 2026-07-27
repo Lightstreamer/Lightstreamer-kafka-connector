@@ -771,6 +771,10 @@ public class ConnectorConfigTest {
         Properties baseConsumerProps = config.baseConsumerProps();
         assertThat(baseConsumerProps)
                 .containsAtLeast(
+                        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.ByteArrayDeserializer1",
+                        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.ByteArrayDeserializer",
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                         "server:8080,server:8081",
                         ConsumerConfig.CLIENT_ID_CONFIG,
