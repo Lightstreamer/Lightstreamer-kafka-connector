@@ -26,7 +26,7 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VAL
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_VALUE_EVALUATOR_TYPE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.JSON;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -38,11 +38,16 @@ import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import io.confluent.kafka.serializers.KafkaJsonDeserializer;
 import io.confluent.kafka.serializers.json.KafkaJsonSchemaDeserializer;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,11 +56,24 @@ public class JsonNodeDeserializerTest {
     private static final String SCHEMA_FOLDER = "src/test/resources";
     private static final String TEST_SCHEMA_FILE = "flights.json";
 
+    private Path adapterDir;
+
+    @BeforeEach
+    public void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
     @Test
     public void shouldDeserializeWithNoSchema() {
         String s = "{\"stock_name\":\"Ations Europe\"}";
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, JSON.toString()));
         try (Deserializer<JsonNode> deser = JsonNodeDeserializers.ValueDeserializer(config)) {
             JsonNode node = deser.deserialize("topic", s.getBytes());
@@ -149,6 +167,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGetKeyAndValueDeserializerWithNoSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 JSON.toString(),
@@ -168,6 +187,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGeKeyDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 JSON.toString(),
@@ -185,6 +205,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
@@ -203,6 +224,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 JSON.toString(),
@@ -229,6 +251,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 JSON.toString(),
@@ -255,6 +278,7 @@ public class JsonNodeDeserializerTest {
     public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 JSON.toString(),
