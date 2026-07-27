@@ -126,7 +126,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -157,7 +157,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -195,7 +195,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.children[1].children[1].name     | name          |  terence
                 VALUE.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractValue(String expression, String expectedNName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedNName, String expectedValue)
             throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector(expression);
         KafkaRecord<Object, Object> record = sinkFromValue("topic", STRUCT.schema(), STRUCT);
@@ -253,7 +253,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                 VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -284,7 +284,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.children[4].name      | Field not found at index [4]
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -307,7 +307,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.children | children      | []
                 VALUE.name     | name          | joe
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector(expression);
@@ -365,7 +365,7 @@ class ConnectSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -420,7 +420,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.children[1].children[1].name     | name          |  terence
                 KEY.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<Object> keySelector = keySelector(expression);
         KafkaRecord<Object, Object> record = sinkFromKey("topic", STRUCT.schema(), STRUCT);
@@ -478,7 +478,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                 KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -508,7 +508,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -531,7 +531,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.children | children      | []
                 KEY.name     | name          | joe
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<Object> keySelector = keySelector(expression);
@@ -586,7 +586,7 @@ class ConnectSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(

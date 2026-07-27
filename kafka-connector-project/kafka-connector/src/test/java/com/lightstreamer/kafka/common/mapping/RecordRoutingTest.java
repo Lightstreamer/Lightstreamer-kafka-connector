@@ -274,7 +274,7 @@ class RecordRoutingTest {
             files = "src/test/resources/should-route-items.csv",
             useHeadersInDisplayName = true,
             delimiter = '|')
-    public void shouldRoute(
+    void shouldRoute(
             String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, GenericRecord> templates =
@@ -312,7 +312,7 @@ class RecordRoutingTest {
             files = "src/test/resources/should-route-items.csv",
             useHeadersInDisplayName = true,
             delimiter = '|')
-    public void shouldRouteWithMixedKeyAndValueTypes(
+    void shouldRouteWithMixedKeyAndValueTypes(
             String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, JsonNode> templates =

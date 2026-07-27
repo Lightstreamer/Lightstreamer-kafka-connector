@@ -88,7 +88,7 @@ class HeaderSelectorSupplierTest {
                 HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
                 HEADERS.attrib[a],    Found the invalid indexed expression [HEADERS.attrib[a]]
                 """)
-    public void shouldNotMakeHeaderSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeHeaderSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> headersSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -120,7 +120,7 @@ class HeaderSelectorSupplierTest {
                 HEADERS[4]              | HEADERS[4]    | type1
                 HEADERS[5]              | HEADERS[5]    | type2
                     """)
-    public void shouldExtractHeaders(String expression, String expectedName, String expectedValue)
+    void shouldExtractHeaders(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
 
         for (KafkaRecord<?, ?> record : RECORDS) {
@@ -210,7 +210,7 @@ class HeaderSelectorSupplierTest {
                 HEADERS.accountId[2]         | Field not found at index [2]
                 HEADERS['accountId']         | The expression [HEADERS['accountId']] must evaluate to a non-complex object
                             """)
-    public void shouldNotExtractRecordHeader(String expression, String errorMessage) {
+    void shouldNotExtractRecordHeader(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
@@ -240,7 +240,7 @@ class HeaderSelectorSupplierTest {
                 HEADERS.name['no_key']       | Cannot retrieve field [no_key] from a scalar object
                 HEADERS.accountId[0].account | Cannot retrieve field [account] from a scalar object
                             """)
-    public void shouldNotExtractRecordHeadersIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractRecordHeadersIntoMap(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
@@ -261,7 +261,7 @@ class HeaderSelectorSupplierTest {
                 HEADERS.accountId | accountId     | [12345, 67890]
                 HEADERS.docType   | docType       | [type1, type2]
                         """)
-    public void shouldExtractRecordHeaderWithNonScalars(
+    void shouldExtractRecordHeaderWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         HeadersSelector headersSelector = headersSelector(expression);

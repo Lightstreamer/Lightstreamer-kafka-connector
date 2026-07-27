@@ -131,8 +131,7 @@ class ConstantSelectorSupplierTest {
                 OFFSET     | 120
                 TOPIC      | record-topic
                     """)
-    public void shouldExtractData(String expression, String expectedValue)
-            throws ExtractionException {
+    void shouldExtractData(String expression, String expectedValue) throws ExtractionException {
         GenericSelector selector = selector(expression);
 
         Data autoBoundData =

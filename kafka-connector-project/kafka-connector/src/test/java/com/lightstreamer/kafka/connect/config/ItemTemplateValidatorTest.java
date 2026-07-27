@@ -49,7 +49,7 @@ class ItemTemplateValidatorTest {
                 "template-name1:template1-prefix1-#{param=VALUE};template-name2:template-prefix2-#{param=VALUE}",
                 "template-name1:template1-prefix1-#{param=VALUE};   template-name2:template-prefix2-#{param=VALUE}  "
             })
-    public void shouldValidate(Object value) {
+    void shouldValidate(Object value) {
         assertDoesNotThrow(() -> validator.ensureValid(ITEM_TEMPLATES, value));
     }
 
@@ -71,7 +71,7 @@ class ItemTemplateValidatorTest {
                     :t1-prefix-#{p1=v1}                              | Invalid value for configuration "item.templates": Each entry must be in the form [templateName]:[template]
                     t1:t1-prefix-#{p1=KEY};t1:t1-prefix2-#{p2=VALUE} | Invalid value for configuration "item.templates": Duplicate key "t1"
                 """)
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(ITEM_TEMPLATES, value));

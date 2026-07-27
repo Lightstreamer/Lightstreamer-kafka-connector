@@ -47,7 +47,7 @@ class TopicMappingValidatorTest {
                 "topic-name1:item1;topic-name2:item2",
                 "topic-name1:item1 ;   topic-name2:item2",
             })
-    public void shouldValidate(Object value) {
+    void shouldValidate(Object value) {
         assertDoesNotThrow(() -> validator.ensureValid(TOPIC_MAPPINGS, value));
     }
 
@@ -71,7 +71,7 @@ class TopicMappingValidatorTest {
                     topic-name:,                        @ Invalid value for configuration "topic.mappings": Mapping list must be in the form [item-template.template1|item1],...,[item-template.templateN|itemN]
                     topic-name:item1,;topic-name2:item2 @ Invalid value for configuration "topic.mappings": Mapping list must be in the form [item-template.template1|item1],...,[item-template.templateN|itemN]
                 """)
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(TOPIC_MAPPINGS, value));

@@ -59,7 +59,7 @@ class RecordErrorHandlingStrategiesTest {
                     '  '      | Invalid value for configuration "record.extraction.error.strategy": Must be a non-empty string
                     NON_VALID | Invalid value for configuration "record.extraction.error.strategy": Must be a valid strategy
                 """)
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
