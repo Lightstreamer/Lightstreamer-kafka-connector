@@ -19,6 +19,8 @@ package com.lightstreamer.kafka.adapters;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
@@ -32,14 +34,18 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,17 +59,40 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class KafkaConnectorDataAdapterTest {
+class KafkaConnectorDataAdapterTest {
 
     private Path adapterDir;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
     }
 
+    @AfterEach
+    void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
     @Test
-    public void shouldInitWithOnDemandSubscriptionsHandler() throws DataProviderException {
+    void shouldCreateKafkaConsumerFromDefaultFactory() {
+        Function<Properties, Consumer<byte[], byte[]>> defaultConsumerFactory =
+                KafkaConnectorDataAdapter.defaultConsumerFactory(
+                        LoggerFactory.getLogger("TestConnection"));
+        Map<String, String> minimalConfig = ConnectorConfigProvider.minimalConfig();
+        ConnectorConfigurator configurator =
+                new ConnectorConfigurator(minimalConfig, adapterDir.toFile());
+
+        KafkaException ke =
+                assertThrows(
+                        KafkaException.class,
+                        () ->
+                                defaultConsumerFactory.apply(
+                                        configurator.connectionSpec().consumerProperties()));
+        assertThat(ke).hasMessageThat().isEqualTo("Failed to construct kafka consumer");
+    }
+
+    @Test
+    void shouldInitWithOnDemandSubscriptionsHandler() throws DataProviderException {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> minimalConfig = ConnectorConfigProvider.minimalConfig();
         minimalConfig.put(ConnectorConfig.DATA_ADAPTER_NAME, "TEST-CONNECTOR");
@@ -78,7 +107,7 @@ public class KafkaConnectorDataAdapterTest {
     }
 
     @Test
-    public void shouldInitWithForceableSubscriptionsHandler() throws DataProviderException {
+    void shouldInitWithForceableSubscriptionsHandler() throws DataProviderException {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         Map<String, String> minimalConfig = ConnectorConfigProvider.minimalConfig();
         minimalConfig.put(ConnectorConfig.DATA_ADAPTER_NAME, "TEST-CONNECTOR");
@@ -99,7 +128,7 @@ public class KafkaConnectorDataAdapterTest {
     }
 
     @Test
-    public void shouldSetListener() throws DataProviderException {
+    void shouldSetListener() throws DataProviderException {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
         Supplier<SubscriptionsHandler<?, ?>> subscriptionHandlerSupplier =
@@ -123,7 +152,7 @@ public class KafkaConnectorDataAdapterTest {
     }
 
     @Test
-    public void shouldSubscribe() throws Exception {
+    void shouldSubscribe() throws Exception {
         AtomicReference<String> receivedItemName = new AtomicReference<>(null);
         AtomicReference<Object> receivedHandle = new AtomicReference<>(null);
 
@@ -157,7 +186,7 @@ public class KafkaConnectorDataAdapterTest {
     }
 
     @Test
-    public void shouldUnsubscribe() throws Exception {
+    void shouldUnsubscribe() throws Exception {
         AtomicReference<String> receivedItemName = new AtomicReference<>(null);
 
         Supplier<SubscriptionsHandler<?, ?>> subscriptionHandlerSupplier =
@@ -180,7 +209,7 @@ public class KafkaConnectorDataAdapterTest {
     }
 
     @Test
-    public void shouldNotHandleSnapshot() throws Exception {
+    void shouldNotHandleSnapshot() throws Exception {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         connectorDataAdapter.setConsumerFactory(this.getConsumer());
         connectorDataAdapter.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
@@ -191,7 +220,7 @@ public class KafkaConnectorDataAdapterTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"COMMAND", "MERGE", "DISTINCT"})
-    public void shouldHandleSnapshot(String mode) throws Exception {
+    void shouldHandleSnapshot(String mode) throws Exception {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
         connectorDataAdapter.setConsumerFactory(this.getConsumer());
         Map<String, String> config = new HashMap<>();
