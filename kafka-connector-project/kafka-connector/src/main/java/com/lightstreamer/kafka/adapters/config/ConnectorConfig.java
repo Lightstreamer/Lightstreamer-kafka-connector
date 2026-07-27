@@ -44,6 +44,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MAX_WAIT_MS
 import static org.apache.kafka.clients.consumer.ConsumerConfig.FETCH_MIN_BYTES_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.METADATA_MAX_AGE_CONFIG;
@@ -51,6 +52,7 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF
 import static org.apache.kafka.clients.consumer.ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG;
 
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
@@ -639,6 +641,12 @@ public final class ConnectorConfig extends AbstractConfig {
         if (!isManual()) {
             properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         }
+        properties.setProperty(
+                KEY_DESERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.ByteArrayDeserializer1");
+        properties.setProperty(
+                VALUE_DESERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.ByteArrayDeserializer");
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
