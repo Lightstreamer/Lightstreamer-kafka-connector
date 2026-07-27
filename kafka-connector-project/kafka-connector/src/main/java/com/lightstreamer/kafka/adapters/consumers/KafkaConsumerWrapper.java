@@ -280,34 +280,33 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         this.connectionSpec = connectionSpec;
         this.subscribedItems = subscribedItems;
-        this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
+        logger = LogFactory.getLogger(connectionSpec.connectionName());
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
-        this.consumer = consumerFactory.apply(this.connectionSpec.consumerProperties());
+        consumer = consumerFactory.apply(connectionSpec.consumerProperties());
 
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.eagerLifecycle = eagerLifecycle;
         OffsetService os =
-                this.connectionSpec.isManual()
+                connectionSpec.isManual()
                         ? OffsetService.noCommit(
                                 consumer, logger, connectionSpec.recordConsumeFrom())
                         : OffsetService.commit(consumer, logger);
-        this.offsetService =
-                eagerLifecycle ? OffsetService.seekingCommit(os, consumer, logger) : os;
-        this.pollDuration = MAX_POLL_DURATION;
-        this.deserializationMode =
+        offsetService = eagerLifecycle ? OffsetService.seekingCommit(os, consumer, logger) : os;
+        pollDuration = MAX_POLL_DURATION;
+        deserializationMode =
                 RecordDeserializationMode.forTiming(
                         RecordDeserializationMode.DeserializationTiming.EAGER,
-                        this.connectionSpec.deserializerPair(),
+                        connectionSpec.deserializerPair(),
                         logger);
-        this.monitor = newMonitor();
+        monitor = newMonitor();
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
-        Concurrency concurrency = this.connectionSpec.pipeline().concurrency();
-        this.recordConsumer =
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
+        recordConsumer =
                 RecordConsumer.<K, V>recordMapper(
                                 RecordMapper.from(
                                         connectionSpec.pipeline().itemTemplates(),
@@ -316,8 +315,8 @@ public class KafkaConsumerWrapper<K, V> {
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .logger(logger)
-                        .errorStrategy(this.connectionSpec.pipeline().errorHandlingStrategy())
-                        .commandModeEnabled(this.connectionSpec.pipeline().processAsCommand())
+                        .errorStrategy(connectionSpec.pipeline().errorHandlingStrategy())
+                        .commandModeEnabled(connectionSpec.pipeline().processAsCommand())
                         .catchUpEnabled(eagerLifecycle)
                         .threads(concurrency.threads())
                         .orderStrategy(OrderStrategy.from(concurrency.orderStrategy()))
@@ -329,7 +328,7 @@ public class KafkaConsumerWrapper<K, V> {
 
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
 
-        this.status = FutureStatus.connected();
+        status = FutureStatus.connected();
     }
 
     private Monitor newMonitor() {
@@ -624,7 +623,7 @@ public class KafkaConsumerWrapper<K, V> {
         } catch (WakeupException e) {
             logger.atDebug().log("Internal Kafka client woken up");
         } catch (KafkaException e) {
-            this.pollFailureCause = e;
+            pollFailureCause = e;
             return State.LOOP_CLOSED_ON_ERROR;
         } finally {
             cleanUpResources();
@@ -633,7 +632,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private void installShutdownHook() {
-        this.hook =
+        hook =
                 new Thread(
                         () -> {
                             logger.atInfo().log("Invoked shutdown hook");
@@ -748,7 +747,7 @@ public class KafkaConsumerWrapper<K, V> {
         // Now it's safe to close the consumer
         consumer.close();
         // Stop the monitor
-        this.monitor.stop();
+        monitor.stop();
         logger.atInfo().log("Internal resources closed");
     }
 

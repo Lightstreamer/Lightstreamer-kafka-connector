@@ -471,13 +471,13 @@ public final class ConnectorConfig extends AbstractConfig {
 
     private ConnectorConfig(ConfigsSpec spec, Map<String, String> configs) throws ConfigException {
         super(spec, configs);
-        this.consumerProps = initProps();
-        this.itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
+        consumerProps = initProps();
+        itemTemplateConfigs = ItemTemplateConfigs.from(getValues(ITEM_TEMPLATE));
         Map<String, String> topicMappings = getValues(TOPIC_MAPPING, MAP_TO_ITEMS_SUFFIX);
         Map<String, String> partitionMappings =
                 getValues(TOPIC_MAPPING, MAP_FROM_PARTITIONS_SUFFIX);
         this.topicMappings = TopicMappingConfig.from(topicMappings, partitionMappings);
-        this.fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
+        fieldConfigs = FieldConfigs.from(getValues(FIELD_MAPPING));
         postValidate();
     }
 
@@ -558,16 +558,16 @@ public final class ConnectorConfig extends AbstractConfig {
         ItemSnapshotEnabledMode snapshotMode = getItemSnapshotMode();
         switch (snapshotMode) {
             case NONE -> {
-                this.subscriptionMode = Optional.empty();
+                subscriptionMode = Optional.empty();
             }
 
             case COMMAND -> {
                 checkCommandKey();
-                this.subscriptionMode = Optional.of(Mode.COMMAND);
+                subscriptionMode = Optional.of(Mode.COMMAND);
             }
 
             case MERGE, DISTINCT -> {
-                this.subscriptionMode = snapshotMode.toMode();
+                subscriptionMode = snapshotMode.toMode();
             }
         }
     }
@@ -604,9 +604,9 @@ public final class ConnectorConfig extends AbstractConfig {
                         get(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, ERROR_STRATEGY, false));
         if (getItemSnapshotMode() != ItemSnapshotEnabledMode.NONE
                 && configured == RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION) {
-            this.effectiveErrorStrategy = RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
+            effectiveErrorStrategy = RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE;
         } else {
-            this.effectiveErrorStrategy = configured;
+            effectiveErrorStrategy = configured;
         }
     }
 

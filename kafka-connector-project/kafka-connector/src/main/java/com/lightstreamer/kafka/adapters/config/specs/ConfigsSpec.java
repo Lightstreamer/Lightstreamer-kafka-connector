@@ -239,7 +239,7 @@ public class ConfigsSpec {
         ConfType() {}
 
         ConfType(Type t) {
-            this.embeddedType = t;
+            embeddedType = t;
         }
 
         @Override
@@ -280,7 +280,7 @@ public class ConfigsSpec {
         }
 
         private DefaultHolder(Function<Map<String, String>, T> function) {
-            this.factory = function;
+            factory = function;
         }
 
         @Override
@@ -313,7 +313,7 @@ public class ConfigsSpec {
         private final List<String> keys;
 
         EnablingKey(String... key) {
-            this.keys = List.of(key);
+            keys = List.of(key);
         }
 
         EnablingKey(List<String> keys) {
@@ -523,7 +523,7 @@ public class ConfigsSpec {
         private Set<String> choices;
 
         Options(String... options) {
-            this.choices = Set.of(options);
+            choices = Set.of(options);
         }
 
         Options(Set<String> choices) {
@@ -621,11 +621,11 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec() {
-        this.name = null;
+        name = null;
     }
 
     public ConfigsSpec(ConfigsSpec from) {
-        this.name = from.name;
+        name = from.name;
         from.paramSpec.forEach(
                 (name, confParameter) -> {
                     ConfParameter p =
@@ -665,7 +665,7 @@ public class ConfigsSpec {
     }
 
     public ConfigsSpec newSpecWithNameSpace(String nameSpace) {
-        ConfigsSpec newSpec = new ConfigsSpec(this.name);
+        ConfigsSpec newSpec = new ConfigsSpec(name);
         for (ConfParameter cp : paramSpec.values()) {
             newSpec.add(
                     new ConfParameter(

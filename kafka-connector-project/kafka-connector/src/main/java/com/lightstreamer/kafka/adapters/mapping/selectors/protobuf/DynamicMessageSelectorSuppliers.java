@@ -181,7 +181,7 @@ public class DynamicMessageSelectorSuppliers
         MessageWrapperNode(String name, Message message) {
             this.message = message;
             this.name = name;
-            this.descriptor = message.getDescriptorForType();
+            descriptor = message.getDescriptorForType();
         }
 
         @Override
@@ -253,7 +253,7 @@ public class DynamicMessageSelectorSuppliers
             this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
-            this.size = containing.getRepeatedFieldCount(fieldDescriptor);
+            size = containing.getRepeatedFieldCount(fieldDescriptor);
         }
 
         @Override
@@ -320,7 +320,7 @@ public class DynamicMessageSelectorSuppliers
             this.name = name;
             this.containing = containing;
             this.fieldDescriptor = fieldDescriptor;
-            this.fieldValueDescriptor = fieldDescriptor.getMessageType().findFieldByName("value");
+            fieldValueDescriptor = fieldDescriptor.getMessageType().findFieldByName("value");
 
             @SuppressWarnings("unchecked")
             List<MapEntry<?, ?>> entries =
@@ -392,7 +392,7 @@ public class DynamicMessageSelectorSuppliers
         ScalarFieldNode(String name, Object value, FieldDescriptor descriptor) {
             this.name = name;
             this.value = value;
-            this.fieldDescriptor = descriptor;
+            fieldDescriptor = descriptor;
         }
 
         @Override
@@ -474,7 +474,7 @@ public class DynamicMessageSelectorSuppliers
         private final Deserializer<DynamicMessage> deserializer;
 
         DynamicMessageKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = DynamicMessageDeserializers.KeyDeserializer(config);
+            deserializer = DynamicMessageDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -548,7 +548,7 @@ public class DynamicMessageSelectorSuppliers
         private final Deserializer<DynamicMessage> deserializer;
 
         DynamicMessageValueSelectorSupplier(ConnectorConfig config) {
-            this.deserializer = DynamicMessageDeserializers.ValueDeserializer(config);
+            deserializer = DynamicMessageDeserializers.ValueDeserializer(config);
         }
 
         @Override

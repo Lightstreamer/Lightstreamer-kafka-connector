@@ -159,7 +159,7 @@ public class GenericRecordSelectorsSuppliers
         AvroArrayNode(String name, GenericData.Array<?> array) {
             this.name = name;
             this.array = array;
-            this.size = array.size();
+            size = array.size();
         }
 
         @Override
@@ -305,7 +305,7 @@ public class GenericRecordSelectorsSuppliers
         private final Deserializer<GenericRecord> deserializer;
 
         GenericRecordKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = GenericRecordDeserializers.KeyDeserializer(config);
+            deserializer = GenericRecordDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -359,7 +359,7 @@ public class GenericRecordSelectorsSuppliers
         private final Deserializer<GenericRecord> deserializer;
 
         GenericRecordValueSelectorSupplier(ConnectorConfig config) {
-            this.deserializer = GenericRecordDeserializers.ValueDeserializer(config);
+            deserializer = GenericRecordDeserializers.ValueDeserializer(config);
         }
 
         @Override

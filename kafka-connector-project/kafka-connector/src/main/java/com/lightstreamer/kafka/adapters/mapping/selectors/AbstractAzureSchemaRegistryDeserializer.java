@@ -30,7 +30,7 @@ public abstract class AbstractAzureSchemaRegistryDeserializer<T> implements Dese
 
     public AbstractAzureSchemaRegistryDeserializer(ConnectorConfig config) {
         this.config = config;
-        this.tokenCredential =
+        tokenCredential =
                 new ClientSecretCredentialBuilder()
                         .tenantId(config.azureTenantId())
                         .clientId(config.azureClientId())

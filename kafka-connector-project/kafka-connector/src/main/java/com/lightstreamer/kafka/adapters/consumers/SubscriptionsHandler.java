@@ -152,11 +152,10 @@ public interface SubscriptionsHandler<K, V> {
          *     consumerFactory} are copied into this instance
          */
         AbstractSubscriptionsHandler(Builder<K, V> builder) {
-            this.connectionSpec = builder.connectionSpec;
-            this.consumerFactory = builder.consumerFactory;
-            this.logger = LogFactory.getLogger(connectionSpec.connectionName());
-            this.pool =
-                    Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
+            connectionSpec = builder.connectionSpec;
+            consumerFactory = builder.consumerFactory;
+            logger = LogFactory.getLogger(connectionSpec.connectionName());
+            pool = Executors.newSingleThreadExecutor(r -> new Thread(r, "SubscriptionHandler"));
         }
 
         @Override
@@ -194,7 +193,7 @@ public interface SubscriptionsHandler<K, V> {
             if (listener == null) {
                 throw new IllegalArgumentException("ItemEventListener cannot be null");
             }
-            this.eventListener = listener;
+            eventListener = listener;
             doSetListener(eventListener);
         }
 
@@ -285,8 +284,8 @@ public interface SubscriptionsHandler<K, V> {
          */
         OnDemandSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
-            this.metadataListener = builder.metadataListener;
-            this.subscribedItems = SubscribedItems.onDemand();
+            metadataListener = builder.metadataListener;
+            subscribedItems = SubscribedItems.onDemand();
         }
 
         @Override
@@ -501,8 +500,8 @@ public interface SubscriptionsHandler<K, V> {
          */
         ForceableSubscriptionsHandler(Builder<K, V> builder) {
             super(builder);
-            this.itemSnapshotMaxIdleSeconds = builder.itemSnapshotMaxIdleSeconds;
-            this.idleSnapshotScheduler =
+            itemSnapshotMaxIdleSeconds = builder.itemSnapshotMaxIdleSeconds;
+            idleSnapshotScheduler =
                     Executors.newScheduledThreadPool(
                             1,
                             r -> {
@@ -514,7 +513,7 @@ public interface SubscriptionsHandler<K, V> {
 
         @Override
         protected void doSetListener(ItemEventListener listener) {
-            this.subscribedItems = SubscribedItems.forceable(listener, logger);
+            subscribedItems = SubscribedItems.forceable(listener, logger);
             startConsuming();
             if (itemSnapshotMaxIdleSeconds > 0) {
                 long checkPeriodSeconds = Math.max(1, itemSnapshotMaxIdleSeconds / 2);
@@ -522,12 +521,12 @@ public interface SubscriptionsHandler<K, V> {
                         "Scheduling snapshot idle-expiration check every {} s (max idle {} s)",
                         checkPeriodSeconds,
                         itemSnapshotMaxIdleSeconds);
-                this.scheduled = Optional.of(scheduleIdleSnapshotCheck(checkPeriodSeconds));
+                scheduled = Optional.of(scheduleIdleSnapshotCheck(checkPeriodSeconds));
             }
         }
 
         private ScheduledFuture<?> scheduleIdleSnapshotCheck(long checkPeriodSeconds) {
-            return this.idleSnapshotScheduler.scheduleWithFixedDelay(
+            return idleSnapshotScheduler.scheduleWithFixedDelay(
                     () -> {
                         try {
                             subscribedItems.clearIdleSnapshots(itemSnapshotMaxIdleSeconds);
@@ -552,7 +551,7 @@ public interface SubscriptionsHandler<K, V> {
                 logger.atError().setCause(ke).log("Unable to connect to Kafka");
                 throw ke;
             }
-            this.lifecycleStatus = consumer.start(pool, eventListener::failure);
+            lifecycleStatus = consumer.start(pool, eventListener::failure);
             if (lifecycleStatus.initFailed()) {
                 throw new KafkaException(
                         "Consumer initialization failed: " + lifecycleStatus.join());

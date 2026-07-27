@@ -93,8 +93,8 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
         @SuppressWarnings("unchecked")
         BaseOthersSelectorSupplier(EvaluatorType type, Constant constant) {
             this.type = type;
-            this.deserializer = (Deserializer<T>) DESERIALIZERS.get(type);
-            if (this.deserializer == null) {
+            deserializer = (Deserializer<T>) DESERIALIZERS.get(type);
+            if (deserializer == null) {
                 throw new IllegalArgumentException("Unsupported evaluator [" + type + "]");
             }
         }
@@ -207,8 +207,8 @@ public class OthersSelectorSuppliers implements KeyValueSelectorSuppliersMaker<O
     private final EvaluatorType valueEvaluatorType;
 
     public OthersSelectorSuppliers(ConnectorConfig config) {
-        this.keyEvaluatorType = config.getKeyEvaluator();
-        this.valueEvaluatorType = config.getValueEvaluator();
+        keyEvaluatorType = config.getKeyEvaluator();
+        valueEvaluatorType = config.getValueEvaluator();
     }
 
     public EvaluatorType keyEvaluatorType() {

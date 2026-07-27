@@ -114,7 +114,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     private void configureLogging(File configDir) throws ConfigException {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
-        this.logger = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
+        logger = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
     }
 
     /**

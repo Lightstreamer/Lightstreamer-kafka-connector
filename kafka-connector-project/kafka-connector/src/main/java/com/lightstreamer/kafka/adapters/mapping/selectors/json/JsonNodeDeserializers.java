@@ -61,13 +61,13 @@ public class JsonNodeDeserializers {
 
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
-            this.client =
+            client =
                     new SchemaRegistryClientBuilder()
                             .fullyQualifiedNamespace(getConfig().schemaRegistryUrl())
                             .credential(getTokenCredential())
                             .buildAsyncClient();
 
-            this.mapper =
+            mapper =
                     new ObjectMapper()
                             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         }

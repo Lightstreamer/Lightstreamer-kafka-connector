@@ -209,8 +209,8 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
 
         JsonArrayNode(String name, ArrayNode node) {
             this.name = name;
-            this.arrayNode = node;
-            this.size = node.size();
+            arrayNode = node;
+            size = node.size();
         }
 
         @Override
@@ -284,7 +284,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         private final Deserializer<JsonNode> deserializer;
 
         JsonNodeKeySelectorSupplier(ConnectorConfig config) {
-            this.deserializer = JsonNodeDeserializers.KeyDeserializer(config);
+            deserializer = JsonNodeDeserializers.KeyDeserializer(config);
         }
 
         @Override
@@ -335,7 +335,7 @@ public class JsonNodeSelectorsSuppliers implements KeyValueSelectorSuppliersMake
         private final Deserializer<JsonNode> deserializer;
 
         JsonNodeValueSelectorSupplier(ConnectorConfig config) {
-            this.deserializer = JsonNodeDeserializers.ValueDeserializer(config);
+            deserializer = JsonNodeDeserializers.ValueDeserializer(config);
         }
 
         @Override

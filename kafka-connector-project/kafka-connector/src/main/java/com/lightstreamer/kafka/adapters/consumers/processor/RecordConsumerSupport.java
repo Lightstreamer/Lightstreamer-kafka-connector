@@ -234,7 +234,7 @@ public class RecordConsumerSupport {
                             ? ProcessUpdatesStrategy.commandModeStrategy()
                             : ProcessUpdatesStrategy.defaultStrategy();
 
-            this.parentBuilder.processor =
+            parentBuilder.processor =
                     new RecordProcessorImpl<>(
                             parentBuilder.recordMapper,
                             parentBuilder.subscribedItems,
@@ -556,7 +556,7 @@ public class RecordConsumerSupport {
         @Override
         public final void useLogger(Logger logger) {
             this.logger = Objects.requireNonNullElse(logger, this.logger);
-            this.processUpdatesStrategy.useLogger(logger);
+            processUpdatesStrategy.useLogger(logger);
         }
 
         @Override
@@ -611,25 +611,25 @@ public class RecordConsumerSupport {
         private volatile boolean closed = false;
 
         AbstractRecordConsumer(RecordMapperStepImpl<K, V> builder) {
-            this.offsetService = builder.offsetService;
-            this.recordProcessor = builder.processor;
-            this.logger = builder.logger;
-            this.eventListener = builder.eventListener;
-            this.errorStrategy = builder.errorStrategy;
-            this.catchUpEnabled = builder.catchUpEnabled;
-            this.monitor = builder.monitor;
-            this.deliveryStrategy = new RealtimeDeliveryStrategy(builder.eventListener);
+            offsetService = builder.offsetService;
+            recordProcessor = builder.processor;
+            logger = builder.logger;
+            eventListener = builder.eventListener;
+            errorStrategy = builder.errorStrategy;
+            catchUpEnabled = builder.catchUpEnabled;
+            monitor = builder.monitor;
+            deliveryStrategy = new RealtimeDeliveryStrategy(builder.eventListener);
 
             // Enforce usage of the same logger
-            this.recordProcessor.useLogger(logger);
+            recordProcessor.useLogger(logger);
 
-            this.receivedRecordCounter =
+            receivedRecordCounter =
                     new Meters.Counter(
                             "Received record", "Counts the number of received records", "msg");
-            this.processedRecordCounter =
+            processedRecordCounter =
                     new Meters.Counter(
                             "Processed record", "Counts the number of processed records", "msg");
-            this.recordBatchListener =
+            recordBatchListener =
                     recordBatch -> processedRecordCounter.increment(recordBatch.count());
 
             configureMonitor();
@@ -657,7 +657,7 @@ public class RecordConsumerSupport {
 
         @Override
         public final void close() {
-            this.closed = true;
+            closed = true;
             onPoolsShutdown();
         }
 
@@ -668,7 +668,7 @@ public class RecordConsumerSupport {
 
         @Override
         public final boolean isClosed() {
-            return this.closed;
+            return closed;
         }
 
         @Override
@@ -902,18 +902,18 @@ public class RecordConsumerSupport {
         @SuppressWarnings("unchecked")
         ParallelRecordConsumer(RecordMapperStepImpl<K, V> builder) {
             super(builder);
-            this.orderStrategy = builder.orderStrategy;
-            this.actualThreads = getActualThreadsNumber(builder.threads);
+            orderStrategy = builder.orderStrategy;
+            actualThreads = getActualThreadsNumber(builder.threads);
 
             // Initialize high-throughput ring buffers for ultra-high performance
-            this.ringBuffers = new BlockingQueue[actualThreads];
+            ringBuffers = new BlockingQueue[actualThreads];
 
             logger.atInfo().log(
                     "Initializing high-throughput mode with {} ring buffers", actualThreads);
 
             // Create dedicated ExecutorService for ring buffer processing
             AtomicInteger ringThreadCount = new AtomicInteger();
-            this.ringBufferPool =
+            ringBufferPool =
                     Executors.newFixedThreadPool(
                             actualThreads,
                             r -> {
@@ -927,7 +927,7 @@ public class RecordConsumerSupport {
                             });
 
             for (int i = 0; i < actualThreads; i++) {
-                this.ringBuffers[i] = new ArrayBlockingQueue<>(RING_BUFFER_CAPACITY);
+                ringBuffers[i] = new ArrayBlockingQueue<>(RING_BUFFER_CAPACITY);
                 configureMonitor(i);
                 logger.atDebug().log(
                         "Initialized ring buffer {} with capacity {}", i, RING_BUFFER_CAPACITY);
@@ -937,11 +937,10 @@ public class RecordConsumerSupport {
         }
 
         private void configureMonitor(final int threadIndex) {
-            if (this.monitor == null) {
+            if (monitor == null) {
                 return;
             }
-            this.monitor
-                    .observe(
+            monitor.observe(
                             new Meters.Gauge(
                                     "Ring buffer " + threadIndex + " usage",
                                     "Percentage of ring buffer capacity currently in use",
@@ -1047,7 +1046,7 @@ public class RecordConsumerSupport {
         void onCatchUpComplete() {
             // Send sentinel to each worker, causing them to exit their loop
             CountDownLatch barrier = new CountDownLatch(actualThreads);
-            this.flushBarrier = barrier;
+            flushBarrier = barrier;
             for (int i = 0; i < actualThreads; i++) {
                 try {
                     ringBuffers[i].put((KafkaRecord<K, V>) FLUSH_SENTINEL);
@@ -1062,7 +1061,7 @@ public class RecordConsumerSupport {
                 Thread.currentThread().interrupt();
             }
             // Workers exited — submit new realtime tasks to the same pool
-            this.flushBarrier = null;
+            flushBarrier = null;
             for (int i = 0; i < actualThreads; i++) {
                 final int threadIndex = i;
                 ringBufferPool.submit(() -> processRingBuffer(threadIndex));
@@ -1138,7 +1137,7 @@ public class RecordConsumerSupport {
 
         private void consume(KafkaRecord<K, V> record) {
             try {
-                process(record, this.deliveryStrategy);
+                process(record, deliveryStrategy);
                 saveOffsets(record);
             } catch (ValueException ve) {
                 logger.atWarn().log("Error while extracting record: {}", ve.getMessage());
