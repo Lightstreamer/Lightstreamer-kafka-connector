@@ -44,11 +44,17 @@ import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -86,6 +92,18 @@ public class GenericRecordSelectorsSuppliersTest {
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
+    private Path adapterDir;
+
+    @BeforeEach
+    public void before() throws IOException {
+        adapterDir = Files.createTempDirectory("myadapter_dir");
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
     @Test
     public void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
@@ -103,7 +121,7 @@ public class GenericRecordSelectorsSuppliersTest {
 
     @Test
     public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
@@ -152,7 +170,7 @@ public class GenericRecordSelectorsSuppliersTest {
 
     @Test
     public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
