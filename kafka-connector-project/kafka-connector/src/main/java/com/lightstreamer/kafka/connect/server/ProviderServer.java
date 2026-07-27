@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.connect.server;
 
 import com.lightstreamer.adapters.remote.ExceptionHandler;
 import com.lightstreamer.adapters.remote.RemotingException;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper.CloseHook;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper.IOStreams;
@@ -293,7 +294,7 @@ public final class ProviderServer implements ProxyCommunicator {
         return Optional.ofNullable(closingException.get());
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Set<DataProviderWrapper> getActiveProviders() {
         return activeProviders;
     }
