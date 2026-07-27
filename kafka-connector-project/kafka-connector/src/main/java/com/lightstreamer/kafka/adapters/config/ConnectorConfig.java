@@ -217,6 +217,10 @@ public final class ConnectorConfig extends AbstractConfig {
 
     static final String MAP_TO_ITEMS_SUFFIX = "to";
     static final String MAP_FROM_PARTITIONS_SUFFIX = "from.partitions";
+
+    private static final String KAFKA_BYTE_ARRAY_DESERIALIZER =
+            "org.apache.kafka.common.serialization.ByteArrayDeserializer";
+
     private static final ConfigsSpec CONFIG_SPEC;
 
     static {
@@ -641,12 +645,8 @@ public final class ConnectorConfig extends AbstractConfig {
         if (!isManual()) {
             properties.setProperty(GROUP_ID_CONFIG, getText(GROUP_ID));
         }
-        properties.setProperty(
-                KEY_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.ByteArrayDeserializer1");
-        properties.setProperty(
-                VALUE_DESERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.ByteArrayDeserializer");
+        properties.setProperty(KEY_DESERIALIZER_CLASS_CONFIG, KAFKA_BYTE_ARRAY_DESERIALIZER);
+        properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, KAFKA_BYTE_ARRAY_DESERIALIZER);
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
         properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
