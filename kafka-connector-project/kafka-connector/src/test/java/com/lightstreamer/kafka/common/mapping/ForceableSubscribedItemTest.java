@@ -47,20 +47,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class ForceableSubscribedItemTest {
+class ForceableSubscribedItemTest {
 
     private MockItemEventListener eventListener;
     private ForceableSubscribedItem subscribedItem;
 
     @BeforeEach
-    public void setUp() throws Exception {
+    void before() throws Exception {
         this.eventListener = new MockItemEventListener();
         this.subscribedItem =
                 new ForceableSubscribedItem(Expressions.Subscription("item-[name=field1]"));
     }
 
     @Test
-    public void shouldCreateForceableSubscribedItemFromFactory() {
+    void shouldCreateForceableSubscribedItemFromFactory() {
         String expression = "item-[name=field1]";
         ForceableSubscribedItem item = Items.forceableSubscribedFrom(expression);
         assertThat(item).isNotNull();
@@ -70,7 +70,7 @@ public class ForceableSubscribedItemTest {
     }
 
     @Test
-    public void shouldTouch() {
+    void shouldTouch() {
         long beforeTouch = subscribedItem.lastTouched();
         subscribedItem.touch();
         long afterTouch = subscribedItem.lastTouched();
@@ -78,7 +78,7 @@ public class ForceableSubscribedItemTest {
     }
 
     @Test
-    public void shouldCompareAndSetLastTouched() {
+    void shouldCompareAndSetLastTouched() {
         long observed = subscribedItem.lastTouched();
 
         // Stale expected: a concurrent touch raced in, CAS rejects.
@@ -119,7 +119,7 @@ public class ForceableSubscribedItemTest {
 
     @ParameterizedTest
     @MethodSource("provideExpressions")
-    public void shouldCreateForceableSubscribedItem(
+    void shouldCreateForceableSubscribedItem(
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
@@ -153,7 +153,7 @@ public class ForceableSubscribedItemTest {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("deliveryScenarios")
-    public void shouldDeliverEventsCorrectly(
+    void shouldDeliverEventsCorrectly(
             String scenario, boolean enableBeforeSends, String actions, String expectedFlags) {
         ForceableSubscribedItem item =
                 new ForceableSubscribedItem(Expressions.Subscription("item"));
@@ -187,7 +187,7 @@ public class ForceableSubscribedItemTest {
     }
 
     @Test
-    public void shouldAccumulatePendingEventsUntilEnableEventsDelivery() {
+    void shouldAccumulatePendingEventsUntilEnableEventsDelivery() {
         // Phase 1: Send mixed events before unlocking. ALL events (snapshot or real-time) are
         // buffered and must be drained in insertion order, each preserving its original flag.
         Map<String, String> snapshotEvent1 = Map.of("field1", "snapshot1");
@@ -299,7 +299,7 @@ public class ForceableSubscribedItemTest {
 
     @Test
     @Timeout(10)
-    public void shouldHandleConcurrentEventsAndTransition() throws Exception {
+    void shouldHandleConcurrentEventsAndTransition() throws Exception {
         final AtomicInteger threadCounter = new AtomicInteger(0);
         final ExecutorService executor =
                 Executors.newFixedThreadPool(
@@ -469,7 +469,7 @@ public class ForceableSubscribedItemTest {
     }
 
     @Test
-    public void shouldEnableEventsDeliveryBeIdempotent() {
+    void shouldEnableEventsDeliveryBeIdempotent() {
         // Send some events first.
         Map<String, String> event1 = Map.of("field1", "value1");
         subscribedItem.sendRealTimeEvent(event1, eventListener);
@@ -496,7 +496,7 @@ public class ForceableSubscribedItemTest {
     }
 
     @Test
-    public void shouldMarkForced() {
+    void shouldMarkForced() {
         // Mark the item as forced.
         subscribedItem.markForced();
 

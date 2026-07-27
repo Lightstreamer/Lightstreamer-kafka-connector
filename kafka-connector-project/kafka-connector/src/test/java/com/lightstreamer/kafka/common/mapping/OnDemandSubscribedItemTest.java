@@ -41,10 +41,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
-public class OnDemandSubscribedItemTest {
+class OnDemandSubscribedItemTest {
 
     @Test
-    public void shouldCreateOnDemandSubscribedItemFromFactory() {
+    void shouldCreateOnDemandSubscribedItemFromFactory() {
         SubscriptionExpression expression = Subscription("item-[name=field1]");
         Object handle = new Object();
         OnDemandSubscribedItem item = Items.onDemandSubscribedFrom(expression, handle);
@@ -55,7 +55,7 @@ public class OnDemandSubscribedItemTest {
     }
 
     @Test
-    public void shouldNotCreateOnDemandSubscribedItemWithNullHandleFromFactory() {
+    void shouldNotCreateOnDemandSubscribedItemWithNullHandleFromFactory() {
         SubscriptionExpression expression = Subscription("item-[name=field1]");
         NullPointerException exception =
                 assertThrows(
@@ -91,7 +91,7 @@ public class OnDemandSubscribedItemTest {
 
     @ParameterizedTest
     @MethodSource("provideExpressions")
-    public void shouldCreateOnDemandSubscribedItem(
+    void shouldCreateOnDemandSubscribedItem(
             String expression,
             String expectedPrefix,
             Set<String> expectedKeys,
@@ -106,7 +106,7 @@ public class OnDemandSubscribedItemTest {
     }
 
     @Test
-    public void shouldNotCreateOnDemandSubscribedItemWithNullHandle() {
+    void shouldNotCreateOnDemandSubscribedItemWithNullHandle() {
         SubscriptionExpression expression = Subscription("item-[name=field1]");
         NullPointerException exception =
                 assertThrows(
@@ -125,7 +125,7 @@ public class OnDemandSubscribedItemTest {
 
     @ParameterizedTest
     @MethodSource("provideEqualData")
-    public void shouldCreateEqualSubscribedItems(List<Data> values1, List<Data> values2) {
+    void shouldCreateEqualSubscribedItems(List<Data> values1, List<Data> values2) {
         Object itemHandle = new Object();
         OnDemandSubscribedItem item1 =
                 new OnDemandSubscribedItem(
@@ -148,7 +148,7 @@ public class OnDemandSubscribedItemTest {
 
     @ParameterizedTest
     @MethodSource("provideNotEqualData")
-    public void shouldCreateNotEqualSubscribedItems(List<Data> values1, List<Data> values2) {
+    void shouldCreateNotEqualSubscribedItems(List<Data> values1, List<Data> values2) {
         Object itemHandle = new Object();
         OnDemandSubscribedItem item1 =
                 new OnDemandSubscribedItem(
@@ -160,7 +160,7 @@ public class OnDemandSubscribedItemTest {
     }
 
     @Test
-    public void shouldCreateNotEqualSubscribedItemsDueToDifferentPrefixes() {
+    void shouldCreateNotEqualSubscribedItemsDueToDifferentPrefixes() {
         List<Data> sameValues = List.of(Data.from("n1", "1"));
         Object itemHandle = new Object();
         OnDemandSubscribedItem item1 =
@@ -175,7 +175,7 @@ public class OnDemandSubscribedItemTest {
     }
 
     @Test
-    public void shouldCreateNotEqualSubscribedItemsDueToDifferentHandles() {
+    void shouldCreateNotEqualSubscribedItemsDueToDifferentHandles() {
         List<Data> sameValues = List.of(Data.from("n1", "1"));
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
@@ -191,7 +191,7 @@ public class OnDemandSubscribedItemTest {
     }
 
     @Test
-    public void shouldDeliverEventsCorrectly() {
+    void shouldDeliverEventsCorrectly() {
         MockItemEventListener eventListener = new MockItemEventListener();
         Object itemHandle = new Object();
         OnDemandSubscribedItem subscribedItem =

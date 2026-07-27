@@ -32,23 +32,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class OnDemandSubscribedItemsTest {
+class OnDemandSubscribedItemsTest {
 
     private OnDemandSubscribedItems subscribedItems;
 
     @BeforeEach
-    public void setUp() {
+    void before() {
         this.subscribedItems = SubscribedItems.onDemand();
     }
 
     @Test
-    public void shouldBeEmptyOnCreation() {
+    void shouldBeEmptyOnCreation() {
         assertThat(subscribedItems.isEmpty()).isTrue();
         assertThat(subscribedItems.size()).isEqualTo(0);
     }
 
     @Test
-    public void shouldAddAndRetrieveSimpleItems() {
+    void shouldAddAndRetrieveSimpleItems() {
         OnDemandSubscribedItem testItem1 =
                 Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         OnDemandSubscribedItem testItem2 =
@@ -70,7 +70,7 @@ public class OnDemandSubscribedItemsTest {
     }
 
     @Test
-    public void shouldAddAndRetrieveCanonicalItems() {
+    void shouldAddAndRetrieveCanonicalItems() {
         OnDemandSubscribedItem testItem1 =
                 Items.onDemandSubscribedFrom(Subscription("item-[b=2,a=1]"), new Object());
         subscribedItems.addItem(testItem1);
@@ -80,7 +80,7 @@ public class OnDemandSubscribedItemsTest {
     }
 
     @Test
-    public void shouldReplaceItemWhenAddingDuplicate() {
+    void shouldReplaceItemWhenAddingDuplicate() {
         OnDemandSubscribedItem testItem1 =
                 Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         OnDemandSubscribedItem testItem1Duplicate =
@@ -100,12 +100,12 @@ public class OnDemandSubscribedItemsTest {
     }
 
     @Test
-    public void shouldReturnNullForNonExistentItem() {
+    void shouldReturnNullForNonExistentItem() {
         assertThat(subscribedItems.getItem("nonexistent")).isNull();
     }
 
     @Test
-    public void shouldRemoveExistingItem() {
+    void shouldRemoveExistingItem() {
         OnDemandSubscribedItem testItem1 =
                 Items.onDemandSubscribedFrom(Subscription("item1"), new Object());
         subscribedItems.addItem(testItem1);
@@ -124,7 +124,7 @@ public class OnDemandSubscribedItemsTest {
     }
 
     @Test
-    public void shouldReturnNullWhenRemovingNonExistentItem() {
+    void shouldReturnNullWhenRemovingNonExistentItem() {
         Optional<OnDemandSubscribedItem> removed = subscribedItems.removeItem("nonexistent");
         assertThat(removed).isEmpty();
     }

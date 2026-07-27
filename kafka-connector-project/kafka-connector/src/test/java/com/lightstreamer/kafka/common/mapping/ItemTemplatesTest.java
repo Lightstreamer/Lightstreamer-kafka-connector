@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ItemTemplatesTest {
+class ItemTemplatesTest {
 
     private static final String TEST_TOPIC_1 = "topic";
 
@@ -66,7 +66,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateWithCommonTemplateDefinition() throws ExtractionException {
+    void shouldCreateWithCommonTemplateDefinition() throws ExtractionException {
         // Define three template names
         String template1 = "template1";
         String template2 = "template2";
@@ -162,7 +162,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
+    void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
         /*
          * <param name="map.topic.to">item-template.template1,simple-item-1</param>
          */
@@ -208,7 +208,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToOneFromSimpleItem() throws ExtractionException {
+    void shouldCreateOneToOneFromSimpleItem() throws ExtractionException {
         // One topic mapping one item
         /*
          * <param name="map.topic.to">simple-item-1</param>
@@ -234,7 +234,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToOneFromItemTemplate() throws ExtractionException {
+    void shouldCreateOneToOneFromItemTemplate() throws ExtractionException {
         // One topic mapping one item template
         /*
          * <param name="map.stocks.to">item-template.template</param>
@@ -267,7 +267,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToManyFromSimpleItems() throws ExtractionException {
+    void shouldCreateOneToManyFromSimpleItems() throws ExtractionException {
         // One topic mapping two simple items.
         /*
          * <param name="map.topic.to">simple-item-1,simple-item-2</param>
@@ -302,7 +302,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToManyFromItemTemplates() throws ExtractionException {
+    void shouldCreateOneToManyFromItemTemplates() throws ExtractionException {
         // One topic mapping two item templates.
         /*
          * <param name="map.topic.to">item-template.family,item-template.relatives</param>
@@ -348,7 +348,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateManyToOneFromSimpleItem() throws ExtractionException {
+    void shouldCreateManyToOneFromSimpleItem() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One item.
@@ -387,7 +387,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateManyToOneFromItemTemplate() throws ExtractionException {
+    void shouldCreateManyToOneFromItemTemplate() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One template.
@@ -435,7 +435,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
+    void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
@@ -444,7 +444,7 @@ public class ItemTemplatesTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
+    void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
@@ -457,7 +457,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnSubscriptionPatternFromSingleRegex() throws ExtractionException {
+    void shouldReturnSubscriptionPatternFromSingleRegex() throws ExtractionException {
         TopicMappingConfig topicMapping =
                 TopicMappingConfig.fromDelimitedMappings("topic_\\d+", "item1", "");
         TopicConfigurations topicsConfig =
@@ -468,7 +468,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnSubscriptionPatternFromMultipleRegex() throws ExtractionException {
+    void shouldReturnSubscriptionPatternFromMultipleRegex() throws ExtractionException {
         TopicMappingConfig topicMapping1 =
                 TopicMappingConfig.fromDelimitedMappings("topicA_\\d+", "item1,item2", "");
         TopicMappingConfig topicMapping2 =
@@ -487,7 +487,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnOnlyMatchingTopicFromMultiple() throws ExtractionException {
+    void shouldReturnOnlyMatchingTopicFromMultiple() throws ExtractionException {
         // Two topics with different schemas
         /*
          * <param name="item-template.stock">stock-#{symbol=KEY.symbol}</param>

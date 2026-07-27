@@ -62,7 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class RecordMapperTest {
+class RecordMapperTest {
 
     private static final String TEST_TOPIC_1 = "topic";
     private static final String TEST_TOPIC_2 = "anotherTopic";
@@ -72,7 +72,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldBuildEmptyMapper() {
+    void shouldBuildEmptyMapper() {
         RecordMapper<String, String> mapper = builder().build();
         assertThat(mapper).isNotNull();
         assertThat(mapper.hasCanonicalItemExtractors()).isFalse();
@@ -81,7 +81,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldBuildMapperWithDuplicateCanonicalItemExtractors() throws ExtractionException {
+    void shouldBuildMapperWithDuplicateCanonicalItemExtractors() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .addCanonicalItemExtractor(
@@ -109,7 +109,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldBuildMapperWithDifferentCanonicalItemExtractors() throws ExtractionException {
+    void shouldBuildMapperWithDifferentCanonicalItemExtractors() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .addCanonicalItemExtractor(
@@ -147,7 +147,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldBuildMapperWithStaticFieldsExtractor() throws ExtractionException {
+    void shouldBuildMapperWithStaticFieldsExtractor() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .fieldExtractor(
@@ -164,7 +164,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldBuildMapperFromItemTemplatesAndFieldsExtractor() throws ExtractionException {
+    void shouldBuildMapperFromItemTemplatesAndFieldsExtractor() throws ExtractionException {
         ItemTemplates<String, String> templates =
                 ItemTemplatesUtils.ItemTemplates(
                         String(), List.of(TEST_TOPIC_1), List.of("prefix-#{aKey=KEY}"));
@@ -182,7 +182,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldMapRecordWithMatchingTopic() throws ExtractionException {
+    void shouldMapRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .addCanonicalItemExtractor(
@@ -266,7 +266,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldMapRecordWithMatchingTopicPattern() throws ExtractionException {
+    void shouldMapRecordWithMatchingTopicPattern() throws ExtractionException {
         RecordMapper<String, String> mapper =
                 builder()
                         .addCanonicalItemExtractor(
@@ -370,7 +370,7 @@ public class RecordMapperTest {
 
     @ParameterizedTest
     @MethodSource("jsonFieldExtractors")
-    public void shouldMapJsonRecordWithMatchingTopic(
+    void shouldMapJsonRecordWithMatchingTopic(
             FieldsExtractor<String, JsonNode> fieldsExtractor, boolean isStatic)
             throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
@@ -445,7 +445,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldSkipFieldMappingFailure() throws ExtractionException {
+    void shouldSkipFieldMappingFailure() throws ExtractionException {
         // This flag will let field mapping alway success by omitting not mapped fields
         boolean skipOnFailure = true;
         RecordMapper<String, JsonNode> mapper =
@@ -479,7 +479,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldNotSkipFieldMappingFailure() throws ExtractionException {
+    void shouldNotSkipFieldMappingFailure() throws ExtractionException {
         boolean skipOnFailure = false;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
@@ -513,7 +513,7 @@ public class RecordMapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotMapDueToTemplateFailure(boolean skipOnFailure) throws ExtractionException {
+    void shouldNotMapDueToTemplateFailure(boolean skipOnFailure) throws ExtractionException {
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
                         .addCanonicalItemExtractor(
@@ -574,7 +574,7 @@ public class RecordMapperTest {
 
     @ParameterizedTest
     @MethodSource("avoFieldExtractors")
-    public void shouldMapAvroRecordWithMatchingTopic(
+    void shouldMapAvroRecordWithMatchingTopic(
             FieldsExtractor<String, GenericRecord> fieldExtractor, boolean isStatic)
             throws ExtractionException {
         RecordMapper<String, GenericRecord> mapper =
@@ -674,7 +674,7 @@ public class RecordMapperTest {
 
     @ParameterizedTest
     @MethodSource("protobufFieldExtractors")
-    public void shouldMapProtobufRecordWithMatchingTopic(
+    void shouldMapProtobufRecordWithMatchingTopic(
             FieldsExtractor<String, DynamicMessage> fieldsExtractor, boolean isStatic)
             throws ExtractionException {
         RecordMapper<String, DynamicMessage> mapper =
@@ -751,7 +751,7 @@ public class RecordMapperTest {
     }
 
     @Test
-    public void shouldMapSinkRecordMatchingTopic() throws ExtractionException {
+    void shouldMapSinkRecordMatchingTopic() throws ExtractionException {
         RecordMapper<Object, Object> mapper =
                 RecordMapper.<Object, Object>builder()
                         .addCanonicalItemExtractor(
