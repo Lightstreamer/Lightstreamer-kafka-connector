@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +48,12 @@ public class GlobalConfigTest {
     public void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        Files.delete(loggingConfigurationFile);
+        Files.delete(adapterDir);
     }
 
     @Test
