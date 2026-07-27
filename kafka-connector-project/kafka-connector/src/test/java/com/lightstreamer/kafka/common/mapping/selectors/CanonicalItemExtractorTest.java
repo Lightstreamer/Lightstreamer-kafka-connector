@@ -44,12 +44,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class CanonicalItemExtractorTest {
+class CanonicalItemExtractorTest {
 
     static final String TEST_SCHEMA = "schema";
 
     @Test
-    public void shouldBuildEqualExtractors() throws ExtractionException {
+    void shouldBuildEqualExtractors() throws ExtractionException {
         CanonicalItemExtractor<String, String> extractor1 =
                 canonicalItemExtractor(String(), Template("prefix1-#{aKey=KEY,aValue=VALUE}"));
 
@@ -62,7 +62,7 @@ public class CanonicalItemExtractorTest {
     }
 
     @Test
-    public void shouldBuildNotEqualExtractors() throws ExtractionException {
+    void shouldBuildNotEqualExtractors() throws ExtractionException {
         CanonicalItemExtractor<String, String> extractor1 =
                 canonicalItemExtractor(String(), Template("prefix1-#{aKey=KEY}"));
         assertThat(extractor1.equals(extractor1)).isTrue();
@@ -115,7 +115,7 @@ public class CanonicalItemExtractorTest {
 
     @ParameterizedTest
     @MethodSource("extractorArgumentsFromTemplateExpressions")
-    public void shouldCreateAndExtractCanonicalItemFromFromTemplateExpressions(
+    void shouldCreateAndExtractCanonicalItemFromFromTemplateExpressions(
             TemplateExpression templateExpression,
             Schema expectedSchema,
             String expectedCompactedString)
@@ -131,7 +131,7 @@ public class CanonicalItemExtractorTest {
     }
 
     @Test
-    public void shouldCreateAndExtractCanonicalItemFromSimpleItem() throws ExtractionException {
+    void shouldCreateAndExtractCanonicalItemFromSimpleItem() throws ExtractionException {
         CanonicalItemExtractor<String, String> extractor =
                 canonicalItemExtractor(String(), EmptyTemplate(TEST_SCHEMA));
         assertThat(extractor.schema()).isEqualTo(Schema.empty(TEST_SCHEMA));
@@ -141,7 +141,7 @@ public class CanonicalItemExtractorTest {
     }
 
     @Test
-    public void shouldFailExtraction() throws ExtractionException {
+    void shouldFailExtraction() throws ExtractionException {
         CanonicalItemExtractor<String, JsonNode> extractor =
                 canonicalItemExtractor(
                         TestSelectorSuppliers.JsonValue(),
@@ -158,7 +158,7 @@ public class CanonicalItemExtractorTest {
     }
 
     @Test
-    public void shouldNotCreateDueToExtractionException() {
+    void shouldNotCreateDueToExtractionException() {
         assertThrows(
                 ExtractionException.class,
                 () ->
