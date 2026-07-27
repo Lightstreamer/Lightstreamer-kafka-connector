@@ -98,8 +98,8 @@ import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfi
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
 
 import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.metadata.Mode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
@@ -117,15 +117,16 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -160,7 +161,7 @@ public class ConnectorConfigTest {
 
     @BeforeEach
     public void before() throws IOException {
-        adapterDir = Files.createTempDirectory("adapter_dir");
+        adapterDir = Files.createTempDirectory("myadapter_dir");
         avroKeySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
         avroValueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
         protoKeySchemaFile = Files.createTempFile(adapterDir, "proto-key-schema-", ".desc");
@@ -179,7 +180,7 @@ public class ConnectorConfigTest {
         Files.delete(trustStoreFile);
         Files.delete(keyStoreFile);
         Files.delete(keyTabFile);
-        Files.delete(adapterDir);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
@@ -772,7 +773,7 @@ public class ConnectorConfigTest {
         assertThat(baseConsumerProps)
                 .containsAtLeast(
                         ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-                        "org.apache.kafka.common.serialization.ByteArrayDeserializer1",
+                        "org.apache.kafka.common.serialization.ByteArrayDeserializer",
                         ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                         "org.apache.kafka.common.serialization.ByteArrayDeserializer",
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -980,6 +981,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_KEY_EVALUATOR_TYPE, "AVRO")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1030,6 +1032,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, "AVRO")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1081,6 +1084,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1173,6 +1177,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1263,7 +1268,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetKvpPairsSeparator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(',');
         assertThat(config.getValueKvpPairsSeparator()).isEqualTo(',');
 
@@ -1284,7 +1289,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs1));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1295,7 +1301,8 @@ public class ConnectorConfigTest {
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs2));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1304,7 +1311,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetKvpValueSeparator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo('=');
         assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('=');
 
@@ -1325,7 +1332,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs1));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1336,7 +1344,8 @@ public class ConnectorConfigTest {
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs2));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1356,11 +1365,13 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldDefaultConsumerMode() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
         assertThat(config.isManual()).isFalse();
 
-        config = ConnectorConfigProvider.minimalWith(Map.of(CONSUMER_MODE, "GROUP"));
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(), Map.of(CONSUMER_MODE, "GROUP"));
         assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
         assertThat(config.isManual()).isFalse();
     }
@@ -1368,7 +1379,8 @@ public class ConnectorConfigTest {
     @Test
     public void shouldAcceptManualMode() {
         ConnectorConfig config =
-                ConnectorConfigProvider.minimalWith(Map.of(CONSUMER_MODE, "MANUAL"));
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(), Map.of(CONSUMER_MODE, "MANUAL"));
         assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.MANUAL);
         assertThat(config.isManual()).isTrue();
         assertThat(config.baseConsumerProps().containsKey(GROUP_ID_CONFIG)).isFalse();
@@ -1381,7 +1393,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
-                                        Map.of(CONSUMER_MODE, "INVALID")));
+                                        adapterDir.toString(), Map.of(CONSUMER_MODE, "INVALID")));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [consumer.mode]");
@@ -1394,6 +1406,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(
                                                 CONSUMER_MODE,
                                                 "MANUAL",
@@ -1412,6 +1425,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of("map.topic.from.partitions", "1,2,3")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1426,6 +1440,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(
                                                 "consumer.mode",
                                                 "MANUAL",
@@ -1446,6 +1461,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(
                                                 "consumer.mode",
                                                 "MANUAL",
@@ -1458,7 +1474,8 @@ public class ConnectorConfigTest {
     public void shouldGetTopicMappingWithOneReference() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1");
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
 
         List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
@@ -1472,7 +1489,8 @@ public class ConnectorConfigTest {
     public void shouldGetTopicMappingWithMoreReferences() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1,item1,item1,item2");
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
 
         List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
@@ -1488,7 +1506,8 @@ public class ConnectorConfigTest {
         updatedConfigs.put(CONSUMER_MODE, "MANUAL");
         updatedConfigs.put("map.topic-test.to", "item-template.template1");
         updatedConfigs.put("map.topic-test.from.partitions", "0-4,8-10,12,13");
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
 
         List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
@@ -1501,13 +1520,14 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetItemTemplateConfigs() {
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimal(adapterDir.toString());
 
         var templateConfig = cgg1.getItemTemplateConfigs();
         assertThat(templateConfig.templates()).isEmpty();
 
         ConnectorConfig cgg2 =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 "item-template.template1",
                                 "item1-#{param1=VALUE.value1}",
@@ -1530,7 +1550,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetMapRegEx() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isMapRegExEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1546,7 +1566,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
@@ -1554,7 +1575,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldResolveSubscriptionMode() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getSubscriptionMode()).isEmpty();
         assertThat(config.getItemSnapshotMode()).isEqualTo(ItemSnapshotEnabledMode.NONE);
 
@@ -1674,7 +1695,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetItemSnapshotDistinctLength() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getItemSnapshotDistinctLength()).isEqualTo(10);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1694,7 +1715,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetItemSnapshotMaxIdleSeconds() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getItemSnapshotMaxIdleSeconds()).isEqualTo(0);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1723,7 +1744,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [item.snapshot.enabled.mode]");
@@ -1731,7 +1753,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetFieldsSkipFailedMapping() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isFieldsSkipFailedMappingEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1742,7 +1764,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetFieldsMapNonScalarValues() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isFieldsMapNonScalarValuesEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1758,7 +1780,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1772,7 +1795,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1788,7 +1812,8 @@ public class ConnectorConfigTest {
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid regular expression for parameter [map.\\k.to]");
@@ -1796,7 +1821,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetFieldConfigs() {
-        ConnectorConfig cgg = ConnectorConfigProvider.minimal();
+        ConnectorConfig cgg = ConnectorConfigProvider.minimal(adapterDir.toString());
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
         assertThat(fieldConfigs.namedFieldsExpressions()).hasSize(1);
         assertThat(fieldConfigs.namedFieldsExpressions().get("fieldName1").toString())
@@ -1805,13 +1830,13 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetHostList() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getHostsList(BOOTSTRAP_SERVERS)).isEqualTo("server:8080,server:8081");
     }
 
     @Test
     public void shouldGetDefaultText() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getText(ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
     }
@@ -1854,7 +1879,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetDefaultEvaluator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyEvaluator()).isEqualTo(STRING);
         assertThat(config.getValueEvaluator()).isEqualTo(STRING);
 
@@ -1868,7 +1893,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetErrorStrategy() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordExtractionErrorHandlingStrategy())
                 .isEqualTo(IGNORE_AND_CONTINUE);
 
@@ -1903,7 +1928,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetRecordConsumeWithOrderStrategy() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordConsumeWithOrderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
 
@@ -1934,7 +1959,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldGetRecordConsumeWithThreadsNumber() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordConsumeWithNumThreads()).isEqualTo(1);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -2088,7 +2113,7 @@ public class ConnectorConfigTest {
 
     @Test
     public void shouldNoGetNonExistingNonRequiredInt() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
         assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
         assertThat(config.getNonNegativeInt(CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
@@ -2104,7 +2129,7 @@ public class ConnectorConfigTest {
 
         assertThat(config.isEncryptionEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isKeystoreEnabled(),
                         () -> config.enabledProtocols(),
@@ -2117,7 +2142,7 @@ public class ConnectorConfigTest {
                         () -> config.cipherSuites(),
                         () -> config.cipherSuitesAsStr(),
                         () -> config.sslProvider());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2192,13 +2217,13 @@ public class ConnectorConfigTest {
         assertThat(props).doesNotContainKey(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
         assertThat(props).doesNotContainKey(SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.keystorePath(),
                         () -> config.keystorePassword(),
                         () -> config.keystoreType(),
                         () -> config.keyPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2488,7 +2513,7 @@ public class ConnectorConfigTest {
 
         assertThat(config.isAuthenticationEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.authenticationMechanism(),
                         () -> config.authenticationUsername(),
@@ -2505,7 +2530,7 @@ public class ConnectorConfigTest {
                         () -> config.gssapiPrincipal(),
                         () -> config.gssapiUseKeyTab(),
                         () -> config.gssapiUseTicketCache());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2983,7 +3008,7 @@ public class ConnectorConfigTest {
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isSchemaRegistryEnabled()).isFalse();
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isConfluentSchemaRegistryEncryptionEnabled(),
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
@@ -3000,7 +3025,7 @@ public class ConnectorConfigTest {
                         () -> config.azureClientId(),
                         () -> config.azureTenantId(),
                         () -> config.azureClientSecret());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3017,13 +3042,13 @@ public class ConnectorConfigTest {
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.azureTenantId(),
                         () -> config.azureClientId(),
                         () -> config.azureClientSecret());
 
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3047,7 +3072,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isConfluentSchemaRegistryEncryptionEnabled(),
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
@@ -3061,7 +3086,7 @@ public class ConnectorConfigTest {
                         () -> config.confluentSchemaRegistryCipherSuitesAsStr(),
                         () -> config.confluentSchemaRegistrySslProvider(),
                         () -> config.isSchemaRegistryBasicAuthenticationEnabled());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3079,7 +3104,7 @@ public class ConnectorConfigTest {
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
         assertThat(config.isConfluentSchemaRegistryEncryptionEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
                         () -> config.confluentSchemaRegistryEnabledProtocolsAsStr(),
@@ -3091,7 +3116,7 @@ public class ConnectorConfigTest {
                         () -> config.confluentSchemaRegistryCipherSuites(),
                         () -> config.confluentSchemaRegistryCipherSuitesAsStr(),
                         () -> config.confluentSchemaRegistrySslProvider());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3138,13 +3163,13 @@ public class ConnectorConfigTest {
         assertThat(props)
                 .doesNotContainKey("schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryKeystorePath(),
                         () -> config.confluentSchemaRegistryKeystorePassword(),
                         () -> config.confluentSchemaRegistryKeystoreType(),
                         () -> config.schemaRegistryKeyPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3295,11 +3320,11 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryBasicAuthenticationUserName(),
                         () -> config.confluentSchemaRegistryBasicAuthenticationPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
