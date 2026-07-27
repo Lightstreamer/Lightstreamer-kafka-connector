@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AbstractConfigTest {
+class AbstractConfigTest {
 
     private Path adapterDir;
     private Path schemaFile1;
@@ -47,7 +48,7 @@ public class AbstractConfigTest {
     private Path keystoreFile;
 
     @BeforeEach
-    public void setUp() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir_test");
 
         // Create subdirectory for nested paths
@@ -61,27 +62,15 @@ public class AbstractConfigTest {
     }
 
     @AfterEach
-    public void tearDown() throws IOException {
-        if (schemaFile1 != null) Files.deleteIfExists(schemaFile1);
-        if (schemaFile2 != null) Files.deleteIfExists(schemaFile2);
-        if (keystoreFile != null) Files.deleteIfExists(keystoreFile);
-
-        if (adapterDir != null) {
-            Files.walk(adapterDir)
-                    .sorted((a, b) -> -a.compareTo(b)) // Delete files before directories
-                    .forEach(
-                            path -> {
-                                try {
-                                    Files.deleteIfExists(path);
-                                } catch (IOException e) {
-                                    // Ignore
-                                }
-                            });
-        }
+    void after() throws IOException {
+        Files.deleteIfExists(schemaFile1);
+        Files.deleteIfExists(schemaFile2);
+        Files.deleteIfExists(keystoreFile);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
-    public void shouldPreserveConfigWithoutFileParameters() {
+    void shouldPreserveConfigWithoutFileParameters() {
         ConfigsSpec spec =
                 new ConfigsSpec()
                         .add("adapters_conf.id", true, false, TEXT)
@@ -103,7 +92,7 @@ public class AbstractConfigTest {
     }
 
     @Test
-    public void shouldOnlyConvertFileTypeParameters() {
+    void shouldOnlyConvertFileTypeParameters() {
         String relativeSchemaPath1 = "schemas/" + schemaFile1.getFileName().toString();
         String relativeSchemaPath2 = "schemas/" + schemaFile2.getFileName().toString();
         String relativeKeystorePath = "certs/" + keystoreFile.getFileName().toString();
@@ -164,7 +153,7 @@ public class AbstractConfigTest {
 
     @ParameterizedTest
     @CsvSource({"/absolute/path/to/schema.avsc", "C:\\absolute\\path\\to\\schema.avsc"})
-    public void shouldPreserveAbsoluteFilePaths(String absolutePath) {
+    void shouldPreserveAbsoluteFilePaths(String absolutePath) {
         ConfigsSpec spec = new ConfigsSpec().add("schema.path", false, false, FILE);
 
         Map<String, String> config = new HashMap<>();
@@ -180,7 +169,7 @@ public class AbstractConfigTest {
     }
 
     @Test
-    public void shouldSkipInvalidFileParameterValues() {
+    void shouldSkipInvalidFileParameterValues() {
         ConfigsSpec spec =
                 new ConfigsSpec()
                         .add("schema.path", false, false, FILE)
@@ -202,7 +191,7 @@ public class AbstractConfigTest {
     }
 
     @Test
-    public void shouldThrowNullPointerExceptionForNullConfigDir() {
+    void shouldThrowNullPointerExceptionForNullConfigDir() {
         ConfigsSpec spec = new ConfigsSpec().add("param1", false, false, TEXT);
         Map<String, String> config = Collections.emptyMap();
 
