@@ -184,10 +184,10 @@ public class DataExtractors {
 
             if (obj instanceof ExtractorsProvider<?, ?> other) {
                 return Objects.equals(
-                                this.keySelectorSupplier.evaluatorType(),
+                                keySelectorSupplier.evaluatorType(),
                                 other.keySelectorSupplier.evaluatorType())
                         && Objects.equals(
-                                this.valueSelectorSupplier.evaluatorType(),
+                                valueSelectorSupplier.evaluatorType(),
                                 other.valueSelectorSupplier.evaluatorType());
             }
             return false;
@@ -306,38 +306,37 @@ public class DataExtractors {
                 KeyValueSelectorSuppliers<K, V> sSuppliers, TemplateExpression template)
                 throws ExtractionException {
 
-            this.provider = ExtractorsProvider.create(sSuppliers);
+            provider = ExtractorsProvider.create(sSuppliers);
             this.template = template;
-            this.extractors = (DataExtractor<K, V>[]) new DataExtractor[template.params().size()];
+            extractors = (DataExtractor<K, V>[]) new DataExtractor[template.params().size()];
 
             int index = 0;
             for (Map.Entry<String, ExtractionExpression> expression :
                     template.params().entrySet()) {
-                this.extractors[index++] =
+                extractors[index++] =
                         provider.createDataExtractor(
                                 expression.getKey(), expression.getValue(), false);
             }
 
             Schema schema = template.schema();
-            switch (this.extractors.length) {
-                case 0 -> this.canonicalItemGenerator = record -> schema.name();
+            switch (extractors.length) {
+                case 0 -> canonicalItemGenerator = record -> schema.name();
                 case 1 ->
-                        this.canonicalItemGenerator =
+                        canonicalItemGenerator =
                                 record ->
                                         Data.buildItemNameSingle(
-                                                this.extractors[0].extract(record), schema.name());
+                                                extractors[0].extract(record), schema.name());
                 default ->
-                        this.canonicalItemGenerator =
+                        canonicalItemGenerator =
                                 record ->
-                                        Data.buildItemName(
-                                                this.extractDataArray(record), schema.name());
+                                        Data.buildItemName(extractDataArray(record), schema.name());
             }
         }
 
         private Data[] extractDataArray(KafkaRecord<K, V> record) {
-            Data[] data = new Data[this.extractors.length];
-            for (int i = 0; i < this.extractors.length; i++) {
-                data[i] = this.extractors[i].extract(record);
+            Data[] data = new Data[extractors.length];
+            for (int i = 0; i < extractors.length; i++) {
+                data[i] = extractors[i].extract(record);
             }
             return data;
         }
@@ -351,8 +350,8 @@ public class DataExtractors {
             if (this == obj) return true;
 
             if (obj instanceof CanonicalItemExtractorImpl<?, ?> other) {
-                return Objects.equals(this.template, other.template)
-                        && Objects.equals(this.provider, other.provider);
+                return Objects.equals(template, other.template)
+                        && Objects.equals(provider, other.provider);
             }
             return false;
         }
@@ -423,7 +422,7 @@ public class DataExtractors {
 
             this.skipOnFailure = skipOnFailure;
             this.mapNonScalars = mapNonScalars;
-            this.extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
+            extractors = (DataExtractor<K, V>[]) new DataExtractor[expressions.size()];
             ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
 
             int index = 0;
@@ -432,7 +431,7 @@ public class DataExtractors {
                 DataExtractor<K, V> dataExtractor =
                         provider.createDataExtractor(
                                 fieldName, namedExpression.getValue(), mapNonScalars);
-                this.extractors[index++] = dataExtractor;
+                extractors[index++] = dataExtractor;
                 extractorsByName.put(fieldName, dataExtractor);
             }
         }
@@ -440,9 +439,9 @@ public class DataExtractors {
         @Override
         public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
                 throws ValueException {
-            for (int i = 0; i < this.extractors.length; i++) {
+            for (int i = 0; i < extractors.length; i++) {
                 try {
-                    Data data = this.extractors[i].extract(record);
+                    Data data = extractors[i].extract(record);
                     targetMap.put(data.name(), data.text());
                 } catch (ValueException ve) {
                     if (!skipOnFailure) {
@@ -552,20 +551,20 @@ public class DataExtractors {
             }
 
             this.skipOnFailure = skipOnFailure;
-            this.mapExtractors = (MapExtractor<K, V>[]) new MapExtractor[expressions.size()];
+            mapExtractors = (MapExtractor<K, V>[]) new MapExtractor[expressions.size()];
             ExtractorsProvider<K, V> provider = ExtractorsProvider.create(sSuppliers);
 
             int index = 0;
             for (ExtractionExpression boundExpression : expressions) {
-                this.mapExtractors[index++] = provider.createMapExtractor(boundExpression);
+                mapExtractors[index++] = provider.createMapExtractor(boundExpression);
             }
         }
 
         public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
                 throws ValueException {
-            for (int i = 0; i < this.mapExtractors.length; i++) {
+            for (int i = 0; i < mapExtractors.length; i++) {
                 try {
-                    this.mapExtractors[i].extract(record, targetMap);
+                    mapExtractors[i].extract(record, targetMap);
                 } catch (ValueException ve) {
                     if (!skipOnFailure) {
                         throw ve;
@@ -649,17 +648,17 @@ public class DataExtractors {
         @Override
         public void extractIntoMap(KafkaRecord<K, V> record, Map<String, String> targetMap)
                 throws ValueException {
-            for (int i = 0; i < this.extractors.size(); i++) {
+            for (int i = 0; i < extractors.size(); i++) {
                 // The last extractor may override fields extracted by previous ones
-                this.extractors.get(i).extractIntoMap(record, targetMap);
+                extractors.get(i).extractIntoMap(record, targetMap);
             }
         }
 
         @Override
         public boolean skipOnFailure() {
             boolean skipOnFailure = true;
-            for (int i = 0; i < this.extractors.size() && skipOnFailure; i++) {
-                skipOnFailure = this.extractors.get(i).skipOnFailure();
+            for (int i = 0; i < extractors.size() && skipOnFailure; i++) {
+                skipOnFailure = extractors.get(i).skipOnFailure();
             }
             return skipOnFailure;
         }
@@ -667,8 +666,8 @@ public class DataExtractors {
         @Override
         public boolean mapNonScalars() {
             boolean mapNonScalars = true;
-            for (int i = 0; i < this.extractors.size() && mapNonScalars; i++) {
-                mapNonScalars = this.extractors.get(i).mapNonScalars();
+            for (int i = 0; i < extractors.size() && mapNonScalars; i++) {
+                mapNonScalars = extractors.get(i).mapNonScalars();
             }
             return mapNonScalars;
         }
@@ -676,8 +675,8 @@ public class DataExtractors {
         @Override
         public Set<String> mappedFields() {
             Set<String> fieldNames = new HashSet<>();
-            for (int i = 0; i < this.extractors.size(); i++) {
-                fieldNames.addAll(this.extractors.get(i).mappedFields());
+            for (int i = 0; i < extractors.size(); i++) {
+                fieldNames.addAll(extractors.get(i).mappedFields());
             }
             return fieldNames;
         }

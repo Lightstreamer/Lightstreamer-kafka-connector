@@ -43,11 +43,11 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
             throws ExtractionException {
         super(expression);
         this.rootNodeFactory = rootNodeFactory;
-        this.evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
+        evaluator = parser.parse(new ParsingContext(expression, expectedRoot));
     }
 
     protected final Node<T> eval(Supplier<P> payloadSupplier, boolean checkScalar) {
-        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, rootNodeFactory);
         Node<T> resultNode = evaluator.evaluateChain(recordNode);
 
         if (checkScalar && !resultNode.isScalar()) {
@@ -58,7 +58,7 @@ public abstract class StructuredBaseSelector<P, T extends Node<T>> extends BaseS
     }
 
     protected final Node<T> eval(String name, Supplier<P> payloadSupplier, boolean checkScalar) {
-        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, this.rootNodeFactory);
+        Node<T> recordNode = new KafkaRecordNode<>(payloadSupplier, rootNodeFactory);
         Node<T> resultNode = evaluator.evaluateChain(recordNode, name);
 
         if (checkScalar && !resultNode.isScalar()) {

@@ -25,7 +25,7 @@ public interface Data extends Comparable<Data> {
 
     @Override
     public default int compareTo(Data o) {
-        return this.name().compareTo(o.name());
+        return name().compareTo(o.name());
     }
 
     static Data from(String name, String text) {
