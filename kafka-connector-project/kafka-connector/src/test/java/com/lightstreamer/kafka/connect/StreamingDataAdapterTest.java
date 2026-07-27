@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;

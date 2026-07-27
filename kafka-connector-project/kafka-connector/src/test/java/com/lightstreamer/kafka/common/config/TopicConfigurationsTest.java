@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.common.config;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.ItemTemplateConfigs;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;

@@ -24,10 +24,9 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Empty
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Template;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecord;
 import static com.lightstreamer.kafka.test_utils.Records.KafkaRecordWithHeaders;
-import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJsonNodeProvider;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.databind.JsonNode;

@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters.pub;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
@@ -44,6 +44,7 @@ import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -80,6 +81,12 @@ public class AdapterSetTest {
 
         metadataAdapterParams = new HashMap<>();
         metadataAdapterParams.put("adapters_conf.id", "KAFKA");
+    }
+
+    @AfterEach
+    public void after() throws IOException {
+        Files.delete(loggingConfigurationFile);
+        Files.delete(adapterDir);
     }
 
     void doInit() throws MetadataProviderException {

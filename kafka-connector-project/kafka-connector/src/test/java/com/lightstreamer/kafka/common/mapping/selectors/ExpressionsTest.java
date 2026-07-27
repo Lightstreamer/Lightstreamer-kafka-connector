@@ -30,7 +30,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.emptySet;

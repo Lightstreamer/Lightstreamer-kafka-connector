@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.common.mapping;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Subscription;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;

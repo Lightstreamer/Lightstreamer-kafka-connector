@@ -35,7 +35,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;

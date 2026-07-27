@@ -19,7 +19,7 @@ package com.lightstreamer.kafka.common.config;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingConfig;

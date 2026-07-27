@@ -28,7 +28,7 @@ import static com.lightstreamer.kafka.test_utils.SampleMessageProviders.SampleJs
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.Json;
 import static com.lightstreamer.kafka.test_utils.TestSelectorSuppliers.JsonValue;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.fasterxml.jackson.core.JsonProcessingException;

@@ -30,7 +30,7 @@ import static org.apache.kafka.common.serialization.Serdes.Float;
 import static org.apache.kafka.common.serialization.Serdes.Integer;
 import static org.apache.kafka.common.serialization.Serdes.Short;
 import static org.apache.kafka.common.serialization.Serdes.String;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
