@@ -29,6 +29,7 @@ import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.Dese
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
@@ -220,7 +221,7 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
-    // Only for testing purposes
+    // Package-private (instead of private) for test-side reference assertions.
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     // Monitoring configuration
@@ -285,6 +286,7 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
         this.consumer = consumerFactory.apply(this.connectionSpec.consumerProperties());
+
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.eagerLifecycle = eagerLifecycle;
         OffsetService os =
@@ -750,32 +752,32 @@ public class KafkaConsumerWrapper<K, V> {
         logger.atInfo().log("Internal resources closed");
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Consumer<byte[], byte[]> getInternalConsumer() {
         return consumer;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     OffsetService getOffsetService() {
         return offsetService;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     DeserializationTiming getRecordDeserializationTiming() {
         return deserializationMode.getTiming();
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     RecordConsumer<K, V> getRecordConsumer() {
         return recordConsumer;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Duration getPollTimeout() {
         return pollDuration;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Monitor getMonitor() {
         return monitor;
     }
