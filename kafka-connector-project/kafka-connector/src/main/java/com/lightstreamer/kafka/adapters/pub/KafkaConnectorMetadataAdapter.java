@@ -27,6 +27,7 @@ import com.lightstreamer.interfaces.metadata.SchemaException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
 
@@ -95,12 +96,17 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     protected void postInit(Map params, File configDir) throws MetadataProviderException {}
 
     /**
-     * Only used for unit testing.
+     * Returns the set of item names currently subscribed under the given session.
+     *
+     * <p>The returned set is an immutable snapshot; subsequent subscription changes are not
+     * reflected.
      *
      * @param sessionId a Session ID
-     * @return an Optional describing the set of all the items associated with the specified session
+     * @return an Optional describing the immutable set of item names, or {@code Optional.empty()}
+     *     if no subscriptions exist for that session
      * @hidden
      */
+    @VisibleForTesting
     protected final Optional<Set<String>> itemsBySession(String sessionId) {
         return Optional.ofNullable(tablesBySession.get(sessionId)).map(m -> Set.copyOf(m.keySet()));
     }
