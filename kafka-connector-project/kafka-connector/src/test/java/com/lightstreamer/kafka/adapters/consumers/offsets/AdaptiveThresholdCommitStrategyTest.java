@@ -23,12 +23,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class AdaptiveThresholdCommitStrategyTest {
+class AdaptiveThresholdCommitStrategyTest {
 
     private CommitStrategy strategy;
 
     @BeforeEach
-    void setUp() {
+    void before() {
         strategy = CommitStrategy.adaptiveCommitStrategy(5); // max 5 commits/sec
     }
 

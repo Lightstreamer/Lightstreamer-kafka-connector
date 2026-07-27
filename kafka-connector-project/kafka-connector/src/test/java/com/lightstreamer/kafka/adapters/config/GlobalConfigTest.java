@@ -39,25 +39,25 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GlobalConfigTest {
+class GlobalConfigTest {
 
     private Path loggingConfigurationFile;
     private Path adapterDir;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         Files.delete(loggingConfigurationFile);
         Files.delete(adapterDir);
     }
 
     @Test
-    public void shouldReturnConfigSpec() {
+    void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = GlobalConfig.configSpec();
 
         ConfParameter adaptersConfId = configSpec.findParameter(GlobalConfig.ADAPTERS_CONF_ID);
@@ -80,7 +80,7 @@ public class GlobalConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParam() {
+    void shouldSpecifyRequiredParam() {
         ConfigException e =
                 assertThrows(ConfigException.class, () -> new GlobalConfig(Collections.emptyMap()));
         assertThat(e)
@@ -132,7 +132,7 @@ public class GlobalConfigTest {
     }
 
     @Test
-    public void shouldGetNewConfig() {
+    void shouldGetNewConfig() {
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
         assertThat(config.getText(GlobalConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH))

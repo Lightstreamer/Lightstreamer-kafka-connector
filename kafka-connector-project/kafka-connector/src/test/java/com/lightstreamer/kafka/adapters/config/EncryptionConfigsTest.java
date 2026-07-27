@@ -25,7 +25,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.junit.jupiter.api.Test;
 
-public class EncryptionConfigsTest {
+class EncryptionConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
