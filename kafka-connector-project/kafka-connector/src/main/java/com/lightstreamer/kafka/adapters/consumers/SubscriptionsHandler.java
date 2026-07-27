@@ -24,6 +24,7 @@ import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
@@ -268,9 +269,8 @@ public interface SubscriptionsHandler<K, V> {
          */
         protected FutureStatus lifecycleStatus;
 
-        // Only for testing purposes: hook invoked before acquiring lock in
-        // decrementAndMaybeStopConsuming().
-        Runnable stopConsumingHook = () -> {};
+        // Hook invoked before acquiring lock in decrementAndMaybeStopConsuming().
+        @VisibleForTesting Runnable stopConsumingHook = () -> {};
 
         private final MetadataListener metadataListener;
         private final OnDemandSubscribedItems subscribedItems;
@@ -385,7 +385,14 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        // Only for testing purposes
+        /**
+         * Reports whether the consumer is currently running: a consumer has been created and its
+         * lifecycle future has not yet resolved.
+         *
+         * @return {@code true} if the consumer exists and its lifecycle status is not yet
+         *     available, {@code false} otherwise
+         */
+        @VisibleForTesting
         boolean isConsuming() {
             consumerLock.lock();
             try {
@@ -396,14 +403,12 @@ public interface SubscriptionsHandler<K, V> {
         }
 
         /**
-         * Returns the latest lifecycle state for testing, waiting for it to be resolved when a
-         * status is available.
-         *
-         * <p>This method is intended only for tests.
+         * Returns the resolved lifecycle {@link State}, waiting for it if a status is available.
          *
          * @return the resolved lifecycle {@link State}, or {@code Optional.empty()} if the consumer
          *     has never been started
          */
+        @VisibleForTesting
         Optional<State> joinCurrentState() {
             FutureStatus statusToRead;
             consumerLock.lock();
@@ -419,7 +424,14 @@ public interface SubscriptionsHandler<K, V> {
             return Optional.of(statusToRead.join());
         }
 
-        // Only for testing purposes
+        /**
+         * Reports whether a consumer instance has been created (regardless of its lifecycle state).
+         * Unlike {@link #isConsuming()}, this does not require the lifecycle future to be
+         * unresolved.
+         *
+         * @return {@code true} if the consumer field is set, {@code false} otherwise
+         */
+        @VisibleForTesting
         boolean isConsumerActive() {
             consumerLock.lock();
             try {
@@ -429,7 +441,12 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        // Only for testing purposes
+        /**
+         * Returns the current count of subscribed items tracked by this handler.
+         *
+         * @return the number of items currently registered
+         */
+        @VisibleForTesting
         int getItemsCounter() {
             consumerLock.lock();
             try {
@@ -439,7 +456,7 @@ public interface SubscriptionsHandler<K, V> {
             }
         }
 
-        // Only for testing purposes
+        @VisibleForTesting
         OnDemandSubscribedItems getSubscribedItems() {
             return subscribedItems;
         }
@@ -567,22 +584,31 @@ public interface SubscriptionsHandler<K, V> {
             return true;
         }
 
-        // Only for testing purposes
+        @VisibleForTesting
         ForceableSubscribedItems getSubscribedItems() {
             return subscribedItems;
         }
 
-        // Only for testing purposes
+        @VisibleForTesting
         FutureStatus getLifecycleStatus() {
             return lifecycleStatus;
         }
 
-        // Only for testing purposes
-        long getItemSnapshotMaxIdleSeconds() {
+        /**
+         * Returns the configured maximum idle time in seconds after which an item's snapshot is
+         * discarded, as passed to the builder.
+         *
+         * <p>Public strictly for cross-package test access ({@code
+         * com.lightstreamer.kafka.adapters.KafkaConnectorDataAdapterTest}).
+         *
+         * @return the max-idle-seconds value; {@code 0} disables the idle check
+         */
+        @VisibleForTesting
+        public long getItemSnapshotMaxIdleSeconds() {
             return itemSnapshotMaxIdleSeconds;
         }
 
-        // Only for testing purposes
+        @VisibleForTesting
         Optional<ScheduledFuture<?>> getScheduled() {
             return scheduled;
         }
