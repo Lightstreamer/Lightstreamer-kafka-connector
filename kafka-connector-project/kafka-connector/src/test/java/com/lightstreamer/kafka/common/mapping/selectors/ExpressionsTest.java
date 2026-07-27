@@ -150,7 +150,7 @@ class ExpressionsTest {
                 #{VALUE.*}               $ Found unexpected wildcard char in the expression [VALUE.*]
                 #{VALUE.a.*}             $ Found unexpected wildcard char in the expression [VALUE.a.*]
                     """)
-    public void shouldNotParseWrappedExpression(String expression, String expectedErrorMessage) {
+    void shouldNotParseWrappedExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> Wrapped(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
@@ -279,7 +279,7 @@ class ExpressionsTest {
                 template-#{name=VALUE.*}            $ Found unexpected wildcard char in the expression [VALUE.*]
                 template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [VALUE[1]aaa]
                     """)
-    public void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
+    void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Template(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -389,8 +389,7 @@ class ExpressionsTest {
                 ''                                 | Invalid Item
                 template-[name=VALUE,name=OFFSET]  | No duplicated keys are allowed
                     """)
-    public void shouldNotParseSubscriptionExpression(
-            String expression, String expectedErrorMessage) {
+    void shouldNotParseSubscriptionExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Subscription(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -448,8 +447,7 @@ class ExpressionsTest {
                 item-               | item-
                 item-[]             | item
                     """)
-    public void shouldGetCanonicalItemFromExpression(
-            String expression, String expectedCanonicalItem) {
+    void shouldGetCanonicalItemFromExpression(String expression, String expectedCanonicalItem) {
         String canonicalItem = Expressions.CanonicalItemName(expression);
         assertThat(canonicalItem).isEqualTo(expectedCanonicalItem);
     }
