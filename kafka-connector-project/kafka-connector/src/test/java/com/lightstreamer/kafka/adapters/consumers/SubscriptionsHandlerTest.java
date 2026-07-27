@@ -138,8 +138,8 @@ public class SubscriptionsHandlerTest {
         AtomicReference<SubscriptionExpression> receivedExpression = new AtomicReference<>(null);
         AtomicReference<Object> receivedHandle = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(),
                         (se, handle) -> {
                             receivedExpression.set(se);
@@ -149,28 +149,28 @@ public class SubscriptionsHandlerTest {
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
         assertThat(receivedExpression.get().canonicalItemName()).isEqualTo("anItemTemplate");
-        assertThat(receivedHandle.get()).isEqualTo(itemHandle);
+        assertThat(receivedHandle.get()).isSameInstanceAs(itemHandle);
     }
 
     @Test
     public void shouldSetListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), listener -> receivedListener.set(listener), null);
 
         ItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionsHandler.setListener(listener);
-        assertThat(receivedListener.get()).isEqualTo(listener);
+        assertThat(receivedListener.get()).isSameInstanceAs(listener);
     }
 
     @Test
     public void shouldRejectNullListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), listener -> receivedListener.set(listener), null);
 
         IllegalArgumentException iae =
@@ -183,8 +183,8 @@ public class SubscriptionsHandlerTest {
 
     @Test
     public void shouldFailCreateNewConsumer() {
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(builder());
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(builder());
 
         RuntimeException re =
                 assertThrows(
@@ -197,8 +197,8 @@ public class SubscriptionsHandlerTest {
 
     @Test
     public void shouldCreateNewConsumer() {
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(builder());
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(builder());
         subscriptionsHandler.setListener(new Mocks.MockItemEventListener());
 
         KafkaConsumerWrapper<String, String> consumer =
@@ -210,8 +210,8 @@ public class SubscriptionsHandlerTest {
     public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), (se, handle) -> subscribeCallbackInvoked.set(true));
 
         Object itemHandle = new Object();
@@ -231,8 +231,8 @@ public class SubscriptionsHandlerTest {
     public void shouldFailSubscriptionDueToInvalidExpression() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), (se, handle) -> subscribeCallbackInvoked.set(true));
 
         Object itemHandle = new Object();
@@ -276,12 +276,12 @@ public class SubscriptionsHandlerTest {
                         new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
     }
 
-    static class TestSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
+    static class SubscriptionsHandlerTestImp<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
         private final Consumer<ItemEventListener> setListenerCallback;
         private final BiConsumer<SubscriptionExpression, Object> subscribeCallback;
 
-        TestSubscriptionsHandler(
+        SubscriptionsHandlerTestImp(
                 Builder<K, V> builder,
                 Consumer<ItemEventListener> setListenerCallback,
                 BiConsumer<SubscriptionExpression, Object> subscribeCallback) {
@@ -290,13 +290,13 @@ public class SubscriptionsHandlerTest {
             this.setListenerCallback = setListenerCallback;
         }
 
-        TestSubscriptionsHandler(
+        SubscriptionsHandlerTestImp(
                 Builder<K, V> builder,
                 BiConsumer<SubscriptionExpression, Object> subscribeCallback) {
             this(builder, null, subscribeCallback);
         }
 
-        TestSubscriptionsHandler(Builder<K, V> builder) {
+        SubscriptionsHandlerTestImp(Builder<K, V> builder) {
             this(builder, null, null);
         }
 
