@@ -37,10 +37,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class ConfigSpecTest {
+class ConfigSpecTest {
 
     @Test
-    public void shouldClone() {
+    void shouldClone() {
         ConfigsSpec parent = new ConfigsSpec("parent");
         parent.add("prop1", ConfType.TEXT);
         parent.add("prop2", Options.evaluatorTypes());
@@ -55,7 +55,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldReturnSimpleNameSpacedConfigSpec() {
+    void shouldReturnSimpleNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("source");
         source.add("prop1", ConfType.TEXT);
 
@@ -69,7 +69,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldReturnNestedNameSpacedConfigSpec() {
+    void shouldReturnNestedNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("root");
         source.add("prop1", ConfType.TEXT);
         source.add("enabled.nested", true, false, ConfType.BOOL, defaultValue("true"));
