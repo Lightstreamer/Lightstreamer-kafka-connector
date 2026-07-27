@@ -26,17 +26,17 @@ import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumerSuppor
 
 import org.junit.jupiter.api.Test;
 
-public class ProcessUpdatesStrategyTest {
+class ProcessUpdatesStrategyTest {
 
     @Test
-    public void shouldCreateDefaultStrategy() {
+    void shouldCreateDefaultStrategy() {
         ProcessUpdatesStrategy strategy = ProcessUpdatesStrategy.defaultStrategy();
         assertThat(strategy).isInstanceOf(DefaultUpdatesStrategy.class);
         assertThat(strategy.type()).isEqualTo(ProcessUpdatesType.DEFAULT);
     }
 
     @Test
-    public void shouldCreateCommandModeStrategy() {
+    void shouldCreateCommandModeStrategy() {
         ProcessUpdatesStrategy strategy = ProcessUpdatesStrategy.commandModeStrategy();
         assertThat(strategy).isInstanceOf(CommandModeProcessUpdatesStrategy.class);
         assertThat(strategy.type()).isEqualTo(ProcessUpdatesType.COMMAND_MODE);

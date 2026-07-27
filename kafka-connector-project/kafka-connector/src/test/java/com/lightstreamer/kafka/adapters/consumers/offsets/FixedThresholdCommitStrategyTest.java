@@ -23,12 +23,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-public class FixedThresholdCommitStrategyTest {
+class FixedThresholdCommitStrategyTest {
 
     private CommitStrategy strategy;
 
     @BeforeEach
-    public void setUp() {
+    void before() {
         this.strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
     }
 

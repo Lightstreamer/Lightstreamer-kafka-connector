@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class NoCommitOffsetServiceTest {
+class NoCommitOffsetServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NoCommitOffsetServiceTest.class);
     private static final String TOPIC = "topic";
@@ -47,7 +47,7 @@ public class NoCommitOffsetServiceTest {
     private NoCommitOffsetService offsetService;
 
     @BeforeEach
-    public void setUp() {
+    void before() {
         consumer = new MockConsumer<>(StrategyType.LATEST.toString());
         consumer.updateBeginningOffsets(Map.of(TP0, 0L, TP1, 0L));
         consumer.updateEndOffsets(Map.of(TP0, 100L, TP1, 200L));
@@ -56,42 +56,42 @@ public class NoCommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldReturnEmptyOffsetsSnapshot() {
+    void shouldReturnEmptyOffsetsSnapshot() {
         assertThat(offsetService.offsetsSnapshot()).isEmpty();
     }
 
     @Test
-    public void shouldReturnEmptyOffsetsSnapshotAfterUpdateOffsets() {
+    void shouldReturnEmptyOffsetsSnapshotAfterUpdateOffsets() {
         offsetService.updateOffsets(KafkaRecord.from("topic", 0, 42, 0L, "key", "value", null));
         assertThat(offsetService.offsetsSnapshot()).isEmpty();
     }
 
     @Test
-    public void shouldReturnNullForGetFirstFailure() {
+    void shouldReturnNullForGetFirstFailure() {
         assertThat(offsetService.getFirstFailure()).isNull();
     }
 
     @Test
-    public void shouldReturnNullForGetFirstFailureAfterOnAsyncFailure() {
+    void shouldReturnNullForGetFirstFailureAfterOnAsyncFailure() {
         offsetService.onAsyncFailure(new RuntimeException("test failure"));
         assertThat(offsetService.getFirstFailure()).isNull();
     }
 
     @Test
-    public void shouldNotThrowOnMaybeCommit() {
+    void shouldNotThrowOnMaybeCommit() {
         offsetService.maybeCommit();
         // No exception is thrown; the maybeCommit call is a no-op.
     }
 
     @Test
-    public void shouldNotThrowOnConsumerShutdown() {
+    void shouldNotThrowOnConsumerShutdown() {
         offsetService.onConsumerShutdown();
         // No exception is thrown; the onConsumerShutdown call is a no-op.
     }
 
     @ParameterizedTest
     @EnumSource(RecordConsumeFrom.class)
-    public void shouldSeekAssignedPartitionsPerConsumeFrom(RecordConsumeFrom from) {
+    void shouldSeekAssignedPartitionsPerConsumeFrom(RecordConsumeFrom from) {
         NoCommitOffsetService service = new NoCommitOffsetService(consumer, logger, from);
 
         service.onPartitionsAssigned(Set.of(TP0, TP1));
@@ -105,19 +105,19 @@ public class NoCommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldWarnAndDoNothingOnUnexpectedPartitionsRevoked() {
+    void shouldWarnAndDoNothingOnUnexpectedPartitionsRevoked() {
         offsetService.onPartitionsRevoked(List.of(TP0));
         // No exception is thrown; the callback logs a warning and performs no commit.
     }
 
     @Test
-    public void shouldWarnAndDoNothingOnUnexpectedPartitionsLost() {
+    void shouldWarnAndDoNothingOnUnexpectedPartitionsLost() {
         offsetService.onPartitionsLost(List.of(TP0));
         // No exception is thrown; the callback logs a warning and performs no cleanup.
     }
 
     @Test
-    public void shouldBeCreatableViaFactoryMethod() {
+    void shouldBeCreatableViaFactoryMethod() {
         OffsetService service = OffsetService.noCommit(consumer, logger, RecordConsumeFrom.LATEST);
         assertThat(service).isInstanceOf(NoCommitOffsetService.class);
         assertThat(service.offsetsSnapshot()).isEmpty();

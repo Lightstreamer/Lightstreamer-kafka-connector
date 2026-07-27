@@ -50,7 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class CommitOffsetServiceTest {
+class CommitOffsetServiceTest {
 
     private static final String TOPIC = "topic";
     private static final TopicPartition partition0 = new TopicPartition(TOPIC, 0);
@@ -111,7 +111,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldUpdateOffsets() {
+    void shouldUpdateOffsets() {
         setUp(true);
 
         KafkaRecord<?, ?> record1 = KafkaRecord(TOPIC, 0, "A-0");
@@ -126,7 +126,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldStoreFirstFailure() {
+    void shouldStoreFirstFailure() {
         setUp(true);
 
         // Notify two different exceptions
@@ -138,7 +138,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldCommitSync() {
+    void shouldCommitSync() {
         setUp(true);
 
         prepareCommittedRecords();
@@ -191,7 +191,7 @@ public class CommitOffsetServiceTest {
 
     @ParameterizedTest
     @MethodSource("providedErrors")
-    public void shouldNotCommitSyncDueToException(RuntimeException exception) {
+    void shouldNotCommitSyncDueToException(RuntimeException exception) {
         setUp(true);
 
         prepareCommittedRecords();
@@ -236,7 +236,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldCommitAsync() {
+    void shouldCommitAsync() {
         setUp(true);
 
         prepareCommittedRecords();
@@ -283,7 +283,7 @@ public class CommitOffsetServiceTest {
 
     @ParameterizedTest
     @MethodSource("providedErrors")
-    public void shouldNotCommitAsyncDueToException(RuntimeException exception) {
+    void shouldNotCommitAsyncDueToException(RuntimeException exception) {
         setUp(true);
 
         prepareCommittedRecords();
@@ -328,7 +328,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldClearOffsetsOnPartitionsLost() {
+    void shouldClearOffsetsOnPartitionsLost() {
         setUp(true);
 
         List<KafkaRecord<?, ?>> records =
@@ -356,7 +356,7 @@ public class CommitOffsetServiceTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCommitOnPartitionsRevoked(boolean shutdownConsumer) {
+    void shouldCommitOnPartitionsRevoked(boolean shutdownConsumer) {
         setUp(true);
 
         prepareCommittedRecords();
@@ -417,7 +417,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldCommitOnConsumerShutdown() {
+    void shouldCommitOnConsumerShutdown() {
         setUp(true);
 
         prepareCommittedRecords();
@@ -456,7 +456,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldIgnoreErrorsOnPartitionRevoked() {
+    void shouldIgnoreErrorsOnPartitionRevoked() {
         setUp(true);
 
         prepareCommittedRecords();
@@ -498,7 +498,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
+    void shouldNotCommitWhenMaybeCommitThresholdNotReached() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
@@ -538,7 +538,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldAccumulateRecordCountsAcrossMultipleMaybeCommitCalls() {
+    void shouldAccumulateRecordCountsAcrossMultipleMaybeCommitCalls() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
@@ -609,7 +609,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldCommitWhenMaybeCommitTimeThresholdReached() throws InterruptedException {
+    void shouldCommitWhenMaybeCommitTimeThresholdReached() throws InterruptedException {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
@@ -671,7 +671,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldResetCountersAfterCommit() {
+    void shouldResetCountersAfterCommit() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
         prepareCommittedRecords();
 
@@ -754,7 +754,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldCommitWhenMaybeCommitRecordThresholdReached() {
+    void shouldCommitWhenMaybeCommitRecordThresholdReached() {
         setUp(true, CommitStrategy.fixedCommitStrategy(5000, 100));
 
         prepareCommittedRecords();
@@ -797,7 +797,7 @@ public class CommitOffsetServiceTest {
     }
 
     @Test
-    public void shouldBeCreatableViaFactoryMethod() {
+    void shouldBeCreatableViaFactoryMethod() {
         MockConsumer consumer = new MockConsumer(StrategyType.EARLIEST.toString());
         OffsetService service = OffsetService.commit(consumer, LoggerFactory.getLogger("test"));
         assertThat(service).isInstanceOf(CommitOffsetService.class);
