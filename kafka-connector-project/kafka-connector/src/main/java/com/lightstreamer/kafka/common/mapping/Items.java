@@ -28,6 +28,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
@@ -499,9 +500,9 @@ public class Items {
             return LAST_ACCESS_NANOS.compareAndSet(this, expected, update);
         }
 
-        // Visible for tests: lets unit tests stamp an arbitrary last-access value to
-        // deterministically simulate aged items in clearIdleSnapshots scans, without
-        // resorting to Thread.sleep.
+        // Lets unit tests stamp an arbitrary last-access value to deterministically
+        // simulate aged items in clearIdleSnapshots scans, without resorting to Thread.sleep.
+        @VisibleForTesting
         void setLastTouched(long nanos) {
             this.lastAccessNanos = nanos;
         }
@@ -1015,12 +1016,12 @@ public class Items {
         Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
         /**
-         * Returns the set of extractor schemas configured for the given topic. Intended for testing
-         * purposes only.
+         * Returns the set of extractor schemas configured for the given topic.
          *
          * @param topic the Kafka topic name
          * @return the set of {@link Schema}s for that topic
          */
+        @VisibleForTesting
         Set<Schema> getExtractorSchemasByTopicName(String topic);
 
         /**
