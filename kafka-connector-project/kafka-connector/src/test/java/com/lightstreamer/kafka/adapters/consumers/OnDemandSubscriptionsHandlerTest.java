@@ -61,7 +61,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class OnDemandSubscriptionsHandlerTest {
+class OnDemandSubscriptionsHandlerTest {
 
     private MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
@@ -162,7 +162,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldInit() {
+    void shouldInit() {
         init();
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscribedItems.isEmpty()).isTrue();
@@ -171,7 +171,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException {
+    void shouldSubscribe() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle1 = new Object();
@@ -202,7 +202,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
+    void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
         init("nonExistingTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -229,8 +229,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhileGettingTopicList()
-            throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhileGettingTopicList() throws SubscriptionException {
         init(false, true, false, "aTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -257,7 +256,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhileConnecting() throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhileConnecting() throws SubscriptionException {
         init(true, false, false);
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -279,7 +278,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhilePolling() throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhilePolling() throws SubscriptionException {
         init(false, false, true, "aTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -306,13 +305,13 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldGetSnapshotAvailability() {
+    void shouldGetSnapshotAvailability() {
         init(false, false, false, false, "aTopic");
         assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isFalse();
     }
 
     @Test
-    public void shouldUnsubscribe() throws SubscriptionException {
+    void shouldUnsubscribe() throws SubscriptionException {
         init("aTopic");
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
@@ -338,13 +337,13 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeFromExistingItem() {
+    void shouldNotUnsubscribeFromExistingItem() {
         init();
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }
 
     @Test
-    public void shouldHandleSubscriptionBeforeShutdownCompletes() throws SubscriptionException {
+    void shouldHandleSubscriptionBeforeShutdownCompletes() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle = new Object();
@@ -367,7 +366,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
-    public void shouldNotCloseConsumerOnConcurrentUnsubscribeAndSubscribe() throws Exception {
+    void shouldNotCloseConsumerOnConcurrentUnsubscribeAndSubscribe() throws Exception {
         init("aTopic");
 
         // Step 0: Subscribe item1 -> counter=1, consumer starts

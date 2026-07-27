@@ -91,7 +91,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class KafkaConsumerWrapperTest {
+class KafkaConsumerWrapperTest {
 
     private final StrategyType resetStrategy = StrategyType.EARLIEST;
     private static final Logger logger = LogFactory.getLogger("TestConnection");
@@ -380,7 +380,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("wrapperArgs")
-    public void shouldCreateWrapper(
+    void shouldCreateWrapper(
             ConsumerMode consumerMode,
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
@@ -513,7 +513,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("assignPartitionsData")
-    public void shouldTrySubscribeWithManualAssignPartitions(
+    void shouldTrySubscribeWithManualAssignPartitions(
             List<TopicPartition> partitionsOnBroker,
             List<TopicMappingConfig> topicMappingConfigs,
             SubscriptionOutcome expectedOutcome,
@@ -580,7 +580,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    public void shouldTrySubscribeToTopics(
+    void shouldTrySubscribeToTopics(
             Set<String> topicsOnBroker,
             List<TopicMappingConfig> topicMappings,
             boolean enableSubscriptionPattern,
@@ -603,7 +603,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @EnumSource(ConsumerMode.class)
-    public void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty(ConsumerMode consumerMode) {
+    void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -650,7 +650,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @EnumSource(ConsumerMode.class)
-    public void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets(
+    void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets(
             ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
@@ -725,8 +725,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @EnumSource(ConsumerMode.class)
-    public void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets(
-            ConsumerMode consumerMode) {
+    void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -810,7 +809,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @EnumSource(ConsumerMode.class)
-    public void shouldDeliverRealTimeUpdatesAfterCatchUp(ConsumerMode consumerMode) {
+    void shouldDeliverRealTimeUpdatesAfterCatchUp(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -885,7 +884,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToNotExistingTopic(boolean eagerLifecycle) {
+    void shouldNotStartDueToNotExistingTopic(boolean eagerLifecycle) {
         // Create a wrapper for a topic that doesn't exist on the broker
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapperAsGroupConsumer(
@@ -912,7 +911,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToNotExistingTopicPartitions(boolean eagerLifecycle) {
+    void shouldNotStartDueToNotExistingTopicPartitions(boolean eagerLifecycle) {
         // Create a wrapper for a topic partition that doesn't exist on the broker
         KafkaConsumerWrapper<String, String> wrapper =
                 makeWrapperAsStandalone(
@@ -939,7 +938,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToExceptionWhileCheckingExistingTopic(boolean eagerLifecycle) {
+    void shouldNotStartDueToExceptionWhileCheckingExistingTopic(boolean eagerLifecycle) {
         // Create a wrapper for a topic that exists in the broker but cannot be subscribed due to
         // an exception thrown while checking the topic's existence
         KafkaConsumerWrapper<String, String> wrapper =
@@ -964,8 +963,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToExceptionWhileCheckingExistingTopicPartitions(
-            boolean eagerLifecycle) {
+    void shouldNotStartDueToExceptionWhileCheckingExistingTopicPartitions(boolean eagerLifecycle) {
         // Create a wrapper for a topic that exists in the broker but cannot be subscribed due to
         // an exception thrown while checking the topic's existence
         KafkaConsumerWrapper<String, String> wrapper =
@@ -989,7 +987,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotStartDueToExceptionWhileCatchingUp() {
+    void shouldNotStartDueToExceptionWhileCatchingUp() {
         // Schedule an exception to be thrown when fetching offsets during catch-up.
         // The wrapper should fail to start, closing the consumer and not starting the monitor.
         mockConsumer.schedulePollTask(
@@ -1018,7 +1016,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldConsumeForEver() throws Exception {
+    void shouldConsumeForEver() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1094,7 +1092,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotConsumeForEverDueToKafkaException() throws Exception {
+    void shouldNotConsumeForEverDueToKafkaException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1171,7 +1169,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotConsumeForEverDueToExceptionWhileConsumingRecords() throws Exception {
+    void shouldNotConsumeForEverDueToExceptionWhileConsumingRecords() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1233,8 +1231,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldChangeStatusConsistently(boolean forceCommitException)
-            throws InterruptedException {
+    void shouldChangeStatusConsistently(boolean forceCommitException) throws InterruptedException {
         if (forceCommitException) {
             // Set the exception to be thrown when committing offsets.
             // The shutdown process should complete anyway, trying to commit offsets only once and
@@ -1320,7 +1317,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldShutdownEvenWithoutStarting() throws InterruptedException {
+    void shouldShutdownEvenWithoutStarting() throws InterruptedException {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1353,7 +1350,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldInterruptConsumptionAfterStartingDueToKafkaException() throws Exception {
+    void shouldInterruptConsumptionAfterStartingDueToKafkaException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1412,7 +1409,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldInterruptConsumptionAfterStartingDueToGenericException() throws Exception {
+    void shouldInterruptConsumptionAfterStartingDueToGenericException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);

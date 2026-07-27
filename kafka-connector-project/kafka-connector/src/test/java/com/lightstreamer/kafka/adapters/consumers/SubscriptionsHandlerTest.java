@@ -51,10 +51,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class SubscriptionsHandlerTest {
+class SubscriptionsHandlerTest {
 
     @Test
-    public void shouldNotBuildSubscriptionsHandler() {
+    void shouldNotBuildSubscriptionsHandler() {
         IllegalStateException ise =
                 assertThrows(
                         IllegalStateException.class,
@@ -99,8 +99,7 @@ public class SubscriptionsHandlerTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotIsDisabled(
-            boolean processAsCommand) {
+    void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotIsDisabled(boolean processAsCommand) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(processAsCommand)
                         .metadataListener(new Mocks.MockMetadataListener())
@@ -126,7 +125,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
+    void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(false).snapshotEnabled(true).build();
         assertThat(subscriptionsHandler)
@@ -134,7 +133,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException {
+    void shouldSubscribe() throws SubscriptionException {
         AtomicReference<SubscriptionExpression> receivedExpression = new AtomicReference<>(null);
         AtomicReference<Object> receivedHandle = new AtomicReference<>(null);
 
@@ -153,7 +152,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSetListener() {
+    void shouldSetListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
@@ -166,7 +165,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldRejectNullListener() {
+    void shouldRejectNullListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
@@ -182,7 +181,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailCreateNewConsumer() {
+    void shouldFailCreateNewConsumer() {
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
                 new SubscriptionsHandlerTestImp<>(builder());
 
@@ -196,7 +195,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldCreateNewConsumer() {
+    void shouldCreateNewConsumer() {
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
                 new SubscriptionsHandlerTestImp<>(builder());
         subscriptionsHandler.setListener(new Mocks.MockItemEventListener());
@@ -207,7 +206,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
+    void shouldFailSubscriptionDueToNotRegisteredTemplate() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
@@ -228,7 +227,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToInvalidExpression() {
+    void shouldFailSubscriptionDueToInvalidExpression() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
         SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =

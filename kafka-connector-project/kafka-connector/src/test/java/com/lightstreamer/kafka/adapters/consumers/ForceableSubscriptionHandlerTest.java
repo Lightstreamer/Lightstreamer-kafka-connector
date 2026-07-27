@@ -53,7 +53,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
-public class ForceableSubscriptionHandlerTest {
+class ForceableSubscriptionHandlerTest {
 
     // Configured broker topic.
     private static final String TOPIC = "aTopic";
@@ -165,7 +165,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldInit() {
+    void shouldInit() {
         init(TOPIC);
         // Unavailable state is expected while the consumer is performing the infinite polling loop
         // in the background
@@ -175,7 +175,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldStartIdleSnapshotScheduler() {
+    void shouldStartIdleSnapshotScheduler() {
         init(false, false, false, 30, TOPIC);
         assertThat(subscriptionsHandler.getLifecycleStatus().isStateAvailable()).isFalse();
         assertThat(subscriptionsHandler.getItemSnapshotMaxIdleSeconds()).isEqualTo(30);
@@ -183,20 +183,20 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldGetSnapshotAvailability() {
+    void shouldGetSnapshotAvailability() {
         init(TOPIC);
         assertThat(subscriptionsHandler.isSnapshotAvailable("anyItem")).isTrue();
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhileConnecting() {
+    void shouldFailInitDueToExceptionWhileConnecting() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(true, false, false, TOPIC));
         assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
     }
 
     @Test
-    public void shouldFailInitDueToNonExistingTopics() {
+    void shouldFailInitDueToNonExistingTopics() {
         KafkaException ke = assertThrows(KafkaException.class, () -> init("nonExistingTopic"));
         assertThat(ke)
                 .hasMessageThat()
@@ -204,7 +204,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhileGettingTopicList() {
+    void shouldFailInitDueToExceptionWhileGettingTopicList() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, true, false, TOPIC));
         assertThat(ke)
@@ -213,7 +213,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
+    void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, false, true, TOPIC));
         assertThat(ke)
@@ -223,7 +223,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhilePolling() {
+    void shouldFailInitDueToExceptionWhilePolling() {
         init(false, false, false, 0, TOPIC);
 
         // Simulate exception while polling after initialization (including catch-up) completes
@@ -239,7 +239,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldSubscribeAndUnsubscribe() throws SubscriptionException {
+    void shouldSubscribeAndUnsubscribe() throws SubscriptionException {
         init(TOPIC);
 
         Object itemHandle = new Object();
@@ -252,7 +252,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeAfterItemIsPromotedToForced() throws SubscriptionException {
+    void shouldNotUnsubscribeAfterItemIsPromotedToForced() throws SubscriptionException {
         init(TOPIC);
 
         Object itemHandle = new Object();
@@ -267,7 +267,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeFromExistingItem() {
+    void shouldNotUnsubscribeFromExistingItem() {
         init(TOPIC);
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }
