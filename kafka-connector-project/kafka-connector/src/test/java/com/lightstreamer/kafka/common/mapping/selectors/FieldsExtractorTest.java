@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class FieldsExtractorTest {
+class FieldsExtractorTest {
 
     static Stream<Arguments> namedFieldsExpressions() {
         return Stream.of(
@@ -113,7 +113,7 @@ public class FieldsExtractorTest {
 
     @ParameterizedTest
     @MethodSource("namedFieldsExpressions")
-    public void shouldExtractMapFromNamedFieldsExpressions(
+    void shouldExtractMapFromNamedFieldsExpressions(
             Map<String, ExtractionExpression> expressions,
             boolean skipOnFailure,
             boolean mapNonScalars,
@@ -198,7 +198,7 @@ public class FieldsExtractorTest {
 
     @ParameterizedTest
     @MethodSource("discoveredFieldsExpressions")
-    public void shouldExtractMapFromDiscoveredFieldsExpressions(
+    void shouldExtractMapFromDiscoveredFieldsExpressions(
             Collection<ExtractionExpression> expressions,
             boolean skipOnFailure,
             Map<String, String> expectedValues)
@@ -225,7 +225,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldExtractMapFromComposedExtractor() throws ExtractionException {
+    void shouldExtractMapFromComposedExtractor() throws ExtractionException {
         // Prepare the named and discovered extraction expressions
         Map<String, ExtractionExpression> namedExpressions =
                 Map.of(
@@ -301,7 +301,7 @@ public class FieldsExtractorTest {
 
     @ParameterizedTest
     @MethodSource("invalidExpressionsForNamedFieldsExtractor")
-    public void shouldNotCreateNamedFieldsExtractor(Map<String, ExtractionExpression> expressions) {
+    void shouldNotCreateNamedFieldsExtractor(Map<String, ExtractionExpression> expressions) {
         IllegalArgumentException ee =
                 assertThrows(
                         IllegalArgumentException.class,
@@ -329,7 +329,7 @@ public class FieldsExtractorTest {
 
     @ParameterizedTest
     @MethodSource("invalidExpressionsForDiscoveredFieldsExtractor")
-    public void shouldNotCreateDiscoveredFieldsExtractor(List<ExtractionExpression> expressions) {
+    void shouldNotCreateDiscoveredFieldsExtractor(List<ExtractionExpression> expressions) {
         IllegalArgumentException ee =
                 assertThrows(
                         IllegalArgumentException.class,
@@ -347,7 +347,7 @@ public class FieldsExtractorTest {
 
     @ParameterizedTest
     @MethodSource("invalidComposedExtractorArguments")
-    public void shouldNotCreateComposedExtractorWithNoExtractors(
+    void shouldNotCreateComposedExtractorWithNoExtractors(
             List<FieldsExtractor<String, JsonNode>> extractors) {
         IllegalArgumentException iae =
                 assertThrows(
@@ -357,7 +357,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldNotCreateExtractorDueToExtractionException() {
+    void shouldNotCreateExtractorDueToExtractionException() {
         ExtractionException ee =
                 assertThrows(
                         ExtractionException.class,
@@ -387,7 +387,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldNotExtractMap() throws ExtractionException {
+    void shouldNotExtractMap() throws ExtractionException {
         FieldsExtractor<String, JsonNode> namedExtractor =
                 DataExtractors.namedFieldsExtractor(
                         JsonValue(),
@@ -440,7 +440,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldNotExtractMapDueToNotMappingScalars()
+    void shouldNotExtractMapDueToNotMappingScalars()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
                 namedFieldsExtractor(
@@ -468,7 +468,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldSkipFailureExtraction() throws ExtractionException {
+    void shouldSkipFailureExtraction() throws ExtractionException {
         // We expect that only the extraction related to the VALUE.undefined_attrib fails
         KafkaRecord<String, JsonNode> record =
                 KafkaRecord("aKey", SampleJsonNodeProvider().sampleMessage());
@@ -502,7 +502,7 @@ public class FieldsExtractorTest {
     }
 
     @Test
-    public void shouldExtractMapWithScalarMapping()
+    void shouldExtractMapWithScalarMapping()
             throws ExtractionException, JsonMappingException, JsonProcessingException {
         FieldsExtractor<String, JsonNode> extractor =
                 namedFieldsExtractor(

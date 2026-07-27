@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HeaderSelectorSupplierTest {
+class HeaderSelectorSupplierTest {
 
     private static final Headers SAMPLE_RECORD_HEADERS =
             new RecordHeaders()
@@ -72,7 +72,7 @@ public class HeaderSelectorSupplierTest {
     }
 
     @Test
-    public void shouldMakeHeaderSelector() throws ExtractionException {
+    void shouldMakeHeaderSelector() throws ExtractionException {
         HeadersSelector selector = headersSelector("HEADERS");
         assertThat(selector.expression().expression()).isEqualTo("HEADERS");
     }
@@ -137,7 +137,7 @@ public class HeaderSelectorSupplierTest {
     }
 
     @Test
-    public void shouldExtractRecordHeadersIntoMap() throws ExtractionException {
+    void shouldExtractRecordHeadersIntoMap() throws ExtractionException {
         Map<String, String> target = new HashMap<>();
 
         for (KafkaRecord<?, ?> record : RECORDS) {

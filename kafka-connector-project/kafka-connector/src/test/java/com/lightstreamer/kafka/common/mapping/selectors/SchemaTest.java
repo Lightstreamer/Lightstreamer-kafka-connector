@@ -25,10 +25,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-public class SchemaTest {
+class SchemaTest {
 
     @Test
-    public void shouldCreateSchema() {
+    void shouldCreateSchema() {
         Schema schema = Schema.from("test", Set.of("a", "b"));
 
         assertThat(schema.name()).isEqualTo("test");
@@ -36,7 +36,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldCreateEmptySchema() {
+    void shouldCreateEmptySchema() {
         Schema schema = Schema.empty("test");
 
         assertThat(schema.name()).isEqualTo("test");
@@ -44,7 +44,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldCreateNopSchema() {
+    void shouldCreateNopSchema() {
         Schema schema = Schema.nop();
 
         assertThat(schema.name()).isEqualTo("NOSCHEMA");
@@ -52,7 +52,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldMatch() {
+    void shouldMatch() {
         Schema schema1 = Schema.from("test", Set.of("a", "b"));
         Schema schema2 = Schema.from("test", Set.of("a", "b"));
 
@@ -61,7 +61,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldNotMatchDifferentName() {
+    void shouldNotMatchDifferentName() {
         Schema schema1 = Schema.from("test1", Set.of("a", "b"));
         Schema schema2 = Schema.from("test2", Set.of("a", "b"));
 
@@ -69,7 +69,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldNotMatchDifferentKeys() {
+    void shouldNotMatchDifferentKeys() {
         Schema schema1 = Schema.from("test", Set.of("a", "b"));
         Schema schema2 = Schema.from("test", Set.of("a", "c"));
 
@@ -77,7 +77,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldThrowOnNullName() {
+    void shouldThrowOnNullName() {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
@@ -88,7 +88,7 @@ public class SchemaTest {
     }
 
     @Test
-    public void shouldThrowOnBlankName() {
+    void shouldThrowOnBlankName() {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,

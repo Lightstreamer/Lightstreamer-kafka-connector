@@ -38,7 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.stream.Stream;
 
-public class ParsersTest {
+class ParsersTest {
 
     static Stream<Arguments> args() {
         return Stream.of(

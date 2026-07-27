@@ -41,10 +41,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class HeaderNodeTest {
+class HeaderNodeTest {
 
     @Test
-    public void shouldCreateHeadersNode() {
+    void shouldCreateHeadersNode() {
         ProducerRecord<String, String> record = new ProducerRecord<>("topic", "key", "value");
         Headers headers = record.headers();
         headers.add("key", "value".getBytes(UTF_8));
@@ -87,7 +87,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldGetNodeFromMultipleKeysHeadersByKey(KafkaHeaders headers) {
+    void shouldGetNodeFromMultipleKeysHeadersByKey(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersNode("HEADERS", headers);
         assertThat(headersNode.isArray()).isTrue();
         assertThat(headersNode.isScalar()).isFalse();
@@ -164,7 +164,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldNotGetByNameFromArrayHeaderNode(KafkaHeaders headers) {
+    void shouldNotGetByNameFromArrayHeaderNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         HeaderNode arrayNodeForKey1 = headersNode.getProperty("nodeKey1", "key1");
         assertThat(arrayNodeForKey1).isInstanceOf(SubArrayHeaderNode.class);
@@ -180,7 +180,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldNotFoundByIndexFromArrayHeaderNode(KafkaHeaders headers) {
+    void shouldNotFoundByIndexFromArrayHeaderNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         HeaderNode arrayNodeForKey1 = headersNode.getProperty("nodeKey1", "key1");
         assertThat(arrayNodeForKey1).isInstanceOf(SubArrayHeaderNode.class);
@@ -193,7 +193,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldNotFoundByIndexFromSingleNode(KafkaHeaders headers) {
+    void shouldNotFoundByIndexFromSingleNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         HeaderNode singleNode = headersNode.getIndexed("nodeKey1", 0, "");
         ValueException ve =
@@ -211,7 +211,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("emptyHeaders")
-    public void shouldNotFoundNonExistingProperty(KafkaHeaders headers) {
+    void shouldNotFoundNonExistingProperty(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         ValueException ve =
                 assertThrows(
@@ -234,7 +234,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("singleKeyHeaders")
-    public void shouldNotGetByNameFromSingleHeaderNode(KafkaHeaders headers) {
+    void shouldNotGetByNameFromSingleHeaderNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         HeaderNode singleNode = headersNode.getProperty("nodeKey", "key1");
         assertThat(singleNode).isInstanceOf(SingleHeaderNode.class);
@@ -249,7 +249,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("singleKeyHeaders")
-    public void shouldNotGetByIndexFromSingleHeaderNode(KafkaHeaders headers) {
+    void shouldNotGetByIndexFromSingleHeaderNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersNode("HEADERS", headers);
         HeaderNode singleNode = headersNode.getProperty("nodeKey", "key1");
         assertThat(singleNode).isInstanceOf(SingleHeaderNode.class);
@@ -261,7 +261,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("singleKeyHeaders")
-    public void shouldGetSingleHeaderNodeFromSingleKeyHeadersByKey(KafkaHeaders headers) {
+    void shouldGetSingleHeaderNodeFromSingleKeyHeadersByKey(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
 
         HeaderNode nodeKey1 = headersNode.getProperty("nodeKey1", "key1");
@@ -285,7 +285,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("singleKeyHeaders")
-    public void shouldGetSingleHeaderNodeFromSingleKeyHeadersByIndex(KafkaHeaders headers) {
+    void shouldGetSingleHeaderNodeFromSingleKeyHeadersByIndex(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
 
         HeaderNode node1 = headersNode.getIndexed("node1", 0, "headersNode");
@@ -309,7 +309,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldFlatIntoMapFromHeadersNode(KafkaHeaders headers) {
+    void shouldFlatIntoMapFromHeadersNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
 
         Map<String, String> target = new HashMap<>();
@@ -325,7 +325,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("multipleKeysHeaders")
-    public void shouldFlatIntoMapFromSubArrayNode(KafkaHeaders headers) {
+    void shouldFlatIntoMapFromSubArrayNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
 
         HeaderNode arrayNodeForKey1 = headersNode.getProperty("nodeKey1", "key1");
@@ -348,7 +348,7 @@ public class HeaderNodeTest {
 
     @ParameterizedTest
     @MethodSource("singleKeyHeaders")
-    public void shouldNotFlatIntoMapFromSingleHeaderNode(KafkaHeaders headers) {
+    void shouldNotFlatIntoMapFromSingleHeaderNode(KafkaHeaders headers) {
         HeadersNode headersNode = new HeadersSelectorSupplier.HeadersNode("HEADERS", headers);
         HeaderNode nodeKey1 = headersNode.getProperty("nodeKey1", "key1");
         Map<String, String> target = new HashMap<>();
