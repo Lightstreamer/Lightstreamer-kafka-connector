@@ -21,6 +21,7 @@ import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
 import com.lightstreamer.adapters.remote.ItemEventListener;
 import com.lightstreamer.adapters.remote.SubscriptionException;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.mapping.Items;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
@@ -224,37 +225,37 @@ public final class StreamingDataAdapter implements RecordSender {
         }
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     ErrantRecordReporter getErrantRecordReporter() {
         return reporter;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     SubscribedItem getSubscribedItem(String item) {
         return subscribed.getItem(item);
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     int getCurrentItemsCount() {
         return itemsCounter.get();
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     DownstreamUpdater getUpdater() {
         return updater;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     ItemEventListener getEventListener() {
         return listener;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Map<TopicPartition, OffsetAndMetadata> getCurrentOffsets() {
         return currentOffsets;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Map<String, String> getInitParameters() {
         return initParameters;
     }
