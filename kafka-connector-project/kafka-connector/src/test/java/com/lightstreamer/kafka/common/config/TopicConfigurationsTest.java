@@ -41,10 +41,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class TopicConfigurationsTest {
+class TopicConfigurationsTest {
 
     @Test
-    public void shouldConfigWithRegexDisabledByDefault() {
+    void shouldConfigWithRegexDisabledByDefault() {
         TopicConfigurations topicConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
         assertThat(topicConfig.isRegexEnabled()).isFalse();
@@ -52,7 +52,7 @@ public class TopicConfigurationsTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldConfigRegexEnablement(boolean regex) {
+    void shouldConfigRegexEnablement(boolean regex) {
         TopicConfigurations topicConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
         assertThat(topicConfig.isRegexEnabled()).isEqualTo(regex);
@@ -67,7 +67,7 @@ public class TopicConfigurationsTest {
 
     @ParameterizedTest
     @MethodSource("partitions")
-    public void shouldConfigOneToOneTemplate(String partitions, Set<Integer> expectedPartitions) {
+    void shouldConfigOneToOneTemplate(String partitions, Set<Integer> expectedPartitions) {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=PARTITION}"));
         var topicMappingConfigs =
@@ -94,7 +94,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigOneToOneItem() {
+    void shouldConfigOneToOneItem() {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
@@ -118,7 +118,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigOneToManyTemplates() {
+    void shouldConfigOneToManyTemplates() {
         var templateConfigs =
                 ItemTemplateConfigs.from(
                         Map.of(
@@ -157,7 +157,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigOneToManyItems() {
+    void shouldConfigOneToManyItems() {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
@@ -187,7 +187,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigOneToManyIdenticalTemplates() {
+    void shouldConfigOneToManyIdenticalTemplates() {
         var templateConfigs = ItemTemplateConfigs.from(Map.of("template1", "template1-#{a=KEY}"));
         var topicMappingConfigs =
                 List.of(
@@ -212,7 +212,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigOneToManyIdenticalItems() {
+    void shouldConfigOneToManyIdenticalItems() {
         var topicMappingConfigs =
                 List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item1,item1,item2", ""));
         TopicConfigurations topicsConfig =
@@ -238,7 +238,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigManyToOneTemplate() {
+    void shouldConfigManyToOneTemplate() {
         var templateConfigs =
                 ItemTemplateConfigs.from(Map.of("template1", "template-#{name=VALUE}"));
 
@@ -269,7 +269,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldConfigManyToOneItem() {
+    void shouldConfigManyToOneItem() {
         Map<String, String> mappings = new LinkedHashMap<>(); // Ensures order for later lookup
         mappings.put("topic", "item");
         mappings.put("topic2", "item");
@@ -296,7 +296,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldNotConfigDueToMissingTemplate() {
+    void shouldNotConfigDueToMissingTemplate() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -311,7 +311,7 @@ public class TopicConfigurationsTest {
     }
 
     @Test
-    public void shouldNotConfigDueToInvalidTemplate() {
+    void shouldNotConfigDueToInvalidTemplate() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

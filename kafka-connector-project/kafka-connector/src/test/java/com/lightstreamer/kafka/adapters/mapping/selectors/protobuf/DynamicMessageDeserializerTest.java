@@ -43,13 +43,13 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.Map;
 
-public class DynamicMessageDeserializerTest {
+class DynamicMessageDeserializerTest {
 
     private static final String SCHEMA_FOLDER = "src/test/resources";
     private static final String TEST_SCHEMA_FILE = "person.proto.desc";
 
     @Test
-    public void shouldDeserializeWithLocalSchema() {
+    void shouldDeserializeWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -75,7 +75,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeNullWithLocalSchema() {
+    void shouldDeserializeNullWithLocalSchema() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -97,7 +97,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGeKeyDeserializerWithSchemaRegistry() {
+    void shouldGeKeyDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -115,7 +115,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithSchemaRegistry() {
+    void shouldGetValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -133,7 +133,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithSchemaRegistry() {
+    void shouldGetKeyAndValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         Map.of(
@@ -160,7 +160,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
+    void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -179,7 +179,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithLocalSchema() throws IOException {
+    void shouldGetValueDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -198,7 +198,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema()
+    void shouldGetKeyDeserializeWithSchemaRegistryValueDeserializerWithLocalSchema()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
@@ -228,7 +228,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() throws IOException {
+    void shouldDeserializeKeyWithLocalSchemaValueWithSchemaRegistry() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -258,7 +258,7 @@ public class DynamicMessageDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
+    void shouldDeserializationWithLocalSchemaTakesPrecedenceOverSchemaRegistry()
             throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(

@@ -68,7 +68,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ConnectorConfiguratorTest {
+class ConnectorConfiguratorTest {
 
     static File ADAPTER_DIR = new File("src/test/resources");
 
@@ -138,7 +138,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @MethodSource("getMakersArguments")
-    public void shouldGetMakers(
+    void shouldGetMakers(
             String keyType,
             Class<?> expectedKeyDeserializer,
             String valueType,
@@ -166,7 +166,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldConfigureWithBasicParameters() throws IOException {
+    void shouldConfigureWithBasicParameters() throws IOException {
         ConnectorConfigurator configurator = newConfigurator(basicParameters());
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
@@ -214,7 +214,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(ints = {-1, 4})
-    public void shouldConfigureWithComplexParameters(int threads) throws IOException {
+    void shouldConfigureWithComplexParameters(int threads) throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -273,7 +273,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldConfigureWithComplexParametersAvro() throws IOException {
+    void shouldConfigureWithComplexParametersAvro() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -320,7 +320,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldConfigureWithComplexParametersProtoBuf() throws IOException {
+    void shouldConfigureWithComplexParametersProtoBuf() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -364,8 +364,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"map..to", "map.to"})
-    public void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(
-            String topicMappingParam) {
+    void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(String topicMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(topicMappingParam, "item"));
         ConfigException ce =
                 assertThrows(
@@ -376,8 +375,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"field", "field."})
-    public void shouldNotCreateConfiguratorDueToInvalidFieldMappingParameters(
-            String fieldMappingParam) {
+    void shouldNotCreateConfiguratorDueToInvalidFieldMappingParameters(String fieldMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> newConfigurator(config).connectionSpec());
@@ -386,7 +384,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"item-template", "item-template."})
-    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameterFormat(
+    void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameterFormat(
             String itemTemplateParam) {
         Map<String, String> config = minimalConfigWith(Map.of(itemTemplateParam, "field_name"));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
@@ -397,7 +395,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"value"})
-    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
+    void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
         Map<String, String> config = minimalConfigWith(Map.of("item-template.template", template));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
         assertThat(ce)
@@ -407,7 +405,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldNotCreateConfiguratorDueToOrderStrategy() {
+    void shouldNotCreateConfiguratorDueToOrderStrategy() {
         Map<String, String> config =
                 minimalConfigWith(
                         Map.of("record.consume.with.order.strategy", "invalidOrderStrategy"));
@@ -421,7 +419,7 @@ public class ConnectorConfiguratorTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {","})
-    public void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
+    void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
         Map<String, String> configs = new HashMap<>();
         configs.put("map.topic1.to", itemRef);
         Map<String, String> config = minimalConfigWith(configs);
@@ -433,7 +431,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldNotConfigureDueToNotExistingItemTemplate() {
+    void shouldNotConfigureDueToNotExistingItemTemplate() {
         Map<String, String> configs = new HashMap<>();
         configs.put("map.topic1.to", "item-template.no-valid-template");
         Map<String, String> config = minimalConfigWith(configs);
@@ -458,7 +456,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @MethodSource("invalidFieldExpressions")
-    public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(
+    void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(
             String expression, String expectedErrorMessage) {
         Map<String, String> updatedConfigs = minimalConfig();
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");

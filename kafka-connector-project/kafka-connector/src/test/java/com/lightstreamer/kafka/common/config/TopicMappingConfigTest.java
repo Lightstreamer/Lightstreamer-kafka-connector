@@ -38,7 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class TopicMappingConfigTest {
+class TopicMappingConfigTest {
 
     static Stream<Arguments> mappingFromDelimitedString() {
         return Stream.of(
