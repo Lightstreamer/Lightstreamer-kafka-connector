@@ -27,10 +27,13 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Timeout.ThreadMode.SEPARATE_THREAD;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.OnDemandSubscribedItem;
@@ -58,7 +61,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-public class OnDemandSubscriptionsHandlerTest {
+class OnDemandSubscriptionsHandlerTest {
 
     private MockMetadataListener metadataListener = new Mocks.MockMetadataListener();
 
@@ -77,9 +80,6 @@ public class OnDemandSubscriptionsHandlerTest {
                 new ConnectionSpec<>(
                         "TestConnection",
                         properties,
-                        ItemTemplatesUtils.itemTemplates(
-                                "aTopic", "anItemTemplate,anotherItemTemplate"),
-                        ItemTemplatesUtils.fieldsExtractor(),
                         new KafkaRecord.DeserializerPair<>(
                                 OthersSelectorSuppliers.String()
                                         .keySelectorSupplier()
@@ -87,9 +87,16 @@ public class OnDemandSubscriptionsHandlerTest {
                                 OthersSelectorSuppliers.String()
                                         .valueSelectorSupplier()
                                         .deserializer()),
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        processAsCommand,
-                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                        ConsumerMode.GROUP,
+                        RecordConsumeFrom.EARLIEST,
+                        new RecordPipeline<>(
+                                ItemTemplatesUtils.itemTemplates(
+                                        "aTopic", "anItemTemplate,anotherItemTemplate"),
+                                ItemTemplatesUtils.fieldsExtractor(),
+                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                                processAsCommand,
+                                new Concurrency(
+                                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
                 props -> {
@@ -143,19 +150,19 @@ public class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnPoll,
             boolean processAsCommand,
             String... topics) {
-        this.subscriptionsHandler =
+        subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
                         processAsCommand,
                         topics);
-        this.subscriptionsHandler.setListener(listener);
-        this.subscribedItems = subscriptionsHandler.getSubscribedItems();
+        subscriptionsHandler.setListener(listener);
+        subscribedItems = subscriptionsHandler.getSubscribedItems();
     }
 
     @Test
-    public void shouldInit() {
+    void shouldInit() {
         init();
         assertThat(subscriptionsHandler.getItemsCounter()).isEqualTo(0);
         assertThat(subscribedItems.isEmpty()).isTrue();
@@ -164,7 +171,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException {
+    void shouldSubscribe() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle1 = new Object();
@@ -195,7 +202,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
+    void shouldFailSubscriptionDueToNonExistingTopics() throws SubscriptionException {
         init("nonExistingTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -222,8 +229,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhileGettingTopicList()
-            throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhileGettingTopicList() throws SubscriptionException {
         init(false, true, false, "aTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -250,7 +256,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhileConnecting() throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhileConnecting() throws SubscriptionException {
         init(true, false, false);
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -272,7 +278,7 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToExceptionWhilePolling() throws SubscriptionException {
+    void shouldFailSubscriptionDueToExceptionWhilePolling() throws SubscriptionException {
         init(false, false, true, "aTopic");
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
@@ -299,13 +305,13 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldGetSnapshotAvailability() {
+    void shouldGetSnapshotAvailability() {
         init(false, false, false, false, "aTopic");
         assertThat(subscriptionsHandler.isSnapshotAvailable("anItem")).isFalse();
     }
 
     @Test
-    public void shouldUnsubscribe() throws SubscriptionException {
+    void shouldUnsubscribe() throws SubscriptionException {
         init("aTopic");
         Object itemHandle1 = new Object();
         Object itemHandle2 = new Object();
@@ -331,13 +337,13 @@ public class OnDemandSubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeFromExistingItem() {
+    void shouldNotUnsubscribeFromExistingItem() {
         init();
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }
 
     @Test
-    public void shouldHandleSubscriptionBeforeShutdownCompletes() throws SubscriptionException {
+    void shouldHandleSubscriptionBeforeShutdownCompletes() throws SubscriptionException {
         init("aTopic");
 
         Object itemHandle = new Object();
@@ -360,7 +366,7 @@ public class OnDemandSubscriptionsHandlerTest {
 
     @Test
     @Timeout(value = 5, unit = TimeUnit.SECONDS, threadMode = SEPARATE_THREAD)
-    public void shouldNotCloseConsumerOnConcurrentUnsubscribeAndSubscribe() throws Exception {
+    void shouldNotCloseConsumerOnConcurrentUnsubscribeAndSubscribe() throws Exception {
         init("aTopic");
 
         // Step 0: Subscribe item1 -> counter=1, consumer starts

@@ -486,7 +486,7 @@ public interface RecordMapper<K, V> {
          */
         public final Builder<K, V> addCanonicalItemExtractor(
                 String subscription, CanonicalItemExtractor<K, V> canonicalItemExtractor) {
-            this.canonicalItemExtractors.compute(
+            canonicalItemExtractors.compute(
                     subscription,
                     (t, extractors) -> {
                         if (extractors == null) {
@@ -577,11 +577,11 @@ final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
     private final boolean regexEnabled;
 
     RecordMapperImpl(Builder<K, V> builder) {
-        this.fieldExtractor = builder.fieldExtractor;
-        this.canonicalItemExtractors = Collections.unmodifiableMap(builder.canonicalItemExtractors);
-        this.regexEnabled = builder.regexEnabled;
-        this.patterns = mayFillPatternsList();
-        this.extractorsSupplier =
+        fieldExtractor = builder.fieldExtractor;
+        canonicalItemExtractors = Collections.unmodifiableMap(builder.canonicalItemExtractors);
+        regexEnabled = builder.regexEnabled;
+        patterns = mayFillPatternsList();
+        extractorsSupplier =
                 regexEnabled ? this::getMatchingExtractors : this::getAssociatedExtractors;
     }
 
@@ -632,7 +632,7 @@ final class RecordMapperImpl<K, V> implements RecordMapper<K, V> {
 
     @Override
     public boolean isRegexEnabled() {
-        return this.regexEnabled;
+        return regexEnabled;
     }
 
     @Override

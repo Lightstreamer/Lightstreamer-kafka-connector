@@ -41,12 +41,15 @@ import java.util.Set;
  * <p>End offsets are captured on every assignment and made available via {@link
  * #getCatchUpEndOffsets()} for the blocking catch-up gate.
  *
- * <p><b>Tail-phase behavior:</b> this service remains registered as the rebalance listener after
- * catch-up completes. If a previously unseen partition is assigned during the tail phase (e.g., the
- * topic's partition count increases), it will be seeked to the beginning — consistent with the
- * connector's "full state materialization" philosophy.
+ * <p><strong>Tail-phase behavior:</strong> this service remains registered as the rebalance
+ * listener after catch-up completes. If a previously unseen partition is assigned during the tail
+ * phase (e.g., the topic's partition count increases), it will be seeked to the beginning —
+ * consistent with the connector's "full state materialization" philosophy.
+ *
+ * @see OffsetService
+ * @see CommitOffsetService
  */
-class SeekingOffsetService implements OffsetService {
+final class SeekingOffsetService implements OffsetService {
 
     private final OffsetService delegate;
     private final Consumer<?, ?> consumer;
@@ -59,12 +62,34 @@ class SeekingOffsetService implements OffsetService {
     // poll thread — no synchronization required.
     private Map<TopicPartition, Long> endOffsets;
 
+    /**
+     * Creates a new instance that decorates the given {@link OffsetService} with seek-to-beginning
+     * behavior for previously unseen partitions and end-offset capture for the catch-up gate.
+     *
+     * @param delegate the {@link OffsetService} to decorate; all callbacks other than {@link
+     *     #onPartitionsAssigned(Collection)} and {@link #getCatchUpEndOffsets()} are forwarded
+     *     verbatim
+     * @param consumer the underlying Kafka {@link Consumer} used to perform the initial seek and to
+     *     fetch end offsets on each assignment
+     * @param logger the {@link Logger} used for lifecycle tracing
+     */
     SeekingOffsetService(OffsetService delegate, Consumer<?, ?> consumer, Logger logger) {
         this.delegate = delegate;
         this.consumer = consumer;
         this.logger = logger;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>For every partition seen for the first time, seeks to the beginning so the catch-up phase
+     * replays the full topic history; already-known (re-assigned) partitions resume from their
+     * current position. Captures end offsets for the entire current assignment so {@link
+     * #getCatchUpEndOffsets()} can drive the catch-up gate.
+     *
+     * <p><strong>Threading note:</strong> the {@code knownPartitions} set and the {@code
+     * endOffsets} field are consumer-poll-thread only; no synchronization is applied.
+     */
     @Override
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         // Determine which partitions are being seen for the first time.
@@ -75,17 +100,15 @@ class SeekingOffsetService implements OffsetService {
         if (!newPartitions.isEmpty()) {
             // Seek new partitions to the beginning to ensure we consume all records
             // during the catch-up phase.
+            logger.atInfo().log("Seeking new partitions to beginning: {}", newPartitions);
             consumer.seekToBeginning(newPartitions);
             knownPartitions.addAll(newPartitions);
-            logger.atInfo().log("Seeking new partitions to beginning: {}", newPartitions);
         }
 
         // Capture end offsets for the entire current assignment. The catch-up gate uses these
         // to know when the consumer has read up to the "live" boundary.
         endOffsets = consumer.endOffsets(partitions);
         logger.atInfo().log("Captured end offsets for current assignment: {}", endOffsets);
-
-        delegate.onPartitionsAssigned(partitions);
     }
 
     @Override
@@ -99,8 +122,18 @@ class SeekingOffsetService implements OffsetService {
     }
 
     @Override
+    public void onConsumerShutdown() {
+        delegate.onConsumerShutdown();
+    }
+
+    @Override
     public void maybeCommit() {
         delegate.maybeCommit();
+    }
+
+    @Override
+    public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
+        return delegate.offsetsSnapshot();
     }
 
     @Override
@@ -114,18 +147,8 @@ class SeekingOffsetService implements OffsetService {
     }
 
     @Override
-    public void onConsumerShutdown() {
-        delegate.onConsumerShutdown();
-    }
-
-    @Override
     public Throwable getFirstFailure() {
         return delegate.getFirstFailure();
-    }
-
-    @Override
-    public Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot() {
-        return delegate.offsetsSnapshot();
     }
 
     /**
@@ -134,8 +157,8 @@ class SeekingOffsetService implements OffsetService {
      * <p>Returns the end offsets captured during the most recent {@link
      * #onPartitionsAssigned(Collection)} call, or {@code null} if no assignment has occurred yet.
      *
-     * <p><b>Threading note:</b> this method must be called from the consumer poll thread only, as
-     * the underlying field is not synchronized.
+     * <p><strong>Threading note:</strong> this method must be called from the consumer poll thread
+     * only, as the underlying field is not synchronized.
      */
     @Override
     public Map<TopicPartition, Long> getCatchUpEndOffsets() {

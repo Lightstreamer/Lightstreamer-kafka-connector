@@ -611,7 +611,7 @@ Example:
 
 #### `group.id`
 
-_Optional_. The name of the consumer group this connection belongs to.
+_Optional but only effective when [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
 
 The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
@@ -619,6 +619,24 @@ Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly gene
 
 ```xml
 <param name="group.id">kafka-connector-group</param>
+```
+
+#### `consumer.mode`
+
+_Optional_. Selects how the internal Kafka Consumer acquires the topic partitions it consumes from. Can be one of the following:
+
+- `GROUP`: The consumer joins a [Kafka consumer group](https://kafka.apache.org/documentation/#intro_consumers) and lets the group coordinator assign partitions dynamically. Partition ownership is redistributed automatically as members of the group join or leave, and offsets are committed to and fetched from the `__consumer_offsets` topic under the configured [`group.id`](#groupid). This is the default and matches the pre-existing behavior of the connector.
+
+- `MANUAL`: The consumer uses manual partition assignment via `KafkaConsumer.assign(...)`. No consumer group is joined, no rebalance protocol runs, and [`group.id`](#groupid) is suppressed (no offsets are committed or fetched). On every startup the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](#recordconsumefrom) — unless [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`, in which case snapshot management takes over the partition positioning (see [Snapshot management](#snapshot-management)). This is the pattern commonly referred to in the Kafka community as a _standalone consumer_.
+
+  Use `MANUAL` together with [`map.TOPIC_NAME.from.partitions`](#consume-from-specific-partitions-maptopic_namefrompartitions) to declaratively pin this connector instance to a specific subset of partitions, typically for [partition-affinity sharding](#partition-affinity-sharding) across multiple connector instances.
+
+Default value: `GROUP`.
+
+Example:
+
+```xml
+<param name="consumer.mode">MANUAL</param>
 ```
 
 ### Encryption parameters
@@ -1024,14 +1042,15 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional but ineffective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. Specifies where to start consuming events from. Can be one of the following:
+_Optional but ineffective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE` — see [Snapshot management](#snapshot-management) for the partition-position behavior in that case_. Specifies where to start consuming events from. Can be one of the following:
 
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
 
-The parameter sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key to configure the internal Kafka Consumer.
+How this parameter is applied depends on the configured [`consumer.mode`](#consumermode):
 
-When snapshot management is active, the connector manages partition positions explicitly: newly assigned partitions are always seeked to the beginning (so that the snapshot replay covers the full topic history), and re-assigned partitions resume from their committed offset. See [Snapshot management](#snapshot-management).
+- In `GROUP` mode, it sets the value of the [`auto.offset.reset`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_auto.offset.reset) key on the internal Kafka Consumer, and therefore only takes effect for partitions that have no committed offset yet; partitions with a committed offset resume from there.
+- In `MANUAL` mode, since offsets are never committed, the connector seeks every assigned partition to the requested position on every startup. The setting therefore applies uniformly to all assigned partitions on every restart.
 
 Default value: `LATEST`.
 
@@ -1412,6 +1431,50 @@ This configuration enables the implementation of various routing scenarios, as s
 
   Every record published to the Kafka topic `sample-topic` will be routed to the Lightstreamer items `sample-item1`, `sample-item2`, and `sample-item3`.
 
+#### Consume from specific partitions (`map.TOPIC_NAME.from.partitions`)
+
+_Optional but only effective when [`consumer.mode`](#consumermode) is set to `MANUAL`_. Restrict this consumer's assignment for the topic `TOPIC_NAME` to a specific subset of partitions, instead of all partitions of the topic.
+
+The value is a comma-separated list of non-negative partition numbers and inclusive ranges (whitespace around commas and hyphens is tolerated; duplicates and overlapping ranges are coalesced).
+
+If omitted, all partitions of the topic are assigned.
+
+Default value: _(unset)_.
+
+Examples:
+
+```xml
+<param name="map.stocks.from.partitions">0,1,2,3</param>
+```
+
+```xml
+<param name="map.stocks.from.partitions">0-3,4-6,9</param>
+```
+
+##### Partition-affinity sharding
+
+The primary use case for `map.TOPIC_NAME.from.partitions` is **partition-affinity sharding across multiple connector instances**: each instance pins itself to a specific subset of partitions so the total set of partitions is deterministically split, without relying on Kafka's group coordinator.
+
+For example, given a `stocks` topic with 8 partitions and two connector instances (Server A and Server B), you can shard consumption as follows:
+
+**Server A** (partitions 0–3):
+
+```xml
+<param name="consumer.mode">MANUAL</param>
+<param name="map.stocks.to">item-template.stock</param>
+<param name="map.stocks.from.partitions">0-3</param>
+```
+
+**Server B** (partitions 4–7):
+
+```xml
+<param name="consumer.mode">MANUAL</param>
+<param name="map.stocks.to">item-template.stock</param>
+<param name="map.stocks.from.partitions">4-7</param>
+```
+
+Each server declaratively owns its slice of the topic. Because `MANUAL` mode also suppresses `group.id` and does not commit offsets, the two servers do not interfere with each other's position tracking.
+
 #### Enable regular expression (`map.regex.enable`)
 
 _Optional_. Enable the `TOPIC_NAME` part of the [`map.TOPIC_NAME.to`](#record-routing-maptopic_nameto) parameter to be treated as a regular expression rather than of a literal topic name.
@@ -1419,6 +1482,8 @@ This allows for more flexible routing, where messages from multiple topics match
 Can be one of the following:
 - `true`
 - `false`
+
+Not supported when [`consumer.mode`](#consumermode) is set to `MANUAL`; the setting will be rejected at startup.
 
 Default value: `false`.
 
@@ -1447,7 +1512,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L574) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L609) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1834,7 +1899,7 @@ _Optional_. Selects the snapshot behavior for subscribed items and, when not set
 - **`DISTINCT`**: Pins subscription _Mode_ to _DISTINCT_. Bounded by [`item.snapshot.distinct.length`](#itemsnapshotdistinctlength). See [DISTINCT snapshot](#distinct-snapshot).
 - **`COMMAND`**: Pins subscription _Mode_ to _COMMAND_. The connector synthesizes the `command` field from each record (`ADD` on first sight, `UPDATE` afterwards, `DELETE` for tombstones); you only map `field.key`. See [COMMAND snapshot](#command-snapshot) and [COMMAND mode field mapping](#command-mode-field-mapping).
 
-Any non-`NONE` value also forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured value.
+Any non-`NONE` value also bypasses [`record.consume.from`](#recordconsumefrom) and forces [`record.extraction.error.strategy`](#recordextractionerrorstrategy) to `IGNORE_AND_CONTINUE`, overriding the configured values.
 
 Default value: `NONE`.
 

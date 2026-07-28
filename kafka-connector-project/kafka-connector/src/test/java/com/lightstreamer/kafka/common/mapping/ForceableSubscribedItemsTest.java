@@ -61,21 +61,21 @@ import java.util.concurrent.atomic.AtomicReference;
  *       forced (eternal) entries are not removed.
  * </ul>
  */
-public class ForceableSubscribedItemsTest {
+class ForceableSubscribedItemsTest {
 
     private ForceableSubscribedItems items;
     private MockItemEventListener listener;
 
     @BeforeEach
-    public void setUp() {
-        final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
+    void before() {
+        Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         listener = new MockItemEventListener();
         items = Items.SubscribedItems.forceable(listener, logger);
     }
 
     @Test
-    public void shouldRejectNullListenerSupplier() {
-        final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
+    void shouldRejectNullListenerSupplier() {
+        Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         assertThrows(
                 NullPointerException.class,
                 () -> Items.SubscribedItems.forceable(null, logger),
@@ -83,14 +83,14 @@ public class ForceableSubscribedItemsTest {
     }
 
     @Test
-    public void shouldStartEmpty() {
+    void shouldStartEmpty() {
         assertThat(items.isEmpty()).isTrue();
         assertThat(items.size()).isEqualTo(0);
         assertThat(items.values()).isEmpty();
     }
 
     @Test
-    public void shouldStartSingleSnapshotInCatchUp() {
+    void shouldStartSingleSnapshotInCatchUp() {
         final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         listener = new MockItemEventListener();
         items = Items.SubscribedItems.forceable(listener, logger);
@@ -105,7 +105,7 @@ public class ForceableSubscribedItemsTest {
 
     /** removeIfUnforced removes unforced entries and keeps forced (eternal) entries. */
     @Test
-    public void shouldRemoveUnforcedAndKeepForcedEntries() {
+    void shouldRemoveUnforcedAndKeepForcedEntries() {
         final Object forcedHandle = new Object();
         final Object unforcedHandle = new Object();
 
@@ -142,7 +142,7 @@ public class ForceableSubscribedItemsTest {
 
     /** removeIfUnforced returns false when no entry exists for the given name. */
     @Test
-    public void shouldReturnFalseWhenRemovingAbsentEntry() {
+    void shouldReturnFalseWhenRemovingAbsentEntry() {
         assertThat(items.isEmpty()).isTrue();
 
         boolean removed = items.removeIfUnforced("missing");
@@ -156,7 +156,7 @@ public class ForceableSubscribedItemsTest {
      * and emits endOfSnapshot.
      */
     @Test
-    public void shouldAddItemPath1Organic() {
+    void shouldAddItemPath1Organic() {
         ForceableSubscribedItems items =
                 Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
         final Object itemHandle = new Object();
@@ -183,7 +183,7 @@ public class ForceableSubscribedItemsTest {
      * forceSubscription (Server callback activates it), and returns the forced entry.
      */
     @Test
-    public void shouldGetItemPath2Case1TrueMiss() {
+    void shouldGetItemPath2Case1TrueMiss() {
         ForceableSubscribedItems items =
                 Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
 
@@ -224,7 +224,7 @@ public class ForceableSubscribedItemsTest {
      * via forceSubscription and is idempotent on re-call.
      */
     @Test
-    public void shouldGetItemPath2Case2HitOnUnforced() {
+    void shouldGetItemPath2Case2HitOnUnforced() {
         ForceableSubscribedItems items =
                 Items.SubscribedItems.forceable(listener, LogFactory.getLogger("test"));
         final Object itemHandle = new Object();
@@ -271,7 +271,7 @@ public class ForceableSubscribedItemsTest {
      * converge to one forced instance.
      */
     @Test
-    public void shouldCoverConcurrentCase2HitOnUnforcedPromotion() throws Exception {
+    void shouldCoverConcurrentCase2HitOnUnforcedPromotion() throws Exception {
         final String itemName = "path1-race-[k=v]";
         final Object itemHandle = new Object();
 
@@ -360,7 +360,7 @@ public class ForceableSubscribedItemsTest {
      * instance without locking.
      */
     @Test
-    public void shouldGetItemPath2Case0FastPathLockFree() {
+    void shouldGetItemPath2Case0FastPathLockFree() {
         final Object itemHandle = new Object();
 
         // Install and force the entry
@@ -396,7 +396,7 @@ public class ForceableSubscribedItemsTest {
      * concurrent promotion that lands during lock acquisition.
      */
     @Test
-    public void shouldReturnViaInLockBranchWhenForcedRaceWonAfterFastPath() throws Exception {
+    void shouldReturnViaInLockBranchWhenForcedRaceWonAfterFastPath() throws Exception {
         final String itemName = "inlock-race";
         final Object handle = new Object();
         ForceableSubscribedItem racing =
@@ -435,7 +435,7 @@ public class ForceableSubscribedItemsTest {
 
     /** clearIdleSnapshots dispatches clearSnapshot for every forced item that is idle. */
     @Test
-    public void shouldClearSnapshotForIdleForcedItems() {
+    void shouldClearSnapshotForIdleForcedItems() {
         final Object handle1 = new Object();
         final Object handle2 = new Object();
         listener.setForceSubscriptionAction(
@@ -458,7 +458,7 @@ public class ForceableSubscribedItemsTest {
 
     /** clearIdleSnapshots skips unforced (non-eternal) entries. */
     @Test
-    public void shouldSkipUnforcedItemsInIdleScan() {
+    void shouldSkipUnforcedItemsInIdleScan() {
         final Object handle = new Object();
         // Path-1 organic install: the entry is created unforced.
         items.activateOrInstall(Expressions.Subscription("unforced"), handle);
@@ -471,7 +471,7 @@ public class ForceableSubscribedItemsTest {
 
     /** clearIdleSnapshots skips forced items whose last touch is within the idle threshold. */
     @Test
-    public void shouldSkipForcedItemsWithinIdleThreshold() {
+    void shouldSkipForcedItemsWithinIdleThreshold() {
         final Object handle = new Object();
         listener.setForceSubscriptionAction(
                 name -> items.activateOrInstall(Expressions.Subscription(name), handle));
@@ -487,7 +487,7 @@ public class ForceableSubscribedItemsTest {
 
     /** clearIdleSnapshots refreshes the last-touched timestamp after expiring an item. */
     @Test
-    public void shouldRefreshLastTouchedAfterExpiringItem() {
+    void shouldRefreshLastTouchedAfterExpiringItem() {
         final Object handle = new Object();
         listener.setForceSubscriptionAction(
                 name -> items.activateOrInstall(Expressions.Subscription(name), handle));
@@ -506,7 +506,7 @@ public class ForceableSubscribedItemsTest {
 
     /** clearIdleSnapshots on an empty collection is a safe no-op. */
     @Test
-    public void shouldBeNoOpOnEmptyCollection() {
+    void shouldBeNoOpOnEmptyCollection() {
         assertThat(items.isEmpty()).isTrue();
 
         items.clearIdleSnapshots(0);
@@ -521,7 +521,7 @@ public class ForceableSubscribedItemsTest {
      * touch().
      */
     @Test
-    public void shouldOnlyClearForcedAndIdleEntriesInMixedCollection() {
+    void shouldOnlyClearForcedAndIdleEntriesInMixedCollection() {
         final Object handleAged = new Object();
         final Object handleFresh = new Object();
         final Object handleUnforced = new Object();
@@ -561,7 +561,7 @@ public class ForceableSubscribedItemsTest {
      * — the same observable outcome as a real concurrent touch.
      */
     @Test
-    public void shouldSkipDispatchWhenCasLastTouchedRacesAgainstConcurrentTouch() throws Exception {
+    void shouldSkipDispatchWhenCasLastTouchedRacesAgainstConcurrentTouch() throws Exception {
         final Object handle = new Object();
         ForceableSubscribedItem racing =
                 new ForceableSubscribedItem(Expressions.Subscription("racing")) {
@@ -616,7 +616,7 @@ public class ForceableSubscribedItemsTest {
      * entry.
      */
     @Test
-    public void shouldCoverConcurrentSameNameConvergenceBoundedForceCalls() throws Exception {
+    void shouldCoverConcurrentSameNameConvergenceBoundedForceCalls() throws Exception {
         final String itemName = "race-[k=v]";
         final Object itemHandle = new Object();
 
@@ -689,7 +689,7 @@ public class ForceableSubscribedItemsTest {
      * order on activation and delivered against the bound handle.
      */
     @Test
-    public void shouldCoverConcurrentActivationRaceWithOrderedQueuedDrain() throws Exception {
+    void shouldCoverConcurrentActivationRaceWithOrderedQueuedDrain() throws Exception {
         final String itemName = "queue-race-[k=v]";
         final Object itemHandle = new Object();
         final CountDownLatch activationEntered = new CountDownLatch(1);
@@ -776,7 +776,7 @@ public class ForceableSubscribedItemsTest {
      * lost or duplicated while switching from queueing to direct dispatch.
      */
     @Test
-    public void shouldCoverConcurrentActivationBoundaryWithoutLossOrDuplication() throws Exception {
+    void shouldCoverConcurrentActivationBoundaryWithoutLossOrDuplication() throws Exception {
         final String itemName = "boundary-race-[k=v]";
         final Object itemHandle = new Object();
         final int eventCount = 100;
@@ -877,8 +877,7 @@ public class ForceableSubscribedItemsTest {
      * converge to the same forced entry once activation is released.
      */
     @Test
-    public void shouldCoverConcurrentCase1BothCallersReachSlowPathBeforeActivation()
-            throws Exception {
+    void shouldCoverConcurrentCase1BothCallersReachSlowPathBeforeActivation() throws Exception {
         final String itemName = "slow-path-race-[k=v]";
         final Object itemHandle = new Object();
 
@@ -966,7 +965,7 @@ public class ForceableSubscribedItemsTest {
      * call.
      */
     @Test
-    public void shouldCoverConcurrentCase0FastPathWhileFirstCallerUnwinds() throws Exception {
+    void shouldCoverConcurrentCase0FastPathWhileFirstCallerUnwinds() throws Exception {
         final String itemName = "mixed-race-[k=v]";
         final Object itemHandle = new Object();
 

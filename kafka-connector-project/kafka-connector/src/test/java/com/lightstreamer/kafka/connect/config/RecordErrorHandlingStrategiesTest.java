@@ -36,13 +36,13 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.Collections;
 import java.util.List;
 
-public class RecordErrorHandlingStrategiesTest {
+class RecordErrorHandlingStrategiesTest {
 
     Validator validator = RecordErrorHandlingStrategies.VALIDATOR;
 
     @ParameterizedTest
     @EnumSource
-    public void shouldValidate(RecordErrorHandlingStrategy value) {
+    void shouldValidate(RecordErrorHandlingStrategy value) {
         assertDoesNotThrow(
                 () -> validator.ensureValid(RECORD_EXTRACTION_ERROR_STRATEGY, value.toString()));
     }
@@ -59,7 +59,7 @@ public class RecordErrorHandlingStrategiesTest {
                     '  '      | Invalid value for configuration "record.extraction.error.strategy": Must be a non-empty string
                     NON_VALID | Invalid value for configuration "record.extraction.error.strategy": Must be a valid strategy
                 """)
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -68,7 +68,7 @@ public class RecordErrorHandlingStrategiesTest {
     }
 
     @Test
-    public void shouldValidateDueToNonStringValue() {
+    void shouldValidateDueToNonStringValue() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -82,7 +82,7 @@ public class RecordErrorHandlingStrategiesTest {
     }
 
     @Test
-    public void shouldRecommend() {
+    void shouldRecommend() {
         Recommender recommender = RecordErrorHandlingStrategies.RECOMMENDER;
         assertThat(recommender.visible(RECORD_EXTRACTION_ERROR_STRATEGY, Collections.emptyMap()));
         List<Object> validValues =

@@ -19,8 +19,6 @@ package com.lightstreamer.kafka.test_utils;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,29 +43,13 @@ public class ConnectorConfigProvider {
         return essentialConfigs;
     }
 
-    public static ConnectorConfig minimal() {
-        return minimalWith(Collections.emptyMap());
-    }
-
     public static ConnectorConfig minimal(String adapterDir) {
         return minimalWith(adapterDir, Collections.emptyMap());
-    }
-
-    public static ConnectorConfig minimalWith(Map<String, String> additionalConfigs) {
-        return minimalWith(createTempAdapterDir().toString(), additionalConfigs);
     }
 
     public static ConnectorConfig minimalWith(
             String adapterDir, Map<String, String> additionalConfigs) {
         return ConnectorConfig.newConfig(
                 Path.of(adapterDir).toFile(), minimalConfigWith(additionalConfigs));
-    }
-
-    private static Path createTempAdapterDir() {
-        try {
-            return Files.createTempDirectory("adapter_dir");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 }

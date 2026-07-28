@@ -136,7 +136,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
         ConnectStructNode(String name, Struct struct) {
             this.name = name;
             this.struct = struct;
-            this.schema = struct.schema();
+            schema = struct.schema();
         }
 
         @Override
@@ -208,7 +208,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
         ConnectArrayNode(String name, Schema valueSchema, List<Object> array) {
             this.name = name;
             this.array = array;
-            this.size = array.size();
+            size = array.size();
             this.valueSchema = valueSchema;
         }
 
@@ -261,7 +261,7 @@ public class ConnectSelectorsSuppliers implements KeyValueSelectorSuppliersMaker
             // Pre-allocate StringBuilder for array index keys to avoid string concatenation
             StringBuilder keyBuilder =
                     new StringBuilder(name.length() + 4); // reasonable initial capacity
-            for (int i = 0; i < this.size; i++) {
+            for (int i = 0; i < size; i++) {
                 String value = ConnectNode.textValue(array.get(i));
                 keyBuilder.append(name);
                 keyBuilder.append('[').append(i).append(']');

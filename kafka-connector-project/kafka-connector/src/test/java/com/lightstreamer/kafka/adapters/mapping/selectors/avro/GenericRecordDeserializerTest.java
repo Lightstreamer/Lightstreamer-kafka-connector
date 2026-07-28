@@ -41,18 +41,35 @@ import org.apache.avro.io.Encoder;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
 import org.apache.avro.util.Utf8;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GenericRecordDeserializerTest {
+class GenericRecordDeserializerTest {
 
     private static final String SCHEMA_FOLDER = "src/test/resources";
     private static final String TEST_SCHEMA_FILE = "test_schema.avsc";
+
+    private Path adapterDir;
+
+    @BeforeEach
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
 
     private static byte[] serializeRecord(GenericRecord record) throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -60,12 +77,11 @@ public class GenericRecordDeserializerTest {
         DatumWriter<GenericRecord> writer = new SpecificDatumWriter<>(record.getSchema());
         writer.write(record, encoder);
         encoder.flush();
-        byte[] bytes = outputStream.toByteArray();
-        return bytes;
+        return outputStream.toByteArray();
     }
 
     @Test
-    public void shouldDeserializeWithLocalSchema() throws IOException {
+    void shouldDeserializeWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -96,7 +112,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeNullWithLocalSchema() throws IOException {
+    void shouldDeserializeNullWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -116,9 +132,10 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithConfluentSchemaRegistry() {
+    void shouldGetKeyDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 AVRO.toString(),
@@ -134,9 +151,10 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
+    void shouldGetKeyAndValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 AVRO.toString(),
@@ -161,9 +179,10 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
+    void shouldGetValueDeserializerWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 AVRO.toString(),
@@ -179,9 +198,10 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
+    void shouldGetKeyDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 AVRO.toString(),
@@ -206,9 +226,10 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithAzureSchemaRegistry() {
+    void shouldGetValueDeserializerWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 AVRO.toString(),
@@ -233,7 +254,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
+    void shouldGetKeyDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -251,7 +272,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetValueDeserializerWithLocalSchema() throws IOException {
+    void shouldGetValueDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -269,7 +290,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
+    void shouldGetKeyAndValueDeserializerWithLocalSchema() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -324,7 +345,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
+    void shouldDeserializeKeyWithLocalSchemaAndValueWithConfluentSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -352,7 +373,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
+    void shouldDeserializeKeyWithLocalSchemaAndValueWithAzureSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -389,8 +410,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakesPrecedenceOverConfluentSchemaRegistry()
-            throws IOException {
+    void shouldPreferLocalSchemaOverConfluentSchemaRegistry() throws IOException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         SCHEMA_FOLDER,
@@ -422,8 +442,7 @@ public class GenericRecordDeserializerTest {
     }
 
     @Test
-    public void shouldDeserializationWithLocalSchemaTakePrecedenceOverAzureSchemaRegistry()
-            throws IOException {
+    void shouldPreferLocalSchemaOverAzureSchemaRegistry() throws IOException {
         Map<String, String> configs =
                 Map.of(
                         RECORD_KEY_EVALUATOR_TYPE,

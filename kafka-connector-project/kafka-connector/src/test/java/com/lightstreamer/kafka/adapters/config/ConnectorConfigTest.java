@@ -31,18 +31,25 @@ import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_F
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_FETCH_MIN_BYTES_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_HEARTBEAT_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_METADATA_MAX_AGE_CONFIG;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_RECONNECT_BACKOFF_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.CONSUMER_REQUEST_TIMEOUT_MS_CONFIG;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.DATA_ADAPTER_NAME;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENABLE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ENCRYPTION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.FIELD_MAPPING;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.GROUP_ID;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_DISTINCT_LENGTH;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_MAX_IDLE_SECONDS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_TEMPLATE;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.LIGHTSTREAMER_CLIENT_ID;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_FROM_PARTITIONS_SUFFIX;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_REG_EX_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.MAP_TO_ITEMS_SUFFIX;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_FROM;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_RECORDS;
@@ -90,10 +97,12 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.BASIC_AUTH_CREDENTIALS_SOURCE;
 import static io.confluent.kafka.schemaregistry.client.SchemaRegistryClientConfig.USER_INFO_CONFIG;
 
-import static org.junit.Assert.assertThrows;
+import static org.apache.kafka.clients.consumer.ConsumerConfig.GROUP_ID_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
@@ -108,15 +117,16 @@ import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicMappingCon
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions.TemplateExpression;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -134,7 +144,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ConnectorConfigTest {
+class ConnectorConfigTest {
 
     private Path adapterDir;
 
@@ -150,8 +160,8 @@ public class ConnectorConfigTest {
     private Path keyTabFile;
 
     @BeforeEach
-    public void before() throws IOException {
-        adapterDir = Files.createTempDirectory("adapter_dir");
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("myadapter_dir");
         avroKeySchemaFile = Files.createTempFile(adapterDir, "key-schema-", ".avsc");
         avroValueSchemaFile = Files.createTempFile(adapterDir, "value-schema-", ".avsc");
         protoKeySchemaFile = Files.createTempFile(adapterDir, "proto-key-schema-", ".desc");
@@ -162,7 +172,7 @@ public class ConnectorConfigTest {
     }
 
     @AfterEach
-    public void after() throws IOException {
+    void after() throws IOException {
         Files.delete(avroKeySchemaFile);
         Files.delete(avroValueSchemaFile);
         Files.delete(protoKeySchemaFile);
@@ -170,11 +180,11 @@ public class ConnectorConfigTest {
         Files.delete(trustStoreFile);
         Files.delete(keyStoreFile);
         Files.delete(keyTabFile);
-        Files.delete(adapterDir);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
-    public void shouldReturnConfigSpec() {
+    void shouldReturnConfigSpec() {
         ConfigsSpec configSpec = ConnectorConfig.configSpec();
 
         ConfParameter adapterConfId = configSpec.findParameter(ADAPTERS_CONF_ID);
@@ -226,7 +236,7 @@ public class ConnectorConfigTest {
         assertThat(itemTemplate.defaultValue()).isNull();
         assertThat(itemTemplate.type()).isEqualTo(ConfType.TEXT);
 
-        ConfParameter topicMapping = configSpec.findParameter(TOPIC_MAPPING);
+        ConfParameter topicMapping = configSpec.findParameter(TOPIC_MAPPING, MAP_TO_ITEMS_SUFFIX);
         assertThat(topicMapping.name()).isEqualTo(TOPIC_MAPPING);
         assertThat(topicMapping.required()).isTrue();
         assertThat(topicMapping.multiple()).isTrue();
@@ -235,8 +245,18 @@ public class ConnectorConfigTest {
         assertThat(topicMapping.defaultValue()).isNull();
         assertThat(topicMapping.type()).isEqualTo(ConfType.TEXT_LIST);
 
-        ConfParameter mapRegExEnable = configSpec.findParameter(ConnectorConfig.MAP_REG_EX_ENABLE);
-        assertThat(mapRegExEnable.name()).isEqualTo(ConnectorConfig.MAP_REG_EX_ENABLE);
+        ConfParameter partitionMapping =
+                configSpec.findParameter(TOPIC_MAPPING, MAP_FROM_PARTITIONS_SUFFIX);
+        assertThat(partitionMapping.name()).isEqualTo(TOPIC_MAPPING);
+        assertThat(partitionMapping.required()).isFalse();
+        assertThat(partitionMapping.multiple()).isTrue();
+        assertThat(partitionMapping.suffix()).isEqualTo("from.partitions");
+        assertThat(partitionMapping.mutable()).isTrue();
+        assertThat(partitionMapping.defaultValue()).isNull();
+        assertThat(partitionMapping.type()).isEqualTo(ConfType.TEXT_LIST);
+
+        ConfParameter mapRegExEnable = configSpec.findParameter(MAP_REG_EX_ENABLE);
+        assertThat(mapRegExEnable.name()).isEqualTo(MAP_REG_EX_ENABLE);
         assertThat(mapRegExEnable.required()).isFalse();
         assertThat(mapRegExEnable.multiple()).isFalse();
         assertThat(mapRegExEnable.suffix()).isNull();
@@ -244,8 +264,8 @@ public class ConnectorConfigTest {
         assertThat(mapRegExEnable.defaultValue()).isEqualTo("false");
         assertThat(mapRegExEnable.type()).isEqualTo(ConfType.BOOL);
 
-        ConfParameter fieldMapping = configSpec.findParameter(ConnectorConfig.FIELD_MAPPING);
-        assertThat(fieldMapping.name()).isEqualTo(ConnectorConfig.FIELD_MAPPING);
+        ConfParameter fieldMapping = configSpec.findParameter(FIELD_MAPPING);
+        assertThat(fieldMapping.name()).isEqualTo(FIELD_MAPPING);
         assertThat(fieldMapping.required()).isTrue();
         assertThat(fieldMapping.multiple()).isTrue();
         assertThat(fieldMapping.suffix()).isNull();
@@ -254,9 +274,9 @@ public class ConnectorConfigTest {
         assertThat(fieldMapping.type()).isEqualTo(ConfType.TEXT);
 
         ConfParameter fieldsSkipFailedMappingEnable =
-                configSpec.findParameter(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+                configSpec.findParameter(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.name())
-                .isEqualTo(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE);
+                .isEqualTo(FIELDS_SKIP_FAILED_MAPPING_ENABLE);
         assertThat(fieldsSkipFailedMappingEnable.required()).isFalse();
         assertThat(fieldsSkipFailedMappingEnable.multiple()).isFalse();
         assertThat(fieldsSkipFailedMappingEnable.suffix()).isNull();
@@ -265,9 +285,9 @@ public class ConnectorConfigTest {
         assertThat(fieldsSkipFailedMappingEnable.type()).isEqualTo(ConfType.BOOL);
 
         ConfParameter fieldsMapNonScalarValuesEnable =
-                configSpec.findParameter(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+                configSpec.findParameter(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.name())
-                .isEqualTo(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
+                .isEqualTo(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE);
         assertThat(fieldsMapNonScalarValuesEnable.required()).isFalse();
         assertThat(fieldsMapNonScalarValuesEnable.multiple()).isFalse();
         assertThat(fieldsMapNonScalarValuesEnable.suffix()).isNull();
@@ -595,7 +615,7 @@ public class ConnectorConfigTest {
         standardParams.put(BOOTSTRAP_SERVERS, "server:8080,server:8081");
         standardParams.put(RECORD_VALUE_EVALUATOR_TYPE, "STRING");
         // standardParams.put(RECORD_VALUE_EVALUATOR_SCHEMA_PATH,
-        // valueSchemaFile.getFileName().toString());
+        // valueScheFile.getFileName().toString());
         standardParams.put(RECORD_KEY_EVALUATOR_TYPE, "JSON");
         // standardParams.put(ConnectorConfig.RECORD_KEY_EVALUATOR_SCHEMA_PATH,keySchemaFile.getFileName().toString());
         standardParams.put(ADAPTERS_CONF_ID, "KAFKA");
@@ -643,7 +663,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParams() {
+    void shouldSpecifyRequiredParams() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> new ConnectorConfig(Collections.emptyMap()));
@@ -738,7 +758,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldRetrieveConfiguration() {
+    void shouldRetrieveConfiguration() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Map<String, String> configuration = config.configuration();
@@ -746,12 +766,16 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldRetrieveBaseConsumerProperties() {
+    void shouldRetrieveBaseConsumerProperties() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Properties baseConsumerProps = config.baseConsumerProps();
         assertThat(baseConsumerProps)
                 .containsAtLeast(
+                        ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.ByteArrayDeserializer",
+                        ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                        "org.apache.kafka.common.serialization.ByteArrayDeserializer",
                         ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                         "server:8080,server:8081",
                         ConsumerConfig.CLIENT_ID_CONFIG,
@@ -796,7 +820,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @MethodSource("confluentCloudHostList")
-    public void shouldRetrieveLightstreamerClientIdWhenConnectedToConfluentClod(String hostList) {
+    void shouldRetrieveLightstreamerClientIdWhenConnectedToConfluentClod(String hostList) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -816,7 +840,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @MethodSource("partialConfluentCloudHostList")
-    public void shouldNonRetrieveLightstreamerClientIdWhenNotAllHostConnectedToConfluentClod(
+    void shouldNonRetrieveLightstreamerClientIdWhenNotAllHostConnectedToConfluentClod(
             String hostList) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, hostList);
@@ -831,7 +855,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldExtendBaseConsumerProperties() {
+    void shouldExtendBaseConsumerProperties() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         Map<String, ?> extendedProps = config.extendsConsumerProps(Map.of("new.key", "new.value"));
@@ -850,15 +874,15 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotModifyEnableAutoCommitConfig() {
+    void shouldNotModifyEnableAutoCommitConfig() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, "true");
+        updatedConfig.put(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG, "true");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.getBoolean(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG)).isFalse();
     }
 
     @Test
-    public void shouldGetText() {
+    void shouldGetText() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.getMetadataAdapterName()).isEqualTo("KAFKA");
@@ -888,7 +912,7 @@ public class ConnectorConfigTest {
                 "BYTE_ARRAY",
                 "BYTE_BUFFER"
             })
-    public void shouldGetRecordEvaluatorTypes(String type) {
+    void shouldGetRecordEvaluatorTypes(String type) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_TYPE, type);
         updatedConfig.put(RECORD_VALUE_EVALUATOR_TYPE, type);
@@ -907,7 +931,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidEvaluatorType() {
+    void shouldFailDueToInvalidEvaluatorType() {
         Map<String, String> keys =
                 Map.of(
                         RECORD_KEY_EVALUATOR_TYPE,
@@ -928,7 +952,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidSchemaPath() {
+    void shouldFailDueToInvalidSchemaPath() {
         Map<String, String> keys =
                 Map.of(
                         RECORD_KEY_EVALUATOR_SCHEMA_PATH,
@@ -951,12 +975,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParamsForAvro() {
+    void shouldSpecifyRequiredParamsForAvro() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_KEY_EVALUATOR_TYPE, "AVRO")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1007,6 +1032,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, "AVRO")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1052,12 +1078,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParamsForProtobuf() {
+    void shouldSpecifyRequiredParamsForProtobuf() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_KEY_EVALUATOR_TYPE, "PROTOBUF")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1150,6 +1177,7 @@ public class ConnectorConfigTest {
                         ConfigException.class,
                         () ->
                                 ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
                                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, "PROTOBUF")));
         assertThat(ce)
                 .hasMessageThat()
@@ -1239,8 +1267,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetKvpPairsSeparator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetKvpPairsSeparator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyKvpPairsSeparator()).isEqualTo(',');
         assertThat(config.getValueKvpPairsSeparator()).isEqualTo(',');
 
@@ -1255,13 +1283,14 @@ public class ConnectorConfigTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"==", ";;"})
-    public void shouldFailDueToInvalidKvpPairsSeparator(String delimiter) {
+    void shouldFailDueToInvalidKvpPairsSeparator(String delimiter) {
         Map<String, String> configs1 = new HashMap<>();
-        configs1.put(ConnectorConfig.RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
+        configs1.put(RECORD_KEY_EVALUATOR_KVP_PAIRS_SEPARATOR, delimiter);
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs1));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1272,7 +1301,8 @@ public class ConnectorConfigTest {
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs2));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1280,8 +1310,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetKvpValueSeparator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetKvpValueSeparator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyKvpKeyValueSeparator()).isEqualTo('=');
         assertThat(config.getValueKvpKeyValueSeparator()).isEqualTo('=');
 
@@ -1296,24 +1326,26 @@ public class ConnectorConfigTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {"==", ";;"})
-    public void shouldFailDueToInvalidKvpSeparator(String delimiter) {
+    void shouldFailDueToInvalidKvpSeparator(String delimiter) {
         Map<String, String> configs1 = new HashMap<>();
         configs1.put(RECORD_KEY_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs1));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs1));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [record.key.evaluator.kvp.key-value.separator]");
 
         Map<String, String> configs2 = new HashMap<>();
-        configs2.put(ConnectorConfig.RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
+        configs2.put(RECORD_VALUE_EVALUATOR_KVP_KEY_VALUE_SEPARATOR, delimiter);
 
         ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs2));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs2));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1321,19 +1353,129 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetOverriddenGroupId() {
+    void shouldGetOverriddenGroupId() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(GROUP_ID, "lightstreamer-kafka-consumer-group");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
 
         assertThat(config.getText(GROUP_ID)).isEqualTo("lightstreamer-kafka-consumer-group");
+        assertThat(config.baseConsumerProps())
+                .containsEntry(GROUP_ID_CONFIG, "lightstreamer-kafka-consumer-group");
     }
 
     @Test
-    public void shouldGetTopicMappingWithOneReference() {
+    void shouldDefaultConsumerMode() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
+        assertThat(config.isManual()).isFalse();
+
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(), Map.of(CONSUMER_MODE, "GROUP"));
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.GROUP);
+        assertThat(config.isManual()).isFalse();
+    }
+
+    @Test
+    void shouldAcceptManualMode() {
+        ConnectorConfig config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(), Map.of(CONSUMER_MODE, "MANUAL"));
+        assertThat(config.getConsumerMode()).isEqualTo(ConsumerMode.MANUAL);
+        assertThat(config.isManual()).isTrue();
+        assertThat(config.baseConsumerProps().containsKey(GROUP_ID_CONFIG)).isFalse();
+    }
+
+    @Test
+    void shouldFailDueToInvalidConsumerMode() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(), Map.of(CONSUMER_MODE, "INVALID")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo("Specify a valid value for parameter [consumer.mode]");
+    }
+
+    @Test
+    void shouldFailDueToRegexEnabledInManualMode() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                CONSUMER_MODE,
+                                                "MANUAL",
+                                                MAP_REG_EX_ENABLE,
+                                                "true")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Manual mode does not support regex topic matching. Parameter [map.regex.enable] must be set to [false] when [consumer.mode] is set to [MANUAL]");
+    }
+
+    @Test
+    void shouldFailDueToPartitionsMappingWithGroupMode() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of("map.topic.from.partitions", "1,2,3")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Group mode does not support partition mappings. Parameter [map.topic.from.partitions] must be empty when [consumer.mode] is set to [GROUP]");
+    }
+
+    @Test
+    void shouldFailDueToPartitionsMappingWithMissingTopic() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                "consumer.mode",
+                                                "MANUAL",
+                                                "map.not-mapped-topic1.from.partitions",
+                                                "1,2,3",
+                                                "map.not-mapped-topic2.from.partitions",
+                                                "4-5")));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Partition mappings found for topics with no item mappings: [not-mapped-topic1, not-mapped-topic2]");
+    }
+
+    @Test
+    void shouldFailDueToInvalidPartitionsMapping() {
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () ->
+                                ConnectorConfigProvider.minimalWith(
+                                        adapterDir.toString(),
+                                        Map.of(
+                                                "consumer.mode",
+                                                "MANUAL",
+                                                "map.topic.from.partitions",
+                                                "A-1")));
+        assertThat(ce).hasMessageThat().isEqualTo("Partition range bounds must be integers: [A-1]");
+    }
+
+    @Test
+    void shouldGetTopicMappingWithOneReference() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1");
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
 
         List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
@@ -1344,10 +1486,11 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetTopicMappingWithMoreReferences() {
+    void shouldGetTopicMappingWithMoreReferences() {
         Map<String, String> updatedConfigs = new HashMap<>();
         updatedConfigs.put("map.topic-test.to", "item-template.template1,item1,item1,item2");
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimalWith(updatedConfigs);
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
 
         List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
         assertThat(topicMappings).hasSize(2);
@@ -1358,14 +1501,33 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetItemTemplateConfigs() {
-        ConnectorConfig cgg1 = ConnectorConfigProvider.minimal();
+    void shouldGetTopicMappingWithPartitions() {
+        Map<String, String> updatedConfigs = new HashMap<>();
+        updatedConfigs.put(CONSUMER_MODE, "MANUAL");
+        updatedConfigs.put("map.topic-test.to", "item-template.template1");
+        updatedConfigs.put("map.topic-test.from.partitions", "0-4,8-10,12,13");
+        ConnectorConfig cgg1 =
+                ConnectorConfigProvider.minimalWith(adapterDir.toString(), updatedConfigs);
+
+        List<TopicMappingConfig> topicMappings = cgg1.getTopicMappings();
+        assertThat(topicMappings).hasSize(2);
+
+        TopicMappingConfig tm1 = topicMappings.get(0);
+        assertThat(tm1.topic()).isEqualTo("topic-test");
+        assertThat(tm1.mappings()).containsExactly("item-template.template1");
+        assertThat(tm1.partitions()).containsExactly(0, 1, 2, 3, 4, 8, 9, 10, 12, 13);
+    }
+
+    @Test
+    void shouldGetItemTemplateConfigs() {
+        ConnectorConfig cgg1 = ConnectorConfigProvider.minimal(adapterDir.toString());
 
         var templateConfig = cgg1.getItemTemplateConfigs();
         assertThat(templateConfig.templates()).isEmpty();
 
         ConnectorConfig cgg2 =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 "item-template.template1",
                                 "item1-#{param1=VALUE.value1}",
@@ -1387,32 +1549,33 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetMapRegEx() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetMapRegEx() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isMapRegExEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        updatedConfig.put(MAP_REG_EX_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isMapRegExEnabled()).isTrue();
     }
 
     @Test
-    public void shouldFailDueToInvalidMapRegExFlag() {
+    void shouldFailDueToInvalidMapRegExFlag() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "t");
+        configs.put(MAP_REG_EX_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [map.regex.enable]");
     }
 
     @Test
-    public void shouldResolveSubscriptionMode() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldResolveSubscriptionMode() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getSubscriptionMode()).isEmpty();
         assertThat(config.getItemSnapshotMode()).isEqualTo(ItemSnapshotEnabledMode.NONE);
 
@@ -1514,7 +1677,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @MethodSource("itemSnapshotEnabledModeProvider")
-    public void shouldGetItemSnapshotEnabledMode(
+    void shouldGetItemSnapshotEnabledMode(
             String modeString,
             ItemSnapshotEnabledMode expectedSnapshotMode,
             Mode expectedSubscriptionMode) {
@@ -1531,8 +1694,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetItemSnapshotDistinctLength() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetItemSnapshotDistinctLength() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getItemSnapshotDistinctLength()).isEqualTo(10);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1551,8 +1714,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetItemSnapshotMaxIdleSeconds() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetItemSnapshotMaxIdleSeconds() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getItemSnapshotMaxIdleSeconds()).isEqualTo(0);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1575,48 +1738,50 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidItemSnapshotEnabledMode() {
+    void shouldFailDueToInvalidItemSnapshotEnabledMode() {
         Map<String, String> configs = new HashMap<>();
         configs.put(ITEM_SNAPSHOT_ENABLED_MODE, "invalid_snapshot_mode");
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid value for parameter [item.snapshot.enabled.mode]");
     }
 
     @Test
-    public void shouldGetFieldsSkipFailedMapping() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetFieldsSkipFailedMapping() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isFieldsSkipFailedMappingEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
+        updatedConfig.put(FIELDS_SKIP_FAILED_MAPPING_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isFieldsSkipFailedMappingEnabled()).isTrue();
     }
 
     @Test
-    public void shouldGetFieldsMapNonScalarValues() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetFieldsMapNonScalarValues() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.isFieldsMapNonScalarValuesEnabled()).isFalse();
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
+        updatedConfig.put(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "true");
         config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isFieldsMapNonScalarValuesEnabled()).isTrue();
     }
 
     @Test
-    public void shouldFailDueToFieldsSkipFailedMapping() {
+    void shouldFailDueToFieldsSkipFailedMapping() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
+        configs.put(FIELDS_SKIP_FAILED_MAPPING_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1624,13 +1789,14 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToFieldsMapNonScalarValues() {
+    void shouldFailDueToFieldsMapNonScalarValues() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "t");
+        configs.put(FIELDS_MAP_NON_SCALAR_VALUES_ENABLE, "t");
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
@@ -1638,23 +1804,24 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidRegularExpressionInTopicMapping() {
+    void shouldFailDueToInvalidRegularExpressionInTopicMapping() {
         Map<String, String> configs = new HashMap<>();
-        configs.put(ConnectorConfig.MAP_REG_EX_ENABLE, "true");
+        configs.put(MAP_REG_EX_ENABLE, "true");
         configs.put("map.topic_\\d.to", "item"); // Valid regular expression
         configs.put("map.\\k.to", "item"); // Invalid regular expression
 
         ConfigException ce =
                 assertThrows(
-                        ConfigException.class, () -> ConnectorConfigProvider.minimalWith(configs));
+                        ConfigException.class,
+                        () -> ConnectorConfigProvider.minimalWith(adapterDir.toString(), configs));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo("Specify a valid regular expression for parameter [map.\\k.to]");
     }
 
     @Test
-    public void shouldGetFieldConfigs() {
-        ConnectorConfig cgg = ConnectorConfigProvider.minimal();
+    void shouldGetFieldConfigs() {
+        ConnectorConfig cgg = ConnectorConfigProvider.minimal(adapterDir.toString());
         FieldConfigs fieldConfigs = cgg.getFieldConfigs();
         assertThat(fieldConfigs.namedFieldsExpressions()).hasSize(1);
         assertThat(fieldConfigs.namedFieldsExpressions().get("fieldName1").toString())
@@ -1662,20 +1829,20 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetHostList() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetHostList() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getHostsList(BOOTSTRAP_SERVERS)).isEqualTo("server:8080,server:8081");
     }
 
     @Test
-    public void shouldGetDefaultText() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetDefaultText() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getText(ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getText(DATA_ADAPTER_NAME)).isEqualTo("CONNECTOR");
     }
 
     @Test
-    public void shouldGetEnabled() {
+    void shouldGetEnabled() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.isEnabled()).isTrue();
@@ -1687,7 +1854,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideConsumeEventsFrom() {
+    void shouldOverrideConsumeEventsFrom() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_FROM, "EARLIEST");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1697,22 +1864,22 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetEncryptionEnabled() {
+    void shouldGetEncryptionEnabled() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.isEncryptionEnabled()).isFalse();
     }
 
     @Test
-    public void shouldGetAuthenticationEnabled() {
+    void shouldGetAuthenticationEnabled() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
         assertThat(config.isAuthenticationEnabled()).isFalse();
     }
 
     @Test
-    public void shouldGetDefaultEvaluator() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetDefaultEvaluator() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getKeyEvaluator()).isEqualTo(STRING);
         assertThat(config.getValueEvaluator()).isEqualTo(STRING);
 
@@ -1725,8 +1892,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetErrorStrategy() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetErrorStrategy() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordExtractionErrorHandlingStrategy())
                 .isEqualTo(IGNORE_AND_CONTINUE);
 
@@ -1744,7 +1911,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidErrorStrategyType() {
+    void shouldFailDueToInvalidErrorStrategyType() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_EXTRACTION_ERROR_HANDLING_STRATEGY, "invalidType");
         ConfigException e =
@@ -1760,8 +1927,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetRecordConsumeWithOrderStrategy() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetRecordConsumeWithOrderStrategy() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordConsumeWithOrderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
 
@@ -1775,7 +1942,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldFailDueToInvalidOrderStrategyType() {
+    void shouldFailDueToInvalidOrderStrategyType() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_ORDER_STRATEGY, "invalidType");
         ConfigException e =
@@ -1791,8 +1958,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetRecordConsumeWithThreadsNumber() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldGetRecordConsumeWithThreadsNumber() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getRecordConsumeWithNumThreads()).isEqualTo(1);
 
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
@@ -1803,7 +1970,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-2", "abc", "0.5"})
-    public void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(String invalidThreadsNumber) {
+    void shouldFailDueToInvalidRecordConsumeWithThreadsNumber(String invalidThreadsNumber) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_NUM_THREADS, invalidThreadsNumber);
         ConfigException ce =
@@ -1819,7 +1986,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetOverriddenMaxPollRecords() {
+    void shouldGetOverriddenMaxPollRecords() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_RECORDS, "200");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1829,7 +1996,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "0.4", "abc"})
-    public void shouldFailDueToInvalidMaxPollRecords(String invalidMaxPollRecords) {
+    void shouldFailDueToInvalidMaxPollRecords(String invalidMaxPollRecords) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_RECORDS, invalidMaxPollRecords);
         ConfigException ce =
@@ -1843,7 +2010,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetOverriddenSessionTimeoutMs() {
+    void shouldGetOverriddenSessionTimeoutMs() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS, "35000");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
@@ -1853,7 +2020,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0.4", "abc"})
-    public void shouldFailDueToInvalidSessionTimeoutMs(String invalidSessionTimeoutMs) {
+    void shouldFailDueToInvalidSessionTimeoutMs(String invalidSessionTimeoutMs) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS, invalidSessionTimeoutMs);
         ConfigException ce =
@@ -1867,9 +2034,9 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetOverriddenMaxPollIntervalMs() {
+    void shouldGetOverriddenMaxPollIntervalMs() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "35000");
+        updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, "35000");
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.baseConsumerProps())
                 .containsEntry(ConsumerConfig.MAX_POLL_INTERVAL_MS_CONFIG, "35000");
@@ -1877,10 +2044,9 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"0", "-1", "abc"})
-    public void shouldFailDueToInvalidMaxPollIntervalMs(String invalidMaxPollIntervalMs) {
+    void shouldFailDueToInvalidMaxPollIntervalMs(String invalidMaxPollIntervalMs) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
-        updatedConfig.put(
-                ConnectorConfig.RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, invalidMaxPollIntervalMs);
+        updatedConfig.put(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS, invalidMaxPollIntervalMs);
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -1892,7 +2058,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldManageSchemaFiles() {
+    void shouldManageSchemaFiles() {
         ConnectorConfig configWithoutSchemas =
                 ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(configWithoutSchemas.getFile(RECORD_KEY_EVALUATOR_SCHEMA_PATH)).isNull();
@@ -1946,8 +2112,8 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNoGetNonExistingNonRequiredInt() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldNoGetNonExistingNonRequiredInt() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
         assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
         assertThat(config.getNonNegativeInt(CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
@@ -1957,13 +2123,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessEncryptionSettings() {
+    void shouldNotAccessEncryptionSettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isEncryptionEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isKeystoreEnabled(),
                         () -> config.enabledProtocols(),
@@ -1976,7 +2142,7 @@ public class ConnectorConfigTest {
                         () -> config.cipherSuites(),
                         () -> config.cipherSuitesAsStr(),
                         () -> config.sslProvider());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -1985,7 +2151,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyEncryptionParametersWhenRequired() {
+    void shouldSpecifyEncryptionParametersWhenRequired() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(ENCRYPTION_ENABLE, "true");
 
@@ -2015,7 +2181,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultEncryptionSettings() {
+    void shouldGetDefaultEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
 
@@ -2051,13 +2217,13 @@ public class ConnectorConfigTest {
         assertThat(props).doesNotContainKey(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG);
         assertThat(props).doesNotContainKey(SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.keystorePath(),
                         () -> config.keystorePassword(),
                         () -> config.keystoreType(),
                         () -> config.keyPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2067,7 +2233,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideEncryptionSettings() {
+    void shouldOverrideEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.put(EncryptionConfigs.SSL_ENABLED_PROTOCOLS, "TLSv1.2");
@@ -2128,7 +2294,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredKeystoreParameters() {
+    void shouldSpecifyRequiredKeystoreParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.put(EncryptionConfigs.ENABLE_MTLS, "true");
@@ -2167,7 +2333,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultKeystoreSettings() {
+    void shouldGetDefaultKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.putAll(keystoreParameters());
@@ -2191,7 +2357,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideKeystoreSettings() {
+    void shouldOverrideKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(encryptionParameters());
         updatedConfig.putAll(keystoreParameters());
@@ -2240,7 +2406,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyAuthenticationRequiredParametersWithDefaultPlain() {
+    void shouldSpecifyAuthenticationRequiredParametersWithDefaultPlain() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
 
@@ -2296,7 +2462,7 @@ public class ConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"SCRAM-SHA-256", "SCRAM-SHA-512"})
-    public void shouldSpecifyAuthenticationRequiredParametersWithSCRAM(String saslMechanism) {
+    void shouldSpecifyAuthenticationRequiredParametersWithSCRAM(String saslMechanism) {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, saslMechanism);
@@ -2341,13 +2507,13 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessAuthenticationSettings() {
+    void shouldNotAccessAuthenticationSettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isAuthenticationEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.authenticationMechanism(),
                         () -> config.authenticationUsername(),
@@ -2364,7 +2530,7 @@ public class ConnectorConfigTest {
                         () -> config.gssapiPrincipal(),
                         () -> config.gssapiUseKeyTab(),
                         () -> config.gssapiUseTicketCache());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2374,7 +2540,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultAuthenticationSettings() {
+    void shouldGetDefaultAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.putAll(authenticationParameters());
 
@@ -2395,7 +2561,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideAuthenticationSettings() {
+    void shouldOverrideAuthenticationSettings() {
         // Sasl mechanisms under test
         List<SaslMechanism> mechanisms = List.of(SaslMechanism.SCRAM_256, SaslMechanism.SCRAM_512);
 
@@ -2433,7 +2599,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideAuthenticationSettingsWithIam() {
+    void shouldOverrideAuthenticationSettingsWithIam() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "AWS_MSK_IAM");
@@ -2500,7 +2666,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyGssapiAuthenticationRequiredParameters() {
+    void shouldSpecifyGssapiAuthenticationRequiredParameters() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2547,7 +2713,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultGssapiAuthenticationSettings() {
+    void shouldGetDefaultGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2576,7 +2742,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideGssapiAuthenticationSettings() {
+    void shouldOverrideGssapiAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2611,7 +2777,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideGssapiAuthenticationSettingsWithTicketCache() {
+    void shouldOverrideGssapiAuthenticationSettingsWithTicketCache() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2643,7 +2809,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotValidateWhenKeyTabIsNotSpecified() {
+    void shouldNotValidateWhenKeyTabIsNotSpecified() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2678,7 +2844,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotValidateWhenPrincipalIsNotSpecifiedAndNotUseTicketCache() {
+    void shouldNotValidateWhenPrincipalIsNotSpecifiedAndNotUseTicketCache() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(AUTHENTICATION_ENABLE, "true");
         updatedConfig.put(BrokerAuthenticationConfigs.SASL_MECHANISM, "GSSAPI");
@@ -2713,7 +2879,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParamsForConfluentSchemaRegistry() {
+    void shouldSpecifyRequiredParamsForConfluentSchemaRegistry() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
@@ -2744,7 +2910,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldSpecifyRequiredParamsForAzureSchemaRegistry() {
+    void shouldSpecifyRequiredParamsForAzureSchemaRegistry() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
@@ -2837,12 +3003,12 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessSchemaRegistrySettings() {
+    void shouldNotAccessSchemaRegistrySettings() {
         ConnectorConfig config =
                 ConnectorConfig.newConfig(adapterDir.toFile(), standardParameters());
 
         assertThat(config.isSchemaRegistryEnabled()).isFalse();
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isConfluentSchemaRegistryEncryptionEnabled(),
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
@@ -2859,7 +3025,7 @@ public class ConnectorConfigTest {
                         () -> config.azureClientId(),
                         () -> config.azureTenantId(),
                         () -> config.azureClientSecret());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2869,20 +3035,20 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessAzureSchemaRegistrySettings() {
+    void shouldNotAccessAzureSchemaRegistrySettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
 
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.azureTenantId(),
                         () -> config.azureClientId(),
                         () -> config.azureClientSecret());
 
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2891,7 +3057,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessConfluentSchemaRegistrySettings() {
+    void shouldNotAccessConfluentSchemaRegistrySettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(URL, "http://localhost:8080");
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
@@ -2906,7 +3072,7 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.isConfluentSchemaRegistryEncryptionEnabled(),
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
@@ -2920,7 +3086,7 @@ public class ConnectorConfigTest {
                         () -> config.confluentSchemaRegistryCipherSuitesAsStr(),
                         () -> config.confluentSchemaRegistrySslProvider(),
                         () -> config.isSchemaRegistryBasicAuthenticationEnabled());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2929,7 +3095,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessConfluentSchemaRegistryEncryptionSettings() {
+    void shouldNotAccessConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
@@ -2938,7 +3104,7 @@ public class ConnectorConfigTest {
         assertThat(config.schemaRegistryUrl()).isEqualTo("http://localhost:8080");
         assertThat(config.isConfluentSchemaRegistryEncryptionEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryEnabledProtocols(),
                         () -> config.confluentSchemaRegistryEnabledProtocolsAsStr(),
@@ -2950,7 +3116,7 @@ public class ConnectorConfigTest {
                         () -> config.confluentSchemaRegistryCipherSuites(),
                         () -> config.confluentSchemaRegistryCipherSuitesAsStr(),
                         () -> config.confluentSchemaRegistrySslProvider());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -2959,7 +3125,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultConfluentSchemaRegistryEncryptionSettings() {
+    void shouldGetDefaultConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -2997,13 +3163,13 @@ public class ConnectorConfigTest {
         assertThat(props)
                 .doesNotContainKey("schema.registry." + SslConfigs.SSL_CIPHER_SUITES_CONFIG);
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryKeystorePath(),
                         () -> config.confluentSchemaRegistryKeystorePassword(),
                         () -> config.confluentSchemaRegistryKeystoreType(),
                         () -> config.schemaRegistryKeyPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3013,7 +3179,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideConfluentSchemaRegistryEncryptionSettings() {
+    void shouldOverrideConfluentSchemaRegistryEncryptionSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -3069,7 +3235,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetDefaultConfluentSchemaRegistryKeystoreSettings() {
+    void shouldGetDefaultConfluentSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -3101,7 +3267,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldOverrideConfluentSchemaRegistryKeystoreSettings() {
+    void shouldOverrideConfluentSchemaRegistryKeystoreSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "https://localhost:8080");
@@ -3145,7 +3311,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotAccessConfluentSchemaRegistryBasicAuthenticationSettings() {
+    void shouldNotAccessConfluentSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");
@@ -3154,11 +3320,11 @@ public class ConnectorConfigTest {
         ConnectorConfig config = ConnectorConfig.newConfig(adapterDir.toFile(), updatedConfig);
         assertThat(config.isSchemaRegistryBasicAuthenticationEnabled()).isFalse();
 
-        List<ThrowingRunnable> runnables =
+        List<Executable> executables =
                 List.of(
                         () -> config.confluentSchemaRegistryBasicAuthenticationUserName(),
                         () -> config.confluentSchemaRegistryBasicAuthenticationPassword());
-        for (ThrowingRunnable executable : runnables) {
+        for (Executable executable : executables) {
             ConfigException ce = assertThrows(ConfigException.class, executable);
             assertThat(ce)
                     .hasMessageThat()
@@ -3168,7 +3334,7 @@ public class ConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetConfluentSchemaRegistryBasicAuthenticationSettings() {
+    void shouldGetConfluentSchemaRegistryBasicAuthenticationSettings() {
         Map<String, String> updatedConfig = new HashMap<>(standardParameters());
         updatedConfig.put(RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE, "true");
         updatedConfig.put(URL, "http://localhost:8080");

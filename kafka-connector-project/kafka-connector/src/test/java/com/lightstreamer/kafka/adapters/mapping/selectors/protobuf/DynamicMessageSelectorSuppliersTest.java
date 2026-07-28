@@ -52,49 +52,67 @@ import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DynamicMessageSelectorSuppliersTest {
+class DynamicMessageSelectorSuppliersTest {
 
-    static ConnectorConfig CONFIG =
-            ConnectorConfigProvider.minimalWith(
-                    Map.of(
-                            SchemaRegistryConfigs.URL,
-                            "https://localhost:8081",
-                            SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
-                            "CONFLUENT",
-                            RECORD_KEY_EVALUATOR_TYPE,
-                            PROTOBUF.toString(),
-                            RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                            "true",
-                            RECORD_VALUE_EVALUATOR_TYPE,
-                            PROTOBUF.toString(),
-                            RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
-                            "true"));
-
-    static DynamicMessage SAMPLE_MESSAGE =
+    private static final DynamicMessage SAMPLE_MESSAGE =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessage();
-    static DynamicMessage SAMPLE_MESSAGE_V2 =
+    private static final DynamicMessage SAMPLE_MESSAGE_V2 =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessageV2();
 
-    static KeySelector<DynamicMessage> keySelector(String expression) throws ExtractionException {
-        return new DynamicMessageSelectorSuppliers(CONFIG)
+    private Path adapterDir;
+
+    // A configuration with proper evaluator type settings for key and value.
+    private ConnectorConfig config;
+
+    @BeforeEach
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+        config =
+                ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
+                        Map.of(
+                                SchemaRegistryConfigs.URL,
+                                "https://localhost:8081",
+                                SchemaRegistryConfigs.SCHEMA_REGISTRY_PROVIDER,
+                                "CONFLUENT",
+                                RECORD_KEY_EVALUATOR_TYPE,
+                                PROTOBUF.toString(),
+                                RECORD_KEY_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true",
+                                RECORD_VALUE_EVALUATOR_TYPE,
+                                PROTOBUF.toString(),
+                                RECORD_VALUE_EVALUATOR_SCHEMA_REGISTRY_ENABLE,
+                                "true"));
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
+    KeySelector<DynamicMessage> keySelector(String expression) throws ExtractionException {
+        return new DynamicMessageSelectorSuppliers(config)
                 .makeKeySelectorSupplier()
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
-    static ValueSelector<DynamicMessage> valueSelector(String expression)
-            throws ExtractionException {
-        return new DynamicMessageSelectorSuppliers(CONFIG)
+    ValueSelector<DynamicMessage> valueSelector(String expression) throws ExtractionException {
+        return new DynamicMessageSelectorSuppliers(config)
                 .makeValueSelectorSupplier()
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
@@ -112,9 +130,10 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
@@ -128,10 +147,10 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
-        // Configure the key evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+        // Leave both evaluator types at their default settings (String); attempting
+        // to build a PROTOBUF key selector supplier must therefore fail.
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
@@ -139,12 +158,12 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
+    void shouldNotMakeKeySelectorSupplierDueToMissingMessageType() throws IOException {
         Path adapterDir = Paths.get("src/test/resources");
         Path protoKeySchemaFile = adapterDir.resolve("person.proto.desc");
 
-        // Configure the key evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
+        // Configure the key evaluator with PROTOBUF and an invalid message type;
+        // the schema lookup must fail.
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -166,7 +185,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<DynamicMessage> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -183,16 +202,17 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
@@ -206,10 +226,10 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
-        // Configure the value evaluator type, but leave default settings for
-        // RECORD_VALUE_EVALUATOR_TYPE (String)
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        // Leave both evaluator types at their default settings (String); attempting
+        // to build a PROTOBUF value selector supplier must therefore fail.
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         DynamicMessageSelectorSuppliers s = new DynamicMessageSelectorSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
@@ -217,12 +237,12 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
+    void shouldNotMakeValueSelectorSupplierDueToMissingMessageType() throws IOException {
         Path adapterDir = Paths.get("src/test/resources");
         Path protoValueSchemaFile = adapterDir.resolve("person.proto.desc");
 
-        // Configure the value evaluator type, but leave default settings for
-        // RECORD_KEY_EVALUATOR_TYPE (String)
+        // Configure the value evaluator with PROTOBUF and an invalid message type;
+        // the schema lookup must fail.
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         adapterDir.toString(),
@@ -244,7 +264,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<DynamicMessage> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -261,22 +281,22 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<DynamicMessage> keyDeserializer =
-                new DynamicMessageSelectorSuppliers(CONFIG)
+                new DynamicMessageSelectorSuppliers(config)
                         .makeKeySelectorSupplier()
                         .deserializer();
         assertThat(keyDeserializer).isInstanceOf(KafkaProtobufDeserializer.class);
 
         Deserializer<DynamicMessage> valueDeserializer =
-                new DynamicMessageSelectorSuppliers(CONFIG)
+                new DynamicMessageSelectorSuppliers(config)
                         .makeValueSelectorSupplier()
                         .deserializer();
         assertThat(valueDeserializer).isInstanceOf(KafkaProtobufDeserializer.class);
@@ -311,7 +331,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.any.type_url                        | type_url        | type.googleapis.com/Car
                 VALUE.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException, ValueException {
         ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
 
@@ -326,7 +346,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, DynamicMessage> record = KafkaRecordFromValue(SAMPLE_MESSAGE);
 
@@ -398,7 +418,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends.name             | Cannot retrieve field [name] from an array object
                 VALUE.*                        | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -436,7 +456,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[4]               | Field not found at index [4]
                 VALUE.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -461,7 +481,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.friends[0]   | friends[0]    | name: "alex"\\n
                 VALUE.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<DynamicMessage> valueSelector = valueSelector(expression);
@@ -478,7 +498,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+    void shouldHandleNullValue() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 valueSelector("VALUE").extractValue(KafkaRecordFromValue((DynamicMessage) null));
         assertThat(autoBoundValue.name()).isEqualTo("VALUE");
@@ -502,7 +522,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -554,8 +574,8 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.any.type_url                        | type_url        | type.googleapis.com/Car
                 KEY.any.value                           | value           | \\n\\004FORD
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
-            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
+            throws ExtractionException, ValueException {
         KeySelector<DynamicMessage> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE));
@@ -563,13 +583,12 @@ public class DynamicMessageSelectorSuppliersTest {
         assertThat(autoBoundData.text()).isEqualTo(maybeEmpty(expectedValue));
 
         Data boundData = keySelector.extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE), true);
-        ;
         assertThat(boundData.name()).isEqualTo("param");
         assertThat(boundData.text()).isEqualTo(maybeEmpty(expectedValue));
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<DynamicMessage, ?> record = KafkaRecordFromKey(SAMPLE_MESSAGE);
 
@@ -620,11 +639,11 @@ public class DynamicMessageSelectorSuppliersTest {
             textBlock =
                     """
                 EXPRESSION                   | EXPECTED_ERROR_MESSAGE
-                KEY                       | The expression [KEY] must evaluate to a non-complex object
-                KEY.a b                   | Field [a b] not found
-                KEY.no_attrib             | Field [no_attrib] not found
-                KEY['no_attrib']          | Field [no_attrib] not found
-                KEY[0]                    | Cannot retrieve index [0] from a non-array object
+                KEY                          | The expression [KEY] must evaluate to a non-complex object
+                KEY.a b                      | Field [a b] not found
+                KEY.no_attrib                | Field [no_attrib] not found
+                KEY['no_attrib']             | Field [no_attrib] not found
+                KEY[0]                       | Cannot retrieve index [0] from a non-array object
                 KEY.friends[0].no_attrib     | Field [no_attrib] not found
                 KEY.no_children[0]           | Field [no_children] not found
                 KEY.name[0]                  | Field [name] is not indexed
@@ -641,8 +660,17 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends.name             | Cannot retrieve field [name] from an array object
                 KEY.*                        | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
+                assertThrows(
+                        ValueException.class,
+                        () ->
+                                keySelector(expression)
+                                        .extractKey("param", KafkaRecordFromKey(SAMPLE_MESSAGE))
+                                        .text());
+        assertThat(ve).hasMessageThat().isEqualTo(errorMessage);
+
+        ve =
                 assertThrows(
                         ValueException.class,
                         () ->
@@ -670,7 +698,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[4]               | Field not found at index [4]
                 KEY.friends[4].name          | Field not found at index [4]
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -695,9 +723,9 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.friends[0]   | friends[0]    | name: "alex"\\n
                 KEY.mainAddress  | mainAddress   | city: "London"\\ncountry {\\n  name: "England"\\n}\\n
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
-            throws ExtractionException, ValueException, InvalidEscapeSequenceException {
+            throws ExtractionException, ValueException {
         KeySelector<DynamicMessage> keySelector = keySelector(expression);
 
         Data autoBoundData = keySelector.extractKey(KafkaRecordFromKey(SAMPLE_MESSAGE_V2), false);
@@ -711,7 +739,7 @@ public class DynamicMessageSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+    void shouldHandleNullKey() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 keySelector("KEY").extractKey(KafkaRecordFromKey((DynamicMessage) null));
         assertThat(autoBoundValue.name()).isEqualTo("KEY");
@@ -734,7 +762,7 @@ public class DynamicMessageSelectorSuppliersTest {
                 KEY.children[0].no_attrib  | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]         | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(

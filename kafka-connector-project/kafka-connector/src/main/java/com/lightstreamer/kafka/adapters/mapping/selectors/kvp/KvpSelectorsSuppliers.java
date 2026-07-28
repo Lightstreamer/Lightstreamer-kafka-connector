@@ -281,8 +281,8 @@ public class KvpSelectorsSuppliers implements KeyValueSelectorSuppliersMaker<Str
         protected final BiFunction<String, String, KvpNode> kvpMapFactory;
 
         KvpNodeSelectorSupplier(Splitter pair, Splitter keyValue) {
-            this.deserializer = Serdes.String().deserializer();
-            this.kvpMapFactory =
+            deserializer = Serdes.String().deserializer();
+            kvpMapFactory =
                     (rootName, payload) -> {
                         return KvpNode.fromString(rootName, payload, pair, keyValue);
                     };

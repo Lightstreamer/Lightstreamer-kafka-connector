@@ -270,6 +270,15 @@ public interface ConfigTypes {
         }
     }
 
+    enum ConsumerMode {
+        GROUP,
+        MANUAL;
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
     enum SchemaRegistryProvider {
         CONFLUENT,
         AZURE;

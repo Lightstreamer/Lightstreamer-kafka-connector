@@ -44,7 +44,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
-public class RecordBatchTest {
+class RecordBatchTest {
 
     @FunctionalInterface
     interface ThrowableRunnable {
@@ -56,7 +56,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCreateBatchFromDeferred(boolean joinable) {
+    void shouldCreateBatchFromDeferred(boolean joinable) {
         int partitions = 2;
         int totalRecords = 20;
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -107,7 +107,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCreateBatchFromEager(boolean joinable) {
+    void shouldCreateBatchFromEager(boolean joinable) {
         int partitions = 2;
         int totalRecords = 20;
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -157,7 +157,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCreateEmptyBatch(boolean joinable) {
+    void shouldCreateEmptyBatch(boolean joinable) {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 0, List.of("a", "b"));
 
@@ -177,7 +177,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotifyBatchCompletion(boolean joinable) {
+    void shouldNotifyBatchCompletion(boolean joinable) {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
@@ -201,7 +201,7 @@ public class RecordBatchTest {
     }
 
     @Test
-    public void shouldNotJoinUntilAllRecordsProcessed() {
+    void shouldNotJoinUntilAllRecordsProcessed() {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
 
@@ -228,7 +228,7 @@ public class RecordBatchTest {
     }
 
     @Test
-    public void shouldBlockJoinUntilAllRecordsProcessed() throws Exception {
+    void shouldBlockJoinUntilAllRecordsProcessed() throws Exception {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
@@ -254,7 +254,7 @@ public class RecordBatchTest {
     }
 
     @Test
-    public void shouldNotBlockJoinForNonJoinableBatch() throws Exception {
+    void shouldNotBlockJoinForNonJoinableBatch() throws Exception {
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 Records.generateRecords("topic", 5, List.of("a", "b"));
         RecordBatch<String, String> batch =
@@ -270,7 +270,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    public void shouldSkipPoisonPillAndContinue(boolean joinable) {
+    void shouldSkipPoisonPillAndContinue(boolean joinable) {
         Deserializer<String> poisonKeyDeserializer =
                 new Deserializer<>() {
                     @Override
@@ -315,7 +315,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    public void shouldFailWhenAllRecordsArePoisonPills(boolean joinable) {
+    void shouldFailWhenAllRecordsArePoisonPills(boolean joinable) {
         Deserializer<String> alwaysFailDeserializer =
                 new Deserializer<>() {
                     @Override
@@ -349,7 +349,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    public void shouldRethrowImmediatelyWithoutErrorHandler(boolean joinable) {
+    void shouldRethrowImmediatelyWithoutErrorHandler(boolean joinable) {
         Deserializer<String> alwaysFailDeserializer =
                 new Deserializer<>() {
                     @Override
@@ -403,7 +403,7 @@ public class RecordBatchTest {
 
     @ParameterizedTest
     @MethodSource("consumerRecords")
-    public void shouldNotValidateBatchConstruction(
+    void shouldNotValidateBatchConstruction(
             int targetSize, ConsumerRecords<byte[], byte[]> consumerRecords) {
         NotifyingRecordBatch<String, String> batch = new NotifyingRecordBatch<>(targetSize);
         for (var record : consumerRecords) {

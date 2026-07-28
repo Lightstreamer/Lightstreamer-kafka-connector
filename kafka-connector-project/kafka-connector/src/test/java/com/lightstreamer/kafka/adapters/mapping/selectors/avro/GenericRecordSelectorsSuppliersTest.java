@@ -44,15 +44,21 @@ import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.SampleMessageProviders;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
-public class GenericRecordSelectorsSuppliersTest {
+class GenericRecordSelectorsSuppliersTest {
 
     // A configuration with proper evaluator type settings for key and value
     static ConnectorConfig CONFIG =
@@ -86,8 +92,20 @@ public class GenericRecordSelectorsSuppliersTest {
                 .newSelector(WrappedNoWildcardCheck("#{" + expression + "}"));
     }
 
+    private Path adapterDir;
+
+    @BeforeEach
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("myadapter_dir");
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
+
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         "src/test/resources",
@@ -102,8 +120,8 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldNotMakeKeySelectorSupplierDueToMissingEvaluatorType() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeKeySelectorSupplier());
@@ -111,7 +129,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<GenericRecord> selector = keySelector("KEY");
 
         assertThat(selector.expression().expression()).isEqualTo("KEY");
@@ -129,14 +147,14 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
                         "src/test/resources",
@@ -151,8 +169,8 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldNotMakeValueSelectorSupplierDueToMissingEvaluatorType() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         GenericRecordSelectorsSuppliers s = new GenericRecordSelectorsSuppliers(config);
         IllegalArgumentException ie =
                 assertThrows(IllegalArgumentException.class, () -> s.makeValueSelectorSupplier());
@@ -160,7 +178,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<GenericRecord> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -177,14 +195,14 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotCreateValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldGetDeserializer() {
+    void shouldGetDeserializer() {
         Deserializer<GenericRecord> keyDeserializer =
                 new GenericRecordSelectorsSuppliers(CONFIG)
                         .makeKeySelectorSupplier()
@@ -225,7 +243,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[1].children[1]['name'] | name          | terence
                 VALUE.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractValue(String expression, String expectedName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
 
@@ -239,7 +257,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractValueIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<?, GenericRecord> record = KafkaRecordFromValue(SAMPLE_MESSAGE);
 
@@ -323,7 +341,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                 VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -365,7 +383,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray[0]         | Field not found at index [0]
                 VALUE.nullValue[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -396,7 +414,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.emptyArray                | emptyArray    | []
                 VALUE.nullValue                 | nullValue     |
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<GenericRecord> valueSelector = valueSelector(expression);
@@ -414,7 +432,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ValueException, ExtractionException {
+    void shouldHandleNullValue() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 valueSelector("VALUE").extractValue(KafkaRecordFromValue((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("VALUE");
@@ -438,7 +456,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -496,7 +514,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.children[1].children[1]['name'] | name          | terence
                 KEY.nullValue                       | nullValue     |
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<GenericRecord> keySelector = keySelector(expression);
 
@@ -510,7 +528,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
+    void shouldExtractKeyIntoMap() throws ValueException, ExtractionException {
         Map<String, String> target = new HashMap<>();
         KafkaRecord<GenericRecord, ?> record = KafkaRecordFromKey(SAMPLE_MESSAGE);
 
@@ -594,7 +612,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.nullValue[0]          | Cannot retrieve index [0] from a null object
                 KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -634,7 +652,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.type.attrib            | Cannot retrieve field [attrib] from a scalar object
                 KEY.nullValue[0]           | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -665,7 +683,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.emptyArray                | emptyArray    | []
                 KEY.nullValue                 | nullValue     |
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         Data autoBoundValue =
@@ -681,7 +699,7 @@ public class GenericRecordSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ValueException, ExtractionException {
+    void shouldHandleNullKey() throws ValueException, ExtractionException {
         Data autoBoundValue =
                 keySelector("KEY").extractKey(KafkaRecordFromKey((GenericRecord) null));
         assertThat(autoBoundValue.name()).isEqualTo("KEY");
@@ -704,7 +722,7 @@ public class GenericRecordSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(

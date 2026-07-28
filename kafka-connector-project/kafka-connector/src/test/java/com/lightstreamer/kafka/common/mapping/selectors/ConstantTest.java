@@ -36,10 +36,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import java.util.Arrays;
 import java.util.Set;
 
-public class ConstantTest {
+class ConstantTest {
 
     @Test
-    public void shouldCreateFromValidConstantNames() {
+    void shouldCreateFromValidConstantNames() {
         assertThat(from("KEY")).isEqualTo(KEY);
         assertThat(from("VALUE")).isEqualTo(VALUE);
         assertThat(from("TIMESTAMP")).isEqualTo(TIMESTAMP);
@@ -50,12 +50,12 @@ public class ConstantTest {
     }
 
     @Test
-    public void shouldNotCreateFromInvalidConstant() {
+    void shouldNotCreateFromInvalidConstant() {
         assertThat(from("INVALID")).isNull();
     }
 
     @Test
-    public void shouldReturnAllConstants() {
+    void shouldReturnAllConstants() {
         Set<Constant> allConstants = Constant.all();
         Constant[] allValues = Constant.values();
         assertThat(allValues.length).isEqualTo(allConstants.size());
@@ -66,14 +66,14 @@ public class ConstantTest {
     }
 
     @Test
-    public void shouldReturnItself() {
+    void shouldReturnItself() {
         for (Constant constant : Constant.values()) {
             assertThat(constant).isSameInstanceAs(constant.constant());
         }
     }
 
     @Test
-    public void shouldTokenBeEqualToConstantName() {
+    void shouldTokenBeEqualToConstantName() {
         for (Constant constant : Constant.values()) {
             String[] tokens = constant.tokens();
             assertThat(tokens.length).isEqualTo(1);
@@ -82,7 +82,7 @@ public class ConstantTest {
     }
 
     @Test
-    public void shouldExpressionBeEqualToConstantName() {
+    void shouldExpressionBeEqualToConstantName() {
         for (Constant constant : Constant.values()) {
             assertThat(constant.toString()).isEqualTo(constant.expression());
         }
@@ -90,12 +90,12 @@ public class ConstantTest {
 
     @ParameterizedTest
     @EnumSource(names = {"OFFSET", "PARTITION", "TIMESTAMP", "TOPIC"})
-    public void shouldNotAllowIndex(Constant constant) {
+    void shouldNotAllowIndex(Constant constant) {
         assertThat(constant.allowIndex()).isFalse();
     }
 
     @Test
-    public void shouldNotCreateFromNonIndexableConstants() {
+    void shouldNotCreateFromNonIndexableConstants() {
         // By default constants don't allow indexing, so these should return null
         assertThat(from("OFFSET[2]")).isNull();
         assertThat(from("PARTITION[3]")).isNull();
@@ -104,7 +104,7 @@ public class ConstantTest {
     }
 
     @Test
-    public void shouldNotCreateFromInvalidIndexedConstants() {
+    void shouldNotCreateFromInvalidIndexedConstants() {
         // Invalid indexed constants should return null
         assertThat(from("INVALID[0]")).isNull();
         assertThat(from("A['index']")).isNull();
@@ -112,12 +112,12 @@ public class ConstantTest {
 
     @ParameterizedTest
     @EnumSource(names = {"KEY", "VALUE", "HEADERS"})
-    public void shouldAllowIndex(Constant constant) {
+    void shouldAllowIndex(Constant constant) {
         assertThat(constant.allowIndex()).isTrue();
     }
 
     @Test
-    public void shouldCreateFromIndexableConstants() {
+    void shouldCreateFromIndexableConstants() {
         // HEADERS allows indexing, so these should return the constant
         assertThat(from("HEADERS[0]")).isEqualTo(HEADERS);
         assertThat(from("HEADERS[1]")).isEqualTo(HEADERS);
@@ -134,7 +134,7 @@ public class ConstantTest {
     }
 
     @Test
-    public void testValuesStr() {
+    void testValuesStr() {
         String expected =
                 Arrays.stream(Constant.values())
                         .map(Enum::toString)

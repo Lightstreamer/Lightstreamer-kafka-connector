@@ -19,87 +19,106 @@ package com.lightstreamer.kafka.adapters.consumers.offsets;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
+import org.apache.kafka.clients.consumer.MockConsumer;
+import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-public class NoCommitOffsetServiceTest {
+class NoCommitOffsetServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NoCommitOffsetServiceTest.class);
+    private static final String TOPIC = "topic";
+    private static final TopicPartition TP0 = new TopicPartition(TOPIC, 0);
+    private static final TopicPartition TP1 = new TopicPartition(TOPIC, 1);
 
+    private MockConsumer<?, ?> consumer;
     private NoCommitOffsetService offsetService;
 
     @BeforeEach
-    public void setUp() {
-        offsetService = new NoCommitOffsetService(logger);
+    void before() {
+        consumer = new MockConsumer<>(StrategyType.LATEST.toString());
+        consumer.updateBeginningOffsets(Map.of(TP0, 0L, TP1, 0L));
+        consumer.updateEndOffsets(Map.of(TP0, 100L, TP1, 200L));
+        consumer.assign(List.of(TP0, TP1));
+        offsetService = new NoCommitOffsetService(consumer, logger, RecordConsumeFrom.LATEST);
     }
 
     @Test
-    public void shouldReturnEmptyOffsetsSnapshot() {
+    void shouldReturnEmptyOffsetsSnapshot() {
         assertThat(offsetService.offsetsSnapshot()).isEmpty();
     }
 
     @Test
-    public void shouldReturnEmptyOffsetsSnapshotAfterUpdateOffsets() {
+    void shouldReturnEmptyOffsetsSnapshotAfterUpdateOffsets() {
         offsetService.updateOffsets(KafkaRecord.from("topic", 0, 42, 0L, "key", "value", null));
         assertThat(offsetService.offsetsSnapshot()).isEmpty();
     }
 
     @Test
-    public void shouldReturnNullForGetFirstFailure() {
+    void shouldReturnNullForGetFirstFailure() {
         assertThat(offsetService.getFirstFailure()).isNull();
     }
 
     @Test
-    public void shouldReturnNullForGetFirstFailureAfterOnAsyncFailure() {
+    void shouldReturnNullForGetFirstFailureAfterOnAsyncFailure() {
         offsetService.onAsyncFailure(new RuntimeException("test failure"));
         assertThat(offsetService.getFirstFailure()).isNull();
     }
 
     @Test
-    public void shouldNotThrowOnMaybeCommit() {
+    void shouldNotThrowOnMaybeCommit() {
         offsetService.maybeCommit();
-        // No exception — verifies no-op behavior
+        // No exception is thrown; the maybeCommit call is a no-op.
     }
 
     @Test
-    public void shouldNotThrowOnConsumerShutdown() {
+    void shouldNotThrowOnConsumerShutdown() {
         offsetService.onConsumerShutdown();
-        // No exception — verifies no-op behavior
+        // No exception is thrown; the onConsumerShutdown call is a no-op.
+    }
+
+    @ParameterizedTest
+    @EnumSource(RecordConsumeFrom.class)
+    void shouldSeekAssignedPartitionsPerConsumeFrom(RecordConsumeFrom from) {
+        NoCommitOffsetService service = new NoCommitOffsetService(consumer, logger, from);
+
+        service.onPartitionsAssigned(Set.of(TP0, TP1));
+
+        // EARLIEST seeks to the beginning offsets (0); LATEST seeks to the end offsets set in
+        // setUp.
+        long expectedTp0 = from == RecordConsumeFrom.EARLIEST ? 0L : 100L;
+        long expectedTp1 = from == RecordConsumeFrom.EARLIEST ? 0L : 200L;
+        assertThat(consumer.position(TP0)).isEqualTo(expectedTp0);
+        assertThat(consumer.position(TP1)).isEqualTo(expectedTp1);
     }
 
     @Test
-    public void shouldNotThrowOnPartitionsAssigned() {
-        Set<TopicPartition> partitions =
-                Set.of(new TopicPartition("topic", 0), new TopicPartition("topic", 1));
-        offsetService.onPartitionsAssigned(partitions);
-        // No exception — verifies graceful handling
+    void shouldWarnAndDoNothingOnUnexpectedPartitionsRevoked() {
+        offsetService.onPartitionsRevoked(List.of(TP0));
+        // No exception is thrown; the callback logs a warning and performs no commit.
     }
 
     @Test
-    public void shouldNotThrowOnPartitionsRevoked() {
-        List<TopicPartition> partitions = List.of(new TopicPartition("topic", 0));
-        offsetService.onPartitionsRevoked(partitions);
-        // No exception — verifies no commit attempt
+    void shouldWarnAndDoNothingOnUnexpectedPartitionsLost() {
+        offsetService.onPartitionsLost(List.of(TP0));
+        // No exception is thrown; the callback logs a warning and performs no cleanup.
     }
 
     @Test
-    public void shouldNotThrowOnPartitionsLost() {
-        List<TopicPartition> partitions = List.of(new TopicPartition("topic", 0));
-        offsetService.onPartitionsLost(partitions);
-        // No exception — verifies graceful handling
-    }
-
-    @Test
-    public void shouldBeCreatableViaFactoryMethod() {
-        OffsetService service = OffsetService.noCommit(logger);
+    void shouldBeCreatableViaFactoryMethod() {
+        OffsetService service = OffsetService.noCommit(consumer, logger, RecordConsumeFrom.LATEST);
         assertThat(service).isInstanceOf(NoCommitOffsetService.class);
         assertThat(service.offsetsSnapshot()).isEmpty();
         assertThat(service.getFirstFailure()).isNull();

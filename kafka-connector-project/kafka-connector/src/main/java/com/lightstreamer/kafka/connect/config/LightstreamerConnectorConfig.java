@@ -355,7 +355,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
         Pair address = getProxyAdapterAddress();
 
         if (isConnectionInversionEnabled()) {
-            this.providerServerOptions =
+            providerServerOptions =
                     new ProviderServerOptions.Builder(getRequestReplyPort())
                             .maxProxyAdapterConnections(getMaxProxyAdapterConnections())
                             .username(getUsername())
@@ -363,7 +363,7 @@ public class LightstreamerConnectorConfig extends AbstractConfig {
                             .build();
 
         } else {
-            this.proxyAdapterClientOptions =
+            proxyAdapterClientOptions =
                     new ProxyAdapterClientOptions.Builder(address.key(), parseInt(address.value()))
                             .connectionTimeout(getSetupConnectionTimeoutMs())
                             .connectionMaxRetries(getSetupConnectionMaxRetries())

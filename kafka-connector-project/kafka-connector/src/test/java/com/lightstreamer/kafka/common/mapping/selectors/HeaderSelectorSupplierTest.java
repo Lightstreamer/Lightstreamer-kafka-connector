@@ -20,7 +20,7 @@ package com.lightstreamer.kafka.common.mapping.selectors;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.Records;
@@ -38,7 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HeaderSelectorSupplierTest {
+class HeaderSelectorSupplierTest {
 
     private static final Headers SAMPLE_RECORD_HEADERS =
             new RecordHeaders()
@@ -72,7 +72,7 @@ public class HeaderSelectorSupplierTest {
     }
 
     @Test
-    public void shouldMakeHeaderSelector() throws ExtractionException {
+    void shouldMakeHeaderSelector() throws ExtractionException {
         HeadersSelector selector = headersSelector("HEADERS");
         assertThat(selector.expression().expression()).isEqualTo("HEADERS");
     }
@@ -88,7 +88,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.attrib[],     Found the invalid indexed expression [HEADERS.attrib[]]
                 HEADERS.attrib[a],    Found the invalid indexed expression [HEADERS.attrib[a]]
                 """)
-    public void shouldNotMakeHeaderSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeHeaderSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> headersSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -120,7 +120,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS[4]              | HEADERS[4]    | type1
                 HEADERS[5]              | HEADERS[5]    | type2
                     """)
-    public void shouldExtractHeaders(String expression, String expectedName, String expectedValue)
+    void shouldExtractHeaders(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
 
         for (KafkaRecord<?, ?> record : RECORDS) {
@@ -137,7 +137,7 @@ public class HeaderSelectorSupplierTest {
     }
 
     @Test
-    public void shouldExtractRecordHeadersIntoMap() throws ExtractionException {
+    void shouldExtractRecordHeadersIntoMap() throws ExtractionException {
         Map<String, String> target = new HashMap<>();
 
         for (KafkaRecord<?, ?> record : RECORDS) {
@@ -210,7 +210,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId[2]         | Field not found at index [2]
                 HEADERS['accountId']         | The expression [HEADERS['accountId']] must evaluate to a non-complex object
                             """)
-    public void shouldNotExtractRecordHeader(String expression, String errorMessage) {
+    void shouldNotExtractRecordHeader(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
@@ -240,7 +240,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.name['no_key']       | Cannot retrieve field [no_key] from a scalar object
                 HEADERS.accountId[0].account | Cannot retrieve field [account] from a scalar object
                             """)
-    public void shouldNotExtractRecordHeadersIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractRecordHeadersIntoMap(String expression, String errorMessage) {
         for (KafkaRecord<?, ?> record : RECORDS) {
             ValueException ve =
                     assertThrows(
@@ -261,7 +261,7 @@ public class HeaderSelectorSupplierTest {
                 HEADERS.accountId | accountId     | [12345, 67890]
                 HEADERS.docType   | docType       | [type1, type2]
                         """)
-    public void shouldExtractRecordHeaderWithNonScalars(
+    void shouldExtractRecordHeaderWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         HeadersSelector headersSelector = headersSelector(expression);

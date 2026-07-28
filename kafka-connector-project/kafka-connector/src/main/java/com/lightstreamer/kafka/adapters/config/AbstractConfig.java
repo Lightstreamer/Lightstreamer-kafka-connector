@@ -52,12 +52,12 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     private final Map<String, String> configuration;
 
     AbstractConfig(ConfigsSpec spec, Map<String, String> configs) {
-        this.configSpec = spec;
-        this.configuration = Collections.unmodifiableMap(this.configSpec.parse(configs));
+        configSpec = spec;
+        configuration = Collections.unmodifiableMap(configSpec.parse(configs));
     }
 
     public final Map<String, String> configuration() {
-        return this.configuration;
+        return configuration;
     }
 
     public final String getInt(String configKey) {
@@ -151,7 +151,11 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final Map<String, String> getValues(String configKey) {
-        ConfParameter param = configSpec.findParameter(configKey);
+        return getValues(configKey, null);
+    }
+
+    public final Map<String, String> getValues(String configKey, String suffix) {
+        ConfParameter param = configSpec.findParameter(configKey, suffix);
         if (param.multiple()) {
             Map<String, String> newMap = new HashMap<>();
             for (Map.Entry<String, String> e : configuration.entrySet()) {

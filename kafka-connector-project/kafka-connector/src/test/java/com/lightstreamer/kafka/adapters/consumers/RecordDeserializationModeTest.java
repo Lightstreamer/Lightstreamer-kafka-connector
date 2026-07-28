@@ -43,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class RecordDeserializationModeTest {
+class RecordDeserializationModeTest {
 
     private static final Logger logger = LogFactory.getLogger("TestConnection");
 
@@ -51,7 +51,7 @@ public class RecordDeserializationModeTest {
             new DeserializerPair<>(String().deserializer(), String().deserializer());
 
     @Test
-    public void shouldThrowOnNullLogger() {
+    void shouldThrowOnNullLogger() {
         assertThrows(
                 NullPointerException.class,
                 () ->
@@ -77,7 +77,7 @@ public class RecordDeserializationModeTest {
 
     @ParameterizedTest
     @MethodSource("deserializationModes")
-    public void shouldCreateBatchWithCorrectTimingAndRecordType(
+    void shouldCreateBatchWithCorrectTimingAndRecordType(
             RecordDeserializationMode<String, String> mode, DeserializationTiming expectedTiming) {
         // Verify that the mode returns the correct deserialization timing
         assertThat(mode.getTiming()).isEqualTo(expectedTiming);

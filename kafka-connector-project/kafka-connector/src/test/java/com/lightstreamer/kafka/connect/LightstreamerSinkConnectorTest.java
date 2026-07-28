@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class LightstreamerSinkConnectorTest {
+class LightstreamerSinkConnectorTest {
 
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();

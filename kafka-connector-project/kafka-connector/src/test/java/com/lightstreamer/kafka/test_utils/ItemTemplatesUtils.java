@@ -59,7 +59,7 @@ public class ItemTemplatesUtils {
             // Add a new TopicMapping referencing the template
             topicMappings.add(
                     TopicMappingConfig.fromDelimitedMappings(
-                            topic, getFullTemplateNames(templatesMap.keySet())));
+                            topic, getFullTemplateNames(templatesMap.keySet()), ""));
         }
 
         return mkItemTemplates(sSuppliers, topicMappings, ItemTemplateConfigs.from(templatesMap));
@@ -73,7 +73,7 @@ public class ItemTemplatesUtils {
         String delimitedItems = String.join(",", items);
         for (String topic : topics) {
             // Add a new TopicMapping referencing the item name
-            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(topic, delimitedItems));
+            topicMappings.add(TopicMappingConfig.fromDelimitedMappings(topic, delimitedItems, ""));
         }
 
         // No template configuration required in this case
@@ -110,7 +110,7 @@ public class ItemTemplatesUtils {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(),
-                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, items)));
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, items, "")));
         try {
             return Items.templatesFrom(topicsConfig, OthersSelectorSuppliers.String());
         } catch (ExtractionException e) {

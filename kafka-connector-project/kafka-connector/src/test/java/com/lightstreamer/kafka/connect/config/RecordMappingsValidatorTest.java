@@ -34,12 +34,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class RecordMappingsValidatorTest {
+class RecordMappingsValidatorTest {
 
     RecordMappingValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new RecordMappingValidator();
     }
 
@@ -87,7 +87,7 @@ public class RecordMappingsValidatorTest {
 
     @ParameterizedTest
     @MethodSource("wrongValues")
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(RECORD_MAPPINGS, value));
@@ -103,7 +103,7 @@ public class RecordMappingsValidatorTest {
 
     @ParameterizedTest
     @MethodSource("values")
-    public void shouldValidate(Object value) {
+    void shouldValidate(Object value) {
         assertDoesNotThrow(() -> validator.ensureValid(RECORD_MAPPINGS, value));
     }
 }

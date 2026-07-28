@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-public class KafkaRecordTest {
+class KafkaRecordTest {
 
     private KafkaRecord.DeserializerPair<String, String> deserializerPair =
             new KafkaRecord.DeserializerPair<>(String().deserializer(), String().deserializer());
@@ -85,7 +85,7 @@ public class KafkaRecordTest {
 
     @ParameterizedTest
     @MethodSource("consumerRecords")
-    public void shouldCreateDeferredRecord(
+    void shouldCreateDeferredRecord(
             String expectedTopic,
             byte[] rawKey,
             byte[] rawValue,
@@ -144,7 +144,7 @@ public class KafkaRecordTest {
 
     @ParameterizedTest
     @MethodSource("consumerRecords")
-    public void shouldCreateEagerRecord(
+    void shouldCreateEagerRecord(
             String expectedTopic,
             byte[] rawKey,
             byte[] rawValue,
@@ -206,7 +206,7 @@ public class KafkaRecordTest {
 
     @ParameterizedTest
     @MethodSource("sinkRecords")
-    public void shouldCreateSinkRecord(
+    void shouldCreateSinkRecord(
             String expectedTopic,
             Object expectedKey,
             Object expectedValue,

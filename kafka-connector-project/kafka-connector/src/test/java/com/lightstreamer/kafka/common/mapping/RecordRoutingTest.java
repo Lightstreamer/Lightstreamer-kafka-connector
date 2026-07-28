@@ -54,7 +54,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class RecordRoutingTest {
+class RecordRoutingTest {
 
     private static final String TEST_TOPIC_1 = "topic";
     private static final String TEST_TOPIC_2 = "anotherTopic";
@@ -85,7 +85,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("itemArgs")
-    public void shouldRouteFromSimpleItems(
+    void shouldRouteFromSimpleItems(
             List<String> topics,
             String itemName,
             List<OnDemandSubscribedItem> routable,
@@ -183,7 +183,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    public void shouldRouteFromTemplates(
+    void shouldRouteFromTemplates(
             List<String> topics,
             List<String> templateStr,
             Map<String, List<OnDemandSubscribedItem>> routable,
@@ -242,7 +242,7 @@ public class RecordRoutingTest {
 
     @ParameterizedTest
     @MethodSource("templateArgsJson")
-    public void shouldRouteFromTemplateWithJsonValueRecord(
+    void shouldRouteFromTemplateWithJsonValueRecord(
             String jsonString,
             List<String> templateStr,
             List<OnDemandSubscribedItem> routable,
@@ -274,7 +274,7 @@ public class RecordRoutingTest {
             files = "src/test/resources/should-route-items.csv",
             useHeadersInDisplayName = true,
             delimiter = '|')
-    public void shouldRoute(
+    void shouldRoute(
             String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, GenericRecord> templates =
@@ -312,7 +312,7 @@ public class RecordRoutingTest {
             files = "src/test/resources/should-route-items.csv",
             useHeadersInDisplayName = true,
             delimiter = '|')
-    public void shouldRouteWithMixedKeyAndValueTypes(
+    void shouldRouteWithMixedKeyAndValueTypes(
             String template, String subscribingItemName, boolean canSubscribe, boolean routable)
             throws ExtractionException {
         ItemTemplates<GenericRecord, JsonNode> templates =

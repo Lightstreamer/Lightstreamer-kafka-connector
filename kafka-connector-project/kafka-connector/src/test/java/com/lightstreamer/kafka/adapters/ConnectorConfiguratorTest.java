@@ -30,7 +30,7 @@ import static org.apache.kafka.common.serialization.Serdes.Float;
 import static org.apache.kafka.common.serialization.Serdes.Integer;
 import static org.apache.kafka.common.serialization.Serdes.Short;
 import static org.apache.kafka.common.serialization.Serdes.String;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -38,7 +38,7 @@ import com.lightstreamer.kafka.adapters.config.SchemaRegistryConfigs;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
@@ -68,7 +68,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ConnectorConfiguratorTest {
+class ConnectorConfiguratorTest {
 
     static File ADAPTER_DIR = new File("src/test/resources");
 
@@ -138,7 +138,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @MethodSource("getMakersArguments")
-    public void shouldGetMakers(
+    void shouldGetMakers(
             String keyType,
             Class<?> expectedKeyDeserializer,
             String valueType,
@@ -158,7 +158,7 @@ public class ConnectorConfiguratorTest {
 
         ConnectorConfig config = ConnectorConfig.newConfig(ADAPTER_DIR, updatedConfigs);
         KeyValueSelectorSuppliers<?, ?> wrapper =
-                ConnectorConfigurator.mkKeyValueSelectorSuppliers(config);
+                ConnectorConfigurator.makeKeyValueSelectorSuppliers(config);
         assertThat(wrapper.keySelectorSupplier().deserializer().getClass())
                 .isEqualTo(expectedKeyDeserializer);
         assertThat(wrapper.valueSelectorSupplier().deserializer().getClass())
@@ -166,7 +166,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldConfigureWithBasicParameters() throws IOException {
+    void shouldConfigureWithBasicParameters() throws IOException {
         ConnectorConfigurator configurator = newConfigurator(basicParameters());
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
@@ -182,15 +182,15 @@ public class ConnectorConfiguratorTest {
         assertThat(consumerProperties.getProperty(ConsumerConfig.GROUP_ID_CONFIG))
                 .startsWith("KAFKA-CONNECTOR-");
 
-        FieldsExtractor<?, ?> fieldExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldExtractor = connectionSpec.pipeline().fieldsExtractor();
         assertThat(fieldExtractor.skipOnFailure()).isFalse();
         assertThat(fieldExtractor.mapNonScalars()).isFalse();
 
         Set<String> fieldNames = fieldExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1");
 
         Set<Schema> schemas = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemas.stream().map(Schema::name)).containsExactly("item1");
@@ -201,11 +201,11 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass())
                 .isEqualTo(StringDeserializer.class);
 
-        assertThat(connectionSpec.errorHandlingStrategy())
+        assertThat(connectionSpec.pipeline().errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.processAsCommand()).isFalse();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isFalse();
 
-        Concurrency concurrency = connectionSpec.concurrency();
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
         assertThat(concurrency.threads()).isEqualTo(1);
         assertThat(concurrency.orderStrategy())
                 .isEqualTo(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION);
@@ -214,7 +214,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(ints = {-1, 4})
-    public void shouldConfigureWithComplexParameters(int threads) throws IOException {
+    void shouldConfigureWithComplexParameters(int threads) throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -236,15 +236,15 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         assertThat(fieldsExtractor.skipOnFailure()).isTrue();
         assertThat(fieldsExtractor.mapNonScalars()).isTrue();
 
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
@@ -262,18 +262,18 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass())
                 .isEqualTo(KafkaJsonDeserializer.class);
 
-        assertThat(connectionSpec.errorHandlingStrategy())
+        assertThat(connectionSpec.pipeline().errorHandlingStrategy())
                 .isEqualTo(RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE);
-        assertThat(connectionSpec.processAsCommand()).isTrue();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isTrue();
 
-        Concurrency concurrency = connectionSpec.concurrency();
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
         assertThat(concurrency.threads()).isEqualTo(threads);
         assertThat(concurrency.orderStrategy()).isEqualTo(RecordConsumeWithOrderStrategy.UNORDERED);
         assertThat(concurrency.isParallel()).isTrue();
     }
 
     @Test
-    public void shouldConfigureWithComplexParametersAvro() throws IOException {
+    void shouldConfigureWithComplexParametersAvro() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -293,12 +293,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("key", "fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
@@ -316,11 +316,11 @@ public class ConnectorConfiguratorTest {
         assertThat(deserializerPair.valueDeserializer().getClass().getSimpleName())
                 .isEqualTo("GenericRecordLocalSchemaDeserializer");
 
-        assertThat(connectionSpec.processAsCommand()).isTrue();
+        assertThat(connectionSpec.pipeline().processAsCommand()).isTrue();
     }
 
     @Test
-    public void shouldConfigureWithComplexParametersProtoBuf() throws IOException {
+    void shouldConfigureWithComplexParametersProtoBuf() throws IOException {
         Map<String, String> updatedConfigs = new HashMap<>(basicParameters());
         updatedConfigs.put("item-template.template2", "item2-#{key=KEY.attrib}");
         updatedConfigs.put("map.topic1.to", "item-template.template1,item-template.template2");
@@ -338,12 +338,12 @@ public class ConnectorConfiguratorTest {
         ConnectorConfigurator configurator = newConfigurator(updatedConfigs);
         ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
 
-        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.fieldsExtractor();
+        FieldsExtractor<?, ?> fieldsExtractor = connectionSpec.pipeline().fieldsExtractor();
         Set<String> fieldNames = fieldsExtractor.mappedFields();
         assertThat(fieldNames).containsExactly("fieldName1", "fieldName2");
 
-        ItemTemplates<?, ?> itemTemplates = connectionSpec.itemTemplates();
-        assertThat(itemTemplates.topics()).containsExactly("topic1", "topic2", "topic3");
+        ItemTemplates<?, ?> itemTemplates = connectionSpec.pipeline().itemTemplates();
+        assertThat(itemTemplates.topicNames()).containsExactly("topic1", "topic2", "topic3");
 
         Set<Schema> schemasForTopic1 = itemTemplates.getExtractorSchemasByTopicName("topic1");
         assertThat(schemasForTopic1.stream().map(Schema::name)).containsExactly("item1", "item2");
@@ -364,8 +364,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"map..to", "map.to"})
-    public void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(
-            String topicMappingParam) {
+    void shouldNotCreateConfiguratorDueToInvalidTopicMappingParameters(String topicMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(topicMappingParam, "item"));
         ConfigException ce =
                 assertThrows(
@@ -376,8 +375,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"field", "field."})
-    public void shouldNotCreateConfiguratorDueToInvalidFieldMappingParameters(
-            String fieldMappingParam) {
+    void shouldNotCreateConfiguratorDueToInvalidFieldMappingParameters(String fieldMappingParam) {
         Map<String, String> config = minimalConfigWith(Map.of(fieldMappingParam, "field_name"));
         ConfigException ce =
                 assertThrows(ConfigException.class, () -> newConfigurator(config).connectionSpec());
@@ -386,7 +384,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"item-template", "item-template."})
-    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameterFormat(
+    void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameterFormat(
             String itemTemplateParam) {
         Map<String, String> config = minimalConfigWith(Map.of(itemTemplateParam, "field_name"));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
@@ -397,7 +395,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"value"})
-    public void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
+    void shouldNotCreateConfiguratorDueToInvalidItemTemplateParameter(String template) {
         Map<String, String> config = minimalConfigWith(Map.of("item-template.template", template));
         ConfigException ce = assertThrows(ConfigException.class, () -> newConfigurator(config));
         assertThat(ce)
@@ -407,7 +405,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldNotCreateConfiguratorDueToOrderStrategy() {
+    void shouldNotCreateConfiguratorDueToOrderStrategy() {
         Map<String, String> config =
                 minimalConfigWith(
                         Map.of("record.consume.with.order.strategy", "invalidOrderStrategy"));
@@ -421,7 +419,7 @@ public class ConnectorConfiguratorTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {","})
-    public void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
+    void shouldNotCreateConfiguratorDueToInvalidItemReference(String itemRef) {
         Map<String, String> configs = new HashMap<>();
         configs.put("map.topic1.to", itemRef);
         Map<String, String> config = minimalConfigWith(configs);
@@ -433,7 +431,7 @@ public class ConnectorConfiguratorTest {
     }
 
     @Test
-    public void shouldNotConfigureDueToNotExistingItemTemplate() {
+    void shouldNotConfigureDueToNotExistingItemTemplate() {
         Map<String, String> configs = new HashMap<>();
         configs.put("map.topic1.to", "item-template.no-valid-template");
         Map<String, String> config = minimalConfigWith(configs);
@@ -458,7 +456,7 @@ public class ConnectorConfiguratorTest {
 
     @ParameterizedTest
     @MethodSource("invalidFieldExpressions")
-    public void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(
+    void shouldNotConfigureDueToInvalidFieldMappingExpressionWithSchema(
             String expression, String expectedErrorMessage) {
         Map<String, String> updatedConfigs = minimalConfig();
         updatedConfigs.put(ConnectorConfig.RECORD_KEY_EVALUATOR_TYPE, "AVRO");
@@ -494,7 +492,7 @@ public class ConnectorConfiguratorTest {
                 "item-#{{{}}}",
                 "item-#{}}"
             })
-    public void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
+    void shouldNotConfigureDueToInvalidItemTemplateExpression(String expression) {
         Map<String, String> updatedConfigs = minimalConfig();
         updatedConfigs.put("map.topic1.to", "item-template.template1");
         updatedConfigs.put("item-template.template1", expression);

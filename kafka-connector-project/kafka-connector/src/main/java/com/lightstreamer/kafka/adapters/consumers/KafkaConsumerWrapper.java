@@ -23,12 +23,14 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.RecordDeserializationMode.DeserializationTiming;
 import com.lightstreamer.kafka.adapters.consumers.offsets.OffsetService;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer;
 import com.lightstreamer.kafka.adapters.consumers.processor.RecordConsumer.OrderStrategy;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
+import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.mapping.Items.ItemTemplates;
 import com.lightstreamer.kafka.common.mapping.Items.SubscribedItems;
 import com.lightstreamer.kafka.common.mapping.RecordMapper;
@@ -45,14 +47,14 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -66,6 +68,8 @@ import java.util.stream.Collectors;
  * through {@link FutureStatus.State#INITIALIZED INITIALIZED} to one of the terminal states via
  * {@link #start(ExecutorService, java.util.function.Consumer)} and {@link #shutdown()}.
  *
+ * @see ConnectionSpec
+ * @see FutureStatus
  * @param <K> the type of the key in the Kafka record
  * @param <V> the type of the value in the Kafka record
  */
@@ -111,6 +115,12 @@ public class KafkaConsumerWrapper<K, V> {
             /** The loop is in a shutdown state. */
             SHUTDOWN;
 
+            /**
+             * Checks whether the state represents an initialization failure.
+             *
+             * @return {@code true} if the state is {@link #INIT_FAILED_ON_MISSING_TOPICS} or {@link
+             *     #INIT_FAILED_ON_ERROR}, {@code false} otherwise
+             */
             public boolean initFailed() {
                 return this.equals(INIT_FAILED_ON_MISSING_TOPICS)
                         || this.equals(INIT_FAILED_ON_ERROR);
@@ -183,16 +193,35 @@ public class KafkaConsumerWrapper<K, V> {
         }
     }
 
+    /**
+     * The outcome of {@link #trySubscribe()}, indicating whether the consumer was successfully
+     * bound to any records source and by which mechanism.
+     */
     enum SubscriptionOutcome {
+        /** No topics or partitions could be bound (e.g., none of the requested topics exist). */
         NONE,
-        TOPICS,
-        PATTERN;
 
+        /** The consumer subscribed to a set of literal topic names. */
+        TOPICS,
+
+        /** The consumer subscribed to a regex pattern of topic names. */
+        PATTERN,
+
+        /** The consumer manually assigned a set of topic partitions (MANUAL mode). */
+        PARTITIONS;
+
+        /**
+         * Checks whether this outcome represents a successful subscription.
+         *
+         * @return {@code true} if the consumer was bound to any records source, {@code false} for
+         *     {@link #NONE}
+         */
         boolean isSuccessful() {
             return !this.equals(NONE);
         }
     }
 
+    // Package-private (instead of private) for test-side reference assertions.
     static final Duration MAX_POLL_DURATION = Duration.ofMillis(5000);
 
     // Monitoring configuration
@@ -217,7 +246,9 @@ public class KafkaConsumerWrapper<K, V> {
     // LOOP_CLOSED_ON_ERROR, establishing a happens-before with the callback invocation.
     private volatile KafkaException pollFailureCause;
 
-    private volatile Thread hook;
+    // Both accesses of hook (installation in start(), removal in shutdown()) are serialized by
+    // statusLock, so no volatile is required for cross-thread visibility.
+    private Thread hook;
     // Volatile publishes the latest lifecycle future to the shutdown-hook thread, which reads it
     // without taking statusLock in doShutdown().
     private volatile FutureStatus status;
@@ -233,9 +264,11 @@ public class KafkaConsumerWrapper<K, V> {
      * @param subscribedItems the {@link SubscribedItems} registry for routing records to items and
      *     broadcasting end-of-snapshot at catch-up completion
      * @param consumerFactory factory for the underlying Kafka {@link Consumer}
-     * @param eagerLifecycle {@code true} for an eager consumer (seeks to beginning, performs
-     *     catch-up, then tails), {@code false} for an on-demand consumer (resumes from committed
-     *     offsets)
+     * @param eagerLifecycle {@code true} for an eager consumer (seeks assigned partitions to
+     *     beginning, performs catch-up, then tails), {@code false} for an on-demand consumer
+     *     (offset semantics follow the configured {@code consumer.mode}: in {@code GROUP} mode
+     *     resumes from committed offsets; in {@code MANUAL} mode seeks to {@code
+     *     record.consume.from} on every startup)
      * @throws KafkaException if the consumer cannot be instantiated
      */
     public KafkaConsumerWrapper(
@@ -247,40 +280,43 @@ public class KafkaConsumerWrapper<K, V> {
             throws KafkaException {
         this.connectionSpec = connectionSpec;
         this.subscribedItems = subscribedItems;
-        this.logger = LogFactory.getLogger(this.connectionSpec.connectionName());
+        logger = LogFactory.getLogger(connectionSpec.connectionName());
         String bootStrapServers = getProperty(BOOTSTRAP_SERVERS_CONFIG);
 
         logger.atInfo().log("Starting connection to Kafka broker(s) at {}", bootStrapServers);
 
-        this.consumer = consumerFactory.apply(this.connectionSpec.consumerProperties());
+        consumer = consumerFactory.apply(connectionSpec.consumerProperties());
+
         logger.atInfo().log("Established connection to Kafka broker(s) at {}", bootStrapServers);
         this.eagerLifecycle = eagerLifecycle;
-        this.offsetService =
-                eagerLifecycle
-                        ? OffsetService.seekingCommit(consumer, logger)
+        OffsetService os =
+                connectionSpec.isManual()
+                        ? OffsetService.noCommit(
+                                consumer, logger, connectionSpec.recordConsumeFrom())
                         : OffsetService.commit(consumer, logger);
-        this.pollDuration = MAX_POLL_DURATION;
-        this.deserializationMode =
+        offsetService = eagerLifecycle ? OffsetService.seekingCommit(os, consumer, logger) : os;
+        pollDuration = MAX_POLL_DURATION;
+        deserializationMode =
                 RecordDeserializationMode.forTiming(
                         RecordDeserializationMode.DeserializationTiming.EAGER,
-                        this.connectionSpec.deserializerPair(),
+                        connectionSpec.deserializerPair(),
                         logger);
-        this.monitor = newMonitor();
+        monitor = newMonitor();
 
         // Make a new instance of RecordConsumer, single-threaded or parallel on the basis of
         // the configured number of threads.
-        Concurrency concurrency = this.connectionSpec.concurrency();
-        this.recordConsumer =
+        Concurrency concurrency = connectionSpec.pipeline().concurrency();
+        recordConsumer =
                 RecordConsumer.<K, V>recordMapper(
                                 RecordMapper.from(
-                                        connectionSpec.itemTemplates(),
-                                        connectionSpec.fieldsExtractor()))
+                                        connectionSpec.pipeline().itemTemplates(),
+                                        connectionSpec.pipeline().fieldsExtractor()))
                         .subscribedItems(subscribedItems)
                         .eventListener(eventListener)
                         .offsetService(offsetService)
                         .logger(logger)
-                        .errorStrategy(this.connectionSpec.errorHandlingStrategy())
-                        .commandModeEnabled(this.connectionSpec.processAsCommand())
+                        .errorStrategy(connectionSpec.pipeline().errorHandlingStrategy())
+                        .commandModeEnabled(connectionSpec.pipeline().processAsCommand())
                         .catchUpEnabled(eagerLifecycle)
                         .threads(concurrency.threads())
                         .orderStrategy(OrderStrategy.from(concurrency.orderStrategy()))
@@ -292,7 +328,7 @@ public class KafkaConsumerWrapper<K, V> {
 
         logger.atInfo().log("Using {} record deserialization", deserializationMode.getTiming());
 
-        this.status = FutureStatus.connected();
+        status = FutureStatus.connected();
     }
 
     private Monitor newMonitor() {
@@ -370,10 +406,10 @@ public class KafkaConsumerWrapper<K, V> {
     private State init() {
         try {
             SubscriptionOutcome subscription = trySubscribe();
-            if (subscription.isSuccessful() && eagerLifecycle) {
-                catchUp();
-            }
             if (subscription.isSuccessful()) {
+                if (eagerLifecycle) {
+                    catchUp();
+                }
                 monitor.start(MONITOR_LOG_REPORTING_INTERVAL);
                 return State.INITIALIZED;
             } else {
@@ -389,33 +425,123 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     /**
-     * Subscribes the consumer to the configured topics or topic pattern.
+     * Attaches the consumer to the configured topics, dispatching to the mechanism selected by the
+     * {@link ConnectionSpec}: consumer-group subscription (GROUP mode) or direct partition
+     * assignment (MANUAL mode).
      *
-     * <p>Supports both regex-based and literal topic subscriptions. The {@link OffsetService} is
-     * registered as the {@link org.apache.kafka.clients.consumer.ConsumerRebalanceListener}.
+     * <p>In GROUP mode, supports both regex-based and literal topic subscriptions, and the {@link
+     * OffsetService} is registered as the {@link
+     * org.apache.kafka.clients.consumer.ConsumerRebalanceListener}.
      *
-     * @return the {@link SubscriptionOutcome} describing how the subscription was performed, or
-     *     {@link SubscriptionOutcome#NONE} if no topics were available to subscribe to
+     * @return the {@link SubscriptionOutcome} describing how the consumer was attached, or {@link
+     *     SubscriptionOutcome#NONE} if no topics were available
      */
     SubscriptionOutcome trySubscribe() {
-        ItemTemplates<K, V> templates = connectionSpec.itemTemplates();
+        if (connectionSpec.isManual()) {
+            return assignManually();
+        }
+        return subscribeToGroup();
+    }
+
+    /**
+     * Assigns partitions directly without joining a consumer group. All partitions for the
+     * requested topics are manually assigned to this consumer.
+     *
+     * <p>Regex-based topic matching is not supported in MANUAL mode.
+     */
+    private SubscriptionOutcome assignManually() {
+        ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
+        Set<TopicConfiguration> topicConfigurations = templates.topicConfigurations();
+        List<TopicPartition> assignedPartitions = new ArrayList<>();
+        for (TopicConfiguration topicConfig : topicConfigurations) {
+            logger.atInfo().log("Checking existing partitions for topic [{}]", topicConfig.topic());
+            String topic = topicConfig.topic();
+
+            // Fetch the partitions for the topic from the broker, with a 30-second timeout.
+            List<PartitionInfo> partitionsInfo =
+                    consumer.partitionsFor(topic, Duration.ofMillis(30000));
+            // Per the KafkaConsumer.partitionsFor contract, an empty list means the topic is
+            // not present on the broker.
+            if (partitionsInfo.isEmpty()) {
+                logger.atWarn().log("Topic [{}] not found on the broker; skipping", topic);
+                continue;
+            }
+
+            logger.atInfo().log(
+                    "Found partitions {} for topic [{}] on the broker",
+                    partitionsInfo.stream().map(PartitionInfo::partition).toList(),
+                    topic);
+
+            // When specific partitions were requested, warn about any that do not exist on the
+            // broker.
+            Set<Integer> requestedPartitions = topicConfig.partitions();
+            if (!requestedPartitions.isEmpty()) {
+                Set<Integer> availablePartitions =
+                        partitionsInfo.stream()
+                                .map(PartitionInfo::partition)
+                                .collect(Collectors.toSet());
+                LinkedHashSet<Integer> missing = new LinkedHashSet<>(requestedPartitions);
+                missing.removeAll(availablePartitions);
+                if (!missing.isEmpty()) {
+                    logger.atWarn()
+                            .log(
+                                    "Requested partitions {} for topic [{}] are not present on the broker; skipping",
+                                    missing,
+                                    topic);
+                }
+            } else {
+                logger.atInfo().log(
+                        "No specific partitions requested for topic [{}]; assigning all available partitions",
+                        topic);
+            }
+
+            // If no partitions were specified, assign all available partitions for the topic.
+            partitionsInfo.stream()
+                    .filter(
+                            pi ->
+                                    requestedPartitions.isEmpty()
+                                            || requestedPartitions.contains(pi.partition()))
+                    .map(pi -> new TopicPartition(pi.topic(), pi.partition()))
+                    .forEach(assignedPartitions::add);
+        }
+
+        if (assignedPartitions.isEmpty()) {
+            logger.atWarn().log("No partitions found for requested topics");
+            return SubscriptionOutcome.NONE;
+        }
+
+        consumer.assign(assignedPartitions);
+        logger.atInfo().log("Assigned partitions {}", assignedPartitions);
+        offsetService.onPartitionsAssigned(assignedPartitions);
+        return SubscriptionOutcome.PARTITIONS;
+    }
+
+    /**
+     * Subscribes the consumer to the configured topics or topic pattern, letting the broker assign
+     * partitions through the standard consumer-group protocol.
+     *
+     * <p>When a regex pattern is configured, subscribes to the pattern directly. Otherwise resolves
+     * the requested topic set against the broker's currently available topics and subscribes to the
+     * intersection, warning if some requested topics are missing.
+     */
+    private SubscriptionOutcome subscribeToGroup() {
+        ItemTemplates<K, V> templates = connectionSpec.pipeline().itemTemplates();
         if (templates.isRegexEnabled()) {
             Pattern pattern = templates.subscriptionPattern().get();
-            logger.atDebug().log("Subscribing to the requested pattern {}", pattern.pattern());
+            logger.atInfo().log("Subscribing to the requested pattern {}", pattern.pattern());
             consumer.subscribe(pattern, offsetService);
             return SubscriptionOutcome.PATTERN;
         }
         // Original requested topics.
-        Set<String> topics = new HashSet<>(templates.topics());
+        Set<String> topics = templates.topicNames();
         logger.atInfo().log("Subscribing to requested topics [{}]", topics);
-        logger.atDebug().log("Checking existing topics on Kafka");
 
         // Check the actual available topics on Kafka.
         Map<String, List<PartitionInfo>> listTopics = consumer.listTopics(Duration.ofMillis(30000));
 
         // Retain from the original requests topics the available ones.
         Set<String> existingTopics = listTopics.keySet();
-        logger.atDebug().log("Existing topics on Kafka: [{}]", existingTopics);
+        logger.atInfo().log("Existing topics on Kafka: [{}]", existingTopics);
         boolean notAllPresent = topics.retainAll(existingTopics);
 
         // Can't subscribe at all.
@@ -448,22 +574,22 @@ public class KafkaConsumerWrapper<K, V> {
      * the standard {@link RecordConsumer} pipeline. The first poll triggers a rebalance which
      * causes the {@link OffsetService} to seek partitions to the beginning and capture end offsets.
      *
-     * <p><b>Note:</b> No shutdown hook is installed during catch-up. If SIGTERM arrives while this
-     * method is executing, the JVM halts abruptly without a graceful consumer close. This is
-     * acceptable because no clients are connected yet and the consumer always restarts from the
-     * beginning regardless of committed offsets.
+     * <p><strong>Note:</strong> No shutdown hook is installed during catch-up. If SIGTERM arrives
+     * while this method is executing, the JVM halts abruptly without a graceful consumer close.
+     * This is acceptable because no clients are connected yet and the consumer always restarts from
+     * the beginning regardless of committed offsets.
      */
     void catchUp() {
         logger.atInfo().log("Starting catch-up phase until end offsets are reached");
         Map<TopicPartition, Long> endOffsets = null;
-        AtomicLong totalCaughtUpRecords = new AtomicLong();
+        long totalCaughtUpRecords = 0L;
         long startTime = System.currentTimeMillis();
         while (true) {
             ConsumerRecords<byte[], byte[]> records = consumer.poll(pollDuration);
             if (!records.isEmpty()) {
                 RecordBatch<K, V> batch = deserializationMode.toBatch(records);
                 recordConsumer.consumeBatch(batch);
-                totalCaughtUpRecords.addAndGet(batch.count());
+                totalCaughtUpRecords += batch.count();
             }
             // End offsets are captured once the first poll triggers the rebalance callback
             if (endOffsets == null) {
@@ -474,7 +600,7 @@ public class KafkaConsumerWrapper<K, V> {
                 long endTime = System.currentTimeMillis();
                 logger.atInfo().log(
                         "Catch-up phase completed, total records caught up: {}, total subscriptions forced: {}, duration: {} ms",
-                        totalCaughtUpRecords.get(),
+                        totalCaughtUpRecords,
                         subscribedItems.size(),
                         endTime - startTime);
                 return;
@@ -497,7 +623,7 @@ public class KafkaConsumerWrapper<K, V> {
         } catch (WakeupException e) {
             logger.atDebug().log("Internal Kafka client woken up");
         } catch (KafkaException e) {
-            this.pollFailureCause = e;
+            pollFailureCause = e;
             return State.LOOP_CLOSED_ON_ERROR;
         } finally {
             cleanUpResources();
@@ -506,7 +632,7 @@ public class KafkaConsumerWrapper<K, V> {
     }
 
     private void installShutdownHook() {
-        this.hook =
+        hook =
                 new Thread(
                         () -> {
                             logger.atInfo().log("Invoked shutdown hook");
@@ -516,6 +642,24 @@ public class KafkaConsumerWrapper<K, V> {
         Runtime.getRuntime().addShutdownHook(hook);
     }
 
+    /**
+     * Runs the main polling loop until interrupted by a wakeup or terminated by an unrecoverable
+     * exception. Each iteration polls the internal Kafka consumer, deserializes the returned
+     * records into a {@link RecordBatch}, and forwards the batch to the given consumer function.
+     *
+     * <p>Exception handling:
+     *
+     * <ul>
+     *   <li>{@link WakeupException} — rethrown so the caller can distinguish graceful shutdown from
+     *       a fatal error.
+     *   <li>{@link KafkaException} — rethrown as an unrecoverable error (includes {@code
+     *       SerializationException} raised during eager deserialization).
+     *   <li>Any other exception — wrapped in a new {@code KafkaException} and rethrown.
+     * </ul>
+     *
+     * @param recordConsumer the function that consumes each polled {@code RecordBatch}
+     * @throws KafkaException if a non-wakeup exception terminates the polling loop
+     */
     void consumeForEver(java.util.function.Consumer<RecordBatch<K, V>> recordConsumer)
             throws KafkaException {
         logger.atInfo().log(
@@ -603,36 +747,36 @@ public class KafkaConsumerWrapper<K, V> {
         // Now it's safe to close the consumer
         consumer.close();
         // Stop the monitor
-        this.monitor.stop();
+        monitor.stop();
         logger.atInfo().log("Internal resources closed");
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Consumer<byte[], byte[]> getInternalConsumer() {
         return consumer;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     OffsetService getOffsetService() {
         return offsetService;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     DeserializationTiming getRecordDeserializationTiming() {
         return deserializationMode.getTiming();
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     RecordConsumer<K, V> getRecordConsumer() {
         return recordConsumer;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Duration getPollTimeout() {
         return pollDuration;
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Monitor getMonitor() {
         return monitor;
     }

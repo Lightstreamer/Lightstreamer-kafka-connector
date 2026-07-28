@@ -39,10 +39,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class AvroNodeTest {
+class AvroNodeTest {
 
     @Test
-    public void shouldCreateAvroNodeFromSimpleRecord() {
+    void shouldCreateAvroNodeFromSimpleRecord() {
         Schema schema =
                 new Schema.Parser()
                         .parse(
@@ -94,7 +94,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateAvroNodeFromNull() {
+    void shouldCreateAvroNodeFromNull() {
         AvroNode nullNode = AvroNode.newNode("nullNode", null);
         assertThat(nullNode.name()).isEqualTo("nullNode");
         assertThat(nullNode.isNull()).isTrue();
@@ -111,7 +111,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateAvroNodeFromScalar() {
+    void shouldCreateAvroNodeFromScalar() {
         AvroNode intNode = AvroNode.newNode("scalarNode", 12);
         assertThat(intNode.name()).isEqualTo("scalarNode");
         assertThat(intNode.isNull()).isFalse();
@@ -128,7 +128,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateAvroNodeFromArray() {
+    void shouldCreateAvroNodeFromArray() {
         Schema schema = Schema.createArray(Schema.create(Schema.Type.INT));
         GenericArray<Integer> array = new GenericData.Array<>(3, schema);
         array.add(1);
@@ -188,7 +188,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateAvroNodeFromMap() throws IOException {
+    void shouldCreateAvroNodeFromMap() throws IOException {
         // Use LinkedHashMap to preserve insertion order
         LinkedHashMap<Utf8, String> map = new LinkedHashMap<>();
         map.put(utf8("k1"), "v1");
@@ -221,7 +221,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateFromFixed() {
+    void shouldCreateFromFixed() {
         Schema schema = Schema.createFixed("fixed", null, null, 5);
         GenericData.Fixed fixed = new GenericData.Fixed(schema, "abcd".getBytes());
         AvroNode fixedNode = AvroNode.newNode("fixedNode", fixed);
@@ -241,7 +241,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateFromEnum() {
+    void shouldCreateFromEnum() {
         Schema schema = Schema.createEnum("enum", null, null, List.of("A", "B", "C"));
         GenericData.EnumSymbol enumSymbol = new GenericData.EnumSymbol(schema, "A");
         AvroNode enumNode = AvroNode.newNode("enumNode", enumSymbol);
@@ -261,7 +261,7 @@ public class AvroNodeTest {
     }
 
     @Test
-    public void shouldCreateFromComplexRecord() {
+    void shouldCreateFromComplexRecord() {
         GenericRecord record = SampleMessageProviders.SampleGenericRecordProvider().sampleMessage();
         Node<AvroNode> recordNode = AvroNode.newNode("complexRootNode", record);
         assertThat(recordNode.name()).isEqualTo("complexRootNode");

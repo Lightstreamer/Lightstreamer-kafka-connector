@@ -33,8 +33,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * {@link OffsetService} implementation that tracks offsets in a {@link ConcurrentHashMap} and
  * commits them to Kafka using configurable {@link CommitStrategy} timing.
+ *
+ * @see OffsetService
+ * @see NoCommitOffsetService
  */
-class CommitOffsetService implements OffsetService {
+final class CommitOffsetService implements OffsetService {
 
     private final Consumer<?, ?> consumer;
     private final Logger logger;
@@ -53,7 +56,14 @@ class CommitOffsetService implements OffsetService {
         this(consumer, logger, CommitStrategy.adaptiveCommitStrategy(5));
     }
 
-    /** Creates a new instance with the specified {@link CommitStrategy}. */
+    /**
+     * Creates a new instance with the specified {@link CommitStrategy}.
+     *
+     * @param consumer the underlying Kafka {@link Consumer} whose offsets are tracked and committed
+     * @param logger the {@link Logger} used for lifecycle and commit tracing
+     * @param commitStrategy the {@link CommitStrategy} that decides when {@link #maybeCommit()}
+     *     triggers an async commit
+     */
     CommitOffsetService(Consumer<?, ?> consumer, Logger logger, CommitStrategy commitStrategy) {
         this.consumer = consumer;
         this.logger = logger;
@@ -123,14 +133,22 @@ class CommitOffsetService implements OffsetService {
         commitAsync(now);
     }
 
-    void commitAsync(long now) {
+    /**
+     * Snapshots the tracked offsets and issues an asynchronous commit against the underlying Kafka
+     * consumer. Records {@code nowMs} as the last-commit time and clears the per-commit message
+     * counter before dispatching the async call; on callback, resets the consecutive-failure
+     * counter on success or increments it on failure.
+     *
+     * @param nowMs the current wall-clock time in milliseconds, recorded as the last-commit stamp
+     */
+    void commitAsync(long nowMs) {
         Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = offsetsSnapshot();
         logger.atDebug().log(
                 "Start committing of {} messages asynchronously: {}",
                 messagesSinceLastCommit,
                 offsetsToCommit);
 
-        lastCommitTimeMs = now;
+        lastCommitTimeMs = nowMs;
         messagesSinceLastCommit = 0;
 
         consumer.commitAsync(
@@ -145,7 +163,7 @@ class CommitOffsetService implements OffsetService {
                     logger.atWarn()
                             .setCause(exception)
                             .log(
-                                    "Failed to commit offset asynchronously (failurecount={}): {}",
+                                    "Failed to commit offset asynchronously (consecutive failures={})",
                                     fails);
                 });
     }

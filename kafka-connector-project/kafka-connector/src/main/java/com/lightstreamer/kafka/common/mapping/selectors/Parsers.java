@@ -64,8 +64,8 @@ public class Parsers {
             private final Supplier<P> payloadSupplier;
             private final BiFunction<String, P, T> nodeFactory;
 
-            KafkaRecordNode(Supplier<P> payload, BiFunction<String, P, T> nodeFactory) {
-                this.payloadSupplier = payload;
+            KafkaRecordNode(Supplier<P> payloadSupplier, BiFunction<String, P, T> nodeFactory) {
+                this.payloadSupplier = payloadSupplier;
                 this.nodeFactory = nodeFactory;
             }
 
@@ -182,7 +182,7 @@ public class Parsers {
         ParsingContext(ExtractionExpression expression, Constant expectedRoot) {
             this.expression = expression;
             this.expectedRoot = expectedRoot;
-            this.tokens = expression.tokens();
+            tokens = expression.tokens();
         }
 
         String expression() {
@@ -351,7 +351,7 @@ public class Parsers {
         Index(String container, int index) {
             this.container = container;
             this.index = index;
-            this.unboundNodeName = container + "[" + index + "]";
+            unboundNodeName = container + "[" + index + "]";
         }
 
         @Override

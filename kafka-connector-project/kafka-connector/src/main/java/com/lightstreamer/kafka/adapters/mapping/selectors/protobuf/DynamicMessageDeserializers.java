@@ -59,7 +59,7 @@ public class DynamicMessageDeserializers {
                 File schemaFile = getSchemaFile(isKey);
                 DynamicSchema dynamicSchema =
                         DynamicSchema.parseFrom(Files.newInputStream(schemaFile.toPath()));
-                this.messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
+                messageDescriptor = dynamicSchema.getMessageDescriptor(messageTypeName);
                 if (messageDescriptor == null) {
                     throw new IllegalArgumentException(
                             "Message type "

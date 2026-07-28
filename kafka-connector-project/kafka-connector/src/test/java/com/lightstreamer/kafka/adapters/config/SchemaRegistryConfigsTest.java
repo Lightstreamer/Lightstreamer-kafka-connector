@@ -26,7 +26,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.junit.jupiter.api.Test;
 
-public class SchemaRegistryConfigsTest {
+class SchemaRegistryConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {

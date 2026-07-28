@@ -17,14 +17,16 @@
 
 package com.lightstreamer.kafka.common.records;
 
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
+
 import javax.annotation.Nullable;
 
 /**
- * A simple Java record implementation of {@link KafkaRecord} for testing purposes.
+ * A simple Java record implementation of {@link KafkaRecord}.
  *
  * <p>This record encapsulates all components of a Kafka record (topic, partition, offset,
- * timestamp, key, value, and headers). It is primarily used in unit tests to create {@link
- * KafkaRecord} instances with arbitrary values.
+ * timestamp, key, value, and headers) and is used to build {@link KafkaRecord} instances with
+ * arbitrary values.
  *
  * @param <K> the type of the record key
  * @param <V> the type of the record value
@@ -36,6 +38,7 @@ import javax.annotation.Nullable;
  * @param value the record value
  * @param headers the record headers
  */
+@VisibleForTesting
 record SimpleKafkaRecord<K, V>(
         String topic,
         int partition,

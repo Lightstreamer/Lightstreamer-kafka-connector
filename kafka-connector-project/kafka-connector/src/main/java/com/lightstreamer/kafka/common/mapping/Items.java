@@ -28,6 +28,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.metadata.Mode;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.TopicConfigurations;
 import com.lightstreamer.kafka.common.config.TopicConfigurations.TopicConfiguration;
 import com.lightstreamer.kafka.common.mapping.selectors.CanonicalItemExtractor;
@@ -68,7 +69,8 @@ import java.util.regex.Pattern;
  *   <li>{@link SubscribedItem} — the item abstraction for event delivery
  *   <li>{@link SubscribedItems} — thread-safe collections of subscribed items
  *   <li>{@link ItemTemplates} — topic-to-item mapping via canonical extraction
- *   <li>Factory methods ({@code subscribedItem}, {@code templatesFrom}) for creating instances
+ *   <li>Factory methods ({@code onDemandSubscribedFrom}, {@code forceableSubscribedFrom}, {@code
+ *       templatesFrom}) for creating instances
  * </ul>
  */
 public class Items {
@@ -136,8 +138,8 @@ public class Items {
         private final Object itemHandle;
 
         OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
+            canonicalItemName = expression.canonicalItemName();
+            schema = expression.schema();
             this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
         }
 
@@ -348,6 +350,13 @@ public class Items {
             }
         }
 
+        /**
+         * Current event dispatcher. Starts as a {@link QueueingEventDispatcher} that buffers every
+         * event (queueing mode), and is atomically swapped to a {@link DirectEventDispatcher} the
+         * first time {@link #enableEventsDelivery(Object, ItemEventListener)} runs (direct-dispatch
+         * mode). Declared {@code volatile} because the swap must be observed by producer threads
+         * dispatching on the event path.
+         */
         protected volatile EventDispatcher dispatcher;
 
         private final String canonicalItemName;
@@ -357,11 +366,11 @@ public class Items {
         private QueueingEventDispatcher queueingDispatcher;
 
         ForceableSubscribedItem(SubscriptionExpression expression) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
-            this.queueingDispatcher = new QueueingEventDispatcher(this);
-            this.dispatcher = queueingDispatcher;
-            this.lastAccessNanos = System.nanoTime();
+            canonicalItemName = expression.canonicalItemName();
+            schema = expression.schema();
+            queueingDispatcher = new QueueingEventDispatcher(this);
+            dispatcher = queueingDispatcher;
+            lastAccessNanos = System.nanoTime();
         }
 
         @Override
@@ -443,7 +452,7 @@ public class Items {
          * monotonic.
          */
         void markForced() {
-            this.forced = true;
+            forced = true;
         }
 
         /**
@@ -452,7 +461,7 @@ public class Items {
          * (NTP, leap second, host suspend/resume).
          */
         void touch() {
-            this.lastAccessNanos = System.nanoTime();
+            lastAccessNanos = System.nanoTime();
         }
 
         /**
@@ -491,11 +500,11 @@ public class Items {
             return LAST_ACCESS_NANOS.compareAndSet(this, expected, update);
         }
 
-        // Visible for tests: lets unit tests stamp an arbitrary last-access value to
-        // deterministically simulate aged items in clearIdleSnapshots scans, without
-        // resorting to Thread.sleep.
+        // Lets unit tests stamp an arbitrary last-access value to deterministically
+        // simulate aged items in clearIdleSnapshots scans, without resorting to Thread.sleep.
+        @VisibleForTesting
         void setLastTouched(long nanos) {
-            this.lastAccessNanos = nanos;
+            lastAccessNanos = nanos;
         }
     }
 
@@ -992,6 +1001,13 @@ public class Items {
         boolean matches(Schema schema);
 
         /**
+         * Returns the topic configurations underlying the configured templates.
+         *
+         * @return the set of {@link TopicConfiguration}s covered by the templates
+         */
+        Set<TopicConfiguration> topicConfigurations();
+
+        /**
          * Returns extractors grouped by topic name.
          *
          * @return a map from topic name to the set of {@link CanonicalItemExtractor}s for that
@@ -1000,12 +1016,12 @@ public class Items {
         Map<String, Set<CanonicalItemExtractor<K, V>>> groupExtractors();
 
         /**
-         * Returns the set of extractor schemas configured for the given topic. Intended for testing
-         * purposes only.
+         * Returns the set of extractor schemas configured for the given topic.
          *
          * @param topic the Kafka topic name
          * @return the set of {@link Schema}s for that topic
          */
+        @VisibleForTesting
         Set<Schema> getExtractorSchemasByTopicName(String topic);
 
         /**
@@ -1013,7 +1029,9 @@ public class Items {
          *
          * @return the set of topic names
          */
-        Set<String> topics();
+        default Set<String> topicNames() {
+            return topicConfigurations().stream().map(TopicConfiguration::topic).collect(toSet());
+        }
 
         /**
          * Returns the set of topics that have at least one template matching the given item's
@@ -1041,38 +1059,6 @@ public class Items {
     }
 
     /**
-     * Associates a topic with a {@link CanonicalItemExtractor} and the resulting {@link Schema} for
-     * template matching.
-     *
-     * @param <K> the type of the key in the Kafka record
-     * @param <V> the type of the value in the Kafka record
-     */
-    private static class ItemTemplate<K, V> {
-
-        private final Schema schema;
-        private final String topic;
-        private final CanonicalItemExtractor<K, V> extractor;
-
-        ItemTemplate(String topic, CanonicalItemExtractor<K, V> extractor) {
-            this.topic = Objects.requireNonNull(topic);
-            this.extractor = Objects.requireNonNull(extractor);
-            this.schema = extractor.schema();
-        }
-
-        public boolean matches(Schema schema) {
-            return this.schema.equals(schema);
-        }
-
-        CanonicalItemExtractor<K, V> extractor() {
-            return extractor;
-        }
-
-        String topic() {
-            return topic;
-        }
-    }
-
-    /**
      * Default implementation of {@link ItemTemplates} backed by an immutable list of {@link
      * ItemTemplate} entries.
      *
@@ -1088,7 +1074,7 @@ public class Items {
         DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
             this.regexEnabled = regexEnabled;
-            this.pattern = makeOptionalPattern();
+            pattern = makeOptionalPattern();
         }
 
         private Optional<Pattern> makeOptionalPattern() {
@@ -1096,7 +1082,10 @@ public class Items {
                 return Optional.of(
                         Pattern.compile(
                                 templates.stream()
-                                        .map(t -> "(?:%s)".formatted(t.topic()))
+                                        // Wrap each user-supplied pattern in a non-capturing
+                                        // group so top-level '|' alternation preserves each
+                                        // pattern's precedence without allocating capture indices.
+                                        .map(t -> "(?:%s)".formatted(t.topic().topic()))
                                         .distinct()
                                         .sorted() // Only helps to simplify unit tests
                                         .collect(joining("|"))));
@@ -1114,12 +1103,12 @@ public class Items {
             return templates.stream()
                     .collect(
                             groupingBy(
-                                    ItemTemplate::topic,
+                                    i -> i.topic().topic(),
                                     mapping(ItemTemplate::extractor, toSet())));
         }
 
         @Override
-        public Set<String> topics() {
+        public Set<TopicConfiguration> topicConfigurations() {
             return templates.stream().map(ItemTemplate::topic).collect(toSet());
         }
 
@@ -1127,7 +1116,7 @@ public class Items {
         public Set<String> topicsFor(Schema schema) {
             return templates.stream()
                     .filter(t -> t.matches(schema))
-                    .map(ItemTemplate::topic)
+                    .map(t -> t.topic().topic())
                     .collect(toSet());
         }
 
@@ -1151,6 +1140,39 @@ public class Items {
         @Override
         public String toString() {
             return templates.stream().map(Object::toString).collect(joining(","));
+        }
+    }
+
+    /**
+     * Associates a topic with a {@link CanonicalItemExtractor} and the resulting {@link Schema} for
+     * template matching. Internal helper used by {@link DefaultItemTemplates} to hold each entry of
+     * its template list.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
+    private static class ItemTemplate<K, V> {
+
+        private final Schema schema;
+        private final TopicConfiguration topic;
+        private final CanonicalItemExtractor<K, V> extractor;
+
+        ItemTemplate(TopicConfiguration topic, CanonicalItemExtractor<K, V> extractor) {
+            this.topic = Objects.requireNonNull(topic);
+            this.extractor = Objects.requireNonNull(extractor);
+            schema = extractor.schema();
+        }
+
+        public boolean matches(Schema schema) {
+            return this.schema.equals(schema);
+        }
+
+        CanonicalItemExtractor<K, V> extractor() {
+            return extractor;
+        }
+
+        TopicConfiguration topic() {
+            return topic;
         }
     }
 
@@ -1197,7 +1219,7 @@ public class Items {
             for (TemplateExpression template : topicConfig.itemReferences()) {
                 templates.add(
                         new ItemTemplate<>(
-                                topicConfig.topic(), canonicalItemExtractor(sSuppliers, template)));
+                                topicConfig, canonicalItemExtractor(sSuppliers, template)));
             }
         }
         return new DefaultItemTemplates<>(templates, topicsConfig.isRegexEnabled());

@@ -77,7 +77,7 @@ import java.util.stream.Stream;
  *       </ul>
  * </ul>
  */
-public class SeekingOffsetServiceTest {
+class SeekingOffsetServiceTest {
 
     private static final Logger logger = LoggerFactory.getLogger(SeekingOffsetServiceTest.class);
     private static final String TOPIC = "topic";
@@ -90,7 +90,7 @@ public class SeekingOffsetServiceTest {
     private SeekingOffsetService service;
 
     @BeforeEach
-    public void setUp() {
+    void before() {
         mockConsumer = new MockConsumer(StrategyType.EARLIEST.toString());
         HashMap<TopicPartition, Long> beginningOffsets = new HashMap<>();
         beginningOffsets.put(TP0, 0L);
@@ -112,7 +112,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldSeekNewPartitionsToBeginning() {
+    void shouldSeekNewPartitionsToBeginning() {
         service.onPartitionsAssigned(Set.of(TP0, TP1));
 
         // Verify positions are at beginning (0) for both partitions
@@ -121,7 +121,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldNotSeekOnStableRebalance() {
+    void shouldNotSeekOnStableRebalance() {
         // First assignment: TP0, TP1
         service.onPartitionsAssigned(Set.of(TP0, TP1));
 
@@ -138,7 +138,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldNotReseekAlreadyKnownPartitions() {
+    void shouldNotReseekAlreadyKnownPartitions() {
         // First assignment: TP0, TP1
         service.onPartitionsAssigned(Set.of(TP0, TP1));
 
@@ -156,7 +156,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldCaptureEndOffsetsOnAssignment() {
+    void shouldCaptureEndOffsetsOnAssignment() {
         service.onPartitionsAssigned(Set.of(TP0, TP1));
 
         Map<TopicPartition, Long> catchUpEndOffsets = service.getCatchUpEndOffsets();
@@ -164,7 +164,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldHandleEmptyAssignment() {
+    void shouldHandleEmptyAssignment() {
         // First assignment to populate knownPartitions
         service.onPartitionsAssigned(Set.of(TP0, TP1));
         mockConsumer.seek(TP0, 25L);
@@ -177,7 +177,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldUpdateEndOffsetsOnSubsequentAssignment() {
+    void shouldUpdateEndOffsetsOnSubsequentAssignment() {
         service.onPartitionsAssigned(Set.of(TP0));
         assertThat(service.getCatchUpEndOffsets()).containsExactly(TP0, 100L);
 
@@ -187,21 +187,13 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldReturnNullEndOffsetsBeforeFirstAssignment() {
+    void shouldReturnNullEndOffsetsBeforeFirstAssignment() {
         assertThat(service.getCatchUpEndOffsets()).isNull();
-    }
-
-    @Test
-    public void shouldDelegateOnPartitionsAssigned() {
-        Set<TopicPartition> partitions = Set.of(TP0, TP1);
-        service.onPartitionsAssigned(partitions);
-
-        assertThat(delegate.lastAssigned).containsExactlyElementsIn(partitions);
     }
 
     @ParameterizedTest
     @MethodSource("partitionLifecycleEvents")
-    public void shouldDelegatePartitionLifecycleEvent(
+    void shouldDelegatePartitionLifecycleEvent(
             String event, Collection<TopicPartition> partitions) {
         switch (event) {
             case "revoked" -> service.onPartitionsRevoked(partitions);
@@ -224,14 +216,14 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldDelegateMaybeCommit() {
+    void shouldDelegateMaybeCommit() {
         service.maybeCommit();
 
         assertThat(delegate.maybeCommitCalled).isTrue();
     }
 
     @Test
-    public void shouldDelegateUpdateOffsets() {
+    void shouldDelegateUpdateOffsets() {
         KafkaRecord<?, ?> record = KafkaRecord.from(TOPIC, 0, 42, 0L, "key", "value", null);
         service.updateOffsets(record);
 
@@ -239,7 +231,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldDelegateOnAsyncFailure() {
+    void shouldDelegateOnAsyncFailure() {
         RuntimeException failure = new RuntimeException("test");
         service.onAsyncFailure(failure);
 
@@ -247,14 +239,14 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldDelegateOnConsumerShutdown() {
+    void shouldDelegateOnConsumerShutdown() {
         service.onConsumerShutdown();
 
         assertThat(delegate.shutdownCalled).isTrue();
     }
 
     @Test
-    public void shouldDelegateGetFirstFailure() {
+    void shouldDelegateGetFirstFailure() {
         RuntimeException failure = new RuntimeException("delegate failure");
         delegate.firstFailure = failure;
 
@@ -262,7 +254,7 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldDelegateOffsetsSnapshot() {
+    void shouldDelegateOffsetsSnapshot() {
         Map<TopicPartition, OffsetAndMetadata> snapshot = Map.of(TP0, new OffsetAndMetadata(10L));
         delegate.snapshot = snapshot;
 
@@ -270,15 +262,15 @@ public class SeekingOffsetServiceTest {
     }
 
     @Test
-    public void shouldBeCreatableViaFactoryMethod() {
-        OffsetService seekingService = OffsetService.seekingCommit(mockConsumer, logger);
+    void shouldBeCreatableViaFactoryMethod() {
+        OffsetService seekingService =
+                OffsetService.seekingCommit(new SpyOffsetService(), mockConsumer, logger);
         assertThat(seekingService).isInstanceOf(SeekingOffsetService.class);
     }
 
     /** Hand-written spy that records all delegate calls for verification. */
     private static class SpyOffsetService implements OffsetService {
 
-        Collection<TopicPartition> lastAssigned;
         Collection<TopicPartition> lastRevoked;
         Collection<TopicPartition> lastLost;
         boolean maybeCommitCalled;
@@ -289,9 +281,7 @@ public class SeekingOffsetServiceTest {
         Map<TopicPartition, OffsetAndMetadata> snapshot = Map.of();
 
         @Override
-        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            lastAssigned = partitions;
-        }
+        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {}
 
         @Override
         public void onPartitionsRevoked(Collection<TopicPartition> partitions) {

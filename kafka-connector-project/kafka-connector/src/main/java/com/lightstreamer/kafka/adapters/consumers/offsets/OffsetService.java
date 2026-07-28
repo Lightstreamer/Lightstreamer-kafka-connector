@@ -17,6 +17,7 @@
 
 package com.lightstreamer.kafka.adapters.consumers.offsets;
 
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 
 import org.apache.kafka.clients.consumer.Consumer;
@@ -51,31 +52,69 @@ public interface OffsetService extends ConsumerRebalanceListener {
     /**
      * Creates a no-operation {@code OffsetService} that never commits offsets.
      *
-     * <p>Suitable for consumers using manual partition assignment ({@code assign()} + {@code
-     * seekToBeginning()}) where offset tracking is unnecessary.
+     * <p>Suitable for consumers using manual partition assignment ({@code assign()}) where offset
+     * tracking is unnecessary. On each partition assignment, the returned service seeks the newly
+     * assigned partitions to the position dictated by {@code consumeFrom}.
      *
+     * @param consumer the Kafka {@link Consumer} to seek on partition assignment
      * @param logger the {@link Logger} for lifecycle diagnostics
+     * @param consumeFrom the {@link RecordConsumeFrom} dictating the initial-seek position for each
+     *     newly assigned partition ({@link RecordConsumeFrom#EARLIEST} for the beginning, {@link
+     *     RecordConsumeFrom#LATEST} for the end)
      * @return a no-op {@code OffsetService} instance
      */
-    static OffsetService noCommit(Logger logger) {
-        return new NoCommitOffsetService(logger);
+    static OffsetService noCommit(
+            Consumer<?, ?> consumer, Logger logger, RecordConsumeFrom consumeFrom) {
+        return new NoCommitOffsetService(consumer, logger, consumeFrom);
     }
 
     /**
-     * Creates an {@code OffsetService} that commits offsets and seeks newly assigned partitions to
-     * the beginning.
+     * Creates an {@code OffsetService} that decorates the given delegate with seek-to-beginning
+     * behavior on partition assignment and captures end offsets for the catch-up gate.
      *
      * <p>On each partition assignment, partitions that have never been seen before are seeked to
-     * the beginning, and end offsets are captured for the catch-up gate. Re-assigned partitions
-     * resume from their committed offsets.
+     * the beginning; re-assigned partitions resume from their committed offsets. End offsets are
+     * captured for the entire current assignment and made available via {@link
+     * #getCatchUpEndOffsets()}.
      *
-     * @param consumer the Kafka {@link Consumer} to commit offsets to and seek on
-     * @param logger the {@link Logger} for commit and seek diagnostics
-     * @return a seeking-commit {@code OffsetService} instance
+     * @param delegate the {@code OffsetService} to decorate; all callbacks other than {@link
+     *     ConsumerRebalanceListener#onPartitionsAssigned(Collection)} and {@link
+     *     #getCatchUpEndOffsets()} are forwarded verbatim
+     * @param consumer the Kafka {@link Consumer} to seek on partition assignment
+     * @param logger the {@link Logger} for seek diagnostics
+     * @return a seeking {@code OffsetService} instance
      */
-    static OffsetService seekingCommit(Consumer<?, ?> consumer, Logger logger) {
-        return new SeekingOffsetService(
-                new CommitOffsetService(consumer, logger), consumer, logger);
+    static OffsetService seekingCommit(
+            OffsetService delegate, Consumer<?, ?> consumer, Logger logger) {
+        return new SeekingOffsetService(delegate, consumer, logger);
+    }
+
+    /**
+     * Returns an unmodifiable snapshot of the currently tracked offsets.
+     *
+     * @return an unmodifiable copy of the offset map
+     */
+    Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot();
+
+    /**
+     * Returns the first asynchronous failure recorded, if any.
+     *
+     * @return the first failure, or {@code null} if no failures have occurred
+     */
+    Throwable getFirstFailure();
+
+    /**
+     * Returns the end offsets captured during the most recent partition assignment, for use as the
+     * catch-up completion gate.
+     *
+     * <p>The default implementation returns {@code null}, indicating that no catch-up end offsets
+     * are tracked. Implementations that seek to the beginning on assignment override this to
+     * provide the target offsets.
+     *
+     * @return the end offsets map, or {@code null} if not applicable
+     */
+    default Map<TopicPartition, Long> getCatchUpEndOffsets() {
+        return null;
     }
 
     /**
@@ -101,38 +140,10 @@ public interface OffsetService extends ConsumerRebalanceListener {
     void onConsumerShutdown();
 
     /**
-     * Returns the first asynchronous failure recorded, if any.
-     *
-     * @return the first failure, or {@code null} if no failures have occurred
-     */
-    Throwable getFirstFailure();
-
-    /**
-     * Returns an unmodifiable snapshot of the currently tracked offsets.
-     *
-     * @return an unmodifiable copy of the offset map
-     */
-    Map<TopicPartition, OffsetAndMetadata> offsetsSnapshot();
-
-    /**
-     * Returns the end offsets captured during the most recent partition assignment, for use as the
-     * catch-up completion gate.
-     *
-     * <p>The default implementation returns {@code null}, indicating that no catch-up end offsets
-     * are tracked. Implementations that seek to the beginning on assignment override this to
-     * provide the target offsets.
-     *
-     * @return the end offsets map, or {@code null} if not applicable
-     */
-    default Map<TopicPartition, Long> getCatchUpEndOffsets() {
-        return null;
-    }
-
-    /**
      * Called when partitions are lost during a consumer group rebalance.
      *
-     * <p>The default implementation delegates to {@link #onPartitionsRevoked(Collection)} for
-     * backward compatibility.
+     * <p>The default implementation delegates to {@link #onPartitionsRevoked(Collection)} as a
+     * convenience for implementations that treat "lost" partitions the same as "revoked" ones.
      *
      * @param partitions the partitions that were lost
      */

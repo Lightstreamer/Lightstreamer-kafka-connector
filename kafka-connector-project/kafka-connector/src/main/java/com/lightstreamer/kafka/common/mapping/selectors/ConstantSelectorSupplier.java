@@ -71,7 +71,7 @@ public class ConstantSelectorSupplier implements SelectorSupplier<GenericSelecto
     private final Set<Constant> allowedConstants;
 
     private ConstantSelectorSupplier(Constant... constant) {
-        this.allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
+        allowedConstants = new LinkedHashSet<>(Arrays.asList(constant));
     }
 
     @Override

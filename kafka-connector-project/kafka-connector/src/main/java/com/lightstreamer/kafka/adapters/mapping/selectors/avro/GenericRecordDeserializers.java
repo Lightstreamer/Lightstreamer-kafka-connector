@@ -55,7 +55,7 @@ public class GenericRecordDeserializers {
         private final KafkaAvroDeserializer innerDeserializer;
 
         WrapperKafkaAvroDeserializer() {
-            this.innerDeserializer = new KafkaAvroDeserializer();
+            innerDeserializer = new KafkaAvroDeserializer();
         }
 
         @Override
@@ -122,7 +122,7 @@ public class GenericRecordDeserializers {
 
         @Override
         public void configure(Map<String, ?> configs, boolean isKey) {
-            this.serializer =
+            serializer =
                     new SchemaRegistryApacheAvroSerializerBuilder()
                             .schemaRegistryClient(
                                     new SchemaRegistryClientBuilder()

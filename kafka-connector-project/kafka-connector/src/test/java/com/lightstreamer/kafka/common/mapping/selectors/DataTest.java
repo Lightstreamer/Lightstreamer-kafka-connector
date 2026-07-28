@@ -27,10 +27,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class DataTest {
+class DataTest {
 
     @Test
-    public void shouldCreateFromNameAndValue() {
+    void shouldCreateFromNameAndValue() {
         Data data = Data.from("name", "value");
         assertThat(data.text()).isEqualTo("value");
         assertThat(data.name()).isEqualTo("name");
@@ -58,7 +58,7 @@ public class DataTest {
 
     @ParameterizedTest
     @MethodSource("dataArrays")
-    public void shouldBuildItemName(List<Data> dataList, String schema, String expected) {
+    void shouldBuildItemName(List<Data> dataList, String schema, String expected) {
         String result = Data.buildItemName(dataList.toArray(new Data[0]), schema);
         assertThat(result).isEqualTo(expected);
     }

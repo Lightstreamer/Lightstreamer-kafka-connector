@@ -37,10 +37,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class ConfigSpecTest {
+class ConfigSpecTest {
 
     @Test
-    public void shouldClone() {
+    void shouldClone() {
         ConfigsSpec parent = new ConfigsSpec("parent");
         parent.add("prop1", ConfType.TEXT);
         parent.add("prop2", Options.evaluatorTypes());
@@ -55,7 +55,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldReturnSimpleNameSpacedConfigSpec() {
+    void shouldReturnSimpleNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("source");
         source.add("prop1", ConfType.TEXT);
 
@@ -69,7 +69,7 @@ public class ConfigSpecTest {
     }
 
     @Test
-    public void shouldReturnNestedNameSpacedConfigSpec() {
+    void shouldReturnNestedNameSpacedConfigSpec() {
         ConfigsSpec source = new ConfigsSpec("root");
         source.add("prop1", ConfType.TEXT);
         source.add("enabled.nested", true, false, ConfType.BOOL, defaultValue("true"));
@@ -128,7 +128,7 @@ public class ConfigSpecTest {
                 item-template |        | item-template              | ''
                 item-template |        | item-template.             | ''
                     """)
-    public void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
+    void shouldExtractInfix(String config, String suffix, String key, String expectedInfix) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Optional<String> infix = ConfigsSpec.extractInfix(param, key);
@@ -153,8 +153,7 @@ public class ConfigSpecTest {
                 item-template |        | item-template.template | my-template
                 item-template |        | item-template..        | my-template
                     """)
-    public void shouldFillMultipleParam(
-            String config, String suffix, String key, String expectedValue) {
+    void shouldFillMultipleParam(String config, String suffix, String key, String expectedValue) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, expectedValue);
@@ -178,8 +177,7 @@ public class ConfigSpecTest {
                 item-template |        | item-template
                 item-template |        | item-template.
                     """)
-    public void shouldNotFillMultipleParamDueToMissingInfix(
-            String config, String suffix, String key) {
+    void shouldNotFillMultipleParamDueToMissingInfix(String config, String suffix, String key) {
         ConfParameter param =
                 new ConfParameter(config, true, true, suffix, TEXT, true, defaultNull());
         Map<String, String> source = Map.of(key, "value");

@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.connect.server;
 
 import com.lightstreamer.adapters.remote.ExceptionHandler;
 import com.lightstreamer.adapters.remote.RemotingException;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper.CloseHook;
 import com.lightstreamer.kafka.connect.common.DataProviderWrapper.IOStreams;
@@ -69,7 +70,7 @@ public final class ProviderServer implements ProxyCommunicator {
         private final ServerSocket serverSocket;
 
         DefaultProviderServerConnection(ProviderServerOptions options) throws IOException {
-            this.serverSocket = new ServerSocket(options.port);
+            serverSocket = new ServerSocket(options.port);
         }
 
         public IOStreams accept() throws IOException {
@@ -196,16 +197,16 @@ public final class ProviderServer implements ProxyCommunicator {
             Thread syncTaskThread,
             Function<ProviderServerOptions, ProviderServerConnection> connectionFactory) {
         this.options = options;
-        this.currentSyncThread = syncTaskThread;
+        currentSyncThread = syncTaskThread;
         this.connectionFactory = connectionFactory;
-        this.semaphore = new Semaphore(options.maxProxyAdapterConnections);
-        this.closeHook = new DefaultCloseHook(semaphore, activeProviders);
+        semaphore = new Semaphore(options.maxProxyAdapterConnections);
+        closeHook = new DefaultCloseHook(semaphore, activeProviders);
     }
 
     @Override
     public void start(Supplier<DataProviderWrapper> dataProviderSupplier) {
         logger.info("Start listening on port {}...", options.port);
-        this.acceptLoop = CompletableFuture.runAsync(runAcceptLoop(dataProviderSupplier));
+        acceptLoop = CompletableFuture.runAsync(runAcceptLoop(dataProviderSupplier));
     }
 
     @Override
@@ -224,7 +225,7 @@ public final class ProviderServer implements ProxyCommunicator {
     private Runnable runAcceptLoop(Supplier<DataProviderWrapper> dataProviderSupplier) {
         return () -> {
             try (ProviderServerConnection connection = connectionFactory.apply(options)) {
-                this.serverConnection = connection;
+                serverConnection = connection;
                 while (acceptConnections) {
                     try {
                         semaphore.acquire();
@@ -293,7 +294,7 @@ public final class ProviderServer implements ProxyCommunicator {
         return Optional.ofNullable(closingException.get());
     }
 
-    // Only for testing purposes
+    @VisibleForTesting
     Set<DataProviderWrapper> getActiveProviders() {
         return activeProviders;
     }

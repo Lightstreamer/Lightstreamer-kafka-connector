@@ -33,7 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.Collections;
 import java.util.Map;
 
-public class ItemTemplateConfigsTest {
+class ItemTemplateConfigsTest {
 
     @Test
     void shouldCreateFromEmptyMap() {
@@ -133,7 +133,7 @@ public class ItemTemplateConfigsTest {
                 "prefix-#{}",
                 "prefix-#{VALUE}",
             })
-    public void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
+    void shouldNotAllowInvalidTemplateExpression(String templateExpression) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -149,7 +149,7 @@ public class ItemTemplateConfigsTest {
     }
 
     @Test
-    public void shouldNotAllowDuplicatedKeysInTheSameTemplate() {
+    void shouldNotAllowDuplicatedKeysInTheSameTemplate() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,

@@ -30,7 +30,7 @@ import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.Wrapp
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedWithWildcards;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.Collections.emptySet;
@@ -55,10 +55,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class ExpressionsTest {
+class ExpressionsTest {
 
     @Test
-    public void shouldCreateEqualWrappedExpressions() {
+    void shouldCreateEqualWrappedExpressions() {
         ExtractionExpression ee1 = Wrapped("#{VALUE}");
         ExtractionExpression ee2 = Wrapped("#{VALUE}");
 
@@ -77,7 +77,7 @@ public class ExpressionsTest {
     }
 
     @Test
-    public void shouldCreateEqualWrappedWithWildcardsExpressions() {
+    void shouldCreateEqualWrappedWithWildcardsExpressions() {
         ExtractionExpression ee1 = Expressions.WrappedWithWildcards("#{VALUE.*}");
         ExtractionExpression ee2 = Expressions.WrappedWithWildcards("#{VALUE.*}");
 
@@ -112,7 +112,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("wrappedExpressions")
-    public void shouldParseWrappedExpression(
+    void shouldParseWrappedExpression(
             String expression, Constant expectedRoot, List<String> expectedTokens) {
         // Wrap in #{ }
         String wrappedExpression = "#{" + expression + "}";
@@ -150,7 +150,7 @@ public class ExpressionsTest {
                 #{VALUE.*}               $ Found unexpected wildcard char in the expression [VALUE.*]
                 #{VALUE.a.*}             $ Found unexpected wildcard char in the expression [VALUE.a.*]
                     """)
-    public void shouldNotParseWrappedExpression(String expression, String expectedErrorMessage) {
+    void shouldNotParseWrappedExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee = assertThrows(ExpressionException.class, () -> Wrapped(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
@@ -168,7 +168,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("wrappedWildWildcardExpressions")
-    public void shouldParseWrappedWidthWildcardExpression(
+    void shouldParseWrappedWidthWildcardExpression(
             String expression, Constant expectedRoot, List<String> expectedTokens) {
         // Wrap in #{ }
         String wrappedExpression = "#{" + expression + "}";
@@ -181,7 +181,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE", "KEY"})
-    public void shouldNotParseWrappedWithWildcardExpressionDueToMissingWildCard(String expression) {
+    void shouldNotParseWrappedWithWildcardExpressionDueToMissingWildCard(String expression) {
         // Wrap in #{ }
         String wrappedExpression = "#{" + expression + "}";
         ExpressionException ee =
@@ -218,7 +218,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("templateArgs")
-    public void shouldParseTemplateExpression(
+    void shouldParseTemplateExpression(
             String expression, String expectedPrefix, Map<String, String> expectedParams) {
         TemplateExpression template = Template(expression);
         assertThat(template.prefix()).isEqualTo(expectedPrefix);
@@ -233,7 +233,7 @@ public class ExpressionsTest {
     }
 
     @Test
-    public void shouldParseEqualsTemplateExpression() {
+    void shouldParseEqualsTemplateExpression() {
         TemplateExpression t1 = Template("template-#{param1=VALUE,param2=OFFSET}");
         TemplateExpression t2 = Template("template-#{param2=OFFSET,param1=VALUE}");
 
@@ -279,14 +279,14 @@ public class ExpressionsTest {
                 template-#{name=VALUE.*}            $ Found unexpected wildcard char in the expression [VALUE.*]
                 template-#{name=VALUE[1]aaa}        $ Missing root tokens [KEY|VALUE|TIMESTAMP|PARTITION|OFFSET|TOPIC|HEADERS] in the expression [VALUE[1]aaa]
                     """)
-    public void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
+    void shouldNotParseTemplateExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Template(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldCreateEmptyTemplate() {
+    void shouldCreateEmptyTemplate() {
         TemplateExpression template = Expressions.EmptyTemplate("item");
         assertThat(template.prefix()).isEqualTo("item");
         assertThat(template.params()).isEmpty();
@@ -295,7 +295,7 @@ public class ExpressionsTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = {" ", "   ", "\t", "\n"})
-    public void shouldNotCreateEmptyTemplate(String invalidItem) {
+    void shouldNotCreateEmptyTemplate(String invalidItem) {
         ExpressionException ee =
                 assertThrows(
                         ExpressionException.class, () -> Expressions.EmptyTemplate(invalidItem));
@@ -364,7 +364,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    public void shouldParseSubscriptionExpression(
+    void shouldParseSubscriptionExpression(
             String expression,
             String expectedPrefix,
             Set<Data> expectedParams,
@@ -389,8 +389,7 @@ public class ExpressionsTest {
                 ''                                 | Invalid Item
                 template-[name=VALUE,name=OFFSET]  | No duplicated keys are allowed
                     """)
-    public void shouldNotParseSubscriptionExpression(
-            String expression, String expectedErrorMessage) {
+    void shouldNotParseSubscriptionExpression(String expression, String expectedErrorMessage) {
         ExpressionException ee =
                 assertThrows(ExpressionException.class, () -> Subscription(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
@@ -415,7 +414,7 @@ public class ExpressionsTest {
 
     @ParameterizedTest
     @MethodSource("wrappedWildNoWildcardCheckExpressions")
-    public void shouldParseWrappedNoWildcardCheckExpression(
+    void shouldParseWrappedNoWildcardCheckExpression(
             String expression,
             Constant expectedRoot,
             List<String> expectedTokens,
@@ -430,7 +429,7 @@ public class ExpressionsTest {
     }
 
     @Test
-    public void shouldCreateWrappedWithNoWildcardCheck() {}
+    void shouldCreateWrappedWithNoWildcardCheck() {}
 
     @ParameterizedTest
     @CsvSource(
@@ -448,8 +447,7 @@ public class ExpressionsTest {
                 item-               | item-
                 item-[]             | item
                     """)
-    public void shouldGetCanonicalItemFromExpression(
-            String expression, String expectedCanonicalItem) {
+    void shouldGetCanonicalItemFromExpression(String expression, String expectedCanonicalItem) {
         String canonicalItem = Expressions.CanonicalItemName(expression);
         assertThat(canonicalItem).isEqualTo(expectedCanonicalItem);
     }

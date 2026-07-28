@@ -17,6 +17,8 @@
 
 package com.lightstreamer.kafka.common.records;
 
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
+
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -232,9 +234,6 @@ public interface KafkaRecord<K, V> {
     /**
      * Creates a {@link KafkaRecord} from individual components.
      *
-     * <p>This factory method is primarily intended for testing purposes and allows creating a
-     * record from individual topic, partition, offset, timestamp, key, value, and headers.
-     *
      * @param <K> the type of the key
      * @param <V> the type of the value
      * @param topic the topic name
@@ -247,6 +246,7 @@ public interface KafkaRecord<K, V> {
      * @return a new {@link KafkaRecord} with the specified components
      * @see SimpleKafkaRecord
      */
+    @VisibleForTesting
     public static <K, V> KafkaRecord<K, V> from(
             String topic,
             int partition,

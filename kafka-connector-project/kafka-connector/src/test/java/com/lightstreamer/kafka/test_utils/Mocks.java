@@ -86,6 +86,7 @@ public class Mocks {
 
         private RuntimeException commitException;
         private KafkaException listTopicException;
+        private KafkaException listPartitionsException;
 
         public MockConsumer(String strategyType) {
             super(strategyType);
@@ -103,11 +104,16 @@ public class Mocks {
         }
 
         public void setCommitException(RuntimeException exception) {
-            this.commitException = exception;
+            commitException = exception;
         }
 
         public void setListTopicException(Exception exception) {
-            this.listTopicException = new KafkaException("Mocked listTopics exception", exception);
+            listTopicException = new KafkaException("Mocked listTopics exception", exception);
+        }
+
+        public void setListPartitionsException(Exception exception) {
+            listPartitionsException =
+                    new KafkaException("Mocked listPartitions exception", exception);
         }
 
         @Override
@@ -138,6 +144,14 @@ public class Mocks {
                 throw listTopicException;
             }
             return super.listTopics();
+        }
+
+        @Override
+        public synchronized List<PartitionInfo> partitionsFor(String topic) {
+            if (listPartitionsException != null) {
+                throw listPartitionsException;
+            }
+            return super.partitionsFor(topic);
         }
 
         public static Function<Properties, Consumer<byte[], byte[]>> factory() {
@@ -294,7 +308,7 @@ public class Mocks {
 
         @Override
         public ProcessUpdatesType processUpdatesType() {
-            return this.processUpdatesType;
+            return processUpdatesType;
         }
     }
 
@@ -373,7 +387,7 @@ public class Mocks {
         private java.util.function.Consumer<String> forceSubscriptionAction = name -> {};
 
         public void setForceSubscriptionAction(java.util.function.Consumer<String> action) {
-            this.forceSubscriptionAction = action;
+            forceSubscriptionAction = action;
         }
 
         @Override

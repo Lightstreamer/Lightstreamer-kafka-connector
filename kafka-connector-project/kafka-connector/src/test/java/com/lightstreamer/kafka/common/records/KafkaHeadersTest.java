@@ -26,10 +26,10 @@ import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.header.ConnectHeaders;
 import org.junit.Test;
 
-public class KafkaHeadersTest {
+class KafkaHeadersTest {
 
     @Test
-    public void shouldCreateKafkaHeadersFromRecordHeaders() {
+    void shouldCreateKafkaHeadersFromRecordHeaders() {
         byte[] value = "test-value".getBytes();
         org.apache.kafka.common.header.Headers recordHeaders =
                 new RecordHeaders().add("test-key", value);
@@ -44,7 +44,7 @@ public class KafkaHeadersTest {
     }
 
     @Test
-    public void shouldCreateKafkaHeadersFromRecordHeadersMultiple() {
+    void shouldCreateKafkaHeadersFromRecordHeadersMultiple() {
         byte[] value1 = "value1".getBytes();
         byte[] value2 = "value2".getBytes();
         org.apache.kafka.common.header.Headers recordHeaders =
@@ -59,7 +59,7 @@ public class KafkaHeadersTest {
     }
 
     @Test
-    public void shouldCreateKafkaHeadersFromConnectHeaders() {
+    void shouldCreateKafkaHeadersFromConnectHeaders() {
         byte[] value = "connect-value".getBytes();
         org.apache.kafka.connect.header.Headers connectHeaders =
                 new ConnectHeaders().addBytes("connect-key", value);
@@ -74,7 +74,7 @@ public class KafkaHeadersTest {
     }
 
     @Test
-    public void shouldCreateKafkaHeadersFromConnectHeadersMultiple() {
+    void shouldCreateKafkaHeadersFromConnectHeadersMultiple() {
         byte[] value1 = "value1".getBytes();
         byte[] value2 = "value2".getBytes();
         org.apache.kafka.connect.header.Headers connectHeaders =
@@ -92,7 +92,7 @@ public class KafkaHeadersTest {
     }
 
     @Test
-    public void shouldCreateKafkaHeadersFromEmptyRecordHeaders() {
+    void shouldCreateKafkaHeadersFromEmptyRecordHeaders() {
         org.apache.kafka.common.header.Headers recordHeaders = new RecordHeaders();
 
         KafkaHeaders headers = KafkaHeaders.from(recordHeaders);
@@ -102,7 +102,7 @@ public class KafkaHeadersTest {
     }
 
     @Test
-    public void shouldCreateKafkaHeadersFromEmptyConnectHeaders() {
+    void shouldCreateKafkaHeadersFromEmptyConnectHeaders() {
         org.apache.kafka.connect.header.Headers connectHeaders = new ConnectHeaders();
 
         KafkaRecord.KafkaHeaders headers = KafkaRecord.KafkaHeaders.from(connectHeaders);

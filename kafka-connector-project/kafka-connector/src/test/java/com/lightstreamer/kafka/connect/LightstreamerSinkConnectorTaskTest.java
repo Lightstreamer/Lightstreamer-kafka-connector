@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-public class LightstreamerSinkConnectorTaskTest {
+class LightstreamerSinkConnectorTaskTest {
 
     static Map<String, String> basicConfig(boolean enableConnectionInversion) {
         Map<String, String> config = new HashMap<>();

@@ -27,7 +27,7 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.junit.jupiter.api.Test;
 
-public class KeyValueSelectorSuppliersTest {
+class KeyValueSelectorSuppliersTest {
 
     static class KeySelectorSupplierImpl<T> implements KeySelectorSupplier<T> {
 

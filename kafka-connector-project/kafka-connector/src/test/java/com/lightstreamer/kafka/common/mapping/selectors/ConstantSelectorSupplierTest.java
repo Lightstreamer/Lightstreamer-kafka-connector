@@ -44,7 +44,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class ConstantSelectorSupplierTest {
+class ConstantSelectorSupplierTest {
 
     static GenericSelector selector(String expression) throws ExtractionException {
         return ConstantSelectorSupplier.makeSelectorSupplier(
@@ -63,15 +63,14 @@ public class ConstantSelectorSupplierTest {
 
     @ParameterizedTest
     @MethodSource("constants")
-    public void shouldMakeConstantSelectorSupplier(
-            List<Constant> constants, String expectedString) {
+    void shouldMakeConstantSelectorSupplier(List<Constant> constants, String expectedString) {
         ConstantSelectorSupplier constantSelectorSupplier =
                 ConstantSelectorSupplier.makeSelectorSupplier(constants.toArray(new Constant[0]));
         assertThat(constantSelectorSupplier.expectedConstantStr()).isEqualTo(expectedString);
     }
 
     @Test
-    public void shouldNotMakeConstantSelectorSupplier() {
+    void shouldNotMakeConstantSelectorSupplier() {
         IllegalArgumentException iae =
                 assertThrows(
                         IllegalArgumentException.class,
@@ -81,7 +80,7 @@ public class ConstantSelectorSupplierTest {
 
     @ParameterizedTest
     @MethodSource("constants")
-    public void shouldMakeConstantSelector(List<Constant> constants, String expectedString)
+    void shouldMakeConstantSelector(List<Constant> constants, String expectedString)
             throws ExtractionException {
         ConstantSelectorSupplier constantSelectorSupplier =
                 ConstantSelectorSupplier.makeSelectorSupplier(constants.toArray(new Constant[0]));
@@ -94,7 +93,7 @@ public class ConstantSelectorSupplierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldNotMakeConstantSelectorSupplierDueToUnexpectedRootToken(String expression) {
+    void shouldNotMakeConstantSelectorSupplierDueToUnexpectedRootToken(String expression) {
         ConstantSelectorSupplier s = ConstantSelectorSupplier.makeSelectorSupplier(KEY, VALUE);
         ExtractionException ee =
                 assertThrows(
@@ -110,7 +109,7 @@ public class ConstantSelectorSupplierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"VALUE.a", "KEY.b", "OFFSET.a"})
-    public void shouldNotMakeConstantSelectorDueToNotAllowedAttributes(String expression) {
+    void shouldNotMakeConstantSelectorDueToNotAllowedAttributes(String expression) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> selector(expression));
         assertThat(ee)
@@ -132,8 +131,7 @@ public class ConstantSelectorSupplierTest {
                 OFFSET     | 120
                 TOPIC      | record-topic
                     """)
-    public void shouldExtractData(String expression, String expectedValue)
-            throws ExtractionException {
+    void shouldExtractData(String expression, String expectedValue) throws ExtractionException {
         GenericSelector selector = selector(expression);
 
         Data autoBoundData =
@@ -147,7 +145,7 @@ public class ConstantSelectorSupplierTest {
     }
 
     @Test
-    public void shouldExtractNullData() throws ExtractionException {
+    void shouldExtractNullData() throws ExtractionException {
         GenericSelector keySelector = selector("KEY");
 
         Data nullKey = keySelector.extract(KafkaRecord(null, "record-value"));
@@ -162,7 +160,7 @@ public class ConstantSelectorSupplierTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"TOPIC", "PARTITION", "OFFSET", "TIMESTAMP"})
-    public void shouldCreateEqualSelectors(String expression) throws ExtractionException {
+    void shouldCreateEqualSelectors(String expression) throws ExtractionException {
         GenericSelector selector1 = selector(expression);
         assertThat(selector1.equals(selector1)).isTrue();
 

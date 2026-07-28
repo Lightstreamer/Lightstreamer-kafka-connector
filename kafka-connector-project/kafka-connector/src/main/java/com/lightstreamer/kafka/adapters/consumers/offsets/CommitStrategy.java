@@ -82,8 +82,8 @@ public sealed interface CommitStrategy {
             if (messagesSinceLastCommit == 0) {
                 return false;
             }
-            boolean byTime = now - lastCommitTimeMs >= this.commitIntervalMs;
-            boolean byCount = messagesSinceLastCommit >= this.commitEveryNRecords;
+            boolean byTime = now - lastCommitTimeMs >= commitIntervalMs;
+            boolean byCount = messagesSinceLastCommit >= commitEveryNRecords;
 
             return byTime || byCount;
         }
@@ -130,7 +130,7 @@ public sealed interface CommitStrategy {
 
         Adaptive(int maxCommitsPerSecond) {
             this.maxCommitsPerSecond = maxCommitsPerSecond;
-            this.minCommitIntervalMs = 1000L / maxCommitsPerSecond;
+            minCommitIntervalMs = 1000L / maxCommitsPerSecond;
         }
 
         @Override

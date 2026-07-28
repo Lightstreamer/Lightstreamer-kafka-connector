@@ -74,9 +74,9 @@ public class Functions {
             this(name, () -> "");
         }
 
-        AggregateFunction(String name, Supplier<String> unitDecorator) {
+        AggregateFunction(String name, Supplier<String> unitDecoratorSupplier) {
             this.name = name;
-            this.unitDecoratorSupplier = unitDecorator;
+            this.unitDecoratorSupplier = unitDecoratorSupplier;
         }
 
         public final String name() {

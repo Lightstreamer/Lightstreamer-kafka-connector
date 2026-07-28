@@ -104,7 +104,7 @@ public final class TimeSeries {
         }
         this.capacity = capacity;
         this.collectable = collectable;
-        this.dataPoints = new ArrayList<>(capacity);
+        dataPoints = new ArrayList<>(capacity);
     }
 
     /**

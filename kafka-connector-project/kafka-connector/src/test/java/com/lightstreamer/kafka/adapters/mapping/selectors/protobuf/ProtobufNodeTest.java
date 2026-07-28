@@ -37,13 +37,13 @@ import org.junit.jupiter.params.provider.CsvSource;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ProtobufNodeTest {
+class ProtobufNodeTest {
 
     static DynamicMessage MESSAGE =
             SampleMessageProviders.SampleDynamicMessageProvider().sampleMessage();
 
     @Test
-    public void shouldCreateRootNode() {
+    void shouldCreateRootNode() {
         ProtobufNode rootNode = ProtobufNode.rootNode("rootNode", MESSAGE);
         assertThat(rootNode).isInstanceOf(MessageWrapperNode.class);
         assertThat(rootNode.name()).isEqualTo("rootNode");
@@ -54,7 +54,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldCreateMessageWrapperNode() {
+    void shouldCreateMessageWrapperNode() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         assertThat(personMessageWrapperNode.name()).isEqualTo("VALUE");
         assertThat(personMessageWrapperNode.isArray()).isFalse();
@@ -142,7 +142,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldCreateNullProtobufNode() {
+    void shouldCreateNullProtobufNode() {
         NullProtobufNode nullNode = new NullProtobufNode("NULLNODE");
         assertThat(nullNode.name()).isEqualTo("NULLNODE");
         assertThat(nullNode.isArray()).isFalse();
@@ -166,7 +166,7 @@ public class ProtobufNodeTest {
                     signature, abcd
                     email,     ''
                     """)
-    public void shouldGetStringScalarField(String field, String expectedValue) {
+    void shouldGetStringScalarField(String field, String expectedValue) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode fieldNode = personMessageWrapperNode.getProperty("fieldNode", field);
         assertThat(fieldNode.name()).isEqualTo("fieldNode");
@@ -194,7 +194,7 @@ public class ProtobufNodeTest {
                     mainAddress | ''
                     car         | brand: "BMW"
                     """)
-    public void shouldGetMessageField(String field, String expectedValue) {
+    void shouldGetMessageField(String field, String expectedValue) {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode node = personMessageWrapperNode.getProperty("fieldNode", field);
         assertThat(node).isInstanceOf(MessageWrapperNode.class);
@@ -212,7 +212,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetEnumField() {
+    void shouldGetEnumField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode node = personMessageWrapperNode.getProperty("fieldNode", "job");
         assertThat(node).isInstanceOf(ScalarFieldNode.class);
@@ -226,7 +226,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetRepeatedScalarField() {
+    void shouldGetRepeatedScalarField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode phoneNumbersNode =
                 personMessageWrapperNode.getProperty("fieldNode", "phoneNumbers");
@@ -270,7 +270,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetRepeatedMessageField() {
+    void shouldGetRepeatedMessageField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode friends = personMessageWrapperNode.getProperty("friendsNode", "friends");
         assertThat(friends).isInstanceOf(RepeatedFieldNode.class);
@@ -318,7 +318,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetMapOfStringKeyAndMessageValueField() {
+    void shouldGetMapOfStringKeyAndMessageValueField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode otherAddressesNode =
                 personMessageWrapperNode.getProperty("fieldNode", "otherAddresses");
@@ -367,7 +367,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetMapOfIntegralKeyAndMessageValueField() {
+    void shouldGetMapOfIntegralKeyAndMessageValueField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode otherAddressesNode =
                 personMessageWrapperNode.getProperty("fieldNode", "indexedAddresses");
@@ -396,7 +396,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetMapOfBooleanKeyAndMessageValueField() {
+    void shouldGetMapOfBooleanKeyAndMessageValueField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode booleanAddressesNode =
                 personMessageWrapperNode.getProperty("fieldNode", "booleanAddresses");
@@ -436,7 +436,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetMapOfStringKeyAndIntegralValueField() {
+    void shouldGetMapOfStringKeyAndIntegralValueField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode dataNode = personMessageWrapperNode.getProperty("mapNode", "data");
         assertThat(dataNode).isInstanceOf(MapFieldNode.class);
@@ -467,7 +467,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetOneofField() {
+    void shouldGetOneofField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode simpleRoleNameNode =
                 personMessageWrapperNode.getProperty("fieldNode", "simpleRoleName");
@@ -505,7 +505,7 @@ public class ProtobufNodeTest {
     }
 
     @Test
-    public void shouldGetAnyField() {
+    void shouldGetAnyField() {
         MessageWrapperNode personMessageWrapperNode = new MessageWrapperNode("VALUE", MESSAGE);
         ProtobufNode anyNode = personMessageWrapperNode.getProperty("fieldNode", "any");
         assertThat(anyNode).isInstanceOf(MessageWrapperNode.class);

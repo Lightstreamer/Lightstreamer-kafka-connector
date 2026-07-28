@@ -34,7 +34,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class SplitTest {
+class SplitTest {
 
     static Stream<Arguments> semicolonTestValues() {
         return values(';');

@@ -18,15 +18,16 @@
 package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.SubscriptionOutcome.PATTERN;
-import static com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.SubscriptionOutcome.TOPICS;
 import static com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers.String;
 
 import com.lightstreamer.kafka.adapters.commons.LogFactory;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.FutureStatus.State;
 import com.lightstreamer.kafka.adapters.consumers.KafkaConsumerWrapper.SubscriptionOutcome;
@@ -66,6 +67,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -86,9 +88,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class KafkaConsumerWrapperTest {
+class KafkaConsumerWrapperTest {
 
     private final StrategyType resetStrategy = StrategyType.EARLIEST;
     private static final Logger logger = LogFactory.getLogger("TestConnection");
@@ -118,21 +121,14 @@ public class KafkaConsumerWrapperTest {
         return properties;
     }
 
-    private TopicConfigurations makeTopicsConfig(boolean enableSubscriptionPattern) {
-        return TopicConfigurations.of(
-                ItemTemplateConfigs.empty(),
-                List.of(
-                        TopicMappingConfig.fromDelimitedMappings("topic", "item"),
-                        TopicMappingConfig.fromDelimitedMappings("topic2", "item")),
-                enableSubscriptionPattern);
-    }
-
-    KafkaConsumerWrapper<String, String> makeWrapper(
-            Set<String> topicsBroker,
+    KafkaConsumerWrapper<String, String> makeWrapperAsGroupConsumer(
+            Set<String> topicsOnBroker,
+            List<TopicMappingConfig> topicMappings,
             boolean trowExceptionWhileCheckingExistingTopic,
             boolean eagerLifecycle) {
-        return makeWrapper(
-                topicsBroker,
+        return makeWrapperAsGroupConsumer(
+                topicsOnBroker,
+                topicMappings,
                 trowExceptionWhileCheckingExistingTopic,
                 false,
                 false,
@@ -142,8 +138,9 @@ public class KafkaConsumerWrapperTest {
                 eagerLifecycle);
     }
 
-    KafkaConsumerWrapper<String, String> makeWrapper(
-            Set<String> topicsBroker,
+    KafkaConsumerWrapper<String, String> makeWrapperAsGroupConsumer(
+            Set<String> topicsOnBroker,
+            List<TopicMappingConfig> topicMappings,
             boolean trowExceptionWhileCheckingExistingTopic,
             boolean enableSubscriptionPattern,
             boolean processAsCommand,
@@ -153,18 +150,20 @@ public class KafkaConsumerWrapperTest {
             boolean eagerLifecycle) {
 
         // Set the topics in the mock consumer
-        for (String topic : topicsBroker) {
-            this.mockConsumer.updatePartitions(
+        for (String topic : topicsOnBroker) {
+            mockConsumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
         if (trowExceptionWhileCheckingExistingTopic) {
-            this.mockConsumer.setListTopicException(
+            mockConsumer.setListTopicException(
                     new KafkaException("Fake Exception while checking existing topics"));
         }
 
         // Create the configuration
         ConnectionSpec<String, String> spec =
                 makeConnectionSpec(
+                        ConsumerMode.GROUP,
+                        topicMappings,
                         enableSubscriptionPattern,
                         processAsCommand,
                         errorHandlingStrategy,
@@ -172,7 +171,7 @@ public class KafkaConsumerWrapperTest {
                         orderStrategy);
 
         // Create the SubscribedItems
-        this.subscribedItems =
+        subscribedItems =
                 eagerLifecycle
                         ? SubscribedItems.forceable(itemEventListener, logger)
                         : SubscribedItems.onDemand();
@@ -182,12 +181,90 @@ public class KafkaConsumerWrapperTest {
                         spec,
                         itemEventListener,
                         subscribedItems,
-                        prop -> this.mockConsumer,
+                        prop -> mockConsumer,
+                        eagerLifecycle);
+        return wrapper;
+    }
+
+    KafkaConsumerWrapper<String, String> makeWrapperAsStandalone(
+            List<TopicPartition> partitionsOnBroker,
+            List<TopicMappingConfig> topicMappings,
+            boolean trowExceptionWhileCheckingExistingTopicPartitions,
+            boolean eagerLifecycle) {
+        return makeWrapperAsStandalone(
+                partitionsOnBroker,
+                topicMappings,
+                trowExceptionWhileCheckingExistingTopicPartitions,
+                false,
+                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                2,
+                RecordConsumeWithOrderStrategy.UNORDERED,
+                eagerLifecycle);
+    }
+
+    KafkaConsumerWrapper<String, String> makeWrapperAsStandalone(
+            List<TopicPartition> partitionsOnBroker,
+            List<TopicMappingConfig> topicMappings,
+            boolean trowExceptionWhileCheckingExistingTopicPartitions,
+            boolean processAsCommand,
+            RecordErrorHandlingStrategy errorHandlingStrategy,
+            int threads,
+            RecordConsumeWithOrderStrategy orderStrategy,
+            boolean eagerLifecycle) {
+
+        // Update the mock consumer with the given partitions
+        Map<String, List<PartitionInfo>> collect =
+                partitionsOnBroker.stream()
+                        .collect(
+                                Collectors.groupingBy(
+                                        TopicPartition::topic,
+                                        Collectors.mapping(
+                                                tp ->
+                                                        new PartitionInfo(
+                                                                tp.topic(),
+                                                                tp.partition(),
+                                                                null,
+                                                                null,
+                                                                null),
+                                                Collectors.toList())));
+        for (Map.Entry<String, List<PartitionInfo>> entry : collect.entrySet()) {
+            mockConsumer.updatePartitions(entry.getKey(), entry.getValue());
+        }
+        if (trowExceptionWhileCheckingExistingTopicPartitions) {
+            mockConsumer.setListPartitionsException(
+                    new KafkaException("Fake Exception while checking existing topic partitions"));
+        }
+
+        // Create the configuration
+        ConnectionSpec<String, String> spec =
+                makeConnectionSpec(
+                        ConsumerMode.MANUAL,
+                        topicMappings,
+                        false,
+                        processAsCommand,
+                        errorHandlingStrategy,
+                        threads,
+                        orderStrategy);
+
+        // Create the SubscribedItems
+        subscribedItems =
+                eagerLifecycle
+                        ? SubscribedItems.forceable(itemEventListener, logger)
+                        : SubscribedItems.onDemand();
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                new KafkaConsumerWrapper<String, String>(
+                        spec,
+                        itemEventListener,
+                        subscribedItems,
+                        prop -> mockConsumer,
                         eagerLifecycle);
         return wrapper;
     }
 
     private ConnectionSpec<String, String> makeConnectionSpec(
+            ConsumerMode consumerMode,
+            List<TopicMappingConfig> topicMappings,
             boolean enableSubscriptionPattern,
             boolean processAsCommand,
             RecordErrorHandlingStrategy errorHandlingStrategy,
@@ -197,20 +274,34 @@ public class KafkaConsumerWrapperTest {
             return new ConnectionSpec<>(
                     "TestConnection",
                     makeProperties(),
-                    Items.templatesFrom(makeTopicsConfig(enableSubscriptionPattern), String()),
-                    ItemTemplatesUtils.fieldsExtractor(),
                     deserializerPair,
-                    errorHandlingStrategy,
-                    processAsCommand,
-                    new Concurrency(orderStrategy, threads));
+                    consumerMode,
+                    resetStrategy.equals(StrategyType.EARLIEST)
+                            ? RecordConsumeFrom.EARLIEST
+                            : RecordConsumeFrom.LATEST,
+                    new RecordPipeline<>(
+                            Items.templatesFrom(
+                                    makeTopicsConfig(topicMappings, enableSubscriptionPattern),
+                                    String()),
+                            ItemTemplatesUtils.fieldsExtractor(),
+                            errorHandlingStrategy,
+                            processAsCommand,
+                            new Concurrency(orderStrategy, threads)));
         } catch (ExtractionException e) {
             throw new RuntimeException(e);
         }
     }
 
+    private TopicConfigurations makeTopicsConfig(
+            List<TopicMappingConfig> topicMappings, boolean enableSubscriptionPattern) {
+        return TopicConfigurations.of(
+                ItemTemplateConfigs.empty(), topicMappings, enableSubscriptionPattern);
+    }
+
     static Stream<Arguments> wrapperArgs() {
         return Stream.of(
                 Arguments.of(
+                        ConsumerMode.GROUP,
                         // threads
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
@@ -223,6 +314,20 @@ public class KafkaConsumerWrapperTest {
                         // eagerLifecycle
                         false),
                 Arguments.of(
+                        ConsumerMode.MANUAL,
+                        // threads
+                        1,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
+                        false,
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        // expectedParallelism
+                        false,
+                        OrderStrategy.ORDER_BY_PARTITION,
+                        ProcessUpdatesType.DEFAULT,
+                        // eagerLifecycle
+                        false),
+                Arguments.of(
+                        ConsumerMode.GROUP,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
                         true,
@@ -232,6 +337,7 @@ public class KafkaConsumerWrapperTest {
                         ProcessUpdatesType.COMMAND_MODE,
                         false),
                 Arguments.of(
+                        ConsumerMode.MANUAL,
                         2,
                         RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
                         false,
@@ -241,6 +347,17 @@ public class KafkaConsumerWrapperTest {
                         ProcessUpdatesType.DEFAULT,
                         true),
                 Arguments.of(
+                        ConsumerMode.GROUP,
+                        2,
+                        RecordConsumeWithOrderStrategy.ORDER_BY_KEY,
+                        false,
+                        RecordErrorHandlingStrategy.FORCE_UNSUBSCRIPTION,
+                        true,
+                        OrderStrategy.ORDER_BY_KEY,
+                        ProcessUpdatesType.DEFAULT,
+                        true),
+                Arguments.of(
+                        ConsumerMode.GROUP,
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
                         false,
@@ -250,6 +367,7 @@ public class KafkaConsumerWrapperTest {
                         ProcessUpdatesType.DEFAULT,
                         false),
                 Arguments.of(
+                        ConsumerMode.GROUP,
                         -1,
                         RecordConsumeWithOrderStrategy.UNORDERED,
                         true,
@@ -262,7 +380,8 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @MethodSource("wrapperArgs")
-    public void shouldCreateWrapper(
+    void shouldCreateWrapper(
+            ConsumerMode consumerMode,
             int threads,
             RecordConsumeWithOrderStrategy consumedWithOrderStrategy,
             boolean processAsCommand,
@@ -272,15 +391,26 @@ public class KafkaConsumerWrapperTest {
             ProcessUpdatesType expectedProcessUpdatesType,
             boolean eagerLifecycle) {
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(
-                        Collections.emptySet(),
-                        false,
-                        false,
-                        processAsCommand,
-                        errorHandlingStrategy,
-                        threads,
-                        consumedWithOrderStrategy,
-                        eagerLifecycle);
+                consumerMode == ConsumerMode.GROUP
+                        ? makeWrapperAsGroupConsumer(
+                                Collections.emptySet(),
+                                List.of(),
+                                false,
+                                false,
+                                processAsCommand,
+                                errorHandlingStrategy,
+                                threads,
+                                consumedWithOrderStrategy,
+                                eagerLifecycle)
+                        : makeWrapperAsStandalone(
+                                List.of(),
+                                List.of(),
+                                false,
+                                processAsCommand,
+                                errorHandlingStrategy,
+                                threads,
+                                consumedWithOrderStrategy,
+                                eagerLifecycle);
 
         assertThat(wrapper.getInternalConsumer()).isSameInstanceAs(mockConsumer);
 
@@ -318,81 +448,165 @@ public class KafkaConsumerWrapperTest {
         if (eagerLifecycle) {
             assertThat(simpleName).isEqualTo("SeekingOffsetService");
         } else {
-            assertThat(simpleName).isEqualTo("CommitOffsetService");
+            if (consumerMode == ConsumerMode.GROUP) {
+                assertThat(simpleName).isEqualTo("CommitOffsetService");
+            } else {
+                assertThat(simpleName).isEqualTo("NoCommitOffsetService");
+            }
         }
 
         // Check the poll timeout
         assertThat(wrapper.getPollTimeout()).isEqualTo(KafkaConsumerWrapper.MAX_POLL_DURATION);
     }
 
-    static Stream<Arguments> subscriptionFlags() {
+    static Stream<Arguments> assignPartitionsData() {
         return Stream.of(
-                Arguments.of(true, true),
-                Arguments.of(true, false),
-                Arguments.of(false, true),
-                Arguments.of(false, false));
+                Arguments.of(
+                        List.of(),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "0")),
+                        SubscriptionOutcome.NONE,
+                        Set.of()),
+                Arguments.of(
+                        List.of(new TopicPartition("topic", 1)),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "0")),
+                        SubscriptionOutcome.NONE,
+                        Set.of()),
+                Arguments.of(
+                        List.of(new TopicPartition("topic", 0)),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "0")),
+                        SubscriptionOutcome.PARTITIONS,
+                        Set.of(new TopicPartition("topic", 0))),
+                Arguments.of(
+                        List.of(new TopicPartition("topic", 1), new TopicPartition("topic2", 2)),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "1")),
+                        SubscriptionOutcome.PARTITIONS,
+                        Set.of(new TopicPartition("topic", 1))),
+                Arguments.of(
+                        List.of(
+                                new TopicPartition("topic", 1),
+                                new TopicPartition("topic", 2),
+                                new TopicPartition("topic2", 1)),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings("topic", "item", "1-2"),
+                                TopicMappingConfig.fromDelimitedMappings("topic2", "item", "1-3")),
+                        SubscriptionOutcome.PARTITIONS,
+                        Set.of(
+                                new TopicPartition("topic", 1),
+                                new TopicPartition("topic", 2),
+                                new TopicPartition("topic2", 1))),
+                Arguments.of(
+                        List.of(
+                                new TopicPartition("topic", 1),
+                                new TopicPartition("topic", 2),
+                                new TopicPartition("topic2", 1),
+                                new TopicPartition("topic2", 2)),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings("topic", "item", ""),
+                                TopicMappingConfig.fromDelimitedMappings("topic2", "item", "")),
+                        SubscriptionOutcome.PARTITIONS,
+                        Set.of(
+                                new TopicPartition("topic", 1),
+                                new TopicPartition("topic", 2),
+                                new TopicPartition("topic2", 1),
+                                new TopicPartition("topic2", 2))));
     }
 
     @ParameterizedTest
-    @MethodSource("subscriptionFlags")
-    public void shouldSubscribeToTopicsOrPattern(
-            boolean eagerLifecycle, boolean enableSubscriptionToPattern) {
+    @MethodSource("assignPartitionsData")
+    void shouldTrySubscribeWithManualAssignPartitions(
+            List<TopicPartition> partitionsOnBroker,
+            List<TopicMappingConfig> topicMappingConfigs,
+            SubscriptionOutcome expectedOutcome,
+            Set<TopicPartition> expectedAssignedPartitions) {
+        boolean eagerLifecycle = false;
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(
-                        Set.of("topic", "topic2"),
+                makeWrapperAsStandalone(
+                        partitionsOnBroker,
+                        topicMappingConfigs,
                         false,
-                        enableSubscriptionToPattern,
                         false,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
                         eagerLifecycle);
-        if (enableSubscriptionToPattern) {
-            assertThat(wrapper.trySubscribe()).isEqualTo(PATTERN);
-        } else {
-            assertThat(wrapper.trySubscribe()).isEqualTo(TOPICS);
-        }
-        assertThat(mockConsumer.listTopics()).hasSize(2);
+        assertThat(wrapper.trySubscribe()).isEqualTo(expectedOutcome);
+        assertThat(mockConsumer.assignment()).isEqualTo(expectedAssignedPartitions);
     }
 
     static Stream<Arguments> subscriptionArgs() {
         return Stream.of(
                 // All requested topics are available. Should subscribe successfully.
-                Arguments.of(Set.of("topic", "topic2"), SubscriptionOutcome.TOPICS),
+                Arguments.of(
+                        Set.of("topic", "topic2"),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings("topic", "item", ""),
+                                TopicMappingConfig.fromDelimitedMappings("topic2", "item2", "")),
+                        false,
+                        SubscriptionOutcome.TOPICS,
+                        Set.of("topic", "topic2")),
                 // Available topics are a subset of the requested ones. Should subscribe to the
                 // available ones and log a warning.
-                Arguments.of(Set.of("topic"), SubscriptionOutcome.TOPICS),
+                Arguments.of(
+                        Set.of("topic"),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings("topic", "item", ""),
+                                TopicMappingConfig.fromDelimitedMappings("topic2", "item2", "")),
+                        false,
+                        SubscriptionOutcome.TOPICS,
+                        Set.of("topic")),
+                Arguments.of(
+                        Set.of("topic", "topic2"),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic.*", "item", "")),
+                        true,
+                        SubscriptionOutcome.PATTERN,
+                        Set.of("topic", "topic2")),
+                // No topics available. Should not subscribe and log a warning.
+                Arguments.of(
+                        Set.of(),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "")),
+                        false,
+                        SubscriptionOutcome.NONE,
+                        Set.of()),
                 // No requested topic is available. Should not subscribe and log a warning.
-                Arguments.of(Set.of(), SubscriptionOutcome.NONE),
-                // No requested topic is available. Should not subscribe and log a warning.
-                Arguments.of(Set.of("nonExistingTopic"), SubscriptionOutcome.NONE));
+                Arguments.of(
+                        Set.of("nonExistingTopic"),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings("topic", "item", ""),
+                                TopicMappingConfig.fromDelimitedMappings("topic2", "item2", "")),
+                        false,
+                        SubscriptionOutcome.NONE,
+                        Set.of()));
     }
 
     @ParameterizedTest
     @MethodSource("subscriptionArgs")
-    public void shouldTrySubscribeReturnExpectedOutcome(
-            Set<String> availableTopicsOnBroker, SubscriptionOutcome expectedOutcome) {
+    void shouldTrySubscribeToTopics(
+            Set<String> topicsOnBroker,
+            List<TopicMappingConfig> topicMappings,
+            boolean enableSubscriptionPattern,
+            SubscriptionOutcome expectedOutcome,
+            Set<String> expectedSubscriptions) {
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(
-                        availableTopicsOnBroker,
+                makeWrapperAsGroupConsumer(
+                        topicsOnBroker,
+                        topicMappings,
                         false,
-                        false,
+                        enableSubscriptionPattern,
                         false,
                         RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
                         1,
                         RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION,
                         false);
         assertThat(wrapper.trySubscribe()).isEqualTo(expectedOutcome);
+        assertThat(mockConsumer.subscription()).isEqualTo(expectedSubscriptions);
     }
 
-    @Test
-    public void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    void shouldCompleteCatchUpImmediatelyWhenTopicIsEmpty(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // Begin offsets equal end offsets: both partitions are already at their end, so catch-up
         // completes on the very first poll without consuming any record.
@@ -400,7 +614,30 @@ public class KafkaConsumerWrapperTest {
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 0L, partition1, 0L));
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, true);
+                switch (consumerMode) {
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
@@ -411,19 +648,44 @@ public class KafkaConsumerWrapperTest {
         assertThat(itemEventListener.getEvents()).isEmpty();
     }
 
-    @Test
-    public void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    void shouldCompleteCatchUpInSinglePollWhenAllPartitionsReachEndOffsets(
+            ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // partition0 ends at offset 2, partition1 ends at offset 2: a single record-bearing poll
         // brings both partitions to their end, so catch-up completes without polling again.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 2L, partition1, 2L));
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         // Counts the record-bearing polls actually performed by the catch-up loop.
         AtomicInteger recordPolls = new AtomicInteger();
@@ -438,8 +700,6 @@ public class KafkaConsumerWrapperTest {
                     mockConsumer.addRecord(record(topic, 1, 1));
                 });
 
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, true);
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
         assertThat(status.isStateAvailable()).isFalse();
@@ -463,19 +723,43 @@ public class KafkaConsumerWrapperTest {
         assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
-    @Test
-    public void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    void shouldNotCompleteCatchUpUntilAllPartitionsReachEndOffsets(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // partition0 ends at offset 2, partition1 ends at offset 4: catch-up must keep polling
         // until BOTH partitions have been fully consumed.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 2L, partition1, 4L));
+
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
 
         // Counts the record-bearing polls actually performed by the catch-up loop. Each scheduled
         // task runs on a distinct poll() invocation, so the counter directly measures how many
@@ -501,9 +785,6 @@ public class KafkaConsumerWrapperTest {
                     mockConsumer.addRecord(record(topic, 1, 3));
                 });
 
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, true);
-
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
         assertThat(status.isStateAvailable()).isFalse();
@@ -526,28 +807,49 @@ public class KafkaConsumerWrapperTest {
         assertThat(events.stream().allMatch(EventCall::isSnapshot)).isFalse();
     }
 
-    @Test
-    public void shouldDeliverRealTimeUpdatesAfterCatchUp() {
+    @ParameterizedTest
+    @EnumSource(ConsumerMode.class)
+    void shouldDeliverRealTimeUpdatesAfterCatchUp(ConsumerMode consumerMode) {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
-
-        // A rebalance must be scheduled to later use the subscribe method.
-        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // Both partitions end at offset 10: catch-up must consume offsets 0..9 on both partitions
         // before completing.
         updateBeginAndEndOffsets(
                 Map.of(partition0, 0L, partition1, 0L), Map.of(partition0, 10L, partition1, 10L));
 
+        KafkaConsumerWrapper<String, String> wrapper =
+                switch (consumerMode) {
+                    case MANUAL ->
+                            makeWrapperAsStandalone(
+                                    List.of(partition0, partition1),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                    case GROUP ->
+                            makeWrapperAsGroupConsumer(
+                                    Collections.singleton(topic),
+                                    List.of(
+                                            TopicMappingConfig.fromDelimitedMappings(
+                                                    topic, "item", "")),
+                                    false,
+                                    true);
+                };
+
+        if (consumerMode == ConsumerMode.GROUP) {
+            // A rebalance must be scheduled to later use the subscribe method.
+            mockConsumer.schedulePollTask(
+                    () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        }
+
         // 22 records (offsets 0..10 per partition) complete catch-up.
         ConsumerRecords<byte[], byte[]> snapshotRecords =
                 Records.generateRecords(topic, 22, List.of("a", "b"), 2);
         mockConsumer.schedulePollTask(
                 () -> snapshotRecords.forEach(record -> mockConsumer.addRecord(record)));
-
-        KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, true);
 
         // After catch-up, the consume loop processes two records arriving just past the end
         // offsets (offset 11 per partition), then a scheduled shutdown terminates the loop
@@ -582,10 +884,16 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToNotExistingTopic(boolean eagerLifecycle) {
+    void shouldNotStartDueToNotExistingTopic(boolean eagerLifecycle) {
         // Create a wrapper for a topic that doesn't exist on the broker
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton("anotherTopic"), false, eagerLifecycle);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton("topic"),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings(
+                                        "anotherTopic", "item", "")),
+                        false,
+                        eagerLifecycle);
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
 
@@ -603,11 +911,67 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldNotStartDueToExceptionWhileCheckingExistingTopic(boolean eagerLifecycle) {
+    void shouldNotStartDueToNotExistingTopicPartitions(boolean eagerLifecycle) {
+        // Create a wrapper for a topic partition that doesn't exist on the broker
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapperAsStandalone(
+                        List.of(new TopicPartition("topic", 0)),
+                        List.of(
+                                TopicMappingConfig.fromDelimitedMappings(
+                                        "anotherTopic", "item", "")),
+                        false,
+                        eagerLifecycle);
+        FutureStatus status =
+                wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
+
+        // The status is immediately set to INIT_FAILED_ON_MISSING_TOPICS
+        assertThat(status.initFailed()).isTrue();
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_ON_MISSING_TOPICS);
+        assertThat(mockConsumer.subscription()).isEmpty();
+        assertThat(mockConsumer.closed()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
+
+        FutureStatus shutdown = wrapper.shutdown();
+        assertThat(shutdown.join()).isEqualTo(State.SHUTDOWN);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldNotStartDueToExceptionWhileCheckingExistingTopic(boolean eagerLifecycle) {
         // Create a wrapper for a topic that exists in the broker but cannot be subscribed due to
         // an exception thrown while checking the topic's existence
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton("topic"), true, eagerLifecycle);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton("topic"),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "")),
+                        true,
+                        eagerLifecycle);
+        FutureStatus status =
+                wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
+
+        // The status is immediately set to INIT_FAILED_ON_ERROR
+        assertThat(status.initFailed()).isTrue();
+        assertThat(status.join()).isEqualTo(State.INIT_FAILED_ON_ERROR);
+        assertThat(mockConsumer.subscription()).isEmpty();
+        assertThat(mockConsumer.closed()).isTrue();
+        assertThat(wrapper.getRecordConsumer().isClosed()).isTrue();
+        assertThat(wrapper.getMonitor().isRunning()).isFalse();
+
+        assertThat(wrapper.shutdown().join()).isEqualTo(State.SHUTDOWN);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldNotStartDueToExceptionWhileCheckingExistingTopicPartitions(boolean eagerLifecycle) {
+        // Create a wrapper for a topic that exists in the broker but cannot be subscribed due to
+        // an exception thrown while checking the topic's existence
+        KafkaConsumerWrapper<String, String> wrapper =
+                makeWrapperAsStandalone(
+                        List.of(new TopicPartition("topic", 0)),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "")),
+                        true,
+                        eagerLifecycle);
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
 
@@ -623,7 +987,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotStartDueToExceptionWhileCatchingUp() {
+    void shouldNotStartDueToExceptionWhileCatchingUp() {
         // Schedule an exception to be thrown when fetching offsets during catch-up.
         // The wrapper should fail to start, closing the consumer and not starting the monitor.
         mockConsumer.schedulePollTask(
@@ -633,7 +997,11 @@ public class KafkaConsumerWrapperTest {
 
         // Create a wrapper for a topic that exists in the broker
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton("topic"), false, true);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton("topic"),
+                        List.of(TopicMappingConfig.fromDelimitedMappings("topic", "item", "")),
+                        false,
+                        true);
         FutureStatus status =
                 wrapper.start(Executors.newSingleThreadExecutor(), onLoopClosedByExceptionAction);
 
@@ -648,7 +1016,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldConsumeForEver() throws Exception {
+    void shouldConsumeForEver() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -663,7 +1031,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> records =
@@ -720,7 +1092,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotConsumeForEverDueToKafkaException() throws Exception {
+    void shouldNotConsumeForEverDueToKafkaException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -735,7 +1107,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate the simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> records =
@@ -793,7 +1169,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldNotConsumeForEverDueToExceptionWhileConsumingRecords() throws Exception {
+    void shouldNotConsumeForEverDueToExceptionWhileConsumingRecords() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -808,7 +1184,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate the simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -851,8 +1231,7 @@ public class KafkaConsumerWrapperTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldChangeStatusConsistently(boolean forceCommitException)
-            throws InterruptedException {
+    void shouldChangeStatusConsistently(boolean forceCommitException) throws InterruptedException {
         if (forceCommitException) {
             // Set the exception to be thrown when committing offsets.
             // The shutdown process should complete anyway, trying to commit offsets only once and
@@ -873,7 +1252,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate then simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -934,7 +1317,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldShutdownEvenWithoutStarting() throws InterruptedException {
+    void shouldShutdownEvenWithoutStarting() throws InterruptedException {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -949,7 +1332,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Shutdown the wrapper to make the internal consumer wakeup and exit the loop
         FutureStatus status = wrapper.shutdown();
@@ -963,7 +1350,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldInterruptConsumptionAfterStartingDueToKafkaException() throws Exception {
+    void shouldInterruptConsumptionAfterStartingDueToKafkaException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -978,7 +1365,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate the simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -1018,7 +1409,7 @@ public class KafkaConsumerWrapperTest {
     }
 
     @Test
-    public void shouldInterruptConsumptionAfterStartingDueToGenericException() throws Exception {
+    void shouldInterruptConsumptionAfterStartingDueToGenericException() throws Exception {
         String topic = "topic";
         TopicPartition partition0 = new TopicPartition(topic, 0);
         TopicPartition partition1 = new TopicPartition(topic, 1);
@@ -1034,7 +1425,11 @@ public class KafkaConsumerWrapperTest {
         updateOffsets(offsets);
 
         KafkaConsumerWrapper<String, String> wrapper =
-                makeWrapper(Collections.singleton(topic), false, false);
+                makeWrapperAsGroupConsumer(
+                        Collections.singleton(topic),
+                        List.of(TopicMappingConfig.fromDelimitedMappings(topic, "item", "")),
+                        false,
+                        false);
 
         // Generate the simulated records to be polled from the mocked consumer
         ConsumerRecords<byte[], byte[]> consumerRecords =

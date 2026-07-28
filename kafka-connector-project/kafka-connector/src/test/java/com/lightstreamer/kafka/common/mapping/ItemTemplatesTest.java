@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ItemTemplatesTest {
+class ItemTemplatesTest {
 
     private static final String TEST_TOPIC_1 = "topic";
 
@@ -66,7 +66,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateWithCommonTemplateDefinition() throws ExtractionException {
+    void shouldCreateWithCommonTemplateDefinition() throws ExtractionException {
         // Define three template names
         String template1 = "template1";
         String template2 = "template2";
@@ -78,7 +78,7 @@ public class ItemTemplatesTest {
          */
         TopicMappingConfig testTopic1Mapping =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_1, getFullTemplateNames(template1, template2));
+                        TEST_TOPIC_1, getFullTemplateNames(template1, template2), "");
 
         // TEST_TOPIC_2 mapped to template "template1","template2", and "template3"
         /*
@@ -86,7 +86,7 @@ public class ItemTemplatesTest {
          */
         TopicMappingConfig testTopic2Mapping =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_2, getFullTemplateNames(template1, template2, template3));
+                        TEST_TOPIC_2, getFullTemplateNames(template1, template2, template3), "");
 
         // Create the three templates, sharing the same template definition
         /*
@@ -110,7 +110,7 @@ public class ItemTemplatesTest {
                                 templateConfigs, List.of(testTopic1Mapping, testTopic2Mapping)),
                         Object());
         assertWithMessage("Templates object contains the expected topics")
-                .that(itemTemplates.topics())
+                .that(itemTemplates.topicNames())
                 .containsExactly(TEST_TOPIC_1, TEST_TOPIC_2);
 
         assertWithMessage("Templates object has not regex enabled by default")
@@ -162,13 +162,13 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
+    void shouldCreateFromMixedTemplatesAndSimpleItems() throws ExtractionException {
         /*
          * <param name="map.topic.to">item-template.template1,simple-item-1</param>
          */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_1, "item-template.template1,simple-item-1");
+                        TEST_TOPIC_1, "item-template.template1,simple-item-1", "");
 
         /*
          * <param name="item-template.template1">stock-#{index=KEY.attrib}</param>
@@ -178,7 +178,7 @@ public class ItemTemplatesTest {
         TopicConfigurations topicsConfig = TopicConfigurations.of(templateConfigs, List.of(tm));
 
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.topicNames()).containsExactly(TEST_TOPIC_1);
         assertThat(itemTemplates.groupExtractors()).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
@@ -208,19 +208,19 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToOneFromSimpleItem() throws ExtractionException {
+    void shouldCreateOneToOneFromSimpleItem() throws ExtractionException {
         // One topic mapping one item
         /*
          * <param name="map.topic.to">simple-item-1</param>
          */
         TopicMappingConfig tm =
-                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC_1, "simple-item-1");
+                TopicMappingConfig.fromDelimitedMappings(TEST_TOPIC_1, "simple-item-1", "");
 
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
         ItemTemplates<Object, Object> templates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(templates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(templates.topicNames()).containsExactly(TEST_TOPIC_1);
         assertThat(templates.groupExtractors()).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1)).hasSize(1);
         assertThat(templates.groupExtractors().get(TEST_TOPIC_1))
@@ -234,13 +234,13 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToOneFromItemTemplate() throws ExtractionException {
+    void shouldCreateOneToOneFromItemTemplate() throws ExtractionException {
         // One topic mapping one item template
         /*
          * <param name="map.stocks.to">item-template.template</param>
          */
         TopicMappingConfig topicMapping =
-                TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.template");
+                TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.template", "");
 
         /*
          * <param name="item-template.template">stock-#{index=KEY.attrib}</param>
@@ -251,7 +251,7 @@ public class ItemTemplatesTest {
                 TopicConfigurations.of(templateConfigs, List.of(topicMapping));
 
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
-        assertThat(itemTemplates.topics()).containsExactly("stocks");
+        assertThat(itemTemplates.topicNames()).containsExactly("stocks");
         assertThat(itemTemplates.groupExtractors()).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get("stocks")).hasSize(1);
         assertThat(itemTemplates.getExtractorSchemasByTopicName("stocks"))
@@ -267,20 +267,20 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToManyFromSimpleItems() throws ExtractionException {
+    void shouldCreateOneToManyFromSimpleItems() throws ExtractionException {
         // One topic mapping two simple items.
         /*
          * <param name="map.topic.to">simple-item-1,simple-item-2</param>
          */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_1, "simple-item-1,simple-item-2");
+                        TEST_TOPIC_1, "simple-item-1,simple-item-2", "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(tm));
 
         ItemTemplates<String, JsonNode> itemTemplates =
                 Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.topicNames()).containsExactly(TEST_TOPIC_1);
         assertThat(itemTemplates.groupExtractors()).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
@@ -302,14 +302,14 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateOneToManyFromItemTemplates() throws ExtractionException {
+    void shouldCreateOneToManyFromItemTemplates() throws ExtractionException {
         // One topic mapping two item templates.
         /*
          * <param name="map.topic.to">item-template.family,item-template.relatives</param>
          */
         TopicMappingConfig tm =
                 TopicMappingConfig.fromDelimitedMappings(
-                        TEST_TOPIC_1, "item-template.family,item-template.relatives");
+                        TEST_TOPIC_1, "item-template.family,item-template.relatives", "");
         /*
          * <param name="item-template.family">template-family-#{topic=TOPIC,info=PARTITION}</param>
          * <param name="item-template.relatives">template-relatives-#{topic=TOPIC,info1=TIMESTAMP}</param>
@@ -326,7 +326,7 @@ public class ItemTemplatesTest {
 
         ItemTemplates<String, JsonNode> itemTemplates =
                 Items.templatesFrom(topicsConfig, JsonValue());
-        assertThat(itemTemplates.topics()).containsExactly(TEST_TOPIC_1);
+        assertThat(itemTemplates.topicNames()).containsExactly(TEST_TOPIC_1);
         assertThat(itemTemplates.groupExtractors()).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get(TEST_TOPIC_1)).hasSize(2);
         assertThat(itemTemplates.getExtractorSchemasByTopicName(TEST_TOPIC_1))
@@ -348,7 +348,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateManyToOneFromSimpleItem() throws ExtractionException {
+    void shouldCreateManyToOneFromSimpleItem() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One item.
@@ -362,20 +362,20 @@ public class ItemTemplatesTest {
          * <param name="map.new_orders.to">orders</param>
          */
         TopicMappingConfig orderMapping =
-                TopicMappingConfig.fromDelimitedMappings(newOrdersTopic, item);
+                TopicMappingConfig.fromDelimitedMappings(newOrdersTopic, item, "");
         /*
          * <param name="map.past_orders.to">orders</param>
          */
 
         TopicMappingConfig pastOrderMapping =
-                TopicMappingConfig.fromDelimitedMappings(pastOrderTopic, item);
+                TopicMappingConfig.fromDelimitedMappings(pastOrderTopic, item, "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(), List.of(orderMapping, pastOrderMapping));
 
         ItemTemplates<String, JsonNode> itemTemplates =
                 Items.templatesFrom(topicsConfig, sSuppliers);
-        assertThat(itemTemplates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(itemTemplates.topicNames()).containsExactly(newOrdersTopic, pastOrderTopic);
         assertThat(itemTemplates.groupExtractors()).hasSize(2);
         assertThat(itemTemplates.groupExtractors().get(newOrdersTopic)).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get(pastOrderTopic)).hasSize(1);
@@ -387,7 +387,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateManyToOneFromItemTemplate() throws ExtractionException {
+    void shouldCreateManyToOneFromItemTemplate() throws ExtractionException {
         KeyValueSelectorSuppliers<String, JsonNode> sSuppliers = JsonValue();
 
         // One template.
@@ -407,16 +407,16 @@ public class ItemTemplatesTest {
          */
         TopicMappingConfig orderMapping =
                 TopicMappingConfig.fromDelimitedMappings(
-                        newOrdersTopic, "item-template.template-order");
+                        newOrdersTopic, "item-template.template-order", "");
         TopicMappingConfig pastOrderMapping =
                 TopicMappingConfig.fromDelimitedMappings(
-                        pastOrderTopic, "item-template.template-order");
+                        pastOrderTopic, "item-template.template-order", "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(orderMapping, pastOrderMapping));
 
         ItemTemplates<String, JsonNode> itemTemplates =
                 Items.templatesFrom(topicsConfig, sSuppliers);
-        assertThat(itemTemplates.topics()).containsExactly(newOrdersTopic, pastOrderTopic);
+        assertThat(itemTemplates.topicNames()).containsExactly(newOrdersTopic, pastOrderTopic);
         assertThat(itemTemplates.groupExtractors()).hasSize(2);
         assertThat(itemTemplates.groupExtractors().get(newOrdersTopic)).hasSize(1);
         assertThat(itemTemplates.groupExtractors().get(pastOrderTopic)).hasSize(1);
@@ -435,7 +435,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
+    void shouldCreateWithRegexDisabledByDefault() throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList());
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
@@ -444,7 +444,7 @@ public class ItemTemplatesTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
+    void shouldCreateWithRegexEnablement(boolean regex) throws ExtractionException {
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), Collections.emptyList(), regex);
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
@@ -457,9 +457,9 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnSubscriptionPatternFromSingleRegex() throws ExtractionException {
+    void shouldReturnSubscriptionPatternFromSingleRegex() throws ExtractionException {
         TopicMappingConfig topicMapping =
-                TopicMappingConfig.fromDelimitedMappings("topic_\\d+", "item1");
+                TopicMappingConfig.fromDelimitedMappings("topic_\\d+", "item1", "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(ItemTemplateConfigs.empty(), List.of(topicMapping), true);
         ItemTemplates<Object, Object> itemTemplates = Items.templatesFrom(topicsConfig, Object());
@@ -468,11 +468,11 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnSubscriptionPatternFromMultipleRegex() throws ExtractionException {
+    void shouldReturnSubscriptionPatternFromMultipleRegex() throws ExtractionException {
         TopicMappingConfig topicMapping1 =
-                TopicMappingConfig.fromDelimitedMappings("topicA_\\d+", "item1,item2");
+                TopicMappingConfig.fromDelimitedMappings("topicA_\\d+", "item1,item2", "");
         TopicMappingConfig topicMapping2 =
-                TopicMappingConfig.fromDelimitedMappings("topicB_\\d+", "item1,item2");
+                TopicMappingConfig.fromDelimitedMappings("topicB_\\d+", "item1,item2", "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(
                         ItemTemplateConfigs.empty(), List.of(topicMapping1, topicMapping2), true);
@@ -487,7 +487,7 @@ public class ItemTemplatesTest {
     }
 
     @Test
-    public void shouldReturnOnlyMatchingTopicFromMultiple() throws ExtractionException {
+    void shouldReturnOnlyMatchingTopicFromMultiple() throws ExtractionException {
         // Two topics with different schemas
         /*
          * <param name="item-template.stock">stock-#{symbol=KEY.symbol}</param>
@@ -501,9 +501,9 @@ public class ItemTemplatesTest {
                                 "stock", "stock-#{symbol=KEY.symbol}",
                                 "user", "user-#{id=KEY.id}"));
         TopicMappingConfig stockMapping =
-                TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.stock");
+                TopicMappingConfig.fromDelimitedMappings("stocks", "item-template.stock", "");
         TopicMappingConfig userMapping =
-                TopicMappingConfig.fromDelimitedMappings("users", "item-template.user");
+                TopicMappingConfig.fromDelimitedMappings("users", "item-template.user", "");
         TopicConfigurations topicsConfig =
                 TopicConfigurations.of(templateConfigs, List.of(stockMapping, userMapping));
 

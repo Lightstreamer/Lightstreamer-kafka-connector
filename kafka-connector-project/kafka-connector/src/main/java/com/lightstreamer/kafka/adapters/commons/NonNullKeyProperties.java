@@ -40,7 +40,7 @@ public final class NonNullKeyProperties {
     private Properties properties;
 
     public NonNullKeyProperties() {
-        this.properties = new Properties();
+        properties = new Properties();
     }
 
     public void setProperty(String key, String value) {

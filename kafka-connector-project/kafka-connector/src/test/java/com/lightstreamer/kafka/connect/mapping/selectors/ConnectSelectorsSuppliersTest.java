@@ -52,7 +52,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class ConnectSelectorsSuppliersTest {
+class ConnectSelectorsSuppliersTest {
 
     private static final SchemaBuilder FLAT_SCHEMA_BUILDER =
             SchemaBuilder.struct()
@@ -102,14 +102,14 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelectorSupplier() {
+    void shouldMakeKeySelectorSupplier() {
         ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
         assertThat(keySelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         KeySelector<Object> selector = keySelector("KEY");
         assertThat(selector.expression().expression()).isEqualTo("KEY");
     }
@@ -126,21 +126,21 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.attrib[]     | Found the invalid indexed expression [KEY.attrib[]]
                 KEY.attrib[a]    | Found the invalid indexed expression [KEY.attrib[a]]
                     """)
-    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> keySelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldMakeValueSelectorSupplier() {
+    void shouldMakeValueSelectorSupplier() {
         ConnectSelectorsSuppliers s = new ConnectSelectorsSuppliers();
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
         assertThat(valueSelectorSupplier.evaluatorType().name()).isEqualTo("Struct");
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ValueSelector<Object> selector = valueSelector("VALUE");
         assertThat(selector.expression().expression()).isEqualTo("VALUE");
     }
@@ -157,14 +157,14 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.attrib[]     | Found the invalid indexed expression [VALUE.attrib[]]
                 VALUE.attrib[a]    | Found the invalid indexed expression [VALUE.attrib[a]]
                     """)
-    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ExtractionException ee =
                 assertThrows(ExtractionException.class, () -> valueSelector(expression));
         assertThat(ee).hasMessageThat().isEqualTo(expectedErrorMessage);
     }
 
     @Test
-    public void shouldNotGetDeserializer() {
+    void shouldNotGetDeserializer() {
         KeySelectorSupplier<Object> keySelectorSupplier =
                 new ConnectSelectorsSuppliers().makeKeySelectorSupplier();
         assertThrows(UnsupportedOperationException.class, () -> keySelectorSupplier.deserializer());
@@ -195,7 +195,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.children[1].children[1].name     | name          |  terence
                 VALUE.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractValue(String expression, String expectedNName, String expectedValue)
+    void shouldExtractValue(String expression, String expectedNName, String expectedValue)
             throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector(expression);
         KafkaRecord<Object, Object> record = sinkFromValue("topic", STRUCT.schema(), STRUCT);
@@ -210,7 +210,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
+    void shouldExtractValueIntoMap() throws ExtractionException, ValueException {
         ValueSelector<Object> valueSelector = valueSelector("VALUE.*");
         KafkaRecord<Object, Object> record =
                 sinkFromValue("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
@@ -253,7 +253,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                 VALUE.*                     | The expression [VALUE.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractValue(String expression, String errorMessage) {
+    void shouldNotExtractValue(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -284,7 +284,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.children[4].name      | Field not found at index [4]
                 VALUE.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractValueIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -307,7 +307,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.children | children      | []
                 VALUE.name     | name          | joe
                     """)
-    public void shouldExtractValueWithNonScalars(
+    void shouldExtractValueWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector(expression);
@@ -328,7 +328,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotExtractValueDueToMissingSchema() {
+    void shouldNotExtractValueDueToMissingSchema() {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -339,7 +339,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullValue() throws ExtractionException {
+    void shouldHandleNullValue() throws ExtractionException {
         ValueSelector<Object> valueSelector = valueSelector("VALUE");
 
         Data autoBoundData =
@@ -365,7 +365,7 @@ public class ConnectSelectorsSuppliersTest {
                 VALUE.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 VALUE.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullValue(String expression, String errorMessage)
+    void shouldNotExtractFromNullValue(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -420,7 +420,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.children[1].children[1].name     | name          |  terence
                 KEY.children[1].children[1]['name']  | name          |  terence
                     """)
-    public void shouldExtractKey(String expression, String expectedName, String expectedValue)
+    void shouldExtractKey(String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<Object> keySelector = keySelector(expression);
         KafkaRecord<Object, Object> record = sinkFromKey("topic", STRUCT.schema(), STRUCT);
@@ -435,7 +435,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
+    void shouldExtractKeyIntoMap() throws ExtractionException, ValueException {
         KeySelector<Object> keySelector = keySelector("KEY.*");
         KafkaRecord<Object, Object> record =
                 sinkFromKey("topic", SIMPLE_STRUCT.schema(), SIMPLE_STRUCT);
@@ -478,7 +478,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                 KEY.*                     | The expression [KEY.*] must evaluate to a non-complex object
                     """)
-    public void shouldNotExtractKey(String expression, String errorMessage) {
+    void shouldNotExtractKey(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -508,7 +508,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.children[4].name      | Field not found at index [4]
                 KEY.nullArray[0]          | Cannot retrieve index [0] from a null object
                     """)
-    public void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
+    void shouldNotExtractKeyIntoMap(String expression, String errorMessage) {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -531,7 +531,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.children | children      | []
                 KEY.name     | name          | joe
                     """)
-    public void shouldExtractKeyWithNonScalars(
+    void shouldExtractKeyWithNonScalars(
             String expression, String expectedName, String expectedValue)
             throws ExtractionException {
         KeySelector<Object> keySelector = keySelector(expression);
@@ -552,7 +552,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldNotExtractKeyDueToMissingSchema() {
+    void shouldNotExtractKeyDueToMissingSchema() {
         ValueException ve =
                 assertThrows(
                         ValueException.class,
@@ -561,7 +561,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldHandleNullKey() throws ExtractionException {
+    void shouldHandleNullKey() throws ExtractionException {
         KeySelector<Object> keySelector = keySelector("KEY");
 
         Data autoBoundData =
@@ -586,7 +586,7 @@ public class ConnectSelectorsSuppliersTest {
                 KEY.children[0].no_attrib | Cannot retrieve field [children] from a null object
                 KEY.no_children[0]        | Cannot retrieve field [no_children] from a null object
                     """)
-    public void shouldNotExtractFromNullKey(String expression, String errorMessage)
+    void shouldNotExtractFromNullKey(String expression, String errorMessage)
             throws ExtractionException {
         ValueException ve =
                 assertThrows(
@@ -638,7 +638,7 @@ public class ConnectSelectorsSuppliersTest {
 
     @ParameterizedTest
     @MethodSource("scalars")
-    public void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
+    void shouldExtractFromScalar(Schema schema, Object value) throws ExtractionException {
         // Make a very generic SinkRecord by populating either key and value so that we can test
         // selectors for each
         // of them
@@ -665,7 +665,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromFlatStruct() throws ExtractionException {
+    void shouldExtractFromFlatStruct() throws ExtractionException {
         Struct struct = makeFlatStruct();
         Schema schema = struct.schema();
         SinkRecord sinkRecord = new SinkRecord("topic", 1, schema, struct, schema, struct, 0);
@@ -695,7 +695,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromNested() throws ExtractionException {
+    void shouldExtractFromNested() throws ExtractionException {
         Struct struct = new Struct(NESTED_SCHEMA).put("nested", makeFlatStruct());
         struct.validate();
         Schema schema = struct.schema();
@@ -720,7 +720,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMap() throws ExtractionException {
+    void shouldExtractFromMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA).put("map", Collections.singletonMap("key", "value"));
         struct.validate();
@@ -748,7 +748,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromComplexMap() throws ExtractionException {
+    void shouldExtractFromComplexMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put("complexMap", Collections.singletonMap("key", makeFlatStruct()));
@@ -785,7 +785,7 @@ public class ConnectSelectorsSuppliersTest {
     }
 
     @Test
-    public void shouldExtractFromMapOfMap() throws ExtractionException {
+    void shouldExtractFromMapOfMap() throws ExtractionException {
         Struct struct =
                 new Struct(NESTED_SCHEMA)
                         .put(

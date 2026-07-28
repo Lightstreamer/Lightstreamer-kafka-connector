@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.connect.config;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.LIGHTSTREAMER_PROXY_ADAPTER_ADDRESS;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,12 +30,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class ProxyAdapterAddressValidatorTest {
+class ProxyAdapterAddressValidatorTest {
 
     ProxyAdapterAddressValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new ProxyAdapterAddressValidator();
     }
 

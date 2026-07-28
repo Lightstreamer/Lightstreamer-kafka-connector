@@ -56,7 +56,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class RecordProcessorTest {
+class RecordProcessorTest {
 
     private static final String TEST_TOPIC = "topic";
     private static final Logger logger = LogFactory.getLogger("TestConnection");
@@ -69,9 +69,9 @@ public class RecordProcessorTest {
     private RealtimeDeliveryStrategy deliveryStrategy;
 
     @BeforeEach
-    public void setUp() throws ExtractionException {
-        this.eventListener = new MockItemEventListener();
-        this.deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
+    void before() throws ExtractionException {
+        eventListener = new MockItemEventListener();
+        deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
     }
 
     private RecordMapper<String, String> mapperForCommandMode() {
@@ -164,7 +164,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("records")
-    public void shouldProcess(
+    void shouldProcess(
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
@@ -182,13 +182,13 @@ public class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the real-time update has been routed
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
         // Verify that the update has NOT been routed as a snapshot
-        assertThat(this.eventListener.getSmartSnapshotUpdates()).isEmpty();
+        assertThat(eventListener.getSmartSnapshotUpdates()).isEmpty();
 
         // Reset the counter
-        this.eventListener.reset();
+        eventListener.reset();
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
@@ -199,7 +199,7 @@ public class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
@@ -207,7 +207,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("records")
-    public void shouldProcessForcedSubscriptions(
+    void shouldProcessForcedSubscriptions(
             RecordMapper<String, String> mapper,
             KafkaRecord<String, String> record,
             Map<String, String> expectedFields) {
@@ -227,14 +227,14 @@ public class RecordProcessorTest {
         subscribedItems.activateOrInstall(Subscription("item2"), itemHandle2);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
     }
 
     @Test
-    public void shouldNotProcessUnexpectedSubscription() {
+    void shouldNotProcessUnexpectedSubscription() {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
                 processor(
@@ -281,7 +281,7 @@ public class RecordProcessorTest {
 
     @ParameterizedTest
     @MethodSource("recordsForCommandMode")
-    public void shouldProcessRecordWithCommandMode(
+    void shouldProcessRecordWithCommandMode(
             KafkaRecord<String, String> record, Map<String, String> expectedFields) {
         OnDemandSubscribedItems subscribedItems = SubscribedItems.onDemand();
         RecordProcessor<String, String> processor =
@@ -304,7 +304,7 @@ public class RecordProcessorTest {
                 .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
 
         // Reset the counter
-        this.eventListener.reset();
+        eventListener.reset();
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
@@ -315,7 +315,7 @@ public class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));

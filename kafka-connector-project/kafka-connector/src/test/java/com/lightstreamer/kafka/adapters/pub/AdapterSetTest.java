@@ -20,8 +20,8 @@ package com.lightstreamer.kafka.adapters.pub;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE;
 
-import static org.junit.Assert.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
@@ -40,10 +40,12 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,7 +66,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class AdapterSetTest {
+class AdapterSetTest {
 
     private Path adapterDir;
     private KafkaConnectorMetadataAdapter connectorMetadataAdapter;
@@ -72,7 +74,7 @@ public class AdapterSetTest {
     private Path loggingConfigurationFile;
 
     @BeforeEach
-    public void before() throws IOException {
+    void before() throws IOException {
         adapterDir = Files.createTempDirectory("adapter_dir");
         loggingConfigurationFile = Files.createTempFile(adapterDir, "log4j-", ".properties");
 
@@ -80,6 +82,12 @@ public class AdapterSetTest {
 
         metadataAdapterParams = new HashMap<>();
         metadataAdapterParams.put("adapters_conf.id", "KAFKA");
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        Files.delete(loggingConfigurationFile);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     void doInit() throws MetadataProviderException {
@@ -94,7 +102,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldNotInitDueToMissingRequiredParameters() {
+    void shouldNotInitDueToMissingRequiredParameters() {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class,
@@ -107,7 +115,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldInit() throws MetadataProviderException {
+    void shouldInit() throws MetadataProviderException {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
@@ -138,7 +146,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldHandleConnectorItems() throws Exception {
+    void shouldHandleConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -153,7 +161,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldNotHandleNonConnectorItems() throws Exception {
+    void shouldNotHandleNonConnectorItems() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -167,11 +175,11 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldNotHandleSnapshot() throws Exception {
+    void shouldNotHandleSnapshot() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter1.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter1.setConsumerFactory(getConsumer());
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
 
@@ -180,11 +188,11 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"COMMAND", "MERGE", "DISTINCT"})
-    public void shouldHandleSnapshot(String mode) throws Exception {
+    void shouldHandleSnapshot(String mode) throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter3.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter3.setConsumerFactory(getConsumer());
         Map<String, String> config = new HashMap<>();
         config.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, mode);
         if (mode.equals("COMMAND")) {
@@ -208,7 +216,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldDenyNotEnabledConnection() throws Exception {
+    void shouldDenyNotEnabledConnection() throws Exception {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
@@ -228,7 +236,7 @@ public class AdapterSetTest {
     }
 
     @Test
-    public void shouldHandleCustomAdapter() throws Exception {
+    void shouldHandleCustomAdapter() throws Exception {
         record NotifiedNewTables(String user, String sessionId, TableInfo[] tables) {}
 
         record NotifiedCloseTables(String sessionId, TableInfo[] tables) {}
@@ -282,7 +290,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideRemapItems")
-    public void shouldRemapItems(String input, List<String> expected)
+    void shouldRemapItems(String input, List<String> expected)
             throws MetadataProviderException, ItemsException {
         doInit();
 
@@ -301,7 +309,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("provideGetIItems")
-    public void shouldGetItems(String input, List<String> normalizedItems)
+    void shouldGetItems(String input, List<String> normalizedItems)
             throws MetadataProviderException, ItemsException {
         doInit();
 
@@ -348,7 +356,7 @@ public class AdapterSetTest {
 
     @ParameterizedTest
     @MethodSource("modes")
-    public void shouldHandleModes(Mode mode, Map<String, String> settings, boolean expected)
+    void shouldHandleModes(Mode mode, Map<String, String> settings, boolean expected)
             throws MetadataProviderException, DataProviderException {
         doInit();
 

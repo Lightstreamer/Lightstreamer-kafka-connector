@@ -23,13 +23,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-public class FixedThresholdCommitStrategyTest {
+class FixedThresholdCommitStrategyTest {
 
     private CommitStrategy strategy;
 
     @BeforeEach
-    public void setUp() {
-        this.strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
+    void before() {
+        strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
     }
 
     @ParameterizedTest
@@ -57,7 +57,7 @@ public class FixedThresholdCommitStrategyTest {
         // 3 seconds ago (< 5s), 0 messages (< 100k) -> below both thresholds
         "5000, 2000, 0, false"
     })
-    public void shouldCommitWhenThresholdsExceeded(
+    void shouldCommitWhenThresholdsExceeded(
             long now, long lastCommitTimeMs, int messagesSinceLastCommit, boolean expected) {
         assertThat(strategy.canCommit(now, lastCommitTimeMs, messagesSinceLastCommit))
                 .isEqualTo(expected);

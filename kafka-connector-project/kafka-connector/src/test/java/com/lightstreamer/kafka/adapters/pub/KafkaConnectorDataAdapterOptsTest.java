@@ -31,7 +31,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class KafkaConnectorDataAdapterOptsTest {
+class KafkaConnectorDataAdapterOptsTest {
 
     static Stream<Arguments> supportedModes() {
         return Stream.of(
@@ -58,7 +58,7 @@ public class KafkaConnectorDataAdapterOptsTest {
 
     @ParameterizedTest
     @MethodSource("supportedModes")
-    public void shouldCreateKafkaConnectorDataAdapterOpts(
+    void shouldCreateKafkaConnectorDataAdapterOpts(
             Optional<Mode> subscriptionMode, Set<Mode> modesToTest, boolean expectedSupport) {
         KafkaConnectorDataAdapterOpts opts =
                 new KafkaConnectorDataAdapterOpts("CONNECTOR", true, subscriptionMode, 10);
@@ -72,7 +72,7 @@ public class KafkaConnectorDataAdapterOptsTest {
     }
 
     @Test
-    public void shouldNotCreateKafkaConnectorDataAdapterOptsWithRawSubscriptionMode() {
+    void shouldNotCreateKafkaConnectorDataAdapterOptsWithRawSubscriptionMode() {
         try {
             new KafkaConnectorDataAdapterOpts("CONNECTOR", true, Optional.of(Mode.RAW), 10);
         } catch (IllegalArgumentException e) {

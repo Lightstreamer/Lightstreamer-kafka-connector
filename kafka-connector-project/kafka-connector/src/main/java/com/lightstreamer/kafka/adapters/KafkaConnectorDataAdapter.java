@@ -17,8 +17,6 @@
 
 package com.lightstreamer.kafka.adapters;
 
-import static org.apache.kafka.common.serialization.Serdes.ByteArray;
-
 import com.lightstreamer.interfaces.data.DataProviderException;
 import com.lightstreamer.interfaces.data.FailureException;
 import com.lightstreamer.interfaces.data.ItemEventListener;
@@ -32,10 +30,11 @@ import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpe
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter;
 import com.lightstreamer.kafka.adapters.pub.KafkaConnectorMetadataAdapter.KafkaConnectorDataAdapterOpts;
+import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 
 import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.slf4j.Logger;
 
 import java.io.File;
@@ -43,6 +42,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nonnull;
 
@@ -55,8 +55,6 @@ import javax.annotation.Nonnull;
  */
 public class KafkaConnectorDataAdapter implements SmartDataProvider {
 
-    private static final Deserializer<byte[]> BYTE_ARRAY_DESERIALIZER = ByteArray().deserializer();
-
     private Logger logger;
     private SubscriptionsHandler<?, ?> subscriptionsHandler;
     private ConnectorConfig connectorConfig;
@@ -66,12 +64,12 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     public KafkaConnectorDataAdapter() {}
 
     @Override
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
-        this.connectorConfig = configurator.getConfig();
-        this.logger = LogFactory.getLogger(connectorConfig.getAdapterName());
-        this.metadataListener =
+        connectorConfig = configurator.getConfig();
+        logger = LogFactory.getLogger(connectorConfig.getAdapterName());
+        metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
                         new KafkaConnectorDataAdapterOpts(
                                 connectorConfig.getAdapterName(),
@@ -79,9 +77,9 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                                 connectorConfig.getSubscriptionMode(),
                                 connectorConfig.getItemSnapshotDistinctLength()));
 
-        this.logger.atInfo().log("Configuring Kafka Connector");
-        this.subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
-        this.logger.atInfo().log("KafkaConnector configuration complete");
+        logger.atInfo().log("Configuring Kafka Connector");
+        subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
+        logger.atInfo().log("KafkaConnector configuration complete");
     }
 
     /**
@@ -96,9 +94,10 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     protected <K, V> SubscriptionsHandler<K, V> subscriptionHandler(
             ConnectionSpec<K, V> connectionSpec) throws DataProviderException {
         return SubscriptionsHandler.<K, V>builder()
+                .consumerFactory(
+                        Objects.requireNonNullElse(consumerFactory, defaultConsumerFactory(logger)))
                 .connectionSpec(connectionSpec)
                 .metadataListener(metadataListener)
-                .consumerFactory(Objects.requireNonNullElse(consumerFactory, consumerFactory()))
                 .snapshotEnabled(
                         !connectorConfig.getItemSnapshotMode().equals(ItemSnapshotEnabledMode.NONE))
                 .itemSnapshotMaxIdleSeconds(connectorConfig.getItemSnapshotMaxIdleSeconds())
@@ -106,19 +105,28 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     }
 
     /**
-     * Injects a custom consumer factory. Intended for testing.
+     * Injects a custom consumer factory.
      *
      * @param consumerFactory function that creates a Kafka consumer from the given properties
      */
+    @VisibleForTesting
     public final void setConsumerFactory(
-            Function<Properties, org.apache.kafka.clients.consumer.Consumer<byte[], byte[]>>
-                    consumerFactory) {
+            Function<Properties, Consumer<byte[], byte[]>> consumerFactory) {
         this.consumerFactory = consumerFactory;
     }
 
-    private static <K, V> Function<Properties, Consumer<byte[], byte[]>> consumerFactory() {
-        return props ->
-                new KafkaConsumer<>(props, BYTE_ARRAY_DESERIALIZER, BYTE_ARRAY_DESERIALIZER);
+    static <K, V> Function<Properties, Consumer<byte[], byte[]>> defaultConsumerFactory(
+            Logger logger) {
+        return props -> {
+            ConsumerConfig cfg = new ConsumerConfig(props);
+            String configString =
+                    cfg.values().entrySet().stream()
+                            .map(e -> e.getKey() + " = " + e.getValue())
+                            .sorted()
+                            .collect(Collectors.joining("\n\t"));
+            logger.atDebug().log("Kafka consumer configuration:\n\t{}", configString);
+            return new KafkaConsumer<>(cfg.originals());
+        };
     }
 
     @Override
@@ -128,7 +136,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.subscriptionsHandler.setListener(eventListener);
+        subscriptionsHandler.setListener(eventListener);
     }
 
     @Override
@@ -146,5 +154,15 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     public void unsubscribe(@Nonnull String itemName)
             throws SubscriptionException, FailureException {
         subscriptionsHandler.unsubscribe(itemName);
+    }
+
+    @VisibleForTesting
+    Logger getLogger() {
+        return logger;
+    }
+
+    @VisibleForTesting
+    SubscriptionsHandler<?, ?> getSubscriptionsHandler() {
+        return subscriptionsHandler;
     }
 }

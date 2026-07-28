@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class MappedRecordTest {
+class MappedRecordTest {
 
     static Stream<Arguments> provideData() {
         return Stream.of(
@@ -76,7 +76,7 @@ public class MappedRecordTest {
 
     @ParameterizedTest
     @MethodSource("provideData")
-    public void shouldCreateMappedRecord(
+    void shouldCreateMappedRecord(
             String[] canonicalItemNames,
             Map<String, ExtractionExpression> extractionExpressions,
             KafkaRecord<String, String> kafkaRecord,
@@ -104,7 +104,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldNOPRecordBeEmpty() {
+    void shouldNOPRecordBeEmpty() {
         assertThat(MappedRecordImpl.NOPRecord.canonicalItemNames()).isEmpty();
         assertThat(MappedRecordImpl.NOPRecord.isPayloadNull()).isTrue();
         assertThat(MappedRecordImpl.NOPRecord.fieldsMap()).isEmpty();
@@ -113,7 +113,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteParameterizedItems() {
+    void shouldRouteParameterizedItems() {
         String canonicalItemName = "schema1-[partition=aPartition,topic=aTopic]";
         String canonicalItemName2 = "schema2-[key=aKey,value=aValue]";
         String[] canonicalItemNames =
@@ -154,7 +154,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteForcedParameterizedItems() {
+    void shouldRouteForcedParameterizedItems() {
         String canonicalItemName = "schema1-[partition=aPartition,topic=aTopic]";
         String canonicalItemName2 = "schema2-[key=aKey,value=aValue]";
         String[] canonicalItemNames =
@@ -172,7 +172,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteSimpleItems() {
+    void shouldRouteSimpleItems() {
         String canonicalItemName1 = "simple-item-1";
         String canonicalItemName2 = "simple-item-2";
         MappedRecordImpl record =
@@ -195,7 +195,7 @@ public class MappedRecordTest {
     }
 
     @Test
-    public void shouldRouteForcedSimpleItems() {
+    void shouldRouteForcedSimpleItems() {
         String canonicalItemName1 = "simple-item-1";
         String canonicalItemName2 = "simple-item-2";
         MappedRecordImpl record =

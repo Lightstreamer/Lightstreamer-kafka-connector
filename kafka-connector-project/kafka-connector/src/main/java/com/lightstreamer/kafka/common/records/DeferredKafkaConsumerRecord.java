@@ -64,10 +64,10 @@ public final class DeferredKafkaConsumerRecord<K, V> extends KafkaConsumerRecord
             DeserializerPair<K, V> deserializerPair,
             RecordBatch<K, V> batch) {
         super(record, batch);
-        this.rawKey = record.key();
-        this.rawValue = record.value();
-        this.keyDeserializer = deserializerPair.keyDeserializer();
-        this.valueDeserializer = deserializerPair.valueDeserializer();
+        rawKey = record.key();
+        rawValue = record.value();
+        keyDeserializer = deserializerPair.keyDeserializer();
+        valueDeserializer = deserializerPair.valueDeserializer();
     }
 
     /**

@@ -35,7 +35,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.UUID;
 import static com.lightstreamer.kafka.common.mapping.selectors.Expressions.WrappedNoWildcardCheck;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
@@ -52,9 +52,12 @@ import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Records;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.utils.Bytes;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -62,12 +65,27 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-public class OthersSelectorSuppliersTest {
+class OthersSelectorSuppliersTest {
+
+    private Path adapterDir;
+
+    @BeforeEach
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
 
     static Stream<Arguments> evaluatorTypes() {
         return Stream.of(
@@ -85,8 +103,8 @@ public class OthersSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldConfigWithDefaults() {
-        ConnectorConfig config = ConnectorConfigProvider.minimal();
+    void shouldConfigWithDefaults() {
+        ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         assertThat(s.keyEvaluatorType().is(STRING)).isTrue();
         assertThat(s.valueEvaluatorType().is(STRING)).isTrue();
@@ -94,10 +112,10 @@ public class OthersSelectorSuppliersTest {
 
     @ParameterizedTest
     @MethodSource("evaluatorTypes")
-    public void shouldMakeKeySelectorSupplier(EvaluatorType type, Class<?> expectedDeserializer) {
+    void shouldMakeKeySelectorSupplier(EvaluatorType type, Class<?> expectedDeserializer) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, type.toString()));
+                        adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, type.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         assertThat(s.keyEvaluatorType().is(type)).isTrue();
 
@@ -108,11 +126,12 @@ public class OthersSelectorSuppliersTest {
 
     @ParameterizedTest
     @EnumSource(names = {"PROTOBUF", "AVRO", "JSON", "KVP"})
-    public void shouldNotMakeKeySelectorSupplier(EvaluatorType type) throws ExtractionException {
+    void shouldNotMakeKeySelectorSupplier(EvaluatorType type) throws ExtractionException {
         // Create a minimal configuration with additional schema registry settings to enable
-        // schema based evaluators i.e., PROTOBUF, AVRO
+        // schema based evaluators i.e., PROTOBUF, AVRO.
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 type.toString(),
@@ -127,9 +146,10 @@ public class OthersSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeKeySelector() throws ExtractionException {
+    void shouldMakeKeySelector() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
@@ -150,9 +170,10 @@ public class OthersSelectorSuppliersTest {
                 KEY.a        | Found the invalid expression [KEY.a] for scalar values
                 KEY.attrib[] | Found the invalid expression [KEY.attrib[]] for scalar values
                     """)
-    public void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeKeySelector(String expression, String expectedErrorMessage) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         KeySelectorSupplier<Object> keySelectorSupplier = s.makeKeySelectorSupplier();
@@ -167,9 +188,10 @@ public class OthersSelectorSuppliersTest {
 
     @ParameterizedTest
     @MethodSource("evaluatorTypes")
-    public void shouldMakeValueSelectorSupplier(EvaluatorType type, Class<?> expectedDeserializer) {
+    void shouldMakeValueSelectorSupplier(EvaluatorType type, Class<?> expectedDeserializer) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, type.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         assertThat(s.valueEvaluatorType().is(type)).isTrue();
@@ -181,11 +203,12 @@ public class OthersSelectorSuppliersTest {
 
     @ParameterizedTest
     @EnumSource(names = {"PROTOBUF", "AVRO", "JSON", "KVP"})
-    public void shouldNotMakeValueSelectorSupplier(EvaluatorType type) throws ExtractionException {
+    void shouldNotMakeValueSelectorSupplier(EvaluatorType type) throws ExtractionException {
         // Create a minimal configuration with additional schema registry settings to enable
-        // schema based evaluators i.e., PROTOBUF, AVRO
+        // schema based evaluators i.e., PROTOBUF, AVRO.
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 type.toString(),
@@ -200,9 +223,10 @@ public class OthersSelectorSuppliersTest {
     }
 
     @Test
-    public void shouldMakeValueSelector() throws ExtractionException {
+    void shouldMakeValueSelector() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
@@ -223,9 +247,10 @@ public class OthersSelectorSuppliersTest {
                 VALUE.a        | Found the invalid expression [VALUE.a] for scalar values
                 VALUE.attrib[] | Found the invalid expression [VALUE.attrib[]] for scalar values
                     """)
-    public void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
+    void shouldNotMakeValueSelector(String expression, String expectedErrorMessage) {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         OthersSelectorSuppliers s = new OthersSelectorSuppliers(config);
         ValueSelectorSupplier<Object> valueSelectorSupplier = s.makeValueSelectorSupplier();
@@ -261,12 +286,13 @@ public class OthersSelectorSuppliersTest {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @ParameterizedTest()
+    @ParameterizedTest
     @MethodSource("recordArgs")
-    public void shouldDeserializeAndExtractValue(EvaluatorType type, Serde serde, Object data)
+    void shouldDeserializeAndExtractValue(EvaluatorType type, Serde serde, Object data)
             throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, type.toString()));
 
         byte[] bytes = serde.serializer().serialize("topic", data);
@@ -303,9 +329,10 @@ public class OthersSelectorSuppliersTest {
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     @Test
-    public void shouldExtractNullValue() throws ExtractionException {
+    void shouldExtractNullValue() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();
@@ -323,13 +350,13 @@ public class OthersSelectorSuppliersTest {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    @ParameterizedTest()
+    @ParameterizedTest
     @MethodSource("recordArgs")
-    public void shouldDeserializeAndExtractKey(EvaluatorType type, Serde serde, Object data)
+    void shouldDeserializeAndExtractKey(EvaluatorType type, Serde serde, Object data)
             throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
-                        Map.of(RECORD_KEY_EVALUATOR_TYPE, type.toString()));
+                        adapterDir.toString(), Map.of(RECORD_KEY_EVALUATOR_TYPE, type.toString()));
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
         byte[] bytes = serde.serializer().serialize("topic", data);
@@ -363,9 +390,10 @@ public class OthersSelectorSuppliersTest {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
-    public void shouldExtractNullKey() throws ExtractionException {
+    void shouldExtractNullKey() throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_KEY_EVALUATOR_TYPE, INTEGER.toString()));
         KeySelectorSupplier<?> keySupplier =
                 new OthersSelectorSuppliers(config).makeKeySelectorSupplier();
@@ -382,11 +410,12 @@ public class OthersSelectorSuppliersTest {
         }
     }
 
-    @ParameterizedTest()
+    @ParameterizedTest
     @MethodSource("recordArgs")
-    public void shouldNotCreateSelector(EvaluatorType type) throws ExtractionException {
+    void shouldNotCreateSelector(EvaluatorType type) throws ExtractionException {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(RECORD_VALUE_EVALUATOR_TYPE, INTEGER.toString()));
         ValueSelectorSupplier<?> valueSupplier =
                 new OthersSelectorSuppliers(config).makeValueSelectorSupplier();

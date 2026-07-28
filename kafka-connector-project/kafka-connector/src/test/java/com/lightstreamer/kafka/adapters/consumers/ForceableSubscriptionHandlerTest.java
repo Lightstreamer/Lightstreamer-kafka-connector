@@ -24,10 +24,13 @@ import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.mapping.selectors.others.OthersSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.Items.ForceableSubscribedItems;
@@ -50,7 +53,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.function.Function;
 
-public class ForceableSubscriptionHandlerTest {
+class ForceableSubscriptionHandlerTest {
 
     // Configured broker topic.
     private static final String TOPIC = "aTopic";
@@ -74,9 +77,6 @@ public class ForceableSubscriptionHandlerTest {
                 new ConnectionSpec<>(
                         "TestConnection",
                         properties,
-                        ItemTemplatesUtils.itemTemplates(
-                                templateTopic, "anItemTemplate,anotherItemTemplate"),
-                        ItemTemplatesUtils.fieldsExtractor(),
                         new KafkaRecord.DeserializerPair<>(
                                 OthersSelectorSuppliers.String()
                                         .keySelectorSupplier()
@@ -84,9 +84,16 @@ public class ForceableSubscriptionHandlerTest {
                                 OthersSelectorSuppliers.String()
                                         .valueSelectorSupplier()
                                         .deserializer()),
-                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                        false,
-                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                        ConsumerMode.GROUP,
+                        RecordConsumeFrom.EARLIEST,
+                        new RecordPipeline<>(
+                                ItemTemplatesUtils.itemTemplates(
+                                        templateTopic, "anItemTemplate,anotherItemTemplate"),
+                                ItemTemplatesUtils.fieldsExtractor(),
+                                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                                false,
+                                new Concurrency(
+                                        RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
 
         Function<Properties, Consumer<byte[], byte[]>> factory =
                 props -> {
@@ -147,18 +154,18 @@ public class ForceableSubscriptionHandlerTest {
             boolean exceptionOnPoll,
             int maxIdleSeconds,
             String templateTopic) {
-        this.subscriptionsHandler =
+        subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
                         maxIdleSeconds,
                         templateTopic);
-        this.subscriptionsHandler.setListener(listener);
+        subscriptionsHandler.setListener(listener);
     }
 
     @Test
-    public void shouldInit() {
+    void shouldInit() {
         init(TOPIC);
         // Unavailable state is expected while the consumer is performing the infinite polling loop
         // in the background
@@ -168,7 +175,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldStartIdleSnapshotScheduler() {
+    void shouldStartIdleSnapshotScheduler() {
         init(false, false, false, 30, TOPIC);
         assertThat(subscriptionsHandler.getLifecycleStatus().isStateAvailable()).isFalse();
         assertThat(subscriptionsHandler.getItemSnapshotMaxIdleSeconds()).isEqualTo(30);
@@ -176,20 +183,20 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldGetSnapshotAvailability() {
+    void shouldGetSnapshotAvailability() {
         init(TOPIC);
         assertThat(subscriptionsHandler.isSnapshotAvailable("anyItem")).isTrue();
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhileConnecting() {
+    void shouldFailInitDueToExceptionWhileConnecting() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(true, false, false, TOPIC));
         assertThat(ke).hasMessageThat().isEqualTo("Simulated Exception");
     }
 
     @Test
-    public void shouldFailInitDueToNonExistingTopics() {
+    void shouldFailInitDueToNonExistingTopics() {
         KafkaException ke = assertThrows(KafkaException.class, () -> init("nonExistingTopic"));
         assertThat(ke)
                 .hasMessageThat()
@@ -197,7 +204,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhileGettingTopicList() {
+    void shouldFailInitDueToExceptionWhileGettingTopicList() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, true, false, TOPIC));
         assertThat(ke)
@@ -206,7 +213,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
+    void shouldFailInitDueToExceptionWhilePollingInTheCatchupPhase() {
         KafkaException ke =
                 assertThrows(KafkaException.class, () -> init(false, false, true, TOPIC));
         assertThat(ke)
@@ -216,7 +223,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldFailInitDueToExceptionWhilePolling() {
+    void shouldFailInitDueToExceptionWhilePolling() {
         init(false, false, false, 0, TOPIC);
 
         // Simulate exception while polling after initialization (including catch-up) completes
@@ -232,7 +239,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldSubscribeAndUnsubscribe() throws SubscriptionException {
+    void shouldSubscribeAndUnsubscribe() throws SubscriptionException {
         init(TOPIC);
 
         Object itemHandle = new Object();
@@ -245,7 +252,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeAfterItemIsPromotedToForced() throws SubscriptionException {
+    void shouldNotUnsubscribeAfterItemIsPromotedToForced() throws SubscriptionException {
         init(TOPIC);
 
         Object itemHandle = new Object();
@@ -260,7 +267,7 @@ public class ForceableSubscriptionHandlerTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeFromExistingItem() {
+    void shouldNotUnsubscribeFromExistingItem() {
         init(TOPIC);
         assertThat(subscriptionsHandler.unsubscribe("anItemTemplate")).isFalse();
     }

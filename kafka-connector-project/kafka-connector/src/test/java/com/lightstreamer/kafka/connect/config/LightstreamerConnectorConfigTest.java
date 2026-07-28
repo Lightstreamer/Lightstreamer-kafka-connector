@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LightstreamerConnectorConfigTest {
+class LightstreamerConnectorConfigTest {
 
     static Map<String, String> basicConfig() {
         Map<String, String> config = new HashMap<>();
@@ -334,7 +334,7 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetTopicMappingRegex() {
+    void shouldGetTopicMappingRegex() {
         Map<String, String> props = basicConfig();
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         assertThat(config.isRegexEnabled()).isFalse();
@@ -345,7 +345,7 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotValidateInvalidTopicMappingRegex() {
+    void shouldNotValidateInvalidTopicMappingRegex() {
         Map<String, String> props = basicConfig();
         props.put(LightstreamerConnectorConfig.TOPIC_MAPPINGS_REGEX_ENABLE, "INVALID");
         ConfigException ce =
@@ -357,7 +357,7 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetRecordMappingSkipFailed() {
+    void shouldGetRecordMappingSkipFailed() {
         Map<String, String> props = basicConfig();
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         assertThat(config.isRecordMappingSkipFailedEnabled()).isFalse();
@@ -368,7 +368,7 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldGetRecordMappingMapNonScalarValues() {
+    void shouldGetRecordMappingMapNonScalarValues() {
         Map<String, String> props = basicConfig();
         LightstreamerConnectorConfig config = new LightstreamerConnectorConfig(props);
         assertThat(config.isRecordMappingMapNonScalarValuesEnabled()).isFalse();
@@ -380,7 +380,7 @@ public class LightstreamerConnectorConfigTest {
     }
 
     @Test
-    public void shouldNotValidateInvalidRecordMappingSkipFailed() {
+    void shouldNotValidateInvalidRecordMappingSkipFailed() {
         Map<String, String> props = basicConfig();
         props.put(LightstreamerConnectorConfig.RECORD_MAPPINGS_SKIP_FAILED_ENABLE, "INVALID");
         ConfigException ce =
@@ -475,7 +475,7 @@ public class LightstreamerConnectorConfigTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"IGNORE_AND_CONTINUE", "FORWARD_TO_DLQ", "TERMINATE_TASK"})
-    public void shouldRetrieveRecordErrorHandlingStrategy(String strategy) {
+    void shouldRetrieveRecordErrorHandlingStrategy(String strategy) {
         RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(strategy);
         assertThat(from.toString()).isEqualTo(strategy);
     }
@@ -483,14 +483,14 @@ public class LightstreamerConnectorConfigTest {
     @ParameterizedTest
     @NullSource
     @ValueSource(strings = {"NO_VALID_STRATEGY"})
-    public void shouldNotRetrieveRecordErrorHandlingStrategy(String noValidStrategy) {
+    void shouldNotRetrieveRecordErrorHandlingStrategy(String noValidStrategy) {
         RecordErrorHandlingStrategy from = RecordErrorHandlingStrategy.from(noValidStrategy);
         assertThat(from).isNull();
     }
 
     @Disabled
     @Test
-    public void shouldProduceFormattedConfiguration() throws IOException {
+    void shouldProduceFormattedConfiguration() throws IOException {
         ConfigDef config = LightstreamerConnectorConfig.makeConfig();
         Files.write(config.toHtml().getBytes(), new File("config.html"));
         Files.write(config.toEnrichedRst().getBytes(), new File("config_enriched.rst"));

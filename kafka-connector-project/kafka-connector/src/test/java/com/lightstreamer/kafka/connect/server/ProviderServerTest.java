@@ -38,7 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class ProviderServerTest {
+class ProviderServerTest {
 
     @Test
     void shouldStartWithCredentials() throws InterruptedException {
@@ -152,7 +152,7 @@ public class ProviderServerTest {
     }
 
     @Test
-    public void shouldNotAcceptMoreThanAllowsConnections() {}
+    void shouldNotAcceptMoreThanAllowsConnections() {}
 
     @Test
     void shouldManageClosureOfRemoteProxyAdapter() throws InterruptedException {

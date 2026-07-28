@@ -159,10 +159,10 @@ public class Expressions {
         public SubscriptionExpression(String prefix, SortedSet<Data> dataSet) {
             this.prefix = prefix;
             this.dataSet = dataSet;
-            this.schema =
+            schema =
                     Schema.from(
                             prefix, dataSet.stream().map(Data::name).collect(Collectors.toSet()));
-            this.canonicalItemName = Data.buildItemName(dataSet.toArray(new Data[0]), prefix);
+            canonicalItemName = Data.buildItemName(dataSet.toArray(new Data[0]), prefix);
         }
 
         /** Returns the item prefix. */
@@ -249,9 +249,9 @@ public class Expressions {
         private final String errorMsg;
 
         private Parser(ParserBuilder<R> builder) {
-            this.globalPattern = builder.globalPattern;
-            this.builderSupplier = builder.resultBuilder;
-            this.errorMsg = builder.errorMsg;
+            globalPattern = builder.globalPattern;
+            builderSupplier = builder.resultBuilder;
+            errorMsg = builder.errorMsg;
         }
 
         R parse(String expression) throws ExpressionException {
@@ -260,7 +260,7 @@ public class Expressions {
                 throw new ExpressionException(errorMsg);
             }
 
-            ParseResultBuilder<R> resultBuilder = this.builderSupplier.get();
+            ParseResultBuilder<R> resultBuilder = builderSupplier.get();
             resultBuilder.notifyPrefix(globalMatcher.group(1));
             String queryString = globalMatcher.group(3);
             if (queryString != null) {
@@ -391,13 +391,13 @@ public class Expressions {
         private ExtractionExpressionImpl(
                 Constant root, String[] tokens, String expression, boolean isWildCard) {
             this.root = root;
-            this.completeExpression = expression;
+            completeExpression = expression;
             if (isWildCard) {
                 this.tokens = Arrays.copyOf(tokens, tokens.length - 2);
             } else {
                 this.tokens = Arrays.copyOf(tokens, tokens.length);
             }
-            this.wildCardExpression = isWildCard;
+            wildCardExpression = isWildCard;
         }
 
         @Override

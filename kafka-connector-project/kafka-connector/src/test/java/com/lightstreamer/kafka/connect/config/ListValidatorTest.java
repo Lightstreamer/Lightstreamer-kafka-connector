@@ -34,12 +34,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-public class ListValidatorTest {
+class ListValidatorTest {
 
     ListValidator validator;
 
     @BeforeEach
-    public void beforeEach() {
+    void before() {
         validator = new ListValidator();
     }
 
@@ -71,7 +71,7 @@ public class ListValidatorTest {
 
     @ParameterizedTest
     @MethodSource("wrongValues")
-    public void shouldNotValidate(Object value, String expectedErrorMessage) {
+    void shouldNotValidate(Object value, String expectedErrorMessage) {
         ConfigException ce =
                 assertThrows(
                         ConfigException.class, () -> validator.ensureValid(TOPIC_MAPPINGS, value));
@@ -84,7 +84,7 @@ public class ListValidatorTest {
 
     @ParameterizedTest
     @MethodSource("values")
-    public void shouldValidate(Object value) {
+    void shouldValidate(Object value) {
         assertDoesNotThrow(() -> validator.ensureValid(TOPIC_MAPPINGS, value));
     }
 }

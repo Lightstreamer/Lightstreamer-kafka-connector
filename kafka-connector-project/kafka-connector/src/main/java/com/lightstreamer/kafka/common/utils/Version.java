@@ -40,7 +40,7 @@ public class Version {
             log.warn("Error while loading {}}: {}", versionFile, e.getMessage());
         }
 
-        this.version = props.getProperty(KEY, DEFAULT_VALUE).trim();
+        version = props.getProperty(KEY, DEFAULT_VALUE).trim();
     }
 
     String get() {

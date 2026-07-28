@@ -128,7 +128,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         SubArrayHeaderNode(String name, List<KafkaHeader> headers) {
             this.name = name;
             this.headers = headers;
-            this.size = headers.size();
+            size = headers.size();
         }
 
         public String name() {
@@ -175,7 +175,7 @@ public class HeadersSelectorSupplier implements SelectorSupplier<HeadersSelector
         HeadersNode(String name, KafkaHeaders headers) {
             this.name = name;
             this.headers = headers;
-            this.size = headers.size();
+            size = headers.size();
         }
 
         @Override

@@ -43,7 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class FieldConfigsTest {
+class FieldConfigsTest {
 
     static Stream<Arguments> namedFieldMapping() {
         return Stream.of(
@@ -63,7 +63,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @MethodSource("namedFieldMapping")
-    public void shouldCreateAndMakeNamedFieldsExtractor(
+    void shouldCreateAndMakeNamedFieldsExtractor(
             Map<String, String> fieldMappings,
             KeyValueSelectorSuppliers<?, ?> suppliers,
             boolean mapNonScalars,
@@ -103,7 +103,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @MethodSource("dynamicFieldsMapping")
-    public void shouldCreateAndMakeStaticDynamicExtractor(
+    void shouldCreateAndMakeStaticDynamicExtractor(
             Map<String, String> fieldMappings,
             KeyValueSelectorSuppliers<?, ?> suppliers,
             boolean mapNonScalars)
@@ -151,7 +151,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @MethodSource("mixedDynamicFieldsMapping")
-    public void shouldCreateComposedExtractor(
+    void shouldCreateComposedExtractor(
             Map<String, String> fieldMappings,
             KeyValueSelectorSuppliers<?, ?> suppliers,
             boolean mapNonScalars,
@@ -185,7 +185,7 @@ public class FieldConfigsTest {
     }
 
     @Test
-    public void shouldFailCreateExtractor() {
+    void shouldFailCreateExtractor() {
         Map<String, String> fieldMappings = Map.of("field1", "#{VALUE.notAllowedAttrib}");
         FieldConfigs configs = FieldConfigs.from(fieldMappings);
         ExtractionException ee =
@@ -202,7 +202,7 @@ public class FieldConfigsTest {
     @EmptySource
     @NullAndEmptySource
     @ValueSource(strings = {"#{}", ".", "\\", " "})
-    public void shouldFailCreationDueToInvalidWrappedExpression(String expression) {
+    void shouldFailCreationDueToInvalidWrappedExpression(String expression) {
         Map<String, String> fieldMappings = new HashMap<>();
         fieldMappings.put("field1", expression);
         ConfigException ee =
@@ -217,7 +217,7 @@ public class FieldConfigsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {".", "..."})
-    public void shouldFailCreationDueToMissingRootTokens(String fieldExpression) {
+    void shouldFailCreationDueToMissingRootTokens(String fieldExpression) {
         String wrappedExpression = "#{" + fieldExpression + "}";
         Map<String, String> fieldMappings = new HashMap<>();
         fieldMappings.put("field1", wrappedExpression);

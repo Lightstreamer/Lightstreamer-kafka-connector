@@ -19,14 +19,17 @@ package com.lightstreamer.kafka.adapters.consumers;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.interfaces.data.ItemEventListener;
 import com.lightstreamer.interfaces.data.SubscriptionException;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
-import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec.Concurrency;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline;
+import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.RecordPipeline.Concurrency;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.AbstractSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.Builder;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandSubscriptionsHandler;
@@ -48,10 +51,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class SubscriptionsHandlerTest {
+class SubscriptionsHandlerTest {
 
     @Test
-    public void shouldNotBuildSubscriptionsHandler() {
+    void shouldNotBuildSubscriptionsHandler() {
         IllegalStateException ise =
                 assertThrows(
                         IllegalStateException.class,
@@ -96,8 +99,7 @@ public class SubscriptionsHandlerTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotIsDisabled(
-            boolean processAsCommand) {
+    void shouldBuildOnDemandSubscriptionsHandlerWhenSnapshotIsDisabled(boolean processAsCommand) {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(processAsCommand)
                         .metadataListener(new Mocks.MockMetadataListener())
@@ -123,7 +125,7 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
+    void shouldBuildForceableSubscriptionsHandlerWhenSnapshotModeEnabled() {
         SubscriptionsHandler<String, String> subscriptionsHandler =
                 builder(false).snapshotEnabled(true).build();
         assertThat(subscriptionsHandler)
@@ -131,12 +133,12 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldSubscribe() throws SubscriptionException {
+    void shouldSubscribe() throws SubscriptionException {
         AtomicReference<SubscriptionExpression> receivedExpression = new AtomicReference<>(null);
         AtomicReference<Object> receivedHandle = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(),
                         (se, handle) -> {
                             receivedExpression.set(se);
@@ -146,28 +148,28 @@ public class SubscriptionsHandlerTest {
         Object itemHandle = new Object();
         subscriptionsHandler.subscribe("anItemTemplate", itemHandle);
         assertThat(receivedExpression.get().canonicalItemName()).isEqualTo("anItemTemplate");
-        assertThat(receivedHandle.get()).isEqualTo(itemHandle);
+        assertThat(receivedHandle.get()).isSameInstanceAs(itemHandle);
     }
 
     @Test
-    public void shouldSetListener() {
+    void shouldSetListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), listener -> receivedListener.set(listener), null);
 
         ItemEventListener listener = new Mocks.MockItemEventListener();
         subscriptionsHandler.setListener(listener);
-        assertThat(receivedListener.get()).isEqualTo(listener);
+        assertThat(receivedListener.get()).isSameInstanceAs(listener);
     }
 
     @Test
-    public void shouldRejectNullListener() {
+    void shouldRejectNullListener() {
         AtomicReference<ItemEventListener> receivedListener = new AtomicReference<>(null);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), listener -> receivedListener.set(listener), null);
 
         IllegalArgumentException iae =
@@ -179,9 +181,9 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailCreateNewConsumer() {
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(builder());
+    void shouldFailCreateNewConsumer() {
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(builder());
 
         RuntimeException re =
                 assertThrows(
@@ -193,9 +195,9 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldCreateNewConsumer() {
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(builder());
+    void shouldCreateNewConsumer() {
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(builder());
         subscriptionsHandler.setListener(new Mocks.MockItemEventListener());
 
         KafkaConsumerWrapper<String, String> consumer =
@@ -204,11 +206,11 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToNotRegisteredTemplate() {
+    void shouldFailSubscriptionDueToNotRegisteredTemplate() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), (se, handle) -> subscribeCallbackInvoked.set(true));
 
         Object itemHandle = new Object();
@@ -225,11 +227,11 @@ public class SubscriptionsHandlerTest {
     }
 
     @Test
-    public void shouldFailSubscriptionDueToInvalidExpression() {
+    void shouldFailSubscriptionDueToInvalidExpression() {
         AtomicBoolean subscribeCallbackInvoked = new AtomicBoolean(false);
 
-        TestSubscriptionsHandler<String, String> subscriptionsHandler =
-                new TestSubscriptionsHandler<>(
+        SubscriptionsHandlerTestImp<String, String> subscriptionsHandler =
+                new SubscriptionsHandlerTestImp<>(
                         builder(), (se, handle) -> subscribeCallbackInvoked.set(true));
 
         Object itemHandle = new Object();
@@ -259,22 +261,26 @@ public class SubscriptionsHandlerTest {
         return new ConnectionSpec<>(
                 "TestConnection",
                 new Properties(),
-                ItemTemplatesUtils.itemTemplates("aTopic", "anItemTemplate,anotherItemTemplate"),
-                ItemTemplatesUtils.fieldsExtractor(),
                 new KafkaRecord.DeserializerPair<>(
                         OthersSelectorSuppliers.String().keySelectorSupplier().deserializer(),
                         OthersSelectorSuppliers.String().valueSelectorSupplier().deserializer()),
-                RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
-                processAsCommand,
-                new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1));
+                ConsumerMode.GROUP,
+                RecordConsumeFrom.LATEST,
+                new RecordPipeline<>(
+                        ItemTemplatesUtils.itemTemplates(
+                                "aTopic", "anItemTemplate,anotherItemTemplate"),
+                        ItemTemplatesUtils.fieldsExtractor(),
+                        RecordErrorHandlingStrategy.IGNORE_AND_CONTINUE,
+                        processAsCommand,
+                        new Concurrency(RecordConsumeWithOrderStrategy.ORDER_BY_PARTITION, 1)));
     }
 
-    static class TestSubscriptionsHandler<K, V> extends AbstractSubscriptionsHandler<K, V> {
+    static class SubscriptionsHandlerTestImp<K, V> extends AbstractSubscriptionsHandler<K, V> {
 
         private final Consumer<ItemEventListener> setListenerCallback;
         private final BiConsumer<SubscriptionExpression, Object> subscribeCallback;
 
-        TestSubscriptionsHandler(
+        SubscriptionsHandlerTestImp(
                 Builder<K, V> builder,
                 Consumer<ItemEventListener> setListenerCallback,
                 BiConsumer<SubscriptionExpression, Object> subscribeCallback) {
@@ -283,13 +289,13 @@ public class SubscriptionsHandlerTest {
             this.setListenerCallback = setListenerCallback;
         }
 
-        TestSubscriptionsHandler(
+        SubscriptionsHandlerTestImp(
                 Builder<K, V> builder,
                 BiConsumer<SubscriptionExpression, Object> subscribeCallback) {
             this(builder, null, subscribeCallback);
         }
 
-        TestSubscriptionsHandler(Builder<K, V> builder) {
+        SubscriptionsHandlerTestImp(Builder<K, V> builder) {
             this(builder, null, null);
         }
 

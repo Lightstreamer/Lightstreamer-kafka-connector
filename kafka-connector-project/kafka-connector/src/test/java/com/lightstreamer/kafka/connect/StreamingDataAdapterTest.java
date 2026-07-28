@@ -21,7 +21,7 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.connect.config.LightstreamerConnectorConfig.RECORD_EXTRACTION_ERROR_STRATEGY;
 import static com.lightstreamer.kafka.test_utils.Mocks.EventCall.EventType.UPDATE;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.adapters.remote.DataProviderException;
 import com.lightstreamer.adapters.remote.FailureException;
@@ -54,7 +54,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
-public class StreamingDataAdapterTest {
+class StreamingDataAdapterTest {
 
     static Map<String, String> basicConfig(Map<String, String> overriding) {
         Map<String, String> config = new HashMap<>();
@@ -164,7 +164,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldNotSubscribeToNotAllowedItems() {
+    void shouldNotSubscribeToNotAllowedItems() {
         StreamingDataAdapter adapter = newAdapter();
         SubscriptionException se1 =
                 assertThrows(SubscriptionException.class, () -> adapter.subscribe("anItem"));
@@ -178,7 +178,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldNotUnsubscribeFromNotExistingItem() {
+    void shouldNotUnsubscribeFromNotExistingItem() {
         StreamingDataAdapter adapter = newAdapter();
         assertThrows(SubscriptionException.class, () -> adapter.unsubscribe("item"));
     }
@@ -209,7 +209,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldNotStreamEventsWithNoSubscription() {
+    void shouldNotStreamEventsWithNoSubscription() {
         AtomicInteger counter = new AtomicInteger();
 
         // Initialize a StreamingAdapter with an NOP Updater to track events that will not be
@@ -231,7 +231,7 @@ public class StreamingDataAdapterTest {
 
     @ParameterizedTest
     @MethodSource("events")
-    public void shouldStreamEvents(
+    void shouldStreamEvents(
             Collection<SinkRecord> records, int expectedOffset, int expectedDeliveredEvents)
             throws SubscriptionException, FailureException {
         StreamingDataAdapter adapter = newAdapter();
@@ -254,7 +254,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldIgnoreAndContinue() throws SubscriptionException, FailureException {
+    void shouldIgnoreAndContinue() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 5;
         int NEXT_OFFSET = 6;
         Map<String, String> otherSettings = new HashMap<>();
@@ -292,7 +292,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldSkipFailedMapping() throws SubscriptionException, FailureException {
+    void shouldSkipFailedMapping() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 5;
         int NEXT_OFFSET = 6;
         Map<String, String> otherSettings = new HashMap<>();
@@ -335,7 +335,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldForwardToDLQ() throws SubscriptionException, FailureException {
+    void shouldForwardToDLQ() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 1;
         int NEXT_OFFSET = 3;
         Map<String, String> otherSettings = new HashMap<>();
@@ -376,8 +376,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldTerminateTaskDueToMissingReporter()
-            throws SubscriptionException, FailureException {
+    void shouldTerminateTaskDueToMissingReporter() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 1;
         Map<String, String> otherSettings = new HashMap<>();
 
@@ -410,7 +409,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldTerminateTask() throws SubscriptionException, FailureException {
+    void shouldTerminateTask() throws SubscriptionException, FailureException {
         int CURRENT_OFFSET = 1;
         Map<String, String> otherSettings = new HashMap<>();
 
@@ -443,7 +442,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldSaveOffsets() {
+    void shouldSaveOffsets() {
         StreamingDataAdapter adapter = newAdapter();
         Map<TopicPartition, OffsetAndMetadata> currentOffsets = adapter.getCurrentOffsets();
         assertThat(currentOffsets).isEmpty();
@@ -464,7 +463,7 @@ public class StreamingDataAdapterTest {
     }
 
     @Test
-    public void shouldPreCommit() {
+    void shouldPreCommit() {
         StreamingDataAdapter adapter = newAdapter();
         Map<TopicPartition, OffsetAndMetadata> currentOffsets = adapter.getCurrentOffsets();
         assertThat(currentOffsets).isEmpty();
