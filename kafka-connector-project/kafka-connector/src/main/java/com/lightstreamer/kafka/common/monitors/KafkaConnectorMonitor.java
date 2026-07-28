@@ -118,9 +118,9 @@ public final class KafkaConnectorMonitor implements Monitor {
             this.observerID = observerID;
             this.meter = meter;
             this.rangeInterval = rangeInterval;
-            this.enabledFunctions = new EnumMap<>(functions);
-            this.timeSeries = new TimeSeries(monitor.dataPoints, meter);
-            this.reportDescription = formatDescription(meter, rangeInterval);
+            enabledFunctions = new EnumMap<>(functions);
+            timeSeries = new TimeSeries(monitor.dataPoints, meter);
+            reportDescription = formatDescription(meter, rangeInterval);
         }
 
         private DefaultObserver(DefaultObserver source) {
@@ -318,8 +318,7 @@ public final class KafkaConnectorMonitor implements Monitor {
      * @return a new monitor with updated configuration
      */
     public KafkaConnectorMonitor withScrapeInterval(Duration scrapeInterval) {
-        return new KafkaConnectorMonitor(
-                this.logger, scrapeInterval, this.dataPoints, this.observers, this.reporter);
+        return new KafkaConnectorMonitor(logger, scrapeInterval, dataPoints, observers, reporter);
     }
 
     /**
@@ -329,8 +328,7 @@ public final class KafkaConnectorMonitor implements Monitor {
      * @return a new monitor with updated configuration
      */
     public KafkaConnectorMonitor withDataPoints(int dataPoints) {
-        return new KafkaConnectorMonitor(
-                this.logger, this.scrapeInterval, dataPoints, this.observers, this.reporter);
+        return new KafkaConnectorMonitor(logger, scrapeInterval, dataPoints, observers, reporter);
     }
 
     /**
@@ -340,8 +338,7 @@ public final class KafkaConnectorMonitor implements Monitor {
      * @return a new monitor with updated configuration
      */
     public KafkaConnectorMonitor withReporter(Reporter reporter) {
-        return new KafkaConnectorMonitor(
-                this.logger, this.scrapeInterval, this.dataPoints, this.observers, reporter);
+        return new KafkaConnectorMonitor(logger, scrapeInterval, dataPoints, observers, reporter);
     }
 
     /**
@@ -350,7 +347,7 @@ public final class KafkaConnectorMonitor implements Monitor {
      * @return a new monitor configured for SLF4J logging
      */
     public KafkaConnectorMonitor withLogReporter() {
-        return withReporter(Reporters.logReporter(this.logger));
+        return withReporter(Reporters.logReporter(logger));
     }
 
     /**
@@ -364,7 +361,7 @@ public final class KafkaConnectorMonitor implements Monitor {
 
     /** Returns the logger for this monitor. */
     public Logger logger() {
-        return this.logger;
+        return logger;
     }
 
     @Override
@@ -419,13 +416,13 @@ public final class KafkaConnectorMonitor implements Monitor {
                             scrapeInterval.toMillis());
         }
 
-        this.started = true;
+        started = true;
 
         logger.atInfo().log(
                 "Starting KafkaConnectorMonitor with scrape interval: {} ms and data points: {}",
                 scrapeInterval.toMillis(),
                 dataPoints);
-        this.executor =
+        executor =
                 Executors.newSingleThreadScheduledExecutor(
                         r -> {
                             Thread t = new Thread(r);
@@ -433,12 +430,12 @@ public final class KafkaConnectorMonitor implements Monitor {
                             t.setName("KafkaConnectorMonitor");
                             return t;
                         });
-        this.executor.scheduleAtFixedRate(
+        executor.scheduleAtFixedRate(
                 this::scrapeMeters,
                 scrapeInterval.toMillis(),
                 scrapeInterval.toMillis(),
                 TimeUnit.MILLISECONDS);
-        this.executor.scheduleAtFixedRate(
+        executor.scheduleAtFixedRate(
                 this::evaluate,
                 stepInterval.toMillis(),
                 stepInterval.toMillis(),
@@ -484,21 +481,21 @@ public final class KafkaConnectorMonitor implements Monitor {
 
         try {
             logger.atInfo().log("Stopping KafkaConnectorMonitor");
-            this.executor.shutdown();
+            executor.shutdown();
 
             // Wait up to 5 seconds for graceful termination
-            if (!this.executor.awaitTermination(5, TimeUnit.SECONDS)) {
+            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                 logger.atWarn().log("Graceful shutdown timeout, forcing termination");
-                this.executor.shutdownNow();
-                this.executor.awaitTermination(2, TimeUnit.SECONDS);
+                executor.shutdownNow();
+                executor.awaitTermination(2, TimeUnit.SECONDS);
             }
         } catch (InterruptedException e) {
             logger.atError().setCause(e).log("Interrupted while stopping monitor");
-            this.executor.shutdownNow();
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
         } finally {
-            this.executor = null;
-            this.started = false;
+            executor = null;
+            started = false;
         }
     }
 }
