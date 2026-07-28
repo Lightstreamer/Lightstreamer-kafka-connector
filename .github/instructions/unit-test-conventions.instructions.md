@@ -8,20 +8,37 @@ This document defines the unit test conventions adopted across the Kafka Connect
 
 ## Class Visibility
 
-All test classes must be declared `public`:
+Test classes are declared **package-private** (no modifier) — the JUnit Jupiter idiom. Never
+`private`; `public` is only justified when the class must be subclassed from another package.
 
 ```java
+// Correct
+class MyConnectorTest { ... }
+
+// Wrong
 public class MyConnectorTest { ... }
 ```
 
+Test support classes under `test_utils/` (e.g. `Mocks`, `Records`, `ConnectorConfigProvider`)
+are `public` because they are consumed across test packages.
+
 ## Test Method Visibility
 
-All test methods must be declared `public`:
+Test methods are declared **package-private** (no modifier) — the JUnit Jupiter idiom. Never
+`private`.
 
 ```java
+// Correct
+@Test
+void shouldCommitOffsetsOnShutdown() { ... }
+
+// Wrong
 @Test
 public void shouldCommitOffsetsOnShutdown() { ... }
 ```
+
+The JUnit Jupiter engine invokes tests reflectively, so `public` conveys nothing. The `public`
+requirement was a JUnit 4 constraint and is no longer needed.
 
 ## Test Method Naming
 
@@ -29,17 +46,78 @@ Test methods use **camelCase** with the `should` prefix, describing the expected
 
 ```java
 @Test
-public void shouldReturnTrueWhenThresholdExceeded() { ... }
+void shouldReturnTrueWhenThresholdExceeded() { ... }
 
 @Test
-public void shouldThrowOnInvalidConfiguration() { ... }
+void shouldThrowOnInvalidConfiguration() { ... }
 
 @ParameterizedTest
-public void shouldHandleVariousInputFormats() { ... }
+void shouldHandleVariousInputFormats() { ... }
 ```
 
 Where applicable, prefer `@ParameterizedTest` over separate test methods when verifying the same
 behavior with different inputs or edge values.
+
+## Lifecycle Method Naming
+
+Methods annotated with `@BeforeEach`, `@AfterEach`, `@BeforeAll`, or `@AfterAll` are named after
+the *lifecycle phase*, not after imperative verbs like `setUp`, `tearDown`, `setup`, or `cleanup`.
+Like test methods, they are declared **package-private**:
+
+```java
+// Correct
+@BeforeEach
+void before() { ... }
+
+@AfterEach
+void after() { ... }
+
+@BeforeAll
+static void beforeAll() { ... }
+
+@AfterAll
+static void afterAll() { ... }
+```
+
+```java
+// Wrong
+@BeforeEach
+public void setUp() { ... }
+
+@AfterEach
+public void tearDown() { ... }
+```
+
+The annotation already describes the intent; the method name should stay short and mirror the
+phase. Only one `@BeforeEach` and one `@AfterEach` method per class.
+
+## Instance-Field Initialization
+
+Assign instance fields inside lifecycle methods without the `this.` qualifier. It is redundant
+when no local variable or parameter shadows the field, which is the normal case for
+`@BeforeEach` and `@AfterEach`. Use `this.` **only** to disambiguate a shadowed name (e.g. in
+a constructor or setter whose parameter matches the field).
+
+```java
+// Correct
+private ForceableSubscribedItems items;
+private MockItemEventListener listener;
+
+@BeforeEach
+void before() {
+    listener = new MockItemEventListener();
+    items = SubscribedItems.forceable(listener, logger);
+}
+```
+
+```java
+// Wrong
+@BeforeEach
+void before() {
+    this.listener = new MockItemEventListener();
+    this.items = SubscribedItems.forceable(this.listener, logger);
+}
+```
 
 ## Assertion Framework
 
