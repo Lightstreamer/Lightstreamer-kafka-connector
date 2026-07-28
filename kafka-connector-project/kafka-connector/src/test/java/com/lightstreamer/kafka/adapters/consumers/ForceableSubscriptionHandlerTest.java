@@ -154,14 +154,14 @@ class ForceableSubscriptionHandlerTest {
             boolean exceptionOnPoll,
             int maxIdleSeconds,
             String templateTopic) {
-        this.subscriptionsHandler =
+        subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
                         maxIdleSeconds,
                         templateTopic);
-        this.subscriptionsHandler.setListener(listener);
+        subscriptionsHandler.setListener(listener);
     }
 
     @Test

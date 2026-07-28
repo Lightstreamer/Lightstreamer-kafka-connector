@@ -151,11 +151,11 @@ class KafkaConsumerWrapperTest {
 
         // Set the topics in the mock consumer
         for (String topic : topicsOnBroker) {
-            this.mockConsumer.updatePartitions(
+            mockConsumer.updatePartitions(
                     topic, List.of(new PartitionInfo(topic, 0, null, null, null)));
         }
         if (trowExceptionWhileCheckingExistingTopic) {
-            this.mockConsumer.setListTopicException(
+            mockConsumer.setListTopicException(
                     new KafkaException("Fake Exception while checking existing topics"));
         }
 
@@ -171,7 +171,7 @@ class KafkaConsumerWrapperTest {
                         orderStrategy);
 
         // Create the SubscribedItems
-        this.subscribedItems =
+        subscribedItems =
                 eagerLifecycle
                         ? SubscribedItems.forceable(itemEventListener, logger)
                         : SubscribedItems.onDemand();
@@ -181,7 +181,7 @@ class KafkaConsumerWrapperTest {
                         spec,
                         itemEventListener,
                         subscribedItems,
-                        prop -> this.mockConsumer,
+                        prop -> mockConsumer,
                         eagerLifecycle);
         return wrapper;
     }
@@ -228,10 +228,10 @@ class KafkaConsumerWrapperTest {
                                                                 null),
                                                 Collectors.toList())));
         for (Map.Entry<String, List<PartitionInfo>> entry : collect.entrySet()) {
-            this.mockConsumer.updatePartitions(entry.getKey(), entry.getValue());
+            mockConsumer.updatePartitions(entry.getKey(), entry.getValue());
         }
         if (trowExceptionWhileCheckingExistingTopicPartitions) {
-            this.mockConsumer.setListPartitionsException(
+            mockConsumer.setListPartitionsException(
                     new KafkaException("Fake Exception while checking existing topic partitions"));
         }
 
@@ -247,7 +247,7 @@ class KafkaConsumerWrapperTest {
                         orderStrategy);
 
         // Create the SubscribedItems
-        this.subscribedItems =
+        subscribedItems =
                 eagerLifecycle
                         ? SubscribedItems.forceable(itemEventListener, logger)
                         : SubscribedItems.onDemand();
@@ -257,7 +257,7 @@ class KafkaConsumerWrapperTest {
                         spec,
                         itemEventListener,
                         subscribedItems,
-                        prop -> this.mockConsumer,
+                        prop -> mockConsumer,
                         eagerLifecycle);
         return wrapper;
     }

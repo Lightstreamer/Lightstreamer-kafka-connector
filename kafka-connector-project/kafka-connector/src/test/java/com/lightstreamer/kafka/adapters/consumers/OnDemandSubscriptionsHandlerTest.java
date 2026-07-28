@@ -150,15 +150,15 @@ class OnDemandSubscriptionsHandlerTest {
             boolean exceptionOnPoll,
             boolean processAsCommand,
             String... topics) {
-        this.subscriptionsHandler =
+        subscriptionsHandler =
                 mkSubscriptionsHandler(
                         exceptionOnConnection,
                         exceptionOnListTopics,
                         exceptionOnPoll,
                         processAsCommand,
                         topics);
-        this.subscriptionsHandler.setListener(listener);
-        this.subscribedItems = subscriptionsHandler.getSubscribedItems();
+        subscriptionsHandler.setListener(listener);
+        subscribedItems = subscriptionsHandler.getSubscribedItems();
     }
 
     @Test
