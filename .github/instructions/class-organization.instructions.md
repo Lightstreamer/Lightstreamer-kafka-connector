@@ -83,6 +83,40 @@ field to be initialized before fields declared above it (e.g., a `private` confi
 derive `protected` fields), initialize the dependency first without reordering the field
 declarations — the field declaration order reflects the public API surface and takes precedence.
 
+## Field Access — Avoid Redundant `this.`
+
+Reference instance fields without the `this.` qualifier. It compiles identically and is noise
+whenever no local variable or parameter shadows the field.
+
+Use `this.` **only** to disambiguate a shadowed name — typically in constructors, setters, or
+builder methods whose parameter matches the field:
+
+```java
+// Correct — parameter shadows field, `this.` is required
+public Builder<K, V> recordMapper(RecordMapper<K, V> recordMapper) {
+    this.recordMapper = recordMapper;
+    return this;
+}
+```
+
+```java
+// Correct — no shadowing, omit `this.`
+void restart() {
+    consumer.close();
+    consumer = consumerFactory.apply(properties);
+}
+```
+
+```java
+// Wrong — no shadowing, `this.` is noise
+void restart() {
+    this.consumer.close();
+    this.consumer = this.consumerFactory.apply(this.properties);
+}
+```
+
+This rule applies uniformly to production code, test lifecycle methods, and helpers.
+
 ## Nested/Inner Class Ordering
 
 When a file contains multiple nested classes implementing the same interface or extending the same
