@@ -40,6 +40,7 @@ import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
 import com.lightstreamer.kafka.test_utils.Mocks.MockItemEventListener;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.internals.AutoOffsetResetStrategy.StrategyType;
 import org.apache.kafka.common.PartitionInfo;
@@ -86,7 +87,7 @@ class AdapterSetTest {
     @AfterEach
     void after() throws IOException {
         Files.delete(loggingConfigurationFile);
-        Files.delete(adapterDir);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     void doInit() throws MetadataProviderException {
@@ -178,7 +179,7 @@ class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter1 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter1.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter1.setConsumerFactory(getConsumer());
         connectorDataAdapter1.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter1.setListener(new MockItemEventListener());
 
@@ -191,7 +192,7 @@ class AdapterSetTest {
         doInit();
 
         KafkaConnectorDataAdapter connectorDataAdapter3 = new KafkaConnectorDataAdapter();
-        connectorDataAdapter3.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter3.setConsumerFactory(getConsumer());
         Map<String, String> config = new HashMap<>();
         config.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, mode);
         if (mode.equals("COMMAND")) {
