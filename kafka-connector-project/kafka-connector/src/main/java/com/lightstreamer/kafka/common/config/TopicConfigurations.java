@@ -384,7 +384,7 @@ public class TopicConfigurations {
             configs.add(
                     new TopicConfiguration(topicMapping.topic(), refs, topicMapping.partitions()));
         }
-        this.topicConfigurations = Collections.unmodifiableSet(configs);
+        topicConfigurations = Collections.unmodifiableSet(configs);
         this.regexEnabled = regexEnabled;
     }
 
