@@ -23,7 +23,7 @@ import static com.lightstreamer.kafka.adapters.consumers.processor.RecordConsume
 import static com.lightstreamer.kafka.test_utils.Records.generateRecords;
 
 import static org.apache.kafka.common.serialization.Serdes.String;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import static java.util.stream.Collectors.groupingBy;
@@ -62,6 +62,7 @@ import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService;
 import com.lightstreamer.kafka.test_utils.Mocks.MockOffsetService.ConsumedRecordInfo;
 import com.lightstreamer.kafka.test_utils.Mocks.MockRecordMapper;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.KafkaException;
@@ -75,10 +76,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -91,7 +92,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class RecordConsumerTest {
+class RecordConsumerTest {
 
     static record Event(
             String topic,
@@ -119,11 +120,12 @@ public class RecordConsumerTest {
 
     private DeserializerPair<String, String> deserializerPair =
             new DeserializerPair<>(String().deserializer(), String().deserializer());
+    private Path adapterDir;
 
     @SuppressWarnings("unchecked")
     @BeforeEach
-    public void setUp() throws IOException {
-        File adapterDir = Files.createTempDirectory("adapter_dir").toFile();
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
         Map<String, String> overrideSettings = new HashMap<>();
         overrideSettings.put("map.topic1.to", "item");
         overrideSettings.put("map.topic2.to", "item");
@@ -135,15 +137,23 @@ public class RecordConsumerTest {
 
         ConnectorConfigurator connectorConfigurator =
                 new ConnectorConfigurator(
-                        ConnectorConfigProvider.minimalConfigWith(overrideSettings), adapterDir);
+                        ConnectorConfigProvider.minimalConfigWith(overrideSettings),
+                        adapterDir.toFile());
 
-        this.connectionSpec =
-                (ConnectionSpec<String, String>) connectorConfigurator.connectionSpec();
+        connectionSpec = (ConnectionSpec<String, String>) connectorConfigurator.connectionSpec();
 
-        this.subscriptions = SubscribedItems.onDemand();
+        subscriptions = SubscribedItems.onDemand();
 
         // Configure the RecordMapper.
-        this.recordMapper = newRecordMapper(connectionSpec);
+        recordMapper = newRecordMapper(connectionSpec);
+    }
+
+    @AfterEach
+    void after() throws IOException {
+        if (recordConsumer != null) {
+            recordConsumer.close();
+        }
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     void subscribeTo(String itemName, SubscribedItems subscribedItems) {
@@ -183,13 +193,6 @@ public class RecordConsumerTest {
                 .build();
     }
 
-    @AfterEach
-    public void tearDown() {
-        if (this.recordConsumer != null) {
-            this.recordConsumer.close();
-        }
-    }
-
     static int extractNumberedSuffix(String value) {
         int i = value.indexOf("-");
         if (i != -1) {
@@ -199,13 +202,13 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void testExtractNumberSuffix() {
+    void testExtractNumberSuffix() {
         assertThat(extractNumberedSuffix("abc-21")).isEqualTo(21);
         assertThat(extractNumberedSuffix("EVENT-1")).isEqualTo(1);
     }
 
     @Test
-    public void testRecordGeneration() {
+    void testRecordGeneration() {
         ConsumerRecords<byte[], byte[]> records =
                 generateRecords("topic", 40, List.of("a", "b", "c"));
         assertThat(records).hasSize(40);
@@ -237,13 +240,13 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @EnumSource
-    public void shouldGetOrderStrategyFromConfig(RecordConsumeWithOrderStrategy orderStrategy) {
+    void shouldGetOrderStrategyFromConfig(RecordConsumeWithOrderStrategy orderStrategy) {
         assertThat(OrderStrategy.from(orderStrategy).toString())
                 .isEqualTo(orderStrategy.toString());
     }
 
     @Test
-    public void shouldBuildRecordConsumerWithDefaultValues() {
+    void shouldBuildRecordConsumerWithDefaultValues() {
         MockOffsetService offsetService = new MockOffsetService();
         ItemEventListener listener = new MockItemEventListener();
 
@@ -340,7 +343,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("nonDefaultSettings")
-    public void shouldBuildRecordConsumerWithNonDefaultValues(
+    void shouldBuildRecordConsumerWithNonDefaultValues(
             int threads,
             boolean preferSingleThread,
             OrderStrategy order,
@@ -414,7 +417,7 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void shouldFailBuildingDueToNullValues() {
+    void shouldFailBuildingDueToNullValues() {
         NullPointerException ne =
                 assertThrows(
                         NullPointerException.class,
@@ -506,7 +509,7 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void shouldFailBuildingDueToIllegalValues() {
+    void shouldFailBuildingDueToIllegalValues() {
         // Illegal values for threads: zero and negative numbers (except -1, which is a special
         // value to indicate "auto")
         int[] illegalThreadValues = {-2, 0};
@@ -555,7 +558,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads)
+    void shouldDeliverKeyBasedOrder(int numOfRecords, int iterations, int threads)
             throws InterruptedException {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 partitions of
         // the same topic
@@ -618,7 +621,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads)
+    void shouldDeliverPartitionBasedOrder(int numOfRecords, int iterations, int threads)
             throws InterruptedException {
         // Generate records with keys "a", "b", "c", "d" and distribute them into 2 topics
         List<String> keys = List.of("a", "b", "c", "d");
@@ -720,8 +723,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverPartitionBasedOrderWithNoKey(
-            int numOfRecords, int iterations, int threads) {
+    void shouldDeliverPartitionBasedOrderWithNoKey(int numOfRecords, int iterations, int threads) {
         List<String> keys = Collections.emptyList();
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, keys, 3);
@@ -776,7 +778,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("iterations")
-    public void shouldDeliverUnordered(int numOfRecords, int iterations, int threads)
+    void shouldDeliverUnordered(int numOfRecords, int iterations, int threads)
             throws InterruptedException {
         List<String> keys = Collections.emptyList();
         ConsumerRecords<byte[], byte[]> consumerRecords =
@@ -822,7 +824,7 @@ public class RecordConsumerTest {
     }
 
     @Test
-    public void shouldConsumeNullValues() {
+    void shouldConsumeNullValues() {
         ConsumerRecord<byte[], byte[]> recordWithNullValue =
                 new ConsumerRecord<>(
                         "topic", 0, 0L, "key".getBytes(StandardCharsets.UTF_8), null); // Null value
@@ -874,7 +876,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("catchUpSettings")
-    public void shouldEndCatchUp(int threads, boolean preferSingleThread) {
+    void shouldEndCatchUp(int threads, boolean preferSingleThread) {
         final int numOfRecords = 100;
         ConsumerRecords<byte[], byte[]> consumerRecords =
                 generateRecords("topic", numOfRecords, List.of("key"), 4);
@@ -953,7 +955,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("handleErrors")
-    public void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
+    void shouldHandleErrors(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
         ConsumerRecords<byte[], byte[]> consumerRecords = generateRecords("topic", 30, keys, 2);
 
@@ -1006,8 +1008,7 @@ public class RecordConsumerTest {
 
     @ParameterizedTest
     @MethodSource("handleErrors")
-    public void shouldIgnoreErrorsOnlyIfValueException(
-            int numOfThreads, RuntimeException exception) {
+    void shouldIgnoreErrorsOnlyIfValueException(int numOfThreads, RuntimeException exception) {
         List<String> keys = List.of("a", "b");
         ConsumerRecords<byte[], byte[]> consumerRecords = generateRecords("topic", 30, keys, 2);
 
