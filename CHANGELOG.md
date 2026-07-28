@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.1.0] (2026-07-28)
+
+**New Features**
+
+- **Consumer mode**: Introduced the new [`consumer.mode`](README.md#consumermode) parameter with two values:
+
+  - **`GROUP`** (default) — existing behavior; the consumer joins a group and the broker assigns partitions dynamically under the configured [`group.id`](README.md#groupid).
+  - **`MANUAL`** — standalone consumer via `KafkaConsumer.assign(...)`; no consumer group is joined, `group.id` is suppressed, no offsets are committed or fetched, and the connector explicitly seeks each assigned partition to the position dictated by [`record.consume.from`](README.md#recordconsumefrom) on every startup.
+
+  The default remains `GROUP`, so this is a fully backward-compatible addition. ([#XX](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/XX))
+
+- **Per-topic partition assignment**: Added the new per-topic parameter [`map.<topic>.from.partitions`](README.md#consume-from-specific-partitions-maptopic_namefrompartitions), effective only when `consumer.mode = MANUAL`. Declares which partitions of the topic this connector instance should consume, as a comma-separated list of non-negative partition numbers and inclusive ranges (e.g. `0,2,4-6`). When omitted, all partitions of the topic are assigned. Enables [partition-affinity sharding](README.md#partition-affinity-sharding) across multiple connector instances without relying on Kafka's group coordinator. ([#XX](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/XX))
+
+**Examples and Documentation**
+
+- Added a new [`consumer.mode`](README.md#consumermode) section and a [`map.<topic>.from.partitions`](README.md#consume-from-specific-partitions-maptopic_namefrompartitions) subsection (framed around the partition-affinity sharded deployment use case) to [`README.md`](README.md) and [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), including the cross-parameter incompatibilities (regex topic matching is not supported in `MANUAL`; partition mappings are not supported in `GROUP`). ([#XX](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/XX))
+
+- Updated the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) with new comment blocks for `consumer.mode` and `map.<topic>.from.partitions`; the [`record.consume.from`](README.md#recordconsumefrom) block now describes behavior for both modes. ([#XX](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/XX))
+
+
 ## [2.0.0] (2026-07-02)
 
 > Upgrading from 1.x? See the [Migration guide](MIGRATION.md#migrating-from-1x-to-20).
