@@ -37,16 +37,33 @@ import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufDeserializer;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 class DynamicMessageDeserializerTest {
 
     private static final String SCHEMA_FOLDER = "src/test/resources";
     private static final String TEST_SCHEMA_FILE = "person.proto.desc";
+
+    private Path adapterDir;
+
+    @BeforeEach
+    void before() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+    }
+
+    @AfterEach
+    void afterEach() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
 
     @Test
     void shouldDeserializeWithLocalSchema() {
@@ -100,6 +117,7 @@ class DynamicMessageDeserializerTest {
     void shouldGeKeyDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_KEY_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
@@ -118,6 +136,7 @@ class DynamicMessageDeserializerTest {
     void shouldGetValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
@@ -136,6 +155,7 @@ class DynamicMessageDeserializerTest {
     void shouldGetKeyAndValueDeserializerWithSchemaRegistry() {
         ConnectorConfig config =
                 ConnectorConfigProvider.minimalWith(
+                        adapterDir.toString(),
                         Map.of(
                                 RECORD_VALUE_EVALUATOR_TYPE,
                                 PROTOBUF.toString(),
