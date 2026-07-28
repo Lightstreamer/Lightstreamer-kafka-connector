@@ -69,7 +69,7 @@ public class Fakes {
         }
 
         public FakeProxyConnection(int fakeFailures) {
-            this.io =
+            io =
                     new IOStreams(
                             new ByteArrayInputStream("HelloWorld".getBytes()),
                             new ByteArrayOutputStream());
@@ -82,7 +82,7 @@ public class Fakes {
                 fakeFailures--;
                 throw new IOException("Simulating failure connection");
             }
-            this.openInvoked = true;
+            openInvoked = true;
             return io;
         }
 
@@ -93,7 +93,7 @@ public class Fakes {
 
         @Override
         public void close() {
-            this.closedInvoked = true;
+            closedInvoked = true;
         }
     }
 
@@ -149,7 +149,7 @@ public class Fakes {
 
         @Override
         public void close() {
-            this.closedInvoked = true;
+            closedInvoked = true;
             streamsQueue.offer(
                     new IOStreams(
                             new ByteArrayInputStream("Close".getBytes()),
@@ -203,12 +203,12 @@ public class Fakes {
 
         @Override
         public void setIOStreams(IOStreams streams) {
-            this.ioStreams = streams;
+            ioStreams = streams;
         }
 
         @Override
         public void start() {
-            this.startInvoked = true;
+            startInvoked = true;
             if (fakeException != null) {
                 // Generate a simulated asynchronous exception immediately after a few milliseconds.
                 Executor delayedExecutor =
@@ -241,7 +241,7 @@ public class Fakes {
 
         @Override
         public void close() {
-            this.closedInvoked = true;
+            closedInvoked = true;
             if (hook != null) {
                 hook.closed(this);
             }
@@ -311,10 +311,10 @@ public class Fakes {
             public Throwable caughtError;
 
             @Override
-            public Future<Void> report(SinkRecord record, Throwable error) {
+            public Future<Void> report(SinkRecord record, Throwable caughtError) {
                 this.record = record;
-                this.caughtError = error;
-                return CompletableFuture.failedFuture(error);
+                this.caughtError = caughtError;
+                return CompletableFuture.failedFuture(caughtError);
             }
         }
 
@@ -325,7 +325,7 @@ public class Fakes {
         }
 
         public FakeSinkContext(boolean withReporter) {
-            this.errantRecordReporter = withReporter ? new FakeErrantRecordReporter() : null;
+            errantRecordReporter = withReporter ? new FakeErrantRecordReporter() : null;
         }
 
         @Override
