@@ -68,15 +68,14 @@ class CommitOffsetServiceTest {
     }
 
     private void setUp(boolean earliest, CommitStrategy commitStrategy) {
-        this.mockConsumer =
+        mockConsumer =
                 new MockConsumer(
                         earliest
                                 ? StrategyType.EARLIEST.toString()
                                 : StrategyType.LATEST.toString());
 
         // A rebalance must be scheduled to later use the subscribe method
-        this.mockConsumer.schedulePollTask(
-                () -> mockConsumer.rebalance(Set.of(partition0, partition1)));
+        mockConsumer.schedulePollTask(() -> mockConsumer.rebalance(Set.of(partition0, partition1)));
 
         // Set the start offset for each partition
         HashMap<TopicPartition, Long> offsets = new HashMap<>();
@@ -90,15 +89,15 @@ class CommitOffsetServiceTest {
         }
 
         // Initialize the OffsetService
-        this.offsetService =
+        offsetService =
                 new CommitOffsetService(
                         mockConsumer, LoggerFactory.getLogger(OffsetService.class), commitStrategy);
 
         // Subscribe to topic specifying the OffsetService as ConsumerRebalancerListener
-        this.mockConsumer.subscribe(Collections.singleton(TOPIC), offsetService);
+        mockConsumer.subscribe(Collections.singleton(TOPIC), offsetService);
 
         // A first poll is required to trigger partitions assignment.
-        this.mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
+        mockConsumer.poll(Duration.ofMillis(Long.MAX_VALUE));
     }
 
     private void prepareCommittedRecords() {
