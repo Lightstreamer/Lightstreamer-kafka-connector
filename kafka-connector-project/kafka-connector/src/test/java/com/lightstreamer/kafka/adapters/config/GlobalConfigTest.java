@@ -28,6 +28,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ class GlobalConfigTest {
     @AfterEach
     void after() throws IOException {
         Files.delete(loggingConfigurationFile);
-        Files.delete(adapterDir);
+        FileUtils.deleteDirectory(adapterDir.toFile());
     }
 
     @Test
