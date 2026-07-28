@@ -44,20 +44,27 @@ import com.lightstreamer.kafka.common.mapping.RecordMapper.Builder;
 import com.lightstreamer.kafka.common.mapping.RecordMapper.MappedRecord;
 import com.lightstreamer.kafka.common.mapping.selectors.ExtractionException;
 import com.lightstreamer.kafka.common.mapping.selectors.FieldsExtractor;
+import com.lightstreamer.kafka.common.mapping.selectors.KeyValueSelectorSuppliers;
 import com.lightstreamer.kafka.common.mapping.selectors.ValueException;
 import com.lightstreamer.kafka.common.records.KafkaRecord;
 import com.lightstreamer.kafka.test_utils.ItemTemplatesUtils;
 import com.lightstreamer.kafka.test_utils.Records;
 
 import org.apache.avro.generic.GenericRecord;
+import org.apache.commons.io.FileUtils;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -66,6 +73,20 @@ class RecordMapperTest {
 
     private static final String TEST_TOPIC_1 = "topic";
     private static final String TEST_TOPIC_2 = "anotherTopic";
+
+    private static Path adapterDir;
+    private static KeyValueSelectorSuppliers<String, DynamicMessage> protoValue;
+
+    @BeforeAll
+    static void beforeAll() throws IOException {
+        adapterDir = Files.createTempDirectory("adapter_dir");
+        protoValue = ProtoValue(adapterDir.toString());
+    }
+
+    @AfterAll
+    static void afterAll() throws IOException {
+        FileUtils.deleteDirectory(adapterDir.toFile());
+    }
 
     private static Builder<String, String> builder() {
         return RecordMapper.<String, String>builder();
@@ -217,7 +238,7 @@ class RecordMapperTest {
         assertThat(mapper.hasCanonicalItemExtractors()).isTrue();
         assertThat(mapper.hasFieldExtractor()).isTrue();
 
-        // Record published to topic "topic": mapping
+        // Record published to topic "topic": mapping.
         KafkaRecord<String, String> kafkaRecord1 =
                 Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_1,
@@ -236,7 +257,7 @@ class RecordMapperTest {
                 .containsExactly(
                         "keyField", "aKey", "valueField", "aValue", "headerValue", "header-value1");
 
-        // Record published to topic "anotherTopic": mapping
+        // Record published to topic "anotherTopic": mapping.
         KafkaRecord<String, String> kafkaRecord2 =
                 Records.KafkaRecordWithHeaders(
                         TEST_TOPIC_2,
@@ -257,7 +278,7 @@ class RecordMapperTest {
                         "headerValue",
                         "header-value1");
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<String, String> kafkaRecord3 =
                 Records.KafkaRecord("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
@@ -339,7 +360,7 @@ class RecordMapperTest {
         assertThat(mappedRecord3.fieldsMap())
                 .containsExactly("keyField", "anotherKey", "valueField", "anotherValue");
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<String, String> kafkaRecord4 =
                 Records.KafkaRecord("undefinedTopic", "anotherKey", "anotherValue");
         MappedRecord mappedRecord4 = mapper.map(kafkaRecord4);
@@ -402,7 +423,7 @@ class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
-        // Record published to topic "topic": mapping
+        // Record published to topic "topic": mapping.
         KafkaRecord<String, JsonNode> kafkaRecord =
                 Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
@@ -421,7 +442,7 @@ class RecordMapperTest {
             assertThat(fieldsMap).containsAtLeast("name", "alex");
         }
 
-        // Record published to topic "anotherTopic": mapping
+        // Record published to topic "anotherTopic": mapping.
         KafkaRecord<String, JsonNode> kafkaRecord2 =
                 Records.KafkaRecord(TEST_TOPIC_2, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
@@ -436,7 +457,7 @@ class RecordMapperTest {
             assertThat(fieldsMap2).containsAtLeast("name", "alex");
         }
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<String, JsonNode> kafkaRecord3 =
                 Records.KafkaRecord("undefinedTopic", "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
@@ -446,7 +467,7 @@ class RecordMapperTest {
 
     @Test
     void shouldSkipFieldMappingFailure() throws ExtractionException {
-        // This flag will let field mapping alway success by omitting not mapped fields
+        // This flag lets field mapping always succeed by omitting not-mapped fields.
         boolean skipOnFailure = true;
         RecordMapper<String, JsonNode> mapper =
                 RecordMapper.<String, JsonNode>builder()
@@ -461,8 +482,7 @@ class RecordMapperTest {
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
-                                                // This leads a ValueException, which will be
-                                                // omitted
+                                                // This leads to a ValueException, which is omitted.
                                                 Wrapped("#{VALUE.not_valid_attrib}")),
                                         skipOnFailure,
                                         false))
@@ -474,7 +494,7 @@ class RecordMapperTest {
         KafkaRecord<String, JsonNode> kafkaRecord =
                 Records.KafkaRecord(TEST_TOPIC_1, "", SampleJsonNodeProvider().sampleMessage());
         MappedRecord mappedRecord = mapper.map(kafkaRecord);
-        // The childSignature field has been skipped
+        // The childSignature field has been skipped.
         assertThat(mappedRecord.fieldsMap()).containsExactly("firstName", "joe");
     }
 
@@ -494,8 +514,8 @@ class RecordMapperTest {
                                                 "firstName",
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
-                                                // This leads a ValueException, which leads to make
-                                                // getting the fieldsMap fail
+                                                // This leads to a ValueException, which causes
+                                                // fieldsMap() to fail.
                                                 Wrapped("#{VALUE.not_valid_attrib}")),
                                         skipOnFailure,
                                         false))
@@ -518,7 +538,7 @@ class RecordMapperTest {
                 RecordMapper.<String, JsonNode>builder()
                         .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
-                                // This leads a ValueException, which leads to make mapping fail
+                                // This leads to a ValueException, which causes mapping to fail.
                                 canonicalItemExtractor(
                                         JsonValue(),
                                         Template("test-#{name=VALUE.not_valid_attrib}")))
@@ -530,8 +550,8 @@ class RecordMapperTest {
                                                 Wrapped("#{VALUE.name}"),
                                                 "childSignature",
                                                 Wrapped("#{VALUE.children[0].signature}")),
-                                        // This flag is irrelevant when failure happens in template
-                                        // extractor
+                                        // This flag is irrelevant when the failure happens in the
+                                        // template extractor.
                                         skipOnFailure,
                                         false))
                         .build();
@@ -551,7 +571,7 @@ class RecordMapperTest {
         assertThat(ve).hasMessageThat().isEqualTo("Field [not_valid_attrib] not found");
     }
 
-    static Stream<Arguments> avoFieldExtractors() throws ExtractionException {
+    static Stream<Arguments> avroFieldExtractors() throws ExtractionException {
         return Stream.of(
                 arguments(
                         namedFieldsExtractor(
@@ -573,7 +593,7 @@ class RecordMapperTest {
     }
 
     @ParameterizedTest
-    @MethodSource("avoFieldExtractors")
+    @MethodSource("avroFieldExtractors")
     void shouldMapAvroRecordWithMatchingTopic(
             FieldsExtractor<String, GenericRecord> fieldExtractor, boolean isStatic)
             throws ExtractionException {
@@ -606,7 +626,7 @@ class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
-        // Record published to topic "topic": mapping
+        // Record published to topic "topic": mapping.
         KafkaRecord<String, GenericRecord> kafkaRecord =
                 Records.KafkaRecord(
                         TEST_TOPIC_1, "", SampleGenericRecordProvider().sampleMessage());
@@ -626,7 +646,7 @@ class RecordMapperTest {
             assertThat(fieldsMap).containsAtLeast("name", "alex");
         }
 
-        // Record published to topic "anotherTopic": mapping
+        // Record published to topic "anotherTopic": mapping.
         KafkaRecord<String, GenericRecord> kafkaRecord2 =
                 Records.KafkaRecord(
                         TEST_TOPIC_2, "", SampleGenericRecordProvider().sampleMessage());
@@ -642,7 +662,7 @@ class RecordMapperTest {
             assertThat(fieldsMap2).containsAtLeast("name", "alex");
         }
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<String, GenericRecord> kafkaRecord3 =
                 Records.KafkaRecord(
                         "undefinedTopic", "", SampleGenericRecordProvider().sampleMessage());
@@ -655,7 +675,7 @@ class RecordMapperTest {
         return Stream.of(
                 arguments(
                         namedFieldsExtractor(
-                                ProtoValue(),
+                                protoValue,
                                 Map.of(
                                         "firstName",
                                         Wrapped("#{VALUE.name}"),
@@ -666,7 +686,7 @@ class RecordMapperTest {
                         true),
                 arguments(
                         discoveredFieldsExtractor(
-                                ProtoValue(),
+                                protoValue,
                                 List.of(WrappedWithWildcards("#{VALUE.friends[1].friends[0].*}")),
                                 false),
                         false));
@@ -682,22 +702,23 @@ class RecordMapperTest {
                         .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
                                 canonicalItemExtractor(
-                                        ProtoValue(), Template("test-#{name=VALUE.name}")))
+                                        ProtoValue(adapterDir.toString()),
+                                        Template("test-#{name=VALUE.name}")))
                         .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
                                 canonicalItemExtractor(
-                                        ProtoValue(),
+                                        ProtoValue(adapterDir.toString()),
                                         Template("test-#{firstFriendName=VALUE.friends[0].name}")))
                         .addCanonicalItemExtractor(
                                 TEST_TOPIC_1,
                                 canonicalItemExtractor(
-                                        ProtoValue(),
+                                        ProtoValue(adapterDir.toString()),
                                         Template(
                                                 "test-#{secondFriendName=VALUE.friends[1].name,otherName=VALUE.friends[1].friends[0].name}")))
                         .addCanonicalItemExtractor(
                                 TEST_TOPIC_2,
                                 canonicalItemExtractor(
-                                        ProtoValue(),
+                                        ProtoValue(adapterDir.toString()),
                                         Template(
                                                 "test-#{phoneNumber=VALUE.phoneNumbers[0],country=VALUE.otherAddresses['work'].country.name}")))
                         .fieldExtractor(fieldsExtractor)
@@ -706,7 +727,7 @@ class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
-        // Record published to topic "topic": mapping
+        // Record published to topic "topic": mapping.
         KafkaRecord<String, DynamicMessage> kafkaRecord =
                 Records.KafkaRecord(
                         TEST_TOPIC_1, "", SampleDynamicMessageProvider().sampleMessage());
@@ -725,7 +746,7 @@ class RecordMapperTest {
             assertThat(fieldsMap).containsAtLeast("name", "robert", "signature", "abcd");
         }
 
-        // Record published to topic "anotherTopic": mapping
+        // Record published to topic "anotherTopic": mapping.
         KafkaRecord<String, DynamicMessage> kafkaRecord2 =
                 Records.KafkaRecord(
                         TEST_TOPIC_2, "", SampleDynamicMessageProvider().sampleMessage());
@@ -741,7 +762,7 @@ class RecordMapperTest {
             assertThat(fieldsMap2).containsAtLeast("name", "robert", "signature", "abcd");
         }
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<String, DynamicMessage> kafkaRecord3 =
                 Records.KafkaRecord(
                         "undefinedTopic", "", SampleDynamicMessageProvider().sampleMessage());
@@ -751,7 +772,7 @@ class RecordMapperTest {
     }
 
     @Test
-    void shouldMapSinkRecordMatchingTopic() throws ExtractionException {
+    void shouldMapSinkRecordWithMatchingTopic() throws ExtractionException {
         RecordMapper<Object, Object> mapper =
                 RecordMapper.<Object, Object>builder()
                         .addCanonicalItemExtractor(
@@ -790,7 +811,7 @@ class RecordMapperTest {
         assertThat(mapper.hasFieldExtractor()).isTrue();
         assertThat(mapper.isRegexEnabled()).isFalse();
 
-        // Record published to topic "topic": mapping
+        // Record published to topic "topic": mapping.
         Struct message = SampleStructProvider().sampleMessage();
         KafkaRecord<Object, Object> kafkaRecord =
                 Records.sinkFromValue(TEST_TOPIC_1, message.schema(), message);
@@ -805,7 +826,7 @@ class RecordMapperTest {
         assertThat(mappedRecord.fieldsMap())
                 .containsExactly("firstName", "joe", "childSignature", null);
 
-        // Record published to topic "anotherTopic": mapping
+        // Record published to topic "anotherTopic": mapping.
         KafkaRecord<Object, Object> kafkaRecord2 =
                 Records.sinkFromValue(TEST_TOPIC_2, message.schema(), message);
         MappedRecord mappedRecord2 = mapper.map(kafkaRecord2);
@@ -816,7 +837,7 @@ class RecordMapperTest {
         assertThat(mappedRecord2.fieldsMap())
                 .containsExactly("firstName", "joe", "childSignature", null);
 
-        // Record published to topic "undefinedTopic": no mapping
+        // Record published to topic "undefinedTopic": no mapping.
         KafkaRecord<Object, Object> kafkaRecord3 =
                 Records.KafkaRecord("undefinedTopic", message.schema(), message);
         MappedRecord mappedRecord3 = mapper.map(kafkaRecord3);
