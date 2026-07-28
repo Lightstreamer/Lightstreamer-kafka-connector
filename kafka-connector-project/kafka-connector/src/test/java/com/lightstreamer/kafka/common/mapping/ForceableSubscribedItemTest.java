@@ -54,8 +54,8 @@ class ForceableSubscribedItemTest {
 
     @BeforeEach
     void before() throws Exception {
-        this.eventListener = new MockItemEventListener();
-        this.subscribedItem =
+        eventListener = new MockItemEventListener();
+        subscribedItem =
                 new ForceableSubscribedItem(Expressions.Subscription("item-[name=field1]"));
     }
 

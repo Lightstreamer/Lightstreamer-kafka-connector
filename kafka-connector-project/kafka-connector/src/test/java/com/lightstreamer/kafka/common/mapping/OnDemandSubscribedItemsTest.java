@@ -38,7 +38,7 @@ class OnDemandSubscribedItemsTest {
 
     @BeforeEach
     void before() {
-        this.subscribedItems = SubscribedItems.onDemand();
+        subscribedItems = SubscribedItems.onDemand();
     }
 
     @Test
