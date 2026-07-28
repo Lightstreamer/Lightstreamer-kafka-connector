@@ -67,9 +67,9 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void init(@Nonnull Map params, @Nonnull File configDir) throws DataProviderException {
         ConnectorConfigurator configurator = new ConnectorConfigurator(params, configDir);
-        this.connectorConfig = configurator.getConfig();
-        this.logger = LogFactory.getLogger(connectorConfig.getAdapterName());
-        this.metadataListener =
+        connectorConfig = configurator.getConfig();
+        logger = LogFactory.getLogger(connectorConfig.getAdapterName());
+        metadataListener =
                 KafkaConnectorMetadataAdapter.listener(
                         new KafkaConnectorDataAdapterOpts(
                                 connectorConfig.getAdapterName(),
@@ -77,9 +77,9 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                                 connectorConfig.getSubscriptionMode(),
                                 connectorConfig.getItemSnapshotDistinctLength()));
 
-        this.logger.atInfo().log("Configuring Kafka Connector");
-        this.subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
-        this.logger.atInfo().log("KafkaConnector configuration complete");
+        logger.atInfo().log("Configuring Kafka Connector");
+        subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
+        logger.atInfo().log("KafkaConnector configuration complete");
     }
 
     /**
@@ -136,7 +136,7 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
 
     @Override
     public void setListener(@Nonnull ItemEventListener eventListener) {
-        this.subscriptionsHandler.setListener(eventListener);
+        subscriptionsHandler.setListener(eventListener);
     }
 
     @Override
