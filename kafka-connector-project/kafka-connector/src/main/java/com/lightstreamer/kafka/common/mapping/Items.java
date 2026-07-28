@@ -138,8 +138,8 @@ public class Items {
         private final Object itemHandle;
 
         OnDemandSubscribedItem(SubscriptionExpression expression, Object itemHandle) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
+            canonicalItemName = expression.canonicalItemName();
+            schema = expression.schema();
             this.itemHandle = Objects.requireNonNull(itemHandle, "itemHandle");
         }
 
@@ -366,11 +366,11 @@ public class Items {
         private QueueingEventDispatcher queueingDispatcher;
 
         ForceableSubscribedItem(SubscriptionExpression expression) {
-            this.canonicalItemName = expression.canonicalItemName();
-            this.schema = expression.schema();
-            this.queueingDispatcher = new QueueingEventDispatcher(this);
-            this.dispatcher = queueingDispatcher;
-            this.lastAccessNanos = System.nanoTime();
+            canonicalItemName = expression.canonicalItemName();
+            schema = expression.schema();
+            queueingDispatcher = new QueueingEventDispatcher(this);
+            dispatcher = queueingDispatcher;
+            lastAccessNanos = System.nanoTime();
         }
 
         @Override
@@ -452,7 +452,7 @@ public class Items {
          * monotonic.
          */
         void markForced() {
-            this.forced = true;
+            forced = true;
         }
 
         /**
@@ -461,7 +461,7 @@ public class Items {
          * (NTP, leap second, host suspend/resume).
          */
         void touch() {
-            this.lastAccessNanos = System.nanoTime();
+            lastAccessNanos = System.nanoTime();
         }
 
         /**
@@ -504,7 +504,7 @@ public class Items {
         // simulate aged items in clearIdleSnapshots scans, without resorting to Thread.sleep.
         @VisibleForTesting
         void setLastTouched(long nanos) {
-            this.lastAccessNanos = nanos;
+            lastAccessNanos = nanos;
         }
     }
 
@@ -1074,7 +1074,7 @@ public class Items {
         DefaultItemTemplates(List<ItemTemplate<K, V>> templates, boolean regexEnabled) {
             this.templates = Collections.unmodifiableList(templates);
             this.regexEnabled = regexEnabled;
-            this.pattern = makeOptionalPattern();
+            pattern = makeOptionalPattern();
         }
 
         private Optional<Pattern> makeOptionalPattern() {
@@ -1160,7 +1160,7 @@ public class Items {
         ItemTemplate(TopicConfiguration topic, CanonicalItemExtractor<K, V> extractor) {
             this.topic = Objects.requireNonNull(topic);
             this.extractor = Objects.requireNonNull(extractor);
-            this.schema = extractor.schema();
+            schema = extractor.schema();
         }
 
         public boolean matches(Schema schema) {
