@@ -68,14 +68,14 @@ class ForceableSubscribedItemsTest {
 
     @BeforeEach
     void before() {
-        final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
+        Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         listener = new MockItemEventListener();
         items = Items.SubscribedItems.forceable(listener, logger);
     }
 
     @Test
     void shouldRejectNullListenerSupplier() {
-        final Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
+        Logger logger = LogFactory.getLogger("ForceableSubscribedItemsTest");
         assertThrows(
                 NullPointerException.class,
                 () -> Items.SubscribedItems.forceable(null, logger),
