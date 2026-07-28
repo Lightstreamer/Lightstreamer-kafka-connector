@@ -211,7 +211,7 @@ class KafkaConnectorDataAdapterTest {
     @Test
     void shouldNotHandleSnapshot() throws Exception {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        connectorDataAdapter.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter.setConsumerFactory(getConsumer());
         connectorDataAdapter.init(ConnectorConfigProvider.minimalConfig(), adapterDir.toFile());
         connectorDataAdapter.setListener(new MockItemEventListener());
 
@@ -222,7 +222,7 @@ class KafkaConnectorDataAdapterTest {
     @ValueSource(strings = {"COMMAND", "MERGE", "DISTINCT"})
     void shouldHandleSnapshot(String mode) throws Exception {
         KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
-        connectorDataAdapter.setConsumerFactory(this.getConsumer());
+        connectorDataAdapter.setConsumerFactory(getConsumer());
         Map<String, String> config = new HashMap<>();
         config.put(ConnectorConfig.ITEM_SNAPSHOT_ENABLED_MODE, mode);
         if (mode.equals("COMMAND")) {
@@ -251,7 +251,7 @@ class KafkaConnectorDataAdapterTest {
 
         KafkaConnectorDataAdapterImplTest(
                 Supplier<SubscriptionsHandler<?, ?>> subscriptionsHandlerSupplier) {
-            this.supplier = subscriptionsHandlerSupplier;
+            supplier = subscriptionsHandlerSupplier;
         }
 
         @SuppressWarnings("unchecked")
