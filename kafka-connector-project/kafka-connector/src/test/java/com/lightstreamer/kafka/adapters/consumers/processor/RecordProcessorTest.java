@@ -70,8 +70,8 @@ class RecordProcessorTest {
 
     @BeforeEach
     void before() throws ExtractionException {
-        this.eventListener = new MockItemEventListener();
-        this.deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
+        eventListener = new MockItemEventListener();
+        deliveryStrategy = new RealtimeDeliveryStrategy(eventListener);
     }
 
     private RecordMapper<String, String> mapperForCommandMode() {
@@ -182,13 +182,13 @@ class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the real-time update has been routed
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
         // Verify that the update has NOT been routed as a snapshot
-        assertThat(this.eventListener.getSmartSnapshotUpdates()).isEmpty();
+        assertThat(eventListener.getSmartSnapshotUpdates()).isEmpty();
 
         // Reset the counter
-        this.eventListener.reset();
+        eventListener.reset();
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
@@ -199,7 +199,7 @@ class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
@@ -227,7 +227,7 @@ class RecordProcessorTest {
         subscribedItems.activateOrInstall(Subscription("item2"), itemHandle2);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
@@ -304,7 +304,7 @@ class RecordProcessorTest {
                 .containsExactly(new EventCall(UPDATE, itemHandle1, expectedFields, false));
 
         // Reset the counter
-        this.eventListener.reset();
+        eventListener.reset();
 
         // Add subscription "item2" and process the record
         Object itemHandle2 = new Object();
@@ -315,7 +315,7 @@ class RecordProcessorTest {
         processor.process(record, deliveryStrategy);
 
         // Verify that the update has been routed two times, one for "item1" and one for "item2"
-        assertThat(this.eventListener.getEvents())
+        assertThat(eventListener.getEvents())
                 .containsExactly(
                         new EventCall(UPDATE, itemHandle1, expectedFields, false),
                         new EventCall(UPDATE, itemHandle2, expectedFields, false));
