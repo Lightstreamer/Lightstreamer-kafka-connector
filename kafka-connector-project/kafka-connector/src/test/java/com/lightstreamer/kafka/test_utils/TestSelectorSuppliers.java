@@ -83,8 +83,8 @@ public interface TestSelectorSuppliers {
                 OthersSelectorSuppliers.StringKey(), j.makeValueSelectorSupplier());
     }
 
-    public static KeyValueSelectorSuppliers<String, DynamicMessage> ProtoValue() {
-        ConnectorConfig config = protoValueConfig();
+    public static KeyValueSelectorSuppliers<String, DynamicMessage> ProtoValue(String adapterDir) {
+        ConnectorConfig config = protoValueConfig(adapterDir);
         DynamicMessageSelectorSuppliers d = new DynamicMessageSelectorSuppliers(config);
         return KeyValueSelectorSuppliers.of(
                 OthersSelectorSuppliers.StringKey(), d.makeValueSelectorSupplier());
@@ -132,8 +132,9 @@ public interface TestSelectorSuppliers {
                         "value.avsc"));
     }
 
-    private static ConnectorConfig protoValueConfig() {
+    private static ConnectorConfig protoValueConfig(String adapterDir) {
         return ConnectorConfigProvider.minimalWith(
+                adapterDir,
                 Map.of(
                         // RECORD_KEY_EVALUATOR_TYPE,
                         // PROTOBUF.toString(),
