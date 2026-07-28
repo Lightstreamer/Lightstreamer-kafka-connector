@@ -95,8 +95,8 @@ class DataProviderWrapperImpl implements DataProviderWrapper {
     private CloseHook hook;
 
     DataProviderWrapperImpl(RecordSender sender) {
-        this.server = new DataProviderServer();
-        this.server.setAdapter(sender);
+        server = new DataProviderServer();
+        server.setAdapter(sender);
         this.sender = sender;
     }
 

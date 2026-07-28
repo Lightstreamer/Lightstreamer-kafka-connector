@@ -58,7 +58,7 @@ public final class JoinableRecordBatch<K, V> extends NotifyingRecordBatch<K, V> 
      */
     public JoinableRecordBatch(int recordCount) {
         super(recordCount);
-        this.latch = new CountDownLatch(recordCount);
+        latch = new CountDownLatch(recordCount);
     }
 
     @Override

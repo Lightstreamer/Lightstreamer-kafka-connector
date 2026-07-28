@@ -48,11 +48,11 @@ public final class EagerKafkaConsumerRecord<K, V> extends KafkaConsumerRecord<K,
             DeserializerPair<K, V> deserializerPair,
             RecordBatch<K, V> batch) {
         super(record, batch);
-        this.key =
+        key =
                 deserializerPair
                         .keyDeserializer()
                         .deserialize(record.topic(), record.headers(), record.key());
-        this.value =
+        value =
                 deserializerPair
                         .valueDeserializer()
                         .deserialize(record.topic(), record.headers(), record.value());

@@ -56,9 +56,9 @@ public final class ProviderServerOptions {
     public int maxProxyAdapterConnections;
 
     private ProviderServerOptions(Builder builder) {
-        this.port = builder.port;
-        this.maxProxyAdapterConnections = builder.maxProxyAdapterConnections;
-        this.username = builder.username;
-        this.password = builder.password;
+        port = builder.port;
+        maxProxyAdapterConnections = builder.maxProxyAdapterConnections;
+        username = builder.username;
+        password = builder.password;
     }
 }

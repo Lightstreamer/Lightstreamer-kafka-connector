@@ -64,7 +64,7 @@ public final class ProxyAdapterClient implements ProxyCommunicator, ExceptionHan
 
         DefaultProxyAdapterConnection(ProxyAdapterClientOptions options) {
             this.options = options;
-            this.socket = new Socket();
+            socket = new Socket();
         }
 
         @Override
@@ -108,8 +108,8 @@ public final class ProxyAdapterClient implements ProxyCommunicator, ExceptionHan
             Thread syncTaskThread,
             Function<ProxyAdapterClientOptions, ProxyAdapterConnection> connectionHandler) {
         this.options = options;
-        this.currentSyncThread = syncTaskThread;
-        this.connection = connectionHandler.apply(options);
+        currentSyncThread = syncTaskThread;
+        connection = connectionHandler.apply(options);
     }
 
     @Override
@@ -125,7 +125,7 @@ public final class ProxyAdapterClient implements ProxyCommunicator, ExceptionHan
                 IOStreams ioStreams = connection.open();
                 logger.info("Connected to Lightstreamer Proxy Adapter");
 
-                this.dataProviderWrapper = dataProviderFactory.get();
+                dataProviderWrapper = dataProviderFactory.get();
                 configureProviderServer(dataProviderWrapper, ioStreams);
 
                 logger.info("Starting communication");

@@ -63,7 +63,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
             Function<ProxyAdapterClientOptions, ProxyAdapterConnection> adapterConnectionFactory,
             Function<ProviderServerOptions, ProviderServerConnection> providerConnectionFactory,
             Function<DataAdapterConfig, DataProviderWrapper> dataProviderFactory) {
-        this.clientConnectionFactory = adapterConnectionFactory;
+        clientConnectionFactory = adapterConnectionFactory;
         this.providerConnectionFactory = providerConnectionFactory;
         this.dataProviderFactory = dataProviderFactory;
     }
@@ -80,7 +80,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
         DataAdapterConfig config = DataAdapterConfigurator.configure(cfg, context);
         if (cfg.isConnectionInversionEnabled()) {
             logger.info("Connection inversion is enabled, using ProviderServer");
-            this.communicator =
+            communicator =
                     new ProviderServer(
                             cfg.getProviderServerOptions(),
                             Thread.currentThread(),
@@ -92,7 +92,7 @@ public class LightstreamerSinkConnectorTask extends SinkTask {
                     "Using Lightstreamer Proxy Adapter Client Options: {}",
                     cfg.getProxyAdapterClientOptions());
 
-            this.communicator =
+            communicator =
                     new ProxyAdapterClient(
                             cfg.getProxyAdapterClientOptions(),
                             Thread.currentThread(),

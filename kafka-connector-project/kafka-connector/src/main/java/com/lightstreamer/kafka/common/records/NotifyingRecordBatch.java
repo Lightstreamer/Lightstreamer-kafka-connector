@@ -53,8 +53,8 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * @param size the expected number of records in this batch
      */
     public NotifyingRecordBatch(int size) {
-        this.records = new ArrayList<>(size);
-        this.recordCount = size;
+        records = new ArrayList<>(size);
+        recordCount = size;
     }
 
     /**
@@ -68,7 +68,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
     final void addEagerRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-        this.records.add(KafkaRecord.fromEager(record, deserializerPair, this));
+        records.add(KafkaRecord.fromEager(record, deserializerPair, this));
     }
 
     /**
@@ -82,7 +82,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
     final void addDeferredRecord(
             ConsumerRecord<byte[], byte[]> record,
             KafkaRecord.DeserializerPair<K, V> deserializerPair) {
-        this.records.add(KafkaRecord.fromDeferred(record, deserializerPair, this));
+        records.add(KafkaRecord.fromDeferred(record, deserializerPair, this));
     }
 
     @Override
@@ -115,7 +115,7 @@ public class NotifyingRecordBatch<K, V> implements RecordBatch<K, V> {
      * deserialization errors, so that the completion tracking reflects the actual batch size.
      */
     void shrink() {
-        this.recordCount = records.size();
+        recordCount = records.size();
     }
 
     @Override

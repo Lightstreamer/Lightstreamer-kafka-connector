@@ -130,11 +130,11 @@ public final class StreamingDataAdapter implements RecordSender {
     private Map<String, String> initParameters = Collections.emptyMap();
 
     StreamingDataAdapter(DataAdapterConfig config, DownstreamUpdater nopUpdater) {
-        this.itemTemplates = config.itemTemplates();
-        this.recordMapper = RecordMapper.from(itemTemplates, config.fieldsExtractor());
-        this.errorHandlingStrategy = config.recordErrorHandlingStrategy();
-        this.reporter = errantRecordReporter(config.context());
-        this.updater = nopUpdater;
+        itemTemplates = config.itemTemplates();
+        recordMapper = RecordMapper.from(itemTemplates, config.fieldsExtractor());
+        errorHandlingStrategy = config.recordErrorHandlingStrategy();
+        reporter = errantRecordReporter(config.context());
+        updater = nopUpdater;
     }
 
     StreamingDataAdapter(DataAdapterConfig config) {
@@ -145,13 +145,13 @@ public final class StreamingDataAdapter implements RecordSender {
     public void init(Map<String, String> parameters, String configFile)
             throws DataProviderException {
         logger.atInfo().log("Init parameter from Remote Proxy Adapter: {}", parameters);
-        this.initParameters = Collections.unmodifiableMap(parameters);
+        initParameters = Collections.unmodifiableMap(parameters);
     }
 
     @Override
     public void setListener(ItemEventListener eventListener) {
         // The listener is set before any subscribe is called and never changes.
-        this.listener = eventListener;
+        listener = eventListener;
         logger.atInfo().log("ItemEventListener set");
     }
 
@@ -294,7 +294,7 @@ public final class StreamingDataAdapter implements RecordSender {
                 saveOffsets(record);
             }
             case FORWARD_TO_DLQ -> {
-                if (this.reporter != null) {
+                if (reporter != null) {
                     logger.atWarn().log("Forwarding the error to DLQ");
                     reporter.report(record, ve);
                     saveOffsets(record);

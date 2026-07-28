@@ -73,12 +73,12 @@ public final class ProxyAdapterClientOptions {
     public final String password;
 
     private ProxyAdapterClientOptions(Builder builder) {
-        this.hostname = builder.hostname;
-        this.port = builder.port;
-        this.connectionTimeout = builder.timeout;
-        this.connectionMaxRetries = builder.connectionMaxRetries;
-        this.connectionRetryDelayMs = builder.connectionRetryDelayMs;
-        this.username = builder.username;
-        this.password = builder.password;
+        hostname = builder.hostname;
+        port = builder.port;
+        connectionTimeout = builder.timeout;
+        connectionMaxRetries = builder.connectionMaxRetries;
+        connectionRetryDelayMs = builder.connectionRetryDelayMs;
+        username = builder.username;
+        password = builder.password;
     }
 }
