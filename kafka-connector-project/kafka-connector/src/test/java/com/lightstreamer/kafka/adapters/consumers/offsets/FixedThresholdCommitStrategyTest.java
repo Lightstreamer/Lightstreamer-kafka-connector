@@ -29,7 +29,7 @@ class FixedThresholdCommitStrategyTest {
 
     @BeforeEach
     void before() {
-        this.strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
+        strategy = CommitStrategy.fixedCommitStrategy(5000, 100_000);
     }
 
     @ParameterizedTest
