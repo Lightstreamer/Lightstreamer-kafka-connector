@@ -104,15 +104,15 @@ public class Mocks {
         }
 
         public void setCommitException(RuntimeException exception) {
-            this.commitException = exception;
+            commitException = exception;
         }
 
         public void setListTopicException(Exception exception) {
-            this.listTopicException = new KafkaException("Mocked listTopics exception", exception);
+            listTopicException = new KafkaException("Mocked listTopics exception", exception);
         }
 
         public void setListPartitionsException(Exception exception) {
-            this.listPartitionsException =
+            listPartitionsException =
                     new KafkaException("Mocked listPartitions exception", exception);
         }
 
@@ -308,7 +308,7 @@ public class Mocks {
 
         @Override
         public ProcessUpdatesType processUpdatesType() {
-            return this.processUpdatesType;
+            return processUpdatesType;
         }
     }
 
@@ -387,7 +387,7 @@ public class Mocks {
         private java.util.function.Consumer<String> forceSubscriptionAction = name -> {};
 
         public void setForceSubscriptionAction(java.util.function.Consumer<String> action) {
-            this.forceSubscriptionAction = action;
+            forceSubscriptionAction = action;
         }
 
         @Override
