@@ -609,18 +609,6 @@ Example:
 <param name="bootstrap.servers">broker:29092,broker:29093</param>
 ```
 
-#### `group.id`
-
-_Optional but only effective when [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
-
-The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
-
-Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
-
-```xml
-<param name="group.id">kafka-connector-group</param>
-```
-
 #### `consumer.mode`
 
 _Optional_. Selects how the internal Kafka Consumer acquires the topic partitions it consumes from. Can be one of the following:
@@ -637,6 +625,18 @@ Example:
 
 ```xml
 <param name="consumer.mode">MANUAL</param>
+```
+
+#### `group.id`
+
+_Optional but only effective is [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
+
+The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+
+Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
+
+```xml
+<param name="group.id">kafka-connector-group</param>
 ```
 
 ### Encryption parameters
@@ -663,7 +663,7 @@ _Optional_. The SSL protocol to be used. Can be one of the following:
 - `TLSv1.2`
 - `TLSv1.3`
 
-Default value: `TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.3`.
 
 Example:
 
@@ -675,7 +675,7 @@ Example:
 
 _Optional_. The list of enabled secure communication protocols.
 
-Default value: `TLSv1.2,TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.2,TLSv1.3`.
 
 Example:
 
@@ -840,7 +840,7 @@ Example:
 
 #### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
+_Optional_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
 - [`PLAIN`](#plain) (the default value)
 - [`SCRAM-SHA-256`](#scram-sha-256)
@@ -894,7 +894,7 @@ For an example of a SCRAM-SHA-512 authentication configuration, see the [adapter
 
 ##### `GSSAPI`
 
-When this mechanism is specified, you can configure the following authentication parameters:
+If this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.gssapi.key.tab.enable`
 
@@ -959,7 +959,7 @@ Example of configuration with the use of a ticket cache:
 
 The `AWS_MSK_IAM` authentication mechanism enables access to _Amazon Managed Streaming for Apache Kafka (MSK)_ clusters through [IAM access control](https://docs.aws.amazon.com/msk/latest/developerguide/iam-access-control.html).
 
-When this mechanism is specified, you can configure the following authentication parameters:
+If this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.iam.credential.profile.name`
 
@@ -983,7 +983,7 @@ When this mechanism is specified, you can configure the following authentication
 
 - `authentication.iam.role.session.name`
 
-   _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
+   _Optional_ but only effective if `authentication.iam.role.arn` is set. Specifies a custom session name for the assumed role.
 
   Example:
 
@@ -993,7 +993,7 @@ When this mechanism is specified, you can configure the following authentication
 
 - `authentication.iam.sts.region`
 
-  _Optional_ but only effective when `authentication.iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
+  _Optional_ but only effective if `authentication.iam.role.arn` is set. Specifies the AWS region of the STS endpoint to use when assuming the IAM role.
 
   Example:
 
@@ -1042,7 +1042,7 @@ This support for KVP adds to the versatility of the Kafka Connector, allowing it
 
 #### `record.consume.from`
 
-_Optional but ineffective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE` — see [Snapshot management](#snapshot-management) for the partition-position behavior in that case_. Specifies where to start consuming events from. Can be one of the following:
+_Optional but ineffective if [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE` — see [Snapshot management](#snapshot-management) for the partition-position behavior in that case_. Specifies where to start consuming events from. Can be one of the following:
 
 - `LATEST`: Start consuming events from the end of the topic partition.
 - `EARLIEST`: Start consuming events from the beginning of the topic partition.
@@ -1112,7 +1112,7 @@ Example:
 
 #### `record.consume.with.order.strategy`
 
-_Optional but only effective when [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
+_Optional but only effective if [`record.consume.with.num.threads`](#recordconsumewithnumthreads) is set to a value greater than `1` (which includes the default value)_. The order strategy to be used for concurrent processing of the incoming deserialized records. Can be one of the following:
 
 - `ORDER_BY_PARTITION`: Maintain the order of records within each partition.
 
@@ -1167,6 +1167,9 @@ Examples:
 
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
+> [!IMPORTANT]
+> This parameter takes precedence over [`record.key/value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable): if a local schema path is set, it is used for deserialization even when the Schema Registry is enabled.
+
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
 To generate the descriptor file, use the following command:
@@ -1183,18 +1186,18 @@ This command compiles the source file `record_value.proto` into the binary descr
 Examples:
 
 ```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
+<param name="record.key.evaluator.schema.path">schemas/record_key.avsc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
 ```
 
 ```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
+<param name="record.key.evaluator.schema.path">schemas/record_key.proto.desc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
 ```
 
 #### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+_Mandatory if the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
 
 For example, if your `.proto` file contains:
 
@@ -1217,11 +1220,14 @@ Then the corresponding message type parameter should be:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of a [Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory if the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of a [Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
 Default value: `false`.
+
+> [!NOTE]
+> The [`record.key/value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameter takes precedence: if a local schema path is also set, it is used for deserialization instead.
 
 > [!IMPORTANT]
 > When using the Azure Schema Registry, setting the evaluator type to `PROTOBUF` is not supported.
@@ -1235,7 +1241,7 @@ Examples:
 
 #### `record.key.evaluator.kvp.key-value.separator` and `record.value.evaluator.kvp.key-value.separator`
 
-_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
+_Optional but only effective if [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate keys from values in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1255,7 +1261,7 @@ Default value: `=`.
 
 #### `record.key.evaluator.kvp.pairs.separator` and `record.value.evaluator.kvp.pairs.separator`
 
-_Optional but only effective when [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
+_Optional but only effective if [`record.key/value.evaluator.type`](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `KVP`_.
 Specifies the symbol used to separate multiple key-value pairs in a record key (or record value) serialized in the KVP format.
 
 For example, in the following record value:
@@ -1433,7 +1439,7 @@ This configuration enables the implementation of various routing scenarios, as s
 
 #### Consume from specific partitions (`map.TOPIC_NAME.from.partitions`)
 
-_Optional but only effective when [`consumer.mode`](#consumermode) is set to `MANUAL`_. Restrict this consumer's assignment for the topic `TOPIC_NAME` to a specific subset of partitions, instead of all partitions of the topic.
+_Optional but only effective if [`consumer.mode`](#consumermode) is set to `MANUAL`_. Restrict this consumer's assignment for the topic `TOPIC_NAME` to a specific subset of partitions, instead of all partitions of the topic.
 
 The value is a comma-separated list of non-negative partition numbers and inclusive ranges (whitespace around commas and hyphens is tolerated; duplicates and overlapping ranges are coalesced).
 
@@ -1483,7 +1489,7 @@ Can be one of the following:
 - `true`
 - `false`
 
-Not supported when [`consumer.mode`](#consumermode) is set to `MANUAL`; the setting will be rejected at startup.
+Not supported if [`consumer.mode`](#consumermode) is set to `MANUAL`; the setting will be rejected at startup.
 
 Default value: `false`.
 
@@ -1512,7 +1518,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L609) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L616) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1911,7 +1917,7 @@ Example:
 
 ### `item.snapshot.distinct.length`
 
-_Optional but only effective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to `DISTINCT`_. The maximum allowed length for the snapshot of an item that has been requested with publishing _Mode_ _DISTINCT_. Must be a positive integer.
+_Optional but only effective if [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to `DISTINCT`_. The maximum allowed length for the snapshot of an item that has been requested with publishing _Mode_ _DISTINCT_. Must be a positive integer.
 
 Default value: `10`.
 
@@ -1923,7 +1929,7 @@ Example:
 
 ### `item.snapshot.max.idle.seconds`
 
-_Optional but only effective when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any  value other than `NONE`_. The maximum idle time in seconds after which the snapshot of an item is discarded, so that the next incoming record starts a fresh one. Must be a non-negative integer; a value of `0` disables the idle check.
+_Optional but only effective if [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any  value other than `NONE`_. The maximum idle time in seconds after which the snapshot of an item is discarded, so that the next incoming record starts a fresh one. Must be a non-negative integer; a value of `0` disables the idle check.
 
 Default value: `0`.
 
@@ -2045,7 +2051,7 @@ Example:
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
 <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
 <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-keystore-password</param>
 <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 

@@ -40,7 +40,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to configure 
     ```xml
     <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
     <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-    <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+    <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-keystore-password</param>
     <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
     ```
 

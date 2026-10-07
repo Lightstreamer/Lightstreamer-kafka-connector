@@ -19,20 +19,20 @@ do
 
     # Create the key store file
     keypass="-keypass $service-${keypass_suffix}"
-    keytool -genkey -noprompt $storetype $keypass -keystore $service/$service.keystore.jks -alias $service -keyalg RSA -validity ${validity} -storepass "$service-password" -dname "CN=$service.example.lightsteramer.com, OU=Kafka Connector, O=Lighsteramer Srl, C=Italy"
+    keytool -genkey -noprompt $storetype $keypass -keystore $service/$service.keystore.jks -alias $service -keyalg RSA -validity ${validity} -storepass "$service-keystore-password" -dname "CN=$service.example.lightsteramer.com, OU=Kafka Connector, O=Lighsteramer Srl, C=Italy"
 
     # Create the CSR file
-    keytool -keystore $service/$service.keystore.jks $storetype $keypass -alias $service -certreq -file $service/$service.csr -storepass "$service-password"
+    keytool -keystore $service/$service.keystore.jks $storetype $keypass -alias $service -certreq -file $service/$service.csr -storepass "$service-keystore-password"
 
     # Sign the key
-    openssl x509 -req -CA ca.cert -CAkey ca.key -in $service/$service.csr -out $service/$service.signed -days ${validity} -CAcreateserial -passin pass:$service-password
+    openssl x509 -req -CA ca.cert -CAkey ca.key -in $service/$service.csr -out $service/$service.signed -days ${validity} -CAcreateserial -passin pass:$service-keystore-password
 
     # Import both the certificate of the CA and the signed certificate back into the key store
-    keytool -keystore $service/$service.keystore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-password" -noprompt
-    keytool -keystore $service/$service.keystore.jks $keypass -alias $service -importcert -file $service/$service.signed -storepass "$service-password" -noprompt
+    keytool -keystore $service/$service.keystore.jks -alias CARoot -importcert -file ca.cert -storepass "$service-keystore-password" -noprompt
+    keytool -keystore $service/$service.keystore.jks $keypass -alias $service -importcert -file $service/$service.signed -storepass "$service-keystore-password" -noprompt
 done
 
 # Save credentials
-echo "broker-password" > broker/broker_keystore_credentials
+echo "broker-keystore-password" > broker/broker_keystore_credentials
 echo "broker-${keypass_suffix}" > broker/broker_key_credentials
 echo "broker-truststore-password" > broker/broker_truststore_credentials

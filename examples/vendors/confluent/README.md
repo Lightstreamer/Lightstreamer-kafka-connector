@@ -229,7 +229,7 @@ To quickly complete the installation and verify the successful integration with 
 
   To enable a generic Lightstreamer client to receive real-time updates, it needs to subscribe to one or more items. Therefore, the Kafka Connector provides suitable mechanisms to map Kafka topics to Lightstreamer items effectively.
 
-  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L39) comes with a straightforward mapping defined through the following settings:
+  The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L41) comes with a straightforward mapping defined through the following settings:
 
   - An item template:
     ```xml
@@ -595,18 +595,6 @@ Example:
 <param name="bootstrap.servers">broker:29092,broker:29093</param>
 ```
 
-#### `group.id`
-
-_Optional but only effective when [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
-
-The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
-
-Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
-
-```xml
-<param name="group.id">kafka-connector-group</param>
-```
-
 #### `consumer.mode`
 
 _Optional_. Selects how the internal Kafka Consumer acquires the topic partitions it consumes from. Can be one of the following:
@@ -623,6 +611,18 @@ Example:
 
 ```xml
 <param name="consumer.mode">MANUAL</param>
+```
+
+#### `group.id`
+
+_Optional but only effective when [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
+
+The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
+
+Default value: _Kafka Connector Identifier_ + _Connection Name_ + _Randomly generated suffix_.
+
+```xml
+<param name="group.id">kafka-connector-group</param>
 ```
 
 ### Encryption parameters
@@ -649,7 +649,7 @@ _Optional_. The SSL protocol to be used. Can be one of the following:
 - `TLSv1.2`
 - `TLSv1.3`
 
-Default value: `TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.3`.
 
 Example:
 
@@ -661,7 +661,7 @@ Example:
 
 _Optional_. The list of enabled secure communication protocols.
 
-Default value: `TLSv1.2,TLSv1.3` when running on Java 11 or newer, `TLSv1.2` otherwise.
+Default value: `TLSv1.2,TLSv1.3`.
 
 Example:
 
@@ -826,13 +826,12 @@ Example:
 
 #### `authentication.mechanism`
 
-_Mandatory if [authentication](#authenticationenable) is enabled_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
+_Optional_. The SASL mechanism type. The Kafka Connector accepts the following authentication mechanisms:
 
 - [`PLAIN`](#plain) (the default value)
 - [`SCRAM-SHA-256`](#scram-sha-256)
 - [`SCRAM-SHA-512`](#scram-sha-512)
 - [`GSSAPI`](#gssapi)
-- [`AWS_MSK_IAM`](#aws_msk_iam)
 
 In the case of `PLAIN`, `SCRAM-SHA-256`, and `SCRAM-SHA-512` mechanisms, the credentials must be configured through the following mandatory parameters:
 
@@ -876,7 +875,7 @@ Example:
 
 ##### `GSSAPI`
 
-When this mechanism is specified, you can configure the following authentication parameters:
+If this mechanism is specified, you can configure the following authentication parameters:
 
 - `authentication.gssapi.key.tab.enable`
 
@@ -1098,6 +1097,9 @@ Examples:
 
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and the [Confluent Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is disabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
+> [!IMPORTANT]
+> This parameter takes precedence over [`record.key/value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable): if a local schema path is set, it is used for deserialization even when the Confluent Schema Registry is enabled.
+
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
 To generate the descriptor file, use the following command:
@@ -1114,18 +1116,18 @@ This command compiles the source file `record_value.proto` into the binary descr
 Examples:
 
 ```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.avsc</param>
+<param name="record.key.evaluator.schema.path">schemas/record_key.avsc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
 ```
 
 ```xml
-<param name="record.key.evaluator.schema.path">schema/record_key.proto.desc</param>
+<param name="record.key.evaluator.schema.path">schemas/record_key.proto.desc</param>
 <param name="record.value.evaluator.schema.path">schemas/record_value.proto.desc</param>
 ```
 
 #### `record.key.evaluator.protobuf.message.type` and `record.value.evaluator.protobuf.message.type`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
+_Mandatory if the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `PROTOBUF` and a binary descriptor file is provided through the [record.key/value.evaluator.schema.path](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameters_. Specifies the name of the Protobuf message type to be used for deserializing the key and value of a Kafka record.
 
 For example, if your `.proto` file contains:
 
@@ -1148,11 +1150,14 @@ Then the corresponding message type parameter should be:
 
 #### `record.key.evaluator.schema.registry.enable` and `record.value.evaluator.schema.registry.enable`
 
-_Mandatory when the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
+_Mandatory if the [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [local schema paths](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) are provided_. Enable the use of the [Confluent Schema Registry](#schema-registry) for validation respectively of the key and the value. Can be one of the following:
 - `true`
 - `false`
 
 Default value: `false`.
+
+> [!NOTE]
+> The [`record.key/value.evaluator.schema.path`](#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) parameter takes precedence: if a local schema path is also set, it is used for deserialization instead.
 
 Examples:
 
@@ -1411,7 +1416,7 @@ Can be one of the following:
 - `true`
 - `false`
 
-Not supported when [`consumer.mode`](#consumermode) is set to `MANUAL`; the setting will be rejected at startup.
+Not supported if [`consumer.mode`](#consumermode) is set to `MANUAL`; the setting will be rejected at startup.
 
 Default value: `false`.
 
@@ -1440,7 +1445,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L609) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L616) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...
@@ -1944,7 +1949,7 @@ Example:
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
 <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
 <param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-password</param>
+<param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-keystore-password</param>
 <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
 
