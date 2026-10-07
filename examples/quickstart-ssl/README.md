@@ -47,7 +47,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     ```xml
     <param name="encryption.keystore.enable">true</param>
     <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
-    <param name="encryption.keystore.password">kafka-connector-password</param>
+    <param name="encryption.keystore.password">kafka-connector-keystore-password</param>
     <param name="encryption.keystore.key.password">kafka-connector-private-keypassword</param>
     ```
 
