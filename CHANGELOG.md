@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.1.1] (2026-10-07)
+
+**Examples and Documentation**
+
+- **Parameter-reference wording unified**: Rewrote conditional phrasing across the parameter reference in [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and the factory [`git`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) (e.g. _"only effective when …"_ → _"only effective if …"_), and repositioned the [`group.id`](README.md#groupid) section after [`consumer.mode`](README.md#consumermode). ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+- **TLS Java 11 caveat removed**: Removed the obsolete _"when running on Java 11 or newer"_ caveat from the [`encryption.protocol`](README.md#encryptionprotocol) and [`encryption.enabled.protocols`](README.md#encryptionenabledprotocols) TLS default descriptions across [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml). ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+- **Schema-path precedence documented**: Documented that [`record.key/value.evaluator.schema.path`](README.md#recordkeyevaluatorschemapath-and-recordvalueevaluatorschemapath) takes precedence over [`record.key/value.evaluator.schema.registry.enable`](README.md#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) when both are configured, in [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml). ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+- **`authentication.mechanism` optionality corrected**: Corrected [`authentication.mechanism`](README.md#authenticationmechanism) from mandatory to optional (defaults to `PLAIN`), and removed the non-applicable `AWS_MSK_IAM` mechanism from the Confluent README list. ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+- **Example schema path and anchors fixed**: Fixed the `schema/` → `schemas/` example-path typo in [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml), and realigned the `QuickStart` factory-configuration anchor links. ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+- **Example TLS secrets refreshed**: Regenerated the full set of example TLS certificates, keystores, and truststores under [`examples/compose-templates/secrets/`](examples/compose-templates/secrets/), and renamed the example keystore password from `<service>-password` to the clearer `<service>-keystore-password` across the [`generate-secrets.sh`](examples/compose-templates/secrets/generate-secrets.sh) generator and every consumer of it (the SSL and Schema Registry quickstarts, the root `README.md`, and the factory `adapters.xml`). Example credentials only — no connector configuration key changes. ([#89](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/89))
+
+
 ## [2.1.0] (2026-07-28)
 
 **New Features**
