@@ -74,7 +74,7 @@ spotless {
 protobuf {
     protoc {
         // Keep in sync with the protobuf-java version brought in by kafka-protobuf-serializer
-        artifact = 'com.google.protobuf:protoc:4.31.1'
+        artifact = 'com.google.protobuf:protoc:4.34.0'
     }
     generateProtoTasks {
         all().configureEach { task ->
