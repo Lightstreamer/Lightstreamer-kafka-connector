@@ -3,8 +3,8 @@ plugins {
     id 'maven-publish'
     id 'com.github.davidmc24.gradle.plugin.avro' version '1.9.1'
     id 'com.google.protobuf' version '0.9.5'
-    id 'com.diffplug.spotless' version '8.8.0'
-    id 'com.gradleup.shadow' version '9.4.3'
+    id 'com.diffplug.spotless' version '8.10.4'
+    id 'com.gradleup.shadow' version '9.6.1'
 }
 
 repositories {
@@ -18,13 +18,12 @@ dependencies {
     implementation("info.picocli:picocli:4.7.5")
 
     implementation("org.slf4j:slf4j-reload4j:2.0.18")
-    implementation("org.apache.kafka:kafka-clients:8.1.1-ccs")
-    implementation("io.confluent:kafka-avro-serializer:8.1.1")
-    implementation("io.confluent:kafka-json-serializer:8.1.1")
-    implementation("io.confluent:kafka-json-schema-serializer:8.1.1")
-    implementation("io.confluent:kafka-protobuf-serializer:8.1.1")
+    implementation("org.apache.kafka:kafka-clients:8.3.2-ccs")
+    implementation("io.confluent:kafka-avro-serializer:8.3.2")
+    implementation("io.confluent:kafka-json-serializer:8.3.2")
+    implementation("io.confluent:kafka-json-schema-serializer:8.3.2")
+    implementation("io.confluent:kafka-protobuf-serializer:8.3.2")
     implementation("org.apache.avro:avro:1.11.4")
-    implementation("com.google.protobuf:protobuf-java:3.24.0")
     implementation("com.microsoft.azure:azure-schemaregistry-kafka-json:1.0.0-beta.5")
     implementation("com.microsoft.azure:azure-schemaregistry-kafka-avro:1.1.2")
 
@@ -74,7 +73,8 @@ spotless {
 
 protobuf {
     protoc {
-        artifact = 'com.google.protobuf:protoc:3.24.0'
+        // Keep in sync with the protobuf-java version brought in by kafka-protobuf-serializer
+        artifact = 'com.google.protobuf:protoc:4.34.0'
     }
     generateProtoTasks {
         all().configureEach { task ->
