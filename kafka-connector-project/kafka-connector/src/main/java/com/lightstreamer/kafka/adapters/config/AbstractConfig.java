@@ -25,6 +25,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.THREADS;
@@ -70,6 +71,10 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
 
     public final String getNonNegativeInt(String configKey) {
         return get(configKey, NON_NEGATIVE_INT, false);
+    }
+
+    public final String getPositiveLong(String configKey) {
+        return get(configKey, POSITIVE_LONG, false);
     }
 
     public final String getThreads(String configKey) {
