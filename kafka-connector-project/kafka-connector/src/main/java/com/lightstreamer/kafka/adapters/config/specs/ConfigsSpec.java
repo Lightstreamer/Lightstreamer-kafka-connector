@@ -24,6 +24,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ResponseMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
@@ -101,6 +102,18 @@ public class ConfigsSpec {
             public boolean checkValidity(String param) {
                 try {
                     Integer.valueOf(param);
+                    return true;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
+        POSITIVE_LONG {
+            @Override
+            public boolean checkValidity(String param) {
+                try {
+                    Long.valueOf(param);
                     return true;
                 } catch (NumberFormatException e) {
                     return false;
@@ -222,6 +235,8 @@ public class ConfigsSpec {
             }
         },
 
+        ACKS(Options.acks()),
+
         SECURITY_PROTOCOL(Options.securityProtocols()),
 
         KEYSTORE_TYPE(Options.keystoreTypes()),
@@ -232,7 +247,9 @@ public class ConfigsSpec {
 
         CONSUMER_MODE(Options.consumerModes()),
 
-        SASL_MECHANISM(Options.saslMechanisms());
+        SASL_MECHANISM(Options.saslMechanisms()),
+
+        RESPONSE_MODE(Options.responseModes());
 
         Type embeddedType;
 
@@ -518,6 +535,14 @@ public class ConfigsSpec {
 
         static Options schemaRegistryProviders() {
             return new Options(SchemaRegistryProvider.names());
+        }
+
+        static Options acks() {
+            return new Options(Set.of("0", "1", "all", "-1"));
+        }
+
+        static Options responseModes() {
+            return new Options(ResponseMode.names());
         }
 
         private Set<String> choices;
