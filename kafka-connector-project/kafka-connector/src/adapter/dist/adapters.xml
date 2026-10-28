@@ -18,6 +18,12 @@
              folder (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
 
+        <param name="publish.enable">true</param>
+        <param name="publish.bootstrap.servers">broker:29092</param>
+        <param name="publish.record.key.evaluator.type">STRING</param>
+        <param name="publish.record.value.evaluator.type">STRING</param>
+        <param name="publish.ack.enabled">true</param>
+
     </metadata_provider>
 
     <!-- Mandatory. The Kafka Connector allows the configuration of different independent
@@ -54,7 +60,7 @@
 
              Default value: true. -->
         <!--
-        <param name="enable">false</param>
+        <param name="enable">true</param>
         -->
 
         <!-- Mandatory. The Kafka Cluster bootstrap server endpoint expressed as the list of
