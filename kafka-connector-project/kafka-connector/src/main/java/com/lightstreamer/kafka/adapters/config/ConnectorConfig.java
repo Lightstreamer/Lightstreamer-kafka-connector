@@ -28,6 +28,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ORDER_STRATEGY;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.SNAPSHOT_ENABLED_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
@@ -433,14 +434,14 @@ public final class ConnectorConfig extends AbstractConfig {
                                 CONSUMER_METADATA_MAX_AGE_CONFIG,
                                 true,
                                 false,
-                                INT,
+                                POSITIVE_LONG,
                                 false,
                                 defaultValue("250"))
                         .add(
                                 CONSUMER_REQUEST_TIMEOUT_MS_CONFIG,
                                 true,
                                 false,
-                                INT,
+                                NON_NEGATIVE_INT,
                                 false,
                                 defaultValue("30000"))
                         .add(CONSUMER_RETRIES, true, false, INT, false, defaultValue("0"))
@@ -448,7 +449,7 @@ public final class ConnectorConfig extends AbstractConfig {
                                 CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG,
                                 true,
                                 false,
-                                INT,
+                                NON_NEGATIVE_INT,
                                 false,
                                 defaultValue("60000"))
                         .withEnabledChildConfigs(EncryptionConfigs.spec(), ENCRYPTION_ENABLE)
@@ -648,7 +649,8 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(KEY_DESERIALIZER_CLASS_CONFIG, KAFKA_BYTE_ARRAY_DESERIALIZER);
         properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, KAFKA_BYTE_ARRAY_DESERIALIZER);
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
-        properties.setProperty(METADATA_MAX_AGE_CONFIG, getInt(CONSUMER_METADATA_MAX_AGE_CONFIG));
+        properties.setProperty(
+                METADATA_MAX_AGE_CONFIG, getPositiveLong(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
         properties.setProperty(
                 ENABLE_AUTO_COMMIT_CONFIG, getBooleanStr(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
@@ -674,9 +676,10 @@ public final class ConnectorConfig extends AbstractConfig {
                 MAX_POLL_INTERVAL_MS_CONFIG,
                 getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
-                REQUEST_TIMEOUT_MS_CONFIG, getInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
+                REQUEST_TIMEOUT_MS_CONFIG, getNonNegativeInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
-                DEFAULT_API_TIMEOUT_MS_CONFIG, getInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
+                DEFAULT_API_TIMEOUT_MS_CONFIG,
+                getNonNegativeInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
         properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
