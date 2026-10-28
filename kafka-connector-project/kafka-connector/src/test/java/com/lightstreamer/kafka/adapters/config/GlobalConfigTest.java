@@ -29,9 +29,13 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -39,6 +43,8 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 class GlobalConfigTest {
 
@@ -69,15 +75,15 @@ class GlobalConfigTest {
         assertThat(adaptersConfId.defaultValue()).isNull();
         assertThat(adaptersConfId.type()).isEqualTo(TEXT);
 
-        ConfParameter loggingConfigurationFile =
+        ConfParameter loggingConfigurationPath =
                 configSpec.findParameter(GlobalConfig.LOGGING_CONFIGURATION_PATH);
-        assertThat(loggingConfigurationFile.name())
+        assertThat(loggingConfigurationPath.name())
                 .isEqualTo(GlobalConfig.LOGGING_CONFIGURATION_PATH);
-        assertThat(loggingConfigurationFile.required()).isTrue();
-        assertThat(loggingConfigurationFile.multiple()).isFalse();
-        assertThat(loggingConfigurationFile.mutable()).isTrue();
-        assertThat(loggingConfigurationFile.defaultValue()).isNull();
-        assertThat(loggingConfigurationFile.type()).isEqualTo(FILE);
+        assertThat(loggingConfigurationPath.required()).isTrue();
+        assertThat(loggingConfigurationPath.multiple()).isFalse();
+        assertThat(loggingConfigurationPath.mutable()).isTrue();
+        assertThat(loggingConfigurationPath.defaultValue()).isNull();
+        assertThat(loggingConfigurationPath.type()).isEqualTo(FILE);
     }
 
     @Test
@@ -138,5 +144,71 @@ class GlobalConfigTest {
         assertThat(config.getText(GlobalConfig.ADAPTERS_CONF_ID)).isEqualTo("KAFKA");
         assertThat(config.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH))
                 .isEqualTo(loggingConfigurationFile.toString());
+    }
+
+    static Stream<Named<Function<GlobalConfig, Object>>> publishSettingsAccessors() {
+        return Stream.of(
+                Named.of("getPublishKeyEvaluatorType", GlobalConfig::getPublishKeyEvaluatorType),
+                Named.of(
+                        "getPublishValueEvaluatorType", GlobalConfig::getPublishValueEvaluatorType),
+                Named.of("baseProducerProps", GlobalConfig::baseProducerProps));
+    }
+
+    @ParameterizedTest
+    @MethodSource("publishSettingsAccessors")
+    void shouldNotAccessPublishSettings(Function<GlobalConfig, Object> accessor) {
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), minimal());
+        assertThat(config.isPublishEnabled()).isFalse();
+
+        ConfigException ce = assertThrows(ConfigException.class, () -> accessor.apply(config));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Publish is not enabled. Check parameter [%s]"
+                                .formatted(GlobalConfig.PUBLISH_ENABLE));
+    }
+
+    @Test
+    void shouldSpecifyPublishParametersWhenRequired() {
+        Map<String, String> params = minimal();
+        params.put(GlobalConfig.PUBLISH_ENABLE, "true");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Missing required parameter [%s]"
+                                .formatted(GlobalConfig.PUBLISH_BOOTSTRAP_SERVERS));
+
+        params.put(GlobalConfig.PUBLISH_BOOTSTRAP_SERVERS, "");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PUBLISH_BOOTSTRAP_SERVERS));
+
+        params.put(GlobalConfig.PUBLISH_BOOTSTRAP_SERVERS, "localhost:9092");
+        assertDoesNotThrow(() -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+    }
+
+    @Test
+    void shouldRetrieveBaseProducerProperties() {
+        Map<String, String> params = minimal();
+        params.put(GlobalConfig.PUBLISH_ENABLE, "true");
+        params.put(GlobalConfig.PUBLISH_BOOTSTRAP_SERVERS, "localhost:9092");
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsAtLeast(
+                        ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
+                        ProducerConfig.MAX_BLOCK_MS_CONFIG, "1000",
+                        ProducerConfig.ACKS_CONFIG, "all");
     }
 }
