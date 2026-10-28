@@ -27,6 +27,7 @@ import com.lightstreamer.interfaces.metadata.SchemaException;
 import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka.adapters.producers.MessageHandler;
 import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
@@ -40,6 +41,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.annotation.Nonnull;
@@ -63,6 +65,8 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
 
     private GlobalConfig globalConfig;
 
+    private MessageHandler messageHandler;
+
     /**
      * @hidden
      */
@@ -73,6 +77,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
         super.init(params, configDir);
         globalConfig = GlobalConfig.newConfig(configDir, params);
         configureLogging(configDir);
+        configureMessageHandler();
         METADATA_ADAPTER = this;
         postInit(params, configDir);
         logger.atInfo().log("Metadata Adapter \"{}\" initialized", params.get("adapters_conf.id"));
@@ -115,6 +120,22 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
         String logConfigFile = globalConfig.getFile(GlobalConfig.LOGGING_CONFIGURATION_PATH);
         PropertyConfigurator.configure(logConfigFile);
         logger = LoggerFactory.getLogger(KafkaConnectorMetadataAdapter.class);
+    }
+
+    private void configureMessageHandler() {
+        //     if (globalConfig.isPublishEnabled()) {
+        //         messageHandler =
+        //                 MessageHandler.create(
+        //                         logger,
+        //                         new ProducerSettings(
+        //                                 globalConfig.getPublishKeyEvaluatorType(),
+        //                                 globalConfig.getPublishValueEvaluatorType(),
+        //                                 globalConfig.isPublishAckEnabled(),
+        //                                 globalConfig.baseProducerProps()));
+        //     } else {
+        //         messageHandler = MessageHandler.DISABLED;
+        //     }
+        messageHandler = MessageHandler.DISABLED;
     }
 
     /**
@@ -187,6 +208,17 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     @Override
     public final boolean wantsTablesNotification(String user) {
         return true;
+    }
+
+    /**
+     * @hidden
+     */
+    @Override
+    public final CompletableFuture<String> notifyUserMessage(
+            String user, String sessionID, String message)
+            throws CreditsException, NotificationException {
+        onUserMessage(user, sessionID, message);
+        return messageHandler.sendMessage(message);
     }
 
     /**
@@ -336,6 +368,22 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     protected final Optional<KafkaConnectorDataAdapterOpts> lookUp(String connectionName) {
         return Optional.ofNullable(registeredDataAdapters.get(connectionName));
     }
+
+    /**
+     * Hook method invoked by Lightstreamer Kernel to notify that a user has submitted a message.
+     *
+     * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
+     *
+     * @param user a user name
+     * @param sessionID the ID of the session owned by the user
+     * @param message a non-null string
+     * @throws CreditsException if the user is not allowed to submit the message
+     * @throws NotificationException if something is wrong in the parameters, such as the {@code
+     *     sessionID} of a session that is not currently open
+     */
+    public void onUserMessage(
+            @Nullable String user, @Nonnull String sessionID, @Nonnull String message)
+            throws CreditsException, NotificationException {}
 
     /**
      * Hook method invoked by Lightstreamer Kernel to notify that a user has submitted a
