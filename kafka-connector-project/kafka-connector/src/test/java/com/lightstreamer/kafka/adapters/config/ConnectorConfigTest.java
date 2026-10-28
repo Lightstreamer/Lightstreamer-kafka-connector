@@ -572,7 +572,7 @@ class ConnectorConfigTest {
         assertThat(metadataMaxAge.multiple()).isFalse();
         assertThat(metadataMaxAge.mutable()).isFalse();
         assertThat(metadataMaxAge.defaultValue()).isEqualTo("250");
-        assertThat(metadataMaxAge.type()).isEqualTo(ConfType.INT);
+        assertThat(metadataMaxAge.type()).isEqualTo(ConfType.POSITIVE_LONG);
 
         ConfParameter requestTimeoutMs =
                 configSpec.findParameter(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG);
@@ -581,7 +581,7 @@ class ConnectorConfigTest {
         assertThat(requestTimeoutMs.multiple()).isFalse();
         assertThat(requestTimeoutMs.mutable()).isFalse();
         assertThat(requestTimeoutMs.defaultValue()).isEqualTo("30000");
-        assertThat(requestTimeoutMs.type()).isEqualTo(ConfType.INT);
+        assertThat(requestTimeoutMs.type()).isEqualTo(ConfType.NON_NEGATIVE_INT);
 
         ConfParameter itemSnapShotEnableMode = configSpec.findParameter(ITEM_SNAPSHOT_ENABLED_MODE);
         assertThat(itemSnapShotEnableMode.name()).isEqualTo(ITEM_SNAPSHOT_ENABLED_MODE);
