@@ -72,6 +72,18 @@ public interface SubscriptionsHandler<K, V> {
     }
 
     /**
+     * Returns a {@code SubscriptionsHandler} for a disabled connection. The returned handler never
+     * starts a Kafka consumer and rejects every {@link #subscribe} call.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     * @return a {@link DisabledSubscriptionsHandler} instance
+     */
+    static <K, V> SubscriptionsHandler<K, V> disabled() {
+        return new DisabledSubscriptionsHandler<>();
+    }
+
+    /**
      * Returns whether the given item supports snapshot delivery. The result is used by {@code
      * KafkaConnectorDataAdapter} to determine if a subscription should be treated as a snapshot
      * subscription (Path-2) or a regular subscription (Path-1).
@@ -107,6 +119,38 @@ public interface SubscriptionsHandler<K, V> {
      *     subscribed
      */
     boolean unsubscribe(String item);
+
+    /**
+     * Null-object {@link SubscriptionsHandler} used when the connection is disabled via
+     * configuration. Snapshots are never available, listener registration is ignored, {@link
+     * #subscribe} always throws a {@link SubscriptionException}, and {@link #unsubscribe} always
+     * returns {@code false}.
+     *
+     * @param <K> the type of the key in the Kafka record
+     * @param <V> the type of the value in the Kafka record
+     */
+    class DisabledSubscriptionsHandler<K, V> implements SubscriptionsHandler<K, V> {
+
+        @Override
+        public boolean isSnapshotAvailable(String itemName) {
+            return false;
+        }
+
+        @Override
+        public void setListener(ItemEventListener listener) {
+            // No-op
+        }
+
+        @Override
+        public void subscribe(String item, Object itemHandle) throws SubscriptionException {
+            throw new SubscriptionException("Subscriptions are disabled");
+        }
+
+        @Override
+        public boolean unsubscribe(String item) {
+            return false;
+        }
+    }
 
     /**
      * Abstract base providing shared infrastructure for {@link SubscriptionsHandler}

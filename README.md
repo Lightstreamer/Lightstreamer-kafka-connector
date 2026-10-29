@@ -330,7 +330,7 @@ Images are published to GitHub Container Registry on each release. You can pull 
 $ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:latest
 
 # Or pull a specific version
-$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:2.1.1
+$ docker pull ghcr.io/lightstreamer/lightstreamer-kafka-connector:2.1.2
 ```
 
 **Alternatively, build locally from source:**
@@ -402,7 +402,7 @@ Download the provided [sample web client](/examples/compose-templates/web), base
 As shown in the [source code](/examples/compose-templates/web/index.html), consuming live data from the Kafka Connector involves just a few steps:
 
 1. **Establishing a connection:**
-   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the adapter set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
+   To connect to the Lightstreamer Kafka Connector, a `LightstreamerClient` object is created to connect to the server at `http://localhost:8080` and specifies the Adapter Set `KafkaConnector`, as [configured](#adapter_confid---kafka-connector-identifier) on the server side through the `id` attribute of the `adapters_conf` root tag in the `adapters.xml` file.
 
    ```js
    var lsClient = new LightstreamerClient("http://localhost:8080", "KafkaConnector");
@@ -587,7 +587,10 @@ _Optional_. Enable this connection configuration. Can be one of the following:
 - `true`
 - `false`
 
-If disabled, Lightstreamer Server will automatically deny every subscription made to this connection.
+If disabled:
+- Lightstreamer Server will automatically deny every subscription made to this connection.
+- No Kafka consumer is ever created for this connection, not even when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to a value other than `NONE` (which would otherwise start the consumer eagerly at adapter initialization).
+- All the parameters of this connection are still fully validated at startup, exactly as for an enabled connection: an invalid configuration prevents the Adapter Set from loading.
 
 Default value: `true`.
 
@@ -1518,7 +1521,7 @@ To configure the mapping, you define the set of all subscribable fields through 
 
 The configuration specifies that the field `fieldNameX` will contain the value extracted from the deserialized Kafka record through the `extractionExpressionX`, written using the [_Data Extraction Language_](#data-extraction-language). This approach makes it possible to transform a Kafka record of any complexity to the flat structure required by Lightstreamer.
 
-The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L616) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
+The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml#L624) shows a basic example, where a simple _direct_ mapping has been defined between every attribute of the JSON record value and a Lightstreamer field with the corresponding name. Of course, thanks to the _Data Extraction Language_, more complex mapping can be employed.
 
 ```xml
 ...

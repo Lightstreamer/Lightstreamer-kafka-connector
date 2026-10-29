@@ -78,7 +78,14 @@ public class KafkaConnectorDataAdapter implements SmartDataProvider {
                                 connectorConfig.getItemSnapshotDistinctLength()));
 
         logger.atInfo().log("Configuring Kafka Connector");
-        subscriptionsHandler = subscriptionHandler(configurator.connectionSpec());
+        // Always resolve the spec so that a disabled connection still fails fast on invalid config
+        ConnectionSpec<?, ?> connectionSpec = configurator.connectionSpec();
+        if (!connectorConfig.isEnabled()) {
+            logger.atInfo().log("Connection disabled, skipping consumer configuration");
+            subscriptionsHandler = SubscriptionsHandler.disabled();
+        } else {
+            subscriptionsHandler = subscriptionHandler(connectionSpec);
+        }
         logger.atInfo().log("KafkaConnector configuration complete");
     }
 

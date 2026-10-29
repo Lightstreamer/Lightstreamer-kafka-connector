@@ -55,8 +55,16 @@
              - true
              - false
 
-             If disabled, Lightstreamer Server will automatically deny every subscription made to
-             this connection.
+             If disabled:
+
+             - Lightstreamer Server will automatically deny every subscription made to this
+               connection.
+             - No Kafka consumer is ever created for this connection, not even when
+               "item.snapshot.enabled.mode" is set to a value other than "NONE" (which would
+               otherwise start the consumer eagerly at adapter initialization).
+             - All the parameters of this connection are still fully validated at startup, exactly
+               as for an enabled connection: an invalid configuration prevents the Adapter Set from
+               loading.
 
              Default value: true. -->
         <!--

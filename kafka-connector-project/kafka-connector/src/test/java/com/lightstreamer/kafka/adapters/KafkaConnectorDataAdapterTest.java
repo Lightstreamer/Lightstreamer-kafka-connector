@@ -27,8 +27,10 @@ import com.lightstreamer.interfaces.data.SubscriptionException;
 import com.lightstreamer.kafka.adapters.config.ConnectorConfig;
 import com.lightstreamer.kafka.adapters.consumers.ConsumerSettings.ConnectionSpec;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler;
+import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.DisabledSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.ForceableSubscriptionsHandler;
 import com.lightstreamer.kafka.adapters.consumers.SubscriptionsHandler.OnDemandSubscriptionsHandler;
+import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.test_utils.ConnectorConfigProvider;
 import com.lightstreamer.kafka.test_utils.Mocks;
 import com.lightstreamer.kafka.test_utils.Mocks.MockConsumer;
@@ -125,6 +127,45 @@ class KafkaConnectorDataAdapterTest {
                         ((ForceableSubscriptionsHandler<?, ?>) subscriptionsHandler)
                                 .getItemSnapshotMaxIdleSeconds())
                 .isEqualTo(160);
+    }
+
+    @Test
+    void shouldInitWithDisabledSubscriptionsHandler()
+            throws DataProviderException, SubscriptionException {
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
+        Map<String, String> minimalConfig = ConnectorConfigProvider.minimalConfig();
+        minimalConfig.put(ConnectorConfig.DATA_ADAPTER_NAME, "TEST-CONNECTOR");
+        minimalConfig.put(ConnectorConfig.ENABLE, "false");
+
+        connectorDataAdapter.init(minimalConfig, adapterDir.toFile());
+        assertThat(connectorDataAdapter.getLogger().getName()).isEqualTo("TEST-CONNECTOR");
+
+        SubscriptionsHandler<?, ?> subscriptionsHandler =
+                connectorDataAdapter.getSubscriptionsHandler();
+        assertThat(subscriptionsHandler).isInstanceOf(DisabledSubscriptionsHandler.class);
+
+        assertThat(connectorDataAdapter.isSnapshotAvailable("anItem")).isFalse();
+        connectorDataAdapter.setListener(new MockItemEventListener());
+        SubscriptionException se =
+                assertThrows(
+                        SubscriptionException.class,
+                        () -> connectorDataAdapter.subscribe("anItem", new Object(), false));
+        assertThat(se).hasMessageThat().isEqualTo("Subscriptions are disabled");
+        assertThat(subscriptionsHandler.unsubscribe("anItem")).isFalse();
+    }
+
+    @Test
+    void shouldFailInitWithInvalidConfigEvenIfDisabled() {
+        KafkaConnectorDataAdapter connectorDataAdapter = new KafkaConnectorDataAdapter();
+        Map<String, String> minimalConfig = ConnectorConfigProvider.minimalConfig();
+        minimalConfig.put(ConnectorConfig.ENABLE, "false");
+        minimalConfig.put("map.topic1.to", "item-template.no-valid-template");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> connectorDataAdapter.init(minimalConfig, adapterDir.toFile()));
+        assertThat(ce).hasMessageThat().isEqualTo("No item template [no-valid-template] found");
     }
 
     @Test
