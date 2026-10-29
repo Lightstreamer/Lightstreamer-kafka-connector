@@ -1,5 +1,40 @@
 # Changelog
 
+## [2.1.2] (2026-10-29)
+
+**Improvements**
+
+- **Gradle upgraded**: Upgraded _Gradle_ to version 9.8.2. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+**Bug Fixes**
+
+- **Disabled connections no longer start a Kafka consumer**: A connection configured with [`enable`](README.md#enable) set to `false` now never creates a Kafka consumer. Previously, when [`item.snapshot.enabled.mode`](README.md#itemsnapshotenabledmode) was set to any value other than `NONE`, the eager consumer was started at adapter initialization even though every subscription to the connection was denied. The connection configuration is still fully validated at startup, exactly as for an enabled connection. ([#91](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/91))
+
+**Examples and Documentation**
+
+- **`enable` semantics clarified**: The [`enable`](README.md#enable) section in [`README.md`](README.md), [`examples/vendors/confluent/README.md`](examples/vendors/confluent/README.md), and the factory [`adapters.xml`](kafka-connector-project/kafka-connector/src/adapter/dist/adapters.xml) now lists the three effects of disabling a connection: subscriptions are denied, no Kafka consumer is created (not even in eager snapshot mode), and the configuration is still validated at startup. ([#91](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/91))
+
+- **Example producers aligned**: Aligned the [`quickstart-producer`](examples/quickstart-producer/) and [`airport-demo` producer](examples/airport-demo/producer/) examples with the upgraded Gradle, Kafka, Confluent, and build-plugin versions (including the _Shadow plugin for Gradle_ 9.6.1); the `airport-demo` producer also moves to `kafka-clients` 4.4.0 and `gson` 2.14.0. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+**Third-Party Library Updates**
+
+- Upgraded the `kafka-clients`, `connect-api`, and `connect-json` dependencies to version 8.3.2-ccs. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the `kafka-avro-serializer`, `kafka-json-serializer`, `kafka-json-schema-serializer`, and `kafka-protobuf-serializer` dependencies to version 8.3.2. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the `aws-msk-iam-auth` dependency to version 2.3.9. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the `slf4j-reload4j` dependency to version 2.0.20. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the _JUnit_ BOM test dependency to version 6.1.3. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the `picocli` dependency of the [`kafka-connector-utils`](kafka-connector-project/kafka-connector-utils/) module to version 4.7.7. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the _Spotless plugin for Gradle_ dependency to version 8.10.4. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+- Upgraded the _Protobuf Plugin for Gradle_ to version 0.10.0 and the `protoc` compiler to version 4.34.0. ([#90](https://github.com/Lightstreamer/Lightstreamer-kafka-connector/pull/90))
+
+
 ## [2.1.1] (2026-10-07)
 
 **Examples and Documentation**
