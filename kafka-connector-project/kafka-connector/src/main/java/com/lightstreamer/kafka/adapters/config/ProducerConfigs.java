@@ -19,34 +19,31 @@ package com.lightstreamer.kafka.adapters.config;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.RESPONSE_MODE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ResponseMode;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 
 import java.util.Properties;
 
-public class PublishConfigs {
+public class ProducerConfigs {
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
-    public static final String KEY_SERIALIZER = "key.serializer";
-    public static final String VALUE_SERIALIZER = "value.serializer";
 
     public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
     public static final String RECORD_VALUE_EVALUATOR_TYPE = "record.value.evaluator.type";
-    public static final String RESPONSE_MODE = "response.mode";
-    public static final String ACK = "ack";
+    public static final String SEND_CONFIRMATION_MODE = "send.confirmation.mode";
+    public static final String RECORD_ACKS = "acks";
 
-    // Prefix for all hidden producer configs
-    private static final String CONNECTOR_PREFIX = "producer.";
-    public static final String MAX_BLOCK_MS = CONNECTOR_PREFIX + "max.block.ms";
+    // Hidden (undocumented) producer config
+    public static final String MAX_BLOCK_MS = "max.block.ms";
 
     private static final ConfigsSpec CONFIG_SPEC;
 
@@ -66,39 +63,31 @@ public class PublishConfigs {
                                 false,
                                 EVALUATOR,
                                 defaultValue(STRING.toString()))
-                        .add(ACK, false, false, ACKS, defaultValue("all"))
+                        .add(RECORD_ACKS, false, false, ACKS, defaultValue("all"))
                         .add(
-                                RESPONSE_MODE,
+                                SEND_CONFIRMATION_MODE,
                                 false,
                                 false,
-                                ConfType.RESPONSE_MODE,
-                                defaultValue(ResponseMode.CONFIRMED.toString()))
-                        .add(
-                                MAX_BLOCK_MS,
-                                false,
-                                false,
-                                ConfType.POSITIVE_LONG,
-                                defaultValue("1000"));
+                                CONFIRMATION_MODE,
+                                defaultValue(SendConfirmationMode.CONFIRMED.toString()))
+                        .add(MAX_BLOCK_MS, false, false, POSITIVE_LONG, defaultValue("1000"));
     }
 
-    public static ConfigsSpec spec() {
+    static ConfigsSpec spec() {
         return CONFIG_SPEC;
     }
 
-    public static Properties addBaseProperties(GlobalConfig globalConfig) {
+    static Properties addBaseProperties(GlobalConfig globalConfig) {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.setProperty(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, globalConfig.getPublishBootstrapServers());
+                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                globalConfig.getHostsList(GlobalConfig.PRODUCER_BOOTSTRAP_SERVERS));
         properties.setProperty(
                 ProducerConfig.MAX_BLOCK_MS_CONFIG,
-                globalConfig.getPositiveLong(GlobalConfig.PUBLISH_MAX_BLOCK_MS));
+                globalConfig.getPositiveLong(GlobalConfig.PRODUCER_MAX_BLOCK_MS));
         properties.setProperty(
                 ProducerConfig.ACKS_CONFIG,
-                globalConfig.get(GlobalConfig.PUBLISH_ACK, ACKS, false));
+                globalConfig.get(GlobalConfig.PRODUCER_ACKS, ACKS, false));
         return properties.unmodifiable();
     }
-
-    // static void addPublishConfig(GlobalConfig globalConfig) {
-
-    // }
 }
