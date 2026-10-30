@@ -288,7 +288,7 @@ public interface ConfigTypes {
         }
     }
 
-    enum ResponseMode {
+    enum SendConfirmationMode {
         IMMEDIATE,
         CONFIRMED,
         DETAILED;
