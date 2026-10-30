@@ -182,4 +182,21 @@ class JsonPayloadConverters {
             }
         };
     }
+
+    public static JsonPayloadConverter<String> Json() {
+        return new JsonPayloadConverter<String>() {
+            @Override
+            public String fromJson(JsonNode json) throws InvalidMessageException {
+                if (!json.isObject()) {
+                    throw unexpected(json, "a JSON object");
+                }
+                return json.toString();
+            }
+
+            @Override
+            public Serializer<String> serializer() {
+                return org.apache.kafka.common.serialization.Serdes.String().serializer();
+            }
+        };
+    }
 }
