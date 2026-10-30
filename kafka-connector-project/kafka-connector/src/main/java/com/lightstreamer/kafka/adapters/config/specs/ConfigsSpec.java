@@ -24,10 +24,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ResponseMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.utils.Split;
@@ -249,7 +249,7 @@ public class ConfigsSpec {
 
         SASL_MECHANISM(Options.saslMechanisms()),
 
-        RESPONSE_MODE(Options.responseModes());
+        CONFIRMATION_MODE(Options.sendConfirmationModes());
 
         Type embeddedType;
 
@@ -541,8 +541,8 @@ public class ConfigsSpec {
             return new Options(Set.of("0", "1", "all", "-1"));
         }
 
-        static Options responseModes() {
-            return new Options(ResponseMode.names());
+        static Options sendConfirmationModes() {
+            return new Options(SendConfirmationMode.names());
         }
 
         private Set<String> choices;
