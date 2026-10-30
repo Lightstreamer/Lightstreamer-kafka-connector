@@ -28,6 +28,7 @@ import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.producers.MessageHandler;
+import com.lightstreamer.kafka.adapters.producers.ProducerSettings;
 import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
@@ -123,19 +124,18 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     }
 
     private void configureMessageHandler() {
-        //     if (globalConfig.isPublishEnabled()) {
-        //         messageHandler =
-        //                 MessageHandler.create(
-        //                         logger,
-        //                         new ProducerSettings(
-        //                                 globalConfig.getPublishKeyEvaluatorType(),
-        //                                 globalConfig.getPublishValueEvaluatorType(),
-        //                                 globalConfig.isPublishAckEnabled(),
-        //                                 globalConfig.baseProducerProps()));
-        //     } else {
-        //         messageHandler = MessageHandler.DISABLED;
-        //     }
-        messageHandler = MessageHandler.DISABLED;
+        if (globalConfig.isProducerEnabled()) {
+            messageHandler =
+                    MessageHandler.create(
+                            logger,
+                            new ProducerSettings(
+                                    globalConfig.getProducerKeyEvaluatorType(),
+                                    globalConfig.getProducerValueEvaluatorType(),
+                                    globalConfig.getProducerSendConfirmationMode(),
+                                    globalConfig.baseProducerProps()));
+        } else {
+            messageHandler = MessageHandler.DISABLED;
+        }
     }
 
     /**
