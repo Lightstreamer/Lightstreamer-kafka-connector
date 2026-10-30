@@ -18,11 +18,12 @@
 package com.lightstreamer.kafka.adapters.producers;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 
 import java.util.Properties;
 
 public record ProducerSettings(
         EvaluatorType keyEvaluatorType,
         EvaluatorType valueEvaluatorType,
-        boolean ackEnabled,
+        SendConfirmationMode sendConfirmationMode,
         Properties producerProperties) {}
