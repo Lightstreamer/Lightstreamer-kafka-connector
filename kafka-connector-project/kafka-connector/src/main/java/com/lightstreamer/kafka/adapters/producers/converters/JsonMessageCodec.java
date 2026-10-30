@@ -53,6 +53,7 @@ public final class JsonMessageCodec<K, V> {
         CONVERTERS.put(EvaluatorType.LONG, JsonPayloadConverters.Long());
         CONVERTERS.put(EvaluatorType.SHORT, JsonPayloadConverters.Short());
         CONVERTERS.put(EvaluatorType.UUID, JsonPayloadConverters.UUID());
+        CONVERTERS.put(EvaluatorType.JSON, JsonPayloadConverters.Json());
     }
 
     private final JsonPayloadConverter<K> keyConverter;
@@ -79,6 +80,7 @@ public final class JsonMessageCodec<K, V> {
     }
 
     private static JsonPayloadConverter<?> lookup(EvaluatorType evaluatorType) {
+        System.out.println("Looking up converter for evaluator type: " + evaluatorType);
         JsonPayloadConverter<?> converter = CONVERTERS.get(evaluatorType);
         if (converter == null) {
             throw new IllegalArgumentException(
