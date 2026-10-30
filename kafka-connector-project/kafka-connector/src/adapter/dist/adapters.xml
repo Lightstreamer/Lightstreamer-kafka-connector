@@ -18,11 +18,52 @@
              folder (LS_HOME/adapters/lightstreamer-kafka-connector), or as an absolute path. -->
         <param name="logging.configuration.path">log4j.properties</param>
 
-        <param name="publish.enable">true</param>
-        <param name="publish.bootstrap.servers">broker:29092</param>
-        <param name="publish.record.key.evaluator.type">STRING</param>
-        <param name="publish.record.value.evaluator.type">STRING</param>
-        <param name="publish.ack.enabled">true</param>
+        <param name="producer.enable">true</param>
+        <param name="producer.bootstrap.servers">broker:29092</param>
+        <param name="producer.record.key.evaluator.type">STRING</param>
+        <param name="producer.record.value.evaluator.type">STRING</param>
+
+        <!-- Optional. The number of acknowledgments the internal Kafka Producer requires the leader
+             to have received before considering a message successfully published. Can be one of
+             the following:
+
+             - 0:   The producer does not wait for any acknowledgment from the broker. No delivery
+                    guarantee is provided and no offset or timestamp is available for the
+                    published message.
+             - 1:   The leader writes the message to its local log and responds without awaiting
+                    acknowledgment from the followers.
+             - all: The leader waits for the full set of in-sync replicas to acknowledge the
+                    message. This provides the strongest durability guarantee. The value "-1" is
+                    accepted as a synonym.
+
+             The parameter sets the value of the "acks" key to configure the internal Kafka
+             Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_acks
+             for more details.
+
+             Default value: all. -->
+        <!--
+        <param name="producer.acks">1</param>
+        -->
+
+        <!-- Optional. Specifies when the internal Kafka Producer considers a message sent and how
+             the outcome is reported to the client. Can be one of the following:
+
+             - IMMEDIATE: The client is notified of success as soon as the message is handed to the
+                          internal Kafka Producer, without waiting for the broker. Delivery failures
+                          are only logged and never reported to the client.
+             - CONFIRMED: The client is notified only after the broker has acknowledged the message,
+                          with an empty response. Delivery failures are reported to the client as
+                          errors.
+             - DETAILED:  Same as CONFIRMED, but the response carries the delivery details as a JSON
+                          string: {"partition":<n>,"offset":<n>,"timestamp":<n>}. Not compatible
+                          with "producer.acks" set to 0, since no offset or timestamp would be
+                          available.
+
+             Default value: CONFIRMED. -->
+        <!--
+        <param name="producer.send.confirmation.mode">DETAILED</param>
+        -->
 
     </metadata_provider>
 
