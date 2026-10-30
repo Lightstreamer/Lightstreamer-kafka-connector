@@ -18,9 +18,11 @@
 package com.lightstreamer.kafka.adapters.config;
 
 import static com.google.common.truth.Truth.assertThat;
-import static com.lightstreamer.kafka.adapters.config.PublishConfigs.BOOTSTRAP_SERVERS;
-import static com.lightstreamer.kafka.adapters.config.PublishConfigs.RECORD_KEY_EVALUATOR_TYPE;
-import static com.lightstreamer.kafka.adapters.config.PublishConfigs.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ProducerConfigs.BOOTSTRAP_SERVERS;
+import static com.lightstreamer.kafka.adapters.config.ProducerConfigs.RECORD_ACKS;
+import static com.lightstreamer.kafka.adapters.config.ProducerConfigs.RECORD_KEY_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ProducerConfigs.RECORD_VALUE_EVALUATOR_TYPE;
+import static com.lightstreamer.kafka.adapters.config.ProducerConfigs.SEND_CONFIRMATION_MODE;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
@@ -28,11 +30,11 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.junit.jupiter.api.Test;
 
-class PublishConfigTest {
+class ProducerConfigsTest {
 
     @Test
     void shouldReturnConfigSpec() {
-        ConfigsSpec configSpec = PublishConfigs.spec();
+        ConfigsSpec configSpec = ProducerConfigs.spec();
 
         ConfParameter bootStrapServers = configSpec.findParameter(BOOTSTRAP_SERVERS);
         assertThat(bootStrapServers.name()).isEqualTo(BOOTSTRAP_SERVERS);
@@ -57,5 +59,21 @@ class PublishConfigTest {
         assertThat(valueEvaluatorType.mutable()).isTrue();
         assertThat(valueEvaluatorType.defaultValue()).isEqualTo("STRING");
         assertThat(valueEvaluatorType.type()).isEqualTo(ConfType.EVALUATOR);
+
+        ConfParameter recordAcks = configSpec.findParameter(RECORD_ACKS);
+        assertThat(recordAcks.name()).isEqualTo(RECORD_ACKS);
+        assertThat(recordAcks.required()).isFalse();
+        assertThat(recordAcks.multiple()).isFalse();
+        assertThat(recordAcks.mutable()).isTrue();
+        assertThat(recordAcks.defaultValue()).isEqualTo("all");
+        assertThat(recordAcks.type()).isEqualTo(ConfType.ACKS);
+
+        ConfParameter sendConfirmationMode = configSpec.findParameter(SEND_CONFIRMATION_MODE);
+        assertThat(sendConfirmationMode.name()).isEqualTo(SEND_CONFIRMATION_MODE);
+        assertThat(sendConfirmationMode.required()).isFalse();
+        assertThat(sendConfirmationMode.multiple()).isFalse();
+        assertThat(sendConfirmationMode.mutable()).isTrue();
+        assertThat(sendConfirmationMode.defaultValue()).isEqualTo("CONFIRMED");
+        assertThat(sendConfirmationMode.type()).isEqualTo(ConfType.CONFIRMATION_MODE);
     }
 }
