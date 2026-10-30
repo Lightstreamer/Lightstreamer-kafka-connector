@@ -17,14 +17,17 @@
 
 package com.lightstreamer.kafka.adapters.config;
 
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.common.config.ConfigException;
 
@@ -36,21 +39,23 @@ public final class GlobalConfig extends AbstractConfig {
 
     public static final String LOGGING_CONFIGURATION_PATH = "logging.configuration.path";
 
-    public static final String PUBLISH_NAME_SPACE = "publish";
-    public static final String PUBLISH_ENABLE = "publish.enable";
-    public static final String PUBLISH_BOOTSTRAP_SERVERS = adapt(PublishConfigs.BOOTSTRAP_SERVERS);
-    public static final String PUBLISH_MAX_BLOCK_MS = adapt(PublishConfigs.MAX_BLOCK_MS);
-    public static final String PUBLISH_RECORD_KEY_EVALUATOR_TYPE =
-            adapt(PublishConfigs.RECORD_KEY_EVALUATOR_TYPE);
-    public static final String PUBLISH_RECORD_VALUE_EVALUATOR_TYPE =
-            adapt(PublishConfigs.RECORD_VALUE_EVALUATOR_TYPE);
-    public static final String PUBLISH_ACK_ENABLED = adapt(PublishConfigs.ACK);
-    public static final String PUBLISH_ACK = adapt(PublishConfigs.ACK);
+    public static final String PRODUCER_NAME_SPACE = "producer";
+    public static final String PRODUCER_ENABLE = "producer.enable";
+    public static final String PRODUCER_BOOTSTRAP_SERVERS =
+            adapt(ProducerConfigs.BOOTSTRAP_SERVERS);
+    public static final String PRODUCER_MAX_BLOCK_MS = adapt(ProducerConfigs.MAX_BLOCK_MS);
+    public static final String PRODUCER_RECORD_KEY_EVALUATOR_TYPE =
+            adapt(ProducerConfigs.RECORD_KEY_EVALUATOR_TYPE);
+    public static final String PRODUCER_RECORD_VALUE_EVALUATOR_TYPE =
+            adapt(ProducerConfigs.RECORD_VALUE_EVALUATOR_TYPE);
+    public static final String PRODUCER_SEND_CONFIRMATION_MODE =
+            adapt(ProducerConfigs.SEND_CONFIRMATION_MODE);
+    public static final String PRODUCER_ACKS = adapt(ProducerConfigs.RECORD_ACKS);
 
     private static final ConfigsSpec CONFIG_SPEC;
 
     static String adapt(String key) {
-        return PUBLISH_NAME_SPACE + "." + key;
+        return PRODUCER_NAME_SPACE + "." + key;
     }
 
     static {
@@ -58,15 +63,10 @@ public final class GlobalConfig extends AbstractConfig {
                 new ConfigsSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(LOGGING_CONFIGURATION_PATH, true, false, FILE)
-                        .add(
-                                PUBLISH_ENABLE,
-                                true,
-                                false,
-                                ConfigsSpec.ConfType.BOOL,
-                                defaultValue("false"))
+                        .add(PRODUCER_ENABLE, true, false, BOOL, defaultValue("false"))
                         .withEnabledChildConfigs(
-                                PublishConfigs.spec().newSpecWithNameSpace(PUBLISH_NAME_SPACE),
-                                PUBLISH_ENABLE);
+                                ProducerConfigs.spec().newSpecWithNameSpace(PRODUCER_NAME_SPACE),
+                                PRODUCER_ENABLE);
     }
 
     private GlobalConfig(ConfigsSpec spec, Map<String, String> configs) {
@@ -75,6 +75,24 @@ public final class GlobalConfig extends AbstractConfig {
 
     public GlobalConfig(Map<String, String> configs) {
         this(CONFIG_SPEC, configs);
+        postValidate();
+    }
+
+    private void postValidate() {
+        if (!isProducerEnabled()) {
+            return;
+        }
+
+        SendConfirmationMode confirmationMode = getProducerSendConfirmationMode();
+        if (confirmationMode == SendConfirmationMode.DETAILED
+                && get(PRODUCER_ACKS, ACKS, false).equals("0")) {
+            throw new ConfigException(
+                    "Parameter [%s] set to %s is not compatible with parameter [%s] set to 0"
+                            .formatted(
+                                    PRODUCER_SEND_CONFIRMATION_MODE,
+                                    SendConfirmationMode.DETAILED,
+                                    PRODUCER_ACKS));
+        }
     }
 
     static ConfigsSpec configSpec() {
@@ -87,41 +105,37 @@ public final class GlobalConfig extends AbstractConfig {
         return new GlobalConfig(updatedConfigs);
     }
 
-    public boolean isPublishEnabled() {
-        return getBoolean(PUBLISH_ENABLE);
+    public boolean isProducerEnabled() {
+        return getBoolean(PRODUCER_ENABLE);
     }
 
-    public boolean isPublishAckEnabled() {
-        checkPublishEnabled();
-        return getBoolean(PUBLISH_ACK_ENABLED);
-    }
-
-    private void checkPublishEnabled() {
-        if (!isPublishEnabled()) {
+    private void checkProducerEnabled() {
+        if (!isProducerEnabled()) {
             throw new ConfigException(
-                    "Publish is not enabled. Check parameter [%s]".formatted(PUBLISH_ENABLE));
+                    "Producer is not enabled. Check parameter [%s]".formatted(PRODUCER_ENABLE));
         }
     }
 
-    public String getPublishBootstrapServers() {
-        checkPublishEnabled();
-        return get(PUBLISH_BOOTSTRAP_SERVERS, HOST_LIST, false);
+    public EvaluatorType getProducerKeyEvaluatorType() {
+        checkProducerEnabled();
+        return EvaluatorType.valueOf(get(PRODUCER_RECORD_KEY_EVALUATOR_TYPE, EVALUATOR, false));
     }
 
-    public EvaluatorType getPublishKeyEvaluatorType() {
-        checkPublishEnabled();
-        return EvaluatorType.valueOf(get(PUBLISH_RECORD_KEY_EVALUATOR_TYPE, EVALUATOR, false));
+    public EvaluatorType getProducerValueEvaluatorType() {
+        checkProducerEnabled();
+        return EvaluatorType.valueOf(get(PRODUCER_RECORD_VALUE_EVALUATOR_TYPE, EVALUATOR, false));
     }
 
-    public EvaluatorType getPublishValueEvaluatorType() {
-        checkPublishEnabled();
-        return EvaluatorType.valueOf(get(PUBLISH_RECORD_VALUE_EVALUATOR_TYPE, EVALUATOR, false));
+    public SendConfirmationMode getProducerSendConfirmationMode() {
+        checkProducerEnabled();
+        return SendConfirmationMode.valueOf(
+                get(PRODUCER_SEND_CONFIRMATION_MODE, CONFIRMATION_MODE, false));
     }
 
     public Properties baseProducerProps() {
-        checkPublishEnabled();
+        checkProducerEnabled();
         NonNullKeyProperties properties = new NonNullKeyProperties();
-        properties.putAll(PublishConfigs.addBaseProperties(this));
+        properties.putAll(ProducerConfigs.addBaseProperties(this));
         return properties.unmodifiable();
     }
 }
