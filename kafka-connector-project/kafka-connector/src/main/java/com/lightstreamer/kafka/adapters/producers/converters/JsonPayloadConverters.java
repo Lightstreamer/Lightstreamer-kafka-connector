@@ -17,6 +17,9 @@
 
 package com.lightstreamer.kafka.adapters.producers.converters;
 
+import static com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException.invalidUuid;
+import static com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException.unexpectedType;
+
 import com.fasterxml.jackson.databind.JsonNode;
 
 import org.apache.kafka.common.serialization.Serializer;
@@ -26,17 +29,12 @@ import java.util.UUID;
 
 class JsonPayloadConverters {
 
-    private static InvalidMessageException unexpected(JsonNode json, String expected) {
-        return new InvalidMessageException(
-                "expected %s but found %s".formatted(expected, json.getNodeType()));
-    }
-
     public static JsonPayloadConverter<String> String() {
         return new JsonPayloadConverter<String>() {
             @Override
             public String fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isTextual()) {
-                    throw unexpected(json, "string");
+                    throw unexpectedType(json, "string");
                 }
                 return json.asText();
             }
@@ -53,7 +51,7 @@ class JsonPayloadConverters {
             @Override
             public Integer fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isIntegralNumber() || !json.canConvertToInt()) {
-                    throw unexpected(json, "integer");
+                    throw unexpectedType(json, "integer");
                 }
                 return json.asInt();
             }
@@ -70,7 +68,7 @@ class JsonPayloadConverters {
             @Override
             public Boolean fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isBoolean()) {
-                    throw unexpected(json, "boolean");
+                    throw unexpectedType(json, "boolean");
                 }
                 return json.asBoolean();
             }
@@ -87,7 +85,7 @@ class JsonPayloadConverters {
             @Override
             public Double fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isNumber()) {
-                    throw unexpected(json, "a number");
+                    throw unexpectedType(json, "a number");
                 }
                 return json.asDouble();
             }
@@ -104,7 +102,7 @@ class JsonPayloadConverters {
             @Override
             public Float fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isNumber()) {
-                    throw unexpected(json, "a number");
+                    throw unexpectedType(json, "a number");
                 }
                 return json.floatValue();
             }
@@ -127,10 +125,10 @@ class JsonPayloadConverters {
                     try {
                         return Long.parseLong(json.asText());
                     } catch (NumberFormatException e) {
-                        throw unexpected(json, "long");
+                        throw unexpectedType(json, "long");
                     }
                 }
-                throw unexpected(json, "a long (number or numeric string)");
+                throw unexpectedType(json, "a long (number or numeric string)");
             }
 
             @Override
@@ -148,7 +146,7 @@ class JsonPayloadConverters {
                         || !json.canConvertToInt()
                         || json.intValue() < Short.MIN_VALUE
                         || json.intValue() > Short.MAX_VALUE) {
-                    throw unexpected(json, "short");
+                    throw unexpectedType(json, "short");
                 }
                 return json.shortValue();
             }
@@ -165,14 +163,13 @@ class JsonPayloadConverters {
             @Override
             public UUID fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isTextual()) {
-                    throw unexpected(json, "a UUID string");
+                    throw unexpectedType(json, "a UUID string");
                 }
                 String text = json.asText();
                 try {
                     return UUID.fromString(text);
                 } catch (IllegalArgumentException e) {
-                    throw new InvalidMessageException(
-                            "expected a valid UUID but found \"%s\"".formatted(json.textValue()));
+                    throw invalidUuid(text);
                 }
             }
 
@@ -188,7 +185,7 @@ class JsonPayloadConverters {
             @Override
             public String fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isObject()) {
-                    throw unexpected(json, "a JSON object");
+                    throw unexpectedType(json, "a JSON object");
                 }
                 return json.toString();
             }
