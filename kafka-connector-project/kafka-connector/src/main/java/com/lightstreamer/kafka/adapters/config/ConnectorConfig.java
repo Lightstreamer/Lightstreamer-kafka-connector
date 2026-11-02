@@ -650,37 +650,38 @@ public final class ConnectorConfig extends AbstractConfig {
         properties.setProperty(VALUE_DESERIALIZER_CLASS_CONFIG, KAFKA_BYTE_ARRAY_DESERIALIZER);
         properties.setProperty(CLIENT_ID_CONFIG, get(CONSUMER_CLIENT_ID, BLANKABLE_TEXT, false));
         properties.setProperty(
-                METADATA_MAX_AGE_CONFIG, getPositiveLong(CONSUMER_METADATA_MAX_AGE_CONFIG));
+                METADATA_MAX_AGE_CONFIG, getPositiveLongStr(CONSUMER_METADATA_MAX_AGE_CONFIG));
         properties.setProperty(AUTO_OFFSET_RESET_CONFIG, getRecordConsumeFrom().toPropertyValue());
         properties.setProperty(
                 ENABLE_AUTO_COMMIT_CONFIG, getBooleanStr(CONSUMER_ENABLE_AUTO_COMMIT_CONFIG));
         properties.setProperty(
-                FETCH_MIN_BYTES_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MIN_BYTES_CONFIG));
+                FETCH_MIN_BYTES_CONFIG, getNonNegativeIntStr(CONSUMER_FETCH_MIN_BYTES_CONFIG));
         properties.setProperty(
-                FETCH_MAX_BYTES_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MAX_BYTES_CONFIG));
+                FETCH_MAX_BYTES_CONFIG, getNonNegativeIntStr(CONSUMER_FETCH_MAX_BYTES_CONFIG));
         properties.setProperty(
-                FETCH_MAX_WAIT_MS_CONFIG, getNonNegativeInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
+                FETCH_MAX_WAIT_MS_CONFIG, getNonNegativeIntStr(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG));
         properties.setProperty(
-                HEARTBEAT_INTERVAL_MS_CONFIG, getInt(CONSUMER_HEARTBEAT_INTERVAL_MS));
+                HEARTBEAT_INTERVAL_MS_CONFIG, getIntStr(CONSUMER_HEARTBEAT_INTERVAL_MS));
         properties.setProperty(
-                MAX_POLL_RECORDS_CONFIG, getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_RECORDS));
+                MAX_POLL_RECORDS_CONFIG, getPositiveIntStr(RECORD_CONSUME_WITH_MAX_POLL_RECORDS));
         properties.setProperty(
                 RECONNECT_BACKOFF_MAX_MS_CONFIG,
-                getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
+                getNonNegativeIntStr(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG));
         properties.setProperty(
                 RECONNECT_BACKOFF_MS_CONFIG,
-                getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
+                getNonNegativeIntStr(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG));
         properties.setProperty(
-                SESSION_TIMEOUT_MS_CONFIG, getInt(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS));
+                SESSION_TIMEOUT_MS_CONFIG, getIntStr(RECORD_CONSUME_WITH_SESSION_TIMEOUT_MS));
         properties.setProperty(
                 MAX_POLL_INTERVAL_MS_CONFIG,
-                getPositiveInt(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
+                getPositiveIntStr(RECORD_CONSUME_WITH_MAX_POLL_INTERVAL_MS));
         properties.setProperty(
-                REQUEST_TIMEOUT_MS_CONFIG, getNonNegativeInt(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
+                REQUEST_TIMEOUT_MS_CONFIG,
+                getNonNegativeIntStr(CONSUMER_REQUEST_TIMEOUT_MS_CONFIG));
         properties.setProperty(
                 DEFAULT_API_TIMEOUT_MS_CONFIG,
-                getNonNegativeInt(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
-        properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getInt(CONSUMER_RETRIES));
+                getNonNegativeIntStr(CONSUMER_DEFAULT_API_TIMEOUT_MS_CONFIG));
+        properties.setProperty(AdminClientConfig.RETRIES_CONFIG, getIntStr(CONSUMER_RETRIES));
 
         properties.putAll(EncryptionConfigs.addEncryption(this));
         properties.putAll(BrokerAuthenticationConfigs.addAuthentication(this));
@@ -1232,11 +1233,11 @@ public final class ConnectorConfig extends AbstractConfig {
     }
 
     public int getItemSnapshotDistinctLength() {
-        return Integer.parseInt(getPositiveInt(ITEM_SNAPSHOT_DISTINCT_LENGTH));
+        return Integer.parseInt(getPositiveIntStr(ITEM_SNAPSHOT_DISTINCT_LENGTH));
     }
 
     public int getItemSnapshotMaxIdleSeconds() {
-        return Integer.parseInt(getNonNegativeInt(ITEM_SNAPSHOT_MAX_IDLE_SECONDS));
+        return Integer.parseInt(getNonNegativeIntStr(ITEM_SNAPSHOT_MAX_IDLE_SECONDS));
     }
 
     public boolean isMapRegExEnabled() {
