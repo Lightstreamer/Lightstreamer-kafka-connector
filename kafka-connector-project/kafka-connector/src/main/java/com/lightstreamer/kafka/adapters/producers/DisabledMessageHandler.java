@@ -26,8 +26,7 @@ class DisabledMessageHandler implements MessageHandler {
     @Override
     public CompletableFuture<String> sendMessage(String message) throws CreditsException {
         throw new CreditsException(
-                ErrorMessages.DISABLED_PRODUCER.getCode(),
-                ErrorMessages.DISABLED_PRODUCER.getMessage());
+                ErrorCode.PRODUCER_DISABLED.code(), "Message publishing is not enabled");
     }
 
     @Override
