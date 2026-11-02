@@ -256,17 +256,23 @@ class GlobalConfigTest {
     void shouldRetrieveBaseProducerProperties() {
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), producerEnabled());
         assertThat(config.baseProducerProps())
-                .containsAtLeast(
+                .containsExactly(
                         ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
                         ProducerConfig.MAX_BLOCK_MS_CONFIG, "1000",
-                        ProducerConfig.ACKS_CONFIG, "all");
+                        ProducerConfig.ACKS_CONFIG, "all",
+                        ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true",
+                        ProducerConfig.RETRIES_CONFIG, Integer.toString(Integer.MAX_VALUE),
+                        ProducerConfig.LINGER_MS_CONFIG, "0",
+                        ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "30000",
+                        ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "120000");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"-1", "0", "1", "all"})
-    void shouldGetOverrideProducerAcks(String acks) {
+    @ValueSource(strings = {"0", "1", "all", "-1"})
+    void shouldGetOverriddenProducerAcks(String acks) {
         Map<String, String> params = producerEnabled();
         params.put(GlobalConfig.PRODUCER_ACKS, acks);
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, "false");
 
         GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
         assertThat(config.baseProducerProps()).containsEntry(ProducerConfig.ACKS_CONFIG, acks);
@@ -288,6 +294,233 @@ class GlobalConfigTest {
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
                                 .formatted(GlobalConfig.PRODUCER_ACKS));
+    }
+
+    @Test
+    void shouldGetOverriddenEnableIdempotence() {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, "false");
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false");
+    }
+
+    @Test
+    void shouldGetEnabledIdempotenceWithCompatibleAcks() {
+        Map<String, String> params = producerEnabled();
+
+        String[] acks = {"-1", "all"};
+        for (String ack : acks) {
+            params.put(GlobalConfig.PRODUCER_ACKS, ack);
+            assertDoesNotThrow(() -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        }
+
+        String[] notAllowedAcks = {"0", "1"};
+        for (String ack : notAllowedAcks) {
+            params.put(GlobalConfig.PRODUCER_ACKS, ack);
+            ConfigException ce =
+                    assertThrows(
+                            ConfigException.class,
+                            () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+            assertThat(ce)
+                    .hasMessageThat()
+                    .isEqualTo(
+                            "Parameter [%s] set to true is not compatible with parameter [%s] set to %s"
+                                    .formatted(
+                                            GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE,
+                                            GlobalConfig.PRODUCER_ACKS,
+                                            ack));
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"invalid"})
+    @NullAndEmptySource
+    void shouldFailDueToInvalidEnableIdempotence(String invalidValue) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, invalidValue);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "5"})
+    void shouldGetOverriddenProducerRetries(String retries) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, "false");
+        params.put(GlobalConfig.PRODUCER_RETRIES, retries);
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.RETRIES_CONFIG, retries);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"INVALID", "-1"})
+    @NullAndEmptySource
+    void shouldFailDueToInvalidProducerRetries(String invalidValue) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_RETRIES, invalidValue);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PRODUCER_RETRIES));
+    }
+
+    @Test
+    void shouldFailDueToEnabledIdempotenceWithZeroRetries() {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, "true");
+        params.put(GlobalConfig.PRODUCER_RETRIES, "0");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Parameter [%s] set to true is not compatible with parameter [%s] set to 0"
+                                .formatted(
+                                        GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE,
+                                        GlobalConfig.PRODUCER_RETRIES));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "50"})
+    void shouldGetOverriddenLinger(String linger) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_LINGER_MS, linger);
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.LINGER_MS_CONFIG, linger);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"INVALID", "-1"})
+    @NullAndEmptySource
+    void shouldFailDueToInvalidProducerLinger(String invalidValue) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_LINGER_MS, invalidValue);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PRODUCER_LINGER_MS));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "50"})
+    void shouldGetOverriddenDeliveryTimeout(String deliveryTimeout) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS, deliveryTimeout);
+        params.put(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS, "0");
+        params.put(GlobalConfig.PRODUCER_LINGER_MS, "0");
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeout);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"INVALID", "-1"})
+    @NullAndEmptySource
+    void shouldFailDueToInvalidProducerDeliveryTimeout(String invalidValue) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS, invalidValue);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS));
+    }
+
+    @Test
+    void shouldFailDueToProducerDeliverTimeoutLessThanLingerPlusRequest() {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS, "100");
+        params.put(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS, "50");
+        params.put(GlobalConfig.PRODUCER_LINGER_MS, "60");
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Parameter [%s] must be at least the sum of [%s] and [%s]"
+                                .formatted(
+                                        GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS,
+                                        GlobalConfig.PRODUCER_LINGER_MS,
+                                        GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS));
+    }
+
+    @Test
+    void shouldAcceptDeliveryTimeoutEqualToLingerPlusRequest() {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS, "110");
+        params.put(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS, "50");
+        params.put(GlobalConfig.PRODUCER_LINGER_MS, "60");
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "110");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"0", "50"})
+    void shouldGetOverriddenRequestTimeout(String requestTimeout) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS, requestTimeout);
+
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        assertThat(config.baseProducerProps())
+                .containsEntry(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeout);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"INVALID", "-1"})
+    @NullAndEmptySource
+    void shouldFailDueToInvalidRequestTimeout(String invalidValue) {
+        Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS, invalidValue);
+
+        ConfigException ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify a valid value for parameter [%s]"
+                                .formatted(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS));
     }
 
     @Test
@@ -316,6 +549,7 @@ class GlobalConfigTest {
     @MethodSource("sendConfirmationModes")
     void shouldGetSendConfirmationMode(SendConfirmationMode mode, String acksString) {
         Map<String, String> params = producerEnabled();
+        params.put(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE, "false");
         params.put(GlobalConfig.PRODUCER_ACKS, acksString);
         params.put(GlobalConfig.PRODUCER_SEND_CONFIRMATION_MODE, mode.name());
 

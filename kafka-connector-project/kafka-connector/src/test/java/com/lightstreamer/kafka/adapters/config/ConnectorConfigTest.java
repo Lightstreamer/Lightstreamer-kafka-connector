@@ -2114,12 +2114,12 @@ class ConnectorConfigTest {
     @Test
     void shouldNoGetNonExistingNonRequiredInt() {
         ConnectorConfig config = ConnectorConfigProvider.minimal(adapterDir.toString());
-        assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
-        assertThat(config.getNonNegativeInt(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
-        assertThat(config.getNonNegativeInt(CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
-        assertThat(config.getNonNegativeInt(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG)).isNull();
-        assertThat(config.getNonNegativeInt(CONSUMER_FETCH_MIN_BYTES_CONFIG)).isNull();
-        assertThat(config.getInt(CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
+        assertThat(config.getNonNegativeIntStr(CONSUMER_RECONNECT_BACKOFF_MAX_MS_CONFIG)).isNull();
+        assertThat(config.getNonNegativeIntStr(CONSUMER_RECONNECT_BACKOFF_MS_CONFIG)).isNull();
+        assertThat(config.getNonNegativeIntStr(CONSUMER_FETCH_MAX_BYTES_CONFIG)).isNull();
+        assertThat(config.getNonNegativeIntStr(CONSUMER_FETCH_MAX_WAIT_MS_CONFIG)).isNull();
+        assertThat(config.getNonNegativeIntStr(CONSUMER_FETCH_MIN_BYTES_CONFIG)).isNull();
+        assertThat(config.getIntStr(CONSUMER_HEARTBEAT_INTERVAL_MS)).isNull();
     }
 
     @Test

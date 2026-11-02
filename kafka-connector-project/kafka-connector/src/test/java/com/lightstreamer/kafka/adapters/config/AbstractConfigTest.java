@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -200,5 +201,18 @@ class AbstractConfigTest {
                 () -> {
                     AbstractConfig.resolveFilePaths(spec, config, null);
                 });
+    }
+
+    @Test
+    void shouldGetInt() {
+        ConfigsSpec spec = new ConfigsSpec().add("int.param", false, false, ConfType.INT);
+
+        Map<String, String> config = new HashMap<>();
+        config.put("int.param", "42");
+
+        Map<String, String> result =
+                AbstractConfig.resolveFilePaths(spec, config, adapterDir.toFile());
+
+        assertThat(result).containsEntry("int.param", "42");
     }
 }
