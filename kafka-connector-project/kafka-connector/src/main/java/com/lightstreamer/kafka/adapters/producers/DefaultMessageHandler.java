@@ -17,7 +17,6 @@
 
 package com.lightstreamer.kafka.adapters.producers;
 
-import com.fasterxml.jackson.core.JacksonException;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException;
@@ -41,16 +40,22 @@ class DefaultMessageHandler implements MessageHandler {
         void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception);
 
-        static ConfirmationModeHandler from(SendConfirmationMode confirmationMode) {
+        static ConfirmationModeHandler from(SendConfirmationMode confirmationMode, Logger logger) {
             return switch (confirmationMode) {
-                case IMMEDIATE -> new ImmediateHandler();
-                case CONFIRMED -> new ConfirmedHandler();
-                case DETAILED -> new DetailedHandler();
+                case IMMEDIATE -> new ImmediateHandler(logger);
+                case CONFIRMED -> new ConfirmedHandler(logger);
+                case DETAILED -> new DetailedHandler(logger);
             };
         }
     }
 
-    static class ImmediateHandler implements ConfirmationModeHandler {
+    static final class ImmediateHandler implements ConfirmationModeHandler {
+
+        protected final Logger logger;
+
+        ImmediateHandler(Logger logger) {
+            this.logger = logger;
+        }
 
         @Override
         public void onEnqueued(CompletableFuture<String> future) {
@@ -60,34 +65,51 @@ class DefaultMessageHandler implements MessageHandler {
         @Override
         public void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception) {
-            // Intentionally left blank: Future already completed in onEnqueued, failures are only
-            // logged in the caller
-        }
-    }
-
-    static class ConfirmedHandler implements ConfirmationModeHandler {
-
-        @Override
-        public void onCompleted(
-                CompletableFuture<String> future, RecordMetadata metadata, Exception exception) {
             if (exception != null) {
-                future.completeExceptionally(exception);
-            } else {
-                future.complete(null);
+                logger.atError()
+                        .setCause(exception)
+                        .log(
+                                "Failed to send message to topic {}; client was not notified (mode=IMMEDIATE)",
+                                metadata.topic());
             }
         }
     }
 
-    static class DetailedHandler implements ConfirmationModeHandler {
+    static sealed class ConfirmedHandler implements ConfirmationModeHandler {
+
+        protected final Logger logger;
+
+        ConfirmedHandler(Logger logger) {
+            this.logger = logger;
+        }
 
         @Override
-        public void onCompleted(
+        public final void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception) {
             if (exception != null) {
+                logger.atWarn()
+                        .setCause(exception)
+                        .log("Failed to send message to topic {}", metadata.topic());
                 future.completeExceptionally(exception);
             } else {
-                future.complete(receipt(metadata));
+                onCompletedWithSuccess(future, metadata);
             }
+        }
+
+        void onCompletedWithSuccess(CompletableFuture<String> future, RecordMetadata metadata) {
+            future.complete(null);
+        }
+    }
+
+    static final class DetailedHandler extends ConfirmedHandler {
+
+        DetailedHandler(Logger logger) {
+            super(logger);
+        }
+
+        @Override
+        void onCompletedWithSuccess(CompletableFuture<String> future, RecordMetadata metadata) {
+            future.complete(receipt(metadata));
         }
 
         private static String receipt(RecordMetadata m) {
@@ -109,31 +131,29 @@ class DefaultMessageHandler implements MessageHandler {
                 JsonMessageConverter<K, V> converter) {
             this.logger = logger;
             this.producer = producer;
-            this.confirmationModeHandler = ConfirmationModeHandler.from(sendConfirmationMode);
+            this.confirmationModeHandler =
+                    ConfirmationModeHandler.from(sendConfirmationMode, logger);
             this.converter = converter;
         }
 
-        void send(String message, CompletableFuture<String> future)
-                throws JacksonException, InvalidMessageException {
+        void send(String message, CompletableFuture<String> future) throws InvalidMessageException {
             ProducerRecord<K, V> record = converter.fromJson(message);
             try {
                 producer.send(
                         record,
-                        (metadata, exception) -> {
-                            if (exception != null) {
-                                logger.atError()
-                                        .setCause(exception)
-                                        .log("Failed to send message: {}", message);
-                            }
-                            confirmationModeHandler.onCompleted(future, metadata, exception);
-                        });
+                        (metadata, exception) ->
+                                confirmationModeHandler.onCompleted(future, metadata, exception));
                 confirmationModeHandler.onEnqueued(future);
             } catch (InterruptException e) {
                 Thread.currentThread().interrupt();
-                logger.atError().setCause(e).log("Interrupted while sending message: {}", message);
+                logger.atError()
+                        .setCause(e)
+                        .log("Interrupted while sending message to topic {}", record.topic());
                 future.completeExceptionally(e);
             } catch (KafkaException | IllegalStateException e) {
-                logger.atError().setCause(e).log("Failed to send message: {}", message);
+                logger.atError()
+                        .setCause(e)
+                        .log("Failed to send message to topic {}", record.topic());
                 future.completeExceptionally(e);
             }
         }
@@ -178,14 +198,9 @@ class DefaultMessageHandler implements MessageHandler {
         try {
             logger.atDebug().log("Sending message: {}", message);
             messageSender.send(message, future);
-        } catch (JacksonException e) {
-            logger.atWarn().log("Rejected malformed JSON message: {}", e.getOriginalMessage());
-            throw new CreditsException(
-                    ErrorMessages.REJECTED_MESSAGE.getCode(),
-                    "Malformed JSON message: " + e.getOriginalMessage());
         } catch (InvalidMessageException e) {
             logger.atWarn().log("Rejected invalid message: {}", e.getMessage());
-            throw new CreditsException(ErrorMessages.REJECTED_MESSAGE.getCode(), e.getMessage());
+            throw new CreditsException(ErrorCode.MESSAGE_REJECTED.code(), e.getMessage());
         }
         return future;
     }
