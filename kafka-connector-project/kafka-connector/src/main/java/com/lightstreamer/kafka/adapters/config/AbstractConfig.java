@@ -24,6 +24,7 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
@@ -61,20 +62,44 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
         return configuration;
     }
 
-    public final String getInt(String configKey) {
+    public final String getIntStr(String configKey) {
         return get(configKey, INT, false);
     }
 
-    public final String getPositiveInt(String configKey) {
+    public int getInt(String configKey) {
+        return Integer.parseInt(get(configKey, INT, true));
+    }
+
+    public final String getPositiveIntStr(String configKey) {
         return get(configKey, POSITIVE_INT, false);
     }
 
-    public final String getNonNegativeInt(String configKey) {
+    public int getPositiveInt(String configKey) {
+        return Integer.parseInt(get(configKey, POSITIVE_INT, true));
+    }
+
+    public final String getNonNegativeIntStr(String configKey) {
         return get(configKey, NON_NEGATIVE_INT, false);
     }
 
-    public final String getPositiveLong(String configKey) {
+    public int getNonNegativeInt(String configKey) {
+        return Integer.parseInt(get(configKey, NON_NEGATIVE_INT, true));
+    }
+
+    public final String getPositiveLongStr(String configKey) {
         return get(configKey, POSITIVE_LONG, false);
+    }
+
+    public final long getPositiveLong(String configKey) {
+        return Long.parseLong(get(configKey, POSITIVE_LONG, true));
+    }
+
+    public final String getNonNegativeLongStr(String configKey) {
+        return get(configKey, NON_NEGATIVE_LONG, false);
+    }
+
+    public final long getNonNegativeLong(String configKey) {
+        return Long.parseLong(get(configKey, NON_NEGATIVE_LONG, true));
     }
 
     public final String getThreads(String configKey) {
@@ -110,7 +135,7 @@ abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
     }
 
     public final boolean getBoolean(String configKey) {
-        return get(configKey, BOOL, false).equals(Boolean.TRUE.toString());
+        return get(configKey, BOOL, true).equals(Boolean.TRUE.toString());
     }
 
     public final String getHost(String configKey) {
