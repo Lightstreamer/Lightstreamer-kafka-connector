@@ -52,22 +52,24 @@ public class JsonMessageConverter<K, V> {
      * @param jsonMessage the JSON message to convert
      * @return a new {@code ProducerRecord} built from the {@code topic}, {@code key} and {@code
      *     value} fields of the message
-     * @throws JacksonException if the message is not valid JSON
      * @throws InvalidMessageException if the topic is missing or blank, if the key or value is
      *     present but of the wrong type, or if both key and value are missing
      */
-    public ProducerRecord<K, V> fromJson(String jsonMessage)
-            throws JacksonException, InvalidMessageException {
-        JsonNode json = mapper.readTree(jsonMessage);
+    public ProducerRecord<K, V> fromJson(String jsonMessage) throws InvalidMessageException {
+        JsonNode json;
+        try {
+            json = mapper.readTree(jsonMessage);
+        } catch (JacksonException e) {
+            throw InvalidMessageException.malformedJson(e.getOriginalMessage());
+        }
         JsonNode topicNode = json.path("topic");
         if (!topicNode.isTextual() || topicNode.textValue().isBlank()) {
-            throw new InvalidMessageException(
-                    "Invalid \"topic\" field: expected a non-blank string");
+            throw InvalidMessageException.invalidField("topic", "expected a non-blank string");
         }
         K key = extract(json, "key", keyConverter);
         V value = extract(json, "value", valueConverter);
         if (key == null && value == null) {
-            throw new InvalidMessageException("Both key and value are missing in JSON message");
+            throw InvalidMessageException.missingKeyAndValue();
         }
         return new ProducerRecord<>(topicNode.textValue(), key, value);
     }
@@ -82,8 +84,7 @@ public class JsonMessageConverter<K, V> {
         try {
             return converter.fromJson(node);
         } catch (InvalidMessageException e) {
-            throw new InvalidMessageException(
-                    "Invalid \"%s\" field: %s".formatted(fieldName, e.getMessage()));
+            throw InvalidMessageException.invalidField(fieldName, e.getMessage());
         }
     }
 }
