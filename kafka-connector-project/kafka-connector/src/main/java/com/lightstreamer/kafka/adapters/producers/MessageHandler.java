@@ -25,24 +25,18 @@ import java.util.concurrent.CompletableFuture;
 
 public interface MessageHandler {
 
-    enum ErrorMessages {
-        DISABLED_PRODUCER(-1, "Disabled producer"),
-        MALFORMED_JSON_MESSAGE(-2, "Malformed JSON message: {}"),
-        REJECTED_MESSAGE(-3, "Rejected message: {}");
+    /** Error codes reported to the client through {@link CreditsException}. */
+    enum ErrorCode {
+        PRODUCER_DISABLED(-1),
+        MESSAGE_REJECTED(-2);
 
         private final int code;
-        private final String message;
 
-        ErrorMessages(int code, String message) {
+        ErrorCode(int code) {
             this.code = code;
-            this.message = message;
         }
 
-        public String getMessage() {
-            return message;
-        }
-
-        public int getCode() {
+        public int code() {
             return code;
         }
     }
