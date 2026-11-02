@@ -21,7 +21,7 @@
         <param name="producer.enable">true</param>
         <param name="producer.bootstrap.servers">broker:29092</param>
         <param name="producer.record.key.evaluator.type">STRING</param>
-        <param name="producer.record.value.evaluator.type">STRING</param>
+        <param name="producer.record.value.evaluator.type">JSON</param>
 
         <!-- Optional. The number of acknowledgments the internal Kafka Producer requires the leader
              to have received before considering a message successfully published. Can be one of
@@ -46,6 +46,82 @@
         <param name="producer.acks">1</param>
         -->
 
+        <!-- Optional. Enables idempotent delivery for the internal Kafka Producer, ensuring that
+             retries do not introduce duplicates or reorder messages in the stream. If set to
+             true, "producer.acks" must be set to all (or -1) and "producer.retries" must be
+             greater than 0.
+
+             The parameter sets the value of the "enable.idempotence" key to configure the internal
+             Kafka Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_enable.idempotence
+             for more details.
+
+             Default value: true. -->
+        <!--
+        <param name="producer.idempotence.enable">false</param>
+        -->
+
+        <!-- Optional. The number of times the internal Kafka Producer retries sending a message
+             that failed with a potentially transient error. Must be a non-negative integer. If
+             "producer.idempotence.enable" is set to true, must be greater than 0.
+
+             The parameter sets the value of the "retries" key to configure the internal Kafka
+             Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_retries
+             for more details.
+
+             Default value: 2147483647. -->
+        <!--
+        <param name="producer.retries">10</param>
+        -->
+
+        <!-- Optional. The time, in milliseconds, the internal Kafka Producer waits before sending
+             a batch, allowing additional messages to be grouped in the same request. Must be a
+             non-negative integer. Higher values increase throughput at the cost of added latency,
+             which also delays the confirmation delivered to the client if
+             "producer.send.confirmation.mode" is set to CONFIRMED or DETAILED.
+
+             The parameter sets the value of the "linger.ms" key to configure the internal Kafka
+             Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_linger.ms
+             for more details.
+
+             Default value: 0. -->
+        <!--
+        <param name="producer.linger.ms">5</param>
+        -->
+
+        <!-- Optional. The maximum time, in milliseconds, the internal Kafka Producer waits for a
+             response from the broker to a single request before retrying or failing it. Must be a
+             non-negative integer.
+
+             The parameter sets the value of the "request.timeout.ms" key to configure the internal
+             Kafka Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_request.timeout.ms
+             for more details.
+
+             Default value: 30000. -->
+        <!--
+        <param name="producer.request.timeout.ms">15000</param>
+        -->
+
+        <!-- Optional. The upper bound, in milliseconds, on the total time the internal Kafka
+             Producer spends delivering a message, including batching, retries, and awaiting the
+             broker acknowledgment. Once elapsed, the message is failed and, if
+             "producer.send.confirmation.mode" is set to CONFIRMED or DETAILED, the client is
+             notified with an error. Must be a non-negative integer and not less than the sum of
+             "producer.linger.ms" and "producer.request.timeout.ms".
+
+             The parameter sets the value of the "delivery.timeout.ms" key to configure the
+             internal Kafka Producer.
+             See https://kafka.apache.org/41/configuration/producer-configs/#producerconfigs_delivery.timeout.ms
+             for more details.
+
+             Default value: 120000. -->
+        <!--
+        <param name="producer.delivery.timeout.ms">60000</param>
+        -->
+
         <!-- Optional. Specifies when the internal Kafka Producer considers a message sent and how
              the outcome is reported to the client. Can be one of the following:
 
@@ -61,9 +137,8 @@
                           available.
 
              Default value: CONFIRMED. -->
-        <!--
+        <!-- -->
         <param name="producer.send.confirmation.mode">DETAILED</param>
-        -->
 
     </metadata_provider>
 
@@ -100,7 +175,7 @@
 
              - Lightstreamer Server will automatically deny every subscription made to this
                connection.
-             - No Kafka consumer is ever created for this connection, not even when
+             - No Kafka consumer is ever created for this connection, not even if
                "item.snapshot.enabled.mode" is set to a value other than "NONE" (which would
                otherwise start the consumer eagerly at adapter initialization).
              - All the parameters of this connection are still fully validated at startup, exactly
@@ -379,7 +454,7 @@
         -->
 
         <!-- Optional. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector
-             should assume for authentication with MSK. Use this when you want the connector to
+             should assume for authentication with MSK. Use this if you want the connector to
              assume a specific role with temporary credentials.
         -->
         <!--
@@ -516,7 +591,7 @@
 
              This parameter takes precedence over the homologous
              "record.key/value.evaluator.schema.registry.enable" parameter: if a local schema path
-             is set, it is used for deserialization even when the Schema Registry is enabled. -->
+             is set, it is used for deserialization even if the Schema Registry is enabled. -->
         <!--
         <param name="record.key.evaluator.schema.path">schemas/record_key.avsc</param>
         <param name="record.value.evaluator.schema.path">schemas/record_value.avsc</param>
@@ -570,7 +645,7 @@
         <param name="record.value.evaluator.kvp.pairs.separator">;</param>
         -->
 
-        <!-- Optional but forced to "IGNORE_AND_CONTINUE" when "item.snapshot.enabled.mode" is set
+        <!-- Optional but forced to "IGNORE_AND_CONTINUE" if "item.snapshot.enabled.mode" is set
              to any value other than "NONE". The error handling strategy to be used if an error
              occurs while extracting data from incoming deserialized records. Can be one of the
              following:
@@ -687,7 +762,7 @@
         <param name="field.offset">#{OFFSET}</param>
         <param name="field.partition">#{PARTITION}</param>
 
-        <!-- COMMAND-mode field mapping. When the adapter operates in COMMAND mode (enabled by
+        <!-- COMMAND-mode field mapping. If the adapter operates in COMMAND mode (enabled by
              setting "item.snapshot.enabled.mode" to "COMMAND", see below), each Lightstreamer
              item is managed as a dynamic table whose rows are inserted, updated, and removed
              through "ADD", "UPDATE", and "DELETE" operations. Two mandatory fields are required
@@ -743,7 +818,7 @@
 
         <!-- ##### ITEM SNAPSHOT SETTINGS ##### -->
 
-        <!-- Optional. Selects the snapshot behavior for subscribed items and, when not set to
+        <!-- Optional. Selects the snapshot behavior for subscribed items and, if not set to
              "NONE", pins the Lightstreamer subscription Mode the connector is willing to serve. Any
              non-"NONE" value activates the eager pipeline: the consumer starts at adapter
              initialization, replays the topic from the beginning to seed the Server's item store,
