@@ -80,7 +80,6 @@ public final class JsonMessageCodec<K, V> {
     }
 
     private static JsonPayloadConverter<?> lookup(EvaluatorType evaluatorType) {
-        System.out.println("Looking up converter for evaluator type: " + evaluatorType);
         JsonPayloadConverter<?> converter = CONVERTERS.get(evaluatorType);
         if (converter == null) {
             throw new IllegalArgumentException(
