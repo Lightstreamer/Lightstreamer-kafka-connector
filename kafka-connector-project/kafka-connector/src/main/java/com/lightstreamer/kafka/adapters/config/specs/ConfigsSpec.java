@@ -113,8 +113,20 @@ public class ConfigsSpec {
             @Override
             public boolean checkValidity(String param) {
                 try {
-                    Long.valueOf(param);
-                    return true;
+                    Long value = Long.valueOf(param);
+                    return value > 0;
+                } catch (NumberFormatException e) {
+                    return false;
+                }
+            }
+        },
+
+        NON_NEGATIVE_LONG {
+            @Override
+            public boolean checkValidity(String param) {
+                try {
+                    Long value = Long.valueOf(param);
+                    return value >= 0;
                 } catch (NumberFormatException e) {
                     return false;
                 }
