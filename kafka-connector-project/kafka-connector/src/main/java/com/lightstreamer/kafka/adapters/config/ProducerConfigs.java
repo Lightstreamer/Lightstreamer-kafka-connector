@@ -19,10 +19,12 @@ package com.lightstreamer.kafka.adapters.config;
 
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_LONG;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
@@ -41,6 +43,11 @@ public class ProducerConfigs {
     public static final String RECORD_VALUE_EVALUATOR_TYPE = "record.value.evaluator.type";
     public static final String SEND_CONFIRMATION_MODE = "send.confirmation.mode";
     public static final String RECORD_ACKS = "acks";
+    public static final String IDEMPOTENCE_ENABLE = "idempotence.enable";
+    public static final String RETRIES = "retries";
+    public static final String LINGER_MS = "linger.ms";
+    public static final String DELIVERY_TIMEOUT_MS = "delivery.timeout.ms";
+    public static final String REQUEST_TIMEOUT_MS = "request.timeout.ms";
 
     // Hidden (undocumented) producer config
     public static final String MAX_BLOCK_MS = "max.block.ms";
@@ -70,7 +77,27 @@ public class ProducerConfigs {
                                 false,
                                 CONFIRMATION_MODE,
                                 defaultValue(SendConfirmationMode.CONFIRMED.toString()))
-                        .add(MAX_BLOCK_MS, false, false, POSITIVE_LONG, defaultValue("1000"));
+                        .add(IDEMPOTENCE_ENABLE, false, false, BOOL, defaultValue("true"))
+                        .add(
+                                RETRIES,
+                                false,
+                                false,
+                                NON_NEGATIVE_INT,
+                                defaultValue(Integer.toString(Integer.MAX_VALUE)))
+                        .add(LINGER_MS, false, false, NON_NEGATIVE_LONG, defaultValue("0"))
+                        .add(
+                                DELIVERY_TIMEOUT_MS,
+                                false,
+                                false,
+                                NON_NEGATIVE_LONG,
+                                defaultValue("120000"))
+                        .add(
+                                REQUEST_TIMEOUT_MS,
+                                false,
+                                false,
+                                NON_NEGATIVE_INT,
+                                defaultValue("30000"))
+                        .add(MAX_BLOCK_MS, false, false, NON_NEGATIVE_LONG, defaultValue("1000"));
     }
 
     static ConfigsSpec spec() {
@@ -84,7 +111,22 @@ public class ProducerConfigs {
                 globalConfig.getHostsList(GlobalConfig.PRODUCER_BOOTSTRAP_SERVERS));
         properties.setProperty(
                 ProducerConfig.MAX_BLOCK_MS_CONFIG,
-                globalConfig.getPositiveLong(GlobalConfig.PRODUCER_MAX_BLOCK_MS));
+                globalConfig.getNonNegativeLongStr(GlobalConfig.PRODUCER_MAX_BLOCK_MS));
+        properties.setProperty(
+                ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
+                globalConfig.getBooleanStr(GlobalConfig.PRODUCER_IDEMPOTENCE_ENABLE));
+        properties.setProperty(
+                ProducerConfig.RETRIES_CONFIG,
+                globalConfig.getNonNegativeIntStr(GlobalConfig.PRODUCER_RETRIES));
+        properties.setProperty(
+                ProducerConfig.LINGER_MS_CONFIG,
+                globalConfig.getNonNegativeLongStr(GlobalConfig.PRODUCER_LINGER_MS));
+        properties.setProperty(
+                ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,
+                globalConfig.getNonNegativeLongStr(GlobalConfig.PRODUCER_DELIVERY_TIMEOUT_MS));
+        properties.setProperty(
+                ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
+                globalConfig.getNonNegativeIntStr(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS));
         properties.setProperty(
                 ProducerConfig.ACKS_CONFIG,
                 globalConfig.get(GlobalConfig.PRODUCER_ACKS, ACKS, false));
