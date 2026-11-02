@@ -51,6 +51,14 @@ public final class GlobalConfig extends AbstractConfig {
     public static final String PRODUCER_SEND_CONFIRMATION_MODE =
             adapt(ProducerConfigs.SEND_CONFIRMATION_MODE);
     public static final String PRODUCER_ACKS = adapt(ProducerConfigs.RECORD_ACKS);
+    public static final String PRODUCER_IDEMPOTENCE_ENABLE =
+            adapt(ProducerConfigs.IDEMPOTENCE_ENABLE);
+    public static final String PRODUCER_RETRIES = adapt(ProducerConfigs.RETRIES);
+    public static final String PRODUCER_LINGER_MS = adapt(ProducerConfigs.LINGER_MS);
+    public static final String PRODUCER_DELIVERY_TIMEOUT_MS =
+            adapt(ProducerConfigs.DELIVERY_TIMEOUT_MS);
+    public static final String PRODUCER_REQUEST_TIMEOUT_MS =
+            adapt(ProducerConfigs.REQUEST_TIMEOUT_MS);
 
     private static final ConfigsSpec CONFIG_SPEC;
 
@@ -83,15 +91,52 @@ public final class GlobalConfig extends AbstractConfig {
             return;
         }
 
-        SendConfirmationMode confirmationMode = getProducerSendConfirmationMode();
-        if (confirmationMode == SendConfirmationMode.DETAILED
-                && get(PRODUCER_ACKS, ACKS, false).equals("0")) {
+        String acks = get(PRODUCER_ACKS, ACKS, false);
+        checkSendConfirmationMode(acks);
+        checkEnableIdempotence(acks);
+        checkProducerDeliveryTimeout();
+    }
+
+    private void checkSendConfirmationMode(String acks) {
+        SendConfirmationMode confirmationMode = getProducerSendConfirmationModeInternal();
+        if (confirmationMode == SendConfirmationMode.DETAILED && acks.equals("0")) {
             throw new ConfigException(
                     "Parameter [%s] set to %s is not compatible with parameter [%s] set to 0"
                             .formatted(
                                     PRODUCER_SEND_CONFIRMATION_MODE,
                                     SendConfirmationMode.DETAILED,
                                     PRODUCER_ACKS));
+        }
+    }
+
+    private void checkEnableIdempotence(String acks) {
+        boolean enableIdempotence = getBoolean(PRODUCER_IDEMPOTENCE_ENABLE);
+        if (enableIdempotence) {
+            if (!(acks.equals("all") || acks.equals("-1"))) {
+                throw new ConfigException(
+                        "Parameter [%s] set to true is not compatible with parameter [%s] set to %s"
+                                .formatted(PRODUCER_IDEMPOTENCE_ENABLE, PRODUCER_ACKS, acks));
+            }
+
+            if (getNonNegativeInt(PRODUCER_RETRIES) == 0) {
+                throw new ConfigException(
+                        "Parameter [%s] set to true is not compatible with parameter [%s] set to 0"
+                                .formatted(PRODUCER_IDEMPOTENCE_ENABLE, PRODUCER_RETRIES));
+            }
+        }
+    }
+
+    private void checkProducerDeliveryTimeout() {
+        long linger = getNonNegativeLong(PRODUCER_LINGER_MS);
+        long requestTimeout = getNonNegativeInt(PRODUCER_REQUEST_TIMEOUT_MS);
+        long deliveryTimeout = getNonNegativeLong(PRODUCER_DELIVERY_TIMEOUT_MS);
+        if (deliveryTimeout < linger + requestTimeout) {
+            throw new ConfigException(
+                    "Parameter [%s] must be at least the sum of [%s] and [%s]"
+                            .formatted(
+                                    PRODUCER_DELIVERY_TIMEOUT_MS,
+                                    PRODUCER_LINGER_MS,
+                                    PRODUCER_REQUEST_TIMEOUT_MS));
         }
     }
 
@@ -128,6 +173,10 @@ public final class GlobalConfig extends AbstractConfig {
 
     public SendConfirmationMode getProducerSendConfirmationMode() {
         checkProducerEnabled();
+        return getProducerSendConfirmationModeInternal();
+    }
+
+    private SendConfirmationMode getProducerSendConfirmationModeInternal() {
         return SendConfirmationMode.valueOf(
                 get(PRODUCER_SEND_CONFIRMATION_MODE, CONFIRMATION_MODE, false));
     }
