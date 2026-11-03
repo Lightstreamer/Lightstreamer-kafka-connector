@@ -59,6 +59,8 @@ public class JsonMessageConverter<K, V> {
         JsonNode json;
         try {
             json = mapper.readTree(jsonMessage);
+        } catch (IllegalArgumentException e) {
+            throw InvalidMessageException.malformedJson(e.getMessage());
         } catch (JacksonException e) {
             throw InvalidMessageException.malformedJson(e.getOriginalMessage());
         }
