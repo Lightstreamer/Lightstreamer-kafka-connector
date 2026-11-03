@@ -61,6 +61,9 @@ class JsonMessageCodecTest {
         JsonMessageCodec<?, ?> codec = JsonMessageCodec.of(type, type);
         assertThat(codec.keySerializer()).isInstanceOf(expectedSerializer);
         assertThat(codec.valueSerializer()).isInstanceOf(expectedSerializer);
+
+        JsonMessageConverter<?, ?> converter = codec.converter();
+        assertThat(converter).isNotNull();
     }
 
     @Test
