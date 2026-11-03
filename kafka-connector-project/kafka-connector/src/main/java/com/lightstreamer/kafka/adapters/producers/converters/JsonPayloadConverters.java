@@ -34,7 +34,7 @@ class JsonPayloadConverters {
             @Override
             public String fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isTextual()) {
-                    throw unexpectedType(json, "string");
+                    throw unexpectedType(json, "STRING");
                 }
                 return json.asText();
             }
@@ -51,7 +51,7 @@ class JsonPayloadConverters {
             @Override
             public Integer fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isIntegralNumber() || !json.canConvertToInt()) {
-                    throw unexpectedType(json, "integer");
+                    throw unexpectedType(json, "INTEGER");
                 }
                 return json.asInt();
             }
@@ -68,7 +68,7 @@ class JsonPayloadConverters {
             @Override
             public Boolean fromJson(JsonNode json) throws InvalidMessageException {
                 if (!json.isBoolean()) {
-                    throw unexpectedType(json, "boolean");
+                    throw unexpectedType(json, "BOOLEAN");
                 }
                 return json.asBoolean();
             }
@@ -125,10 +125,10 @@ class JsonPayloadConverters {
                     try {
                         return Long.parseLong(json.asText());
                     } catch (NumberFormatException e) {
-                        throw unexpectedType(json, "long");
+                        throw unexpectedType(json, "LONG");
                     }
                 }
-                throw unexpectedType(json, "a long (number or numeric string)");
+                throw unexpectedType(json, "a LONG (number or numeric string)");
             }
 
             @Override
@@ -146,7 +146,7 @@ class JsonPayloadConverters {
                         || !json.canConvertToInt()
                         || json.intValue() < Short.MIN_VALUE
                         || json.intValue() > Short.MAX_VALUE) {
-                    throw unexpectedType(json, "short");
+                    throw unexpectedType(json, "SHORT");
                 }
                 return json.shortValue();
             }
