@@ -249,7 +249,7 @@ public class TopicConfigurations {
                 }
                 configs.add(fromDelimitedMappings(topic, mappings, partitions));
             }
-            return configs;
+            return Collections.unmodifiableList(configs);
         }
     }
 
