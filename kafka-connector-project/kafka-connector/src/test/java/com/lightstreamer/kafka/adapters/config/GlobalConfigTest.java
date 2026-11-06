@@ -30,6 +30,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmatio
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.DestinationMappingConfig;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -48,6 +49,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -148,6 +150,7 @@ class GlobalConfigTest {
         Map<String, String> params = minimal();
         params.put(GlobalConfig.PRODUCER_ENABLE, "true");
         params.put(GlobalConfig.PRODUCER_BOOTSTRAP_SERVERS, "localhost:9092");
+        params.put("producer.map.destination.to", "test-topic");
         return params;
     }
 
@@ -212,6 +215,19 @@ class GlobalConfigTest {
                                 .formatted(GlobalConfig.PRODUCER_BOOTSTRAP_SERVERS));
 
         params.put(GlobalConfig.PRODUCER_BOOTSTRAP_SERVERS, "localhost:9092");
+        ce =
+                assertThrows(
+                        ConfigException.class,
+                        () -> GlobalConfig.newConfig(adapterDir.toFile(), params));
+        assertThat(ce)
+                .hasMessageThat()
+                .isEqualTo(
+                        "Specify at least one parameter [%s.<...>.%s]"
+                                .formatted(
+                                        GlobalConfig.PRODUCER_DESTINATION_MAPPING,
+                                        GlobalConfig.PRODUCER_MAP_TO_TOPICS_SUFFIX));
+
+        params.put("producer.map.destination.to", "test-topic");
         assertDoesNotThrow(() -> GlobalConfig.newConfig(adapterDir.toFile(), params));
     }
 
@@ -250,6 +266,49 @@ class GlobalConfigTest {
                 .isEqualTo(EvaluatorType.valueOf(evaluatorType));
         assertThat(config.getProducerValueEvaluatorType())
                 .isEqualTo(EvaluatorType.valueOf(evaluatorType));
+    }
+
+    @Test
+    void shouldGetDestinationMappingWithOneTopic() {
+        Map<String, String> params = producerEnabled();
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        List<DestinationMappingConfig> destinationMapping = config.getDestinationMapping();
+        assertThat(destinationMapping).hasSize(1);
+
+        DestinationMappingConfig mappingConfig = destinationMapping.get(0);
+        assertThat(mappingConfig.destination()).isEqualTo("destination");
+        assertThat(mappingConfig.topics()).containsExactly("test-topic");
+    }
+
+    @Test
+    void shouldGetDestinationMappingWithMoreTopics() {
+        Map<String, String> params = producerEnabled();
+        params.put("producer.map.destination.to", "test-topic1,test-topic2");
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        List<DestinationMappingConfig> destinationMapping = config.getDestinationMapping();
+        assertThat(destinationMapping).hasSize(1);
+
+        DestinationMappingConfig mappingConfig = destinationMapping.get(0);
+        assertThat(mappingConfig.destination()).isEqualTo("destination");
+        assertThat(mappingConfig.topics()).containsExactly("test-topic1", "test-topic2");
+    }
+
+    @Test
+    void shouldGetMoreDestinationMappings() {
+        Map<String, String> params = producerEnabled();
+        params.put("producer.map.destination.to", "test-topic1,test-topic2");
+        params.put("producer.map.anotherDestination.to", "test-topic3");
+        GlobalConfig config = GlobalConfig.newConfig(adapterDir.toFile(), params);
+        List<DestinationMappingConfig> destinationMapping = config.getDestinationMapping();
+        assertThat(destinationMapping).hasSize(2);
+
+        DestinationMappingConfig mappingConfig1 = destinationMapping.get(0);
+        assertThat(mappingConfig1.destination()).isEqualTo("destination");
+        assertThat(mappingConfig1.topics()).containsExactly("test-topic1", "test-topic2");
+
+        DestinationMappingConfig mappingConfig2 = destinationMapping.get(1);
+        assertThat(mappingConfig2.destination()).isEqualTo("anotherDestination");
+        assertThat(mappingConfig2.topics()).containsExactly("test-topic3");
     }
 
     @Test
