@@ -63,7 +63,7 @@ class TopicMappingConfigTest {
 
     @ParameterizedTest
     @MethodSource("mappingFromDelimitedString")
-    void shouldCreateTopicMappingFromDelimitedString(
+    void shouldCreateTopicMappingConfigFromDelimitedString(
             String topic,
             String delimitedItems,
             String delimitedPartitions,
@@ -86,7 +86,7 @@ class TopicMappingConfigTest {
     }
 
     @Test
-    void shouldCreateTopicMappingFromMaps() {
+    void shouldCreateTopicMappingConfigFromMaps() {
         List<TopicMappingConfig> tms1 = TopicMappingConfig.from(Map.of("topic", "item1"));
         assertThat(tms1).hasSize(1);
 
@@ -132,7 +132,7 @@ class TopicMappingConfigTest {
     }
 
     @Test
-    void shouldCreateEmptyTopicMappingListFromEmptyMap() {
+    void shouldCreateEmptyTopicMappingConfigListFromEmptyMap() {
         List<TopicMappingConfig> from = TopicMappingConfig.from(Map.of(), Map.of());
         assertThat(from).isEmpty();
     }
@@ -213,6 +213,11 @@ class TopicMappingConfigTest {
 
     @ParameterizedTest
     @NullAndEmptySource
+    @ValueSource(
+            strings = {
+                "item,", // Invalid trailing ','
+                ",", // Generates two empty strings
+            })
     void shouldNotCreateFromStringDueToInvalidTopicMapping(String mapping) {
         ConfigException ce =
                 assertThrows(
