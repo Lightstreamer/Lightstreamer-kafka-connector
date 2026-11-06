@@ -30,8 +30,10 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.common.config.ConfigException;
+import com.lightstreamer.kafka.common.config.DestinationMappingConfig;
 
 import java.io.File;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -48,6 +50,9 @@ public final class GlobalConfig extends AbstractConfig {
             adapt(ProducerConfigs.RECORD_KEY_EVALUATOR_TYPE);
     public static final String PRODUCER_RECORD_VALUE_EVALUATOR_TYPE =
             adapt(ProducerConfigs.RECORD_VALUE_EVALUATOR_TYPE);
+    public static final String PRODUCER_DESTINATION_MAPPING =
+            adapt(ProducerConfigs.DESTINATION_MAPPING);
+    public static final String PRODUCER_MAP_TO_TOPICS_SUFFIX = ProducerConfigs.MAP_TO_TOPICS_SUFFIX;
     public static final String PRODUCER_SEND_CONFIRMATION_MODE =
             adapt(ProducerConfigs.SEND_CONFIRMATION_MODE);
     public static final String PRODUCER_ACKS = adapt(ProducerConfigs.RECORD_ACKS);
@@ -77,12 +82,17 @@ public final class GlobalConfig extends AbstractConfig {
                                 PRODUCER_ENABLE);
     }
 
+    private List<DestinationMappingConfig> destionationMapping;
+
     private GlobalConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
     }
 
     public GlobalConfig(Map<String, String> configs) {
         this(CONFIG_SPEC, configs);
+        Map<String, String> values =
+                getValues(PRODUCER_DESTINATION_MAPPING, PRODUCER_MAP_TO_TOPICS_SUFFIX);
+        this.destionationMapping = DestinationMappingConfig.from(values);
         postValidate();
     }
 
@@ -186,5 +196,9 @@ public final class GlobalConfig extends AbstractConfig {
         NonNullKeyProperties properties = new NonNullKeyProperties();
         properties.putAll(ProducerConfigs.addBaseProperties(this));
         return properties.unmodifiable();
+    }
+
+    public List<DestinationMappingConfig> getDestinationMapping() {
+        return destionationMapping;
     }
 }
