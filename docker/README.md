@@ -129,5 +129,6 @@ The `push.sh` script will:
 
 View image labels:
 ```sh
-docker inspect lightstreamer-kafka-connector-<version> | jq '.[0].Config.Labels'
+docker inspect lightstreamer-kafka-connector:<version> | jq '.[0].Config.Labels'
 ```
+
