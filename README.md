@@ -589,7 +589,7 @@ _Optional_. Enable this connection configuration. Can be one of the following:
 
 If disabled:
 - Lightstreamer Server will automatically deny every subscription made to this connection.
-- No Kafka consumer is ever created for this connection, not even when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to a value other than `NONE` (which would otherwise start the consumer eagerly at adapter initialization).
+- No Kafka consumer is ever created for this connection, not even if [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to a value other than `NONE` (which would otherwise start the consumer eagerly at adapter initialization).
 - All the parameters of this connection are still fully validated at startup, exactly as for an enabled connection: an invalid configuration prevents the Adapter Set from loading.
 
 Default value: `true`.
@@ -632,7 +632,7 @@ Example:
 
 #### `group.id`
 
-_Optional but only effective is [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
+_Optional but only effective if [`consumer.mode`](#consumermode) is set to `GROUP` (the default)_. The name of the consumer group this connection belongs to.
 
 The parameter sets the value of the [`group.id`](https://kafka.apache.org/41/configuration/consumer-configs/#consumerconfigs_group.id) key to configure the internal Kafka Consumer.
 
@@ -976,7 +976,7 @@ If this mechanism is specified, you can configure the following authentication p
 
 - `authentication.iam.role.arn`
 
-  _Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this when you want the connector to assume a specific role with temporary credentials.
+_Optional_. The Amazon Resource Name (ARN) of the IAM role that the Kafka Connector should assume for authentication with MSK. Use this if you want the connector to assume a specific role with temporary credentials.
 
   Example:
 
@@ -1171,7 +1171,7 @@ Examples:
 _Mandatory if [evaluator type](#recordkeyevaluatortype-and-recordvalueevaluatortype) is set to `AVRO` or `PROTOBUF` and no [Schema Registry](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable) is enabled_. The path of the local schema (or binary descriptor) file relative to the deployment folder (`LS_HOME/adapters/lightstreamer-kafka-connector-<version>`) or as an absolute path, for message validation respectively of the key and the value.
 
 > [!IMPORTANT]
-> This parameter takes precedence over [`record.key/value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable): if a local schema path is set, it is used for deserialization even when the Schema Registry is enabled.
+> This parameter takes precedence over [`record.key/value.evaluator.schema.registry.enable`](#recordkeyevaluatorschemaregistryenable-and-recordvalueevaluatorschemaregistryenable): if a local schema path is set, it is used for deserialization even if the Schema Registry is enabled.
 
 When using Protobuf, a binary descriptor file is required. This binary file is generated from the source `.proto` file using the _[Protocol Buffer Compiler](https://grpc.io/docs/protoc-installation/)_ (`protoc`).
 
@@ -1286,7 +1286,7 @@ Examples:
 
 #### `record.extraction.error.strategy`
 
-_Optional but forced to `IGNORE_AND_CONTINUE` when [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
+_Optional but forced to `IGNORE_AND_CONTINUE` if [`item.snapshot.enabled.mode`](#itemsnapshotenabledmode) is set to any value other than `NONE`_. The error handling strategy to be used if an error occurs while [extracting data](#data-extraction-language) from incoming deserialized records. Can be one of the following:
 
 - `IGNORE_AND_CONTINUE`: Ignore the error and continue to process the next record.
 - `FORCE_UNSUBSCRIPTION`: Stop processing records and force unsubscription of the items requested by all the clients subscribed to this connection (see the [Client-side error handling](#client-side-error-handling) section).
@@ -1544,7 +1544,7 @@ The `QuickStart` [factory configuration](/kafka-connector-project/kafka-connecto
 
 #### COMMAND mode field mapping
 
-When the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Server requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
+If the adapter operates in _COMMAND_ mode (enabled by setting [`item.snapshot.enabled.mode = COMMAND`](#itemsnapshotenabledmode); see also [COMMAND snapshot](#command-snapshot)), each Lightstreamer item is managed as a dynamic table whose rows are inserted, updated, and removed through `ADD`, `UPDATE`, and `DELETE` operations. The Lightstreamer Server requires two mandatory fields in the item's schema — `key` (the row identifier) and `command` (the operation) — and the way they are mapped is a special case of the general `field.FIELD_NAME` mechanism described above:
 
 - **`key`** is mapped explicitly by the user through the `field.key` parameter, like any other field. It identifies the row each record refers to.
 - **`command`** is **not** mapped: the connector synthesizes it for every record from the record state and the per-item key history:
@@ -1901,7 +1901,7 @@ Parameters that control whether the connector manages the _snapshot_ of subscrib
 
 ### `item.snapshot.enabled.mode`
 
-_Optional_. Selects the snapshot behavior for subscribed items and, when not set to `NONE`, pins the Lightstreamer subscription _Mode_ the connector is willing to serve. Can be one of the following:
+_Optional_. Selects the snapshot behavior for subscribed items and, if not set to `NONE`, pins the Lightstreamer subscription _Mode_ the connector is willing to serve. Can be one of the following:
 
 - **`NONE`**: Snapshot management disabled. Lazy consumer, empty snapshot, subscription _Mode_ not constrained by the adapter.
 - **`MERGE`**: Pins subscription _Mode_ to _MERGE_. See [MERGE snapshot](#merge-snapshot).
@@ -2132,7 +2132,7 @@ This is the out-of-the-box behavior, selected by `item.snapshot.enabled.mode = N
 
 ## Connector-managed snapshot
 
-When `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
+If `item.snapshot.enabled.mode` is set to any value other than `NONE`, the connector takes responsibility for materializing and serving the snapshot:
 
 - The internal Kafka Consumer is started _eagerly_ when the Data Adapter binds to the Lightstreamer Server, before any client is allowed to subscribe (clients can only connect — and therefore subscribe — once initialization has completed).
 - The connector manages partition positions explicitly, bypassing [`record.consume.from`](#recordconsumefrom): newly assigned partitions are always seeked to the beginning so that the replay covers the full topic history and pre-seeds the per-item store maintained by the Lightstreamer Server, while re-assigned partitions resume from their committed offset.
