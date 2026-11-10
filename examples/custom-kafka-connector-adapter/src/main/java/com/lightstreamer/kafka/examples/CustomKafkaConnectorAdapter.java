@@ -17,7 +17,7 @@ public class CustomKafkaConnectorAdapter extends KafkaConnectorMetadataAdapter {
 
     @Override
     public void onSubscription(String user, String sessionID, TableInfo[] tables) throws CreditsException, NotificationException {
-        System.out.format("Subscribed to  from item [%s]%n", tables[0].getId());
+        System.out.format("Subscribed to from item [%s]%n", tables[0].getId());
     }
 
     @Override
