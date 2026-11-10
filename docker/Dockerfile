@@ -14,7 +14,7 @@ RUN apk add --no-cache unzip && \
 # ============================================
 # Stage 2: Build the final image
 # ============================================
-FROM lightstreamer:7.4.8
+FROM lightstreamer:7.4.9
 
 ARG VERSION
 ARG BUILD_DATE
