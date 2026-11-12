@@ -157,14 +157,14 @@ public abstract class RecordDeserializationMode<K, V> {
                     joinable,
                     (record, ex) ->
                             logger.atWarn()
-                                    .setCause(ex)
                                     .log(
                                             "Skipping record due to deserialization"
                                                     + " error [topic={}, partition={},"
-                                                    + " offset={}]",
+                                                    + " offset={}: {}]",
                                             record.topic(),
                                             record.partition(),
-                                            record.offset()));
+                                            record.offset(),
+                                            ex.getMessage()));
         }
     }
 }
