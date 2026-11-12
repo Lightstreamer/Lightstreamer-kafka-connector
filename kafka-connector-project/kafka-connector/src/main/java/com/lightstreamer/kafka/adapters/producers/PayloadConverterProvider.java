@@ -17,13 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.producers;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
-import java.util.Properties;
+public interface PayloadConverterProvider {
 
-public record ProducerSettings(
-        EvaluatorType keyEvaluatorType,
-        EvaluatorType valueEvaluatorType,
-        SendConfirmationMode sendConfirmationMode,
-        Properties producerProperties) {}
+    PayloadConverter createKeyConverter();
+
+    PayloadConverter createValueConverter();
+}
