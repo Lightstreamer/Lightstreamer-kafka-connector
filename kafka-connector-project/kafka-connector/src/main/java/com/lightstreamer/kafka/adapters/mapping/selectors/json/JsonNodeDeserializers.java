@@ -98,7 +98,7 @@ public class JsonNodeDeserializers {
             }
 
             try {
-                JsonNode node = mapper.readValue(data, JsonNode.class);
+                JsonNode node = mapper.readTree(data);
                 String schemaId = extractSchemaId(headers);
                 getSchema(schemaId).validate(node);
                 return node;
