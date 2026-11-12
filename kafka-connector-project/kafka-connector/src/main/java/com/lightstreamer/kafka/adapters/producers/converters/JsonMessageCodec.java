@@ -18,6 +18,8 @@
 package com.lightstreamer.kafka.adapters.producers.converters;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -29,89 +31,53 @@ import java.util.EnumMap;
  *
  * <p>A codec is the single source of truth for a key/value type pair: the {@link
  * JsonMessageConverter} returned by {@link #converter()} and the {@link Serializer}s returned by
- * {@link #keySerializer()} and {@link #valueSerializer()} are guaranteed to agree on the Java types
- * {@code K} and {@code V}.
+ * {@link #payloadConverter()} and {@link #valueSerializer()} are guaranteed to agree on the Java
+ * types {@code K} and {@code V}.
  *
  * @see JsonMessageConverter
  * @param <K> the type of the key in the Kafka record
  * @param <V> the type of the value in the Kafka record
  */
-public final class JsonMessageCodec<K, V> {
+public final class JsonMessageCodec {
 
-    private static final EnumMap<EvaluatorType, JsonPayloadConverter<?>> CONVERTERS =
-            new EnumMap<>(EvaluatorType.class);
+    private static final EnumMap<PayloadConverterType, PayloadConverter> CONVERTERS =
+            new EnumMap<>(PayloadConverterType.class);
 
     static {
-        CONVERTERS.put(EvaluatorType.STRING, JsonPayloadConverters.String());
-        CONVERTERS.put(EvaluatorType.INTEGER, JsonPayloadConverters.Integer());
-        CONVERTERS.put(EvaluatorType.BOOLEAN, JsonPayloadConverters.Boolean());
+        CONVERTERS.put(
+                PayloadConverterType.STRING, new JsonPayloadConverters.StringPayloadConverter());
+        CONVERTERS.put(
+                PayloadConverterType.INTEGER, new JsonPayloadConverters.IntegerPayloadConverter());
+        CONVERTERS.put(
+                PayloadConverterType.BOOLEAN, new JsonPayloadConverters.BooleanPayloadConverter());
         // SERIALIZERS.put(EvaluatorType.BYTE_ARRAY, Converters.ByteArray());
         // SERIALIZERS.put(EvaluatorType.BYTE_BUFFER, Converters.ByteBuffer());
         // SERIALIZERS.put(EvaluatorType.BYTES, Converters.Bytes());
-        CONVERTERS.put(EvaluatorType.DOUBLE, JsonPayloadConverters.Double());
-        CONVERTERS.put(EvaluatorType.FLOAT, JsonPayloadConverters.Float());
-        CONVERTERS.put(EvaluatorType.LONG, JsonPayloadConverters.Long());
-        CONVERTERS.put(EvaluatorType.SHORT, JsonPayloadConverters.Short());
-        CONVERTERS.put(EvaluatorType.UUID, JsonPayloadConverters.UUID());
-        CONVERTERS.put(EvaluatorType.JSON, JsonPayloadConverters.Json());
-    }
-
-    private final JsonPayloadConverter<K> keyConverter;
-    private final JsonPayloadConverter<V> valueConverter;
-
-    private JsonMessageCodec(
-            JsonPayloadConverter<K> keyConverter, JsonPayloadConverter<V> valueConverter) {
-        this.keyConverter = keyConverter;
-        this.valueConverter = valueConverter;
+        CONVERTERS.put(
+                PayloadConverterType.DOUBLE, new JsonPayloadConverters.DoublePayloadConverter());
+        CONVERTERS.put(
+                PayloadConverterType.FLOAT, new JsonPayloadConverters.FloatPayloadConverter());
+        CONVERTERS.put(PayloadConverterType.LONG, new JsonPayloadConverters.LongPayloadConverter());
+        CONVERTERS.put(
+                PayloadConverterType.SHORT, new JsonPayloadConverters.ShortPayloadConverter());
+        CONVERTERS.put(PayloadConverterType.UUID, new JsonPayloadConverters.UUIDPayloadConverter());
+        CONVERTERS.put(PayloadConverterType.JSON, new JsonPayloadConverters.JsonPayloadConverter());
     }
 
     /**
-     * Creates a new {@code JsonMessageCodec} for the specified key and value evaluator types.
+     * Creates a new {@code JsonMessageCodec} for the specified converter type.
      *
-     * @param keyEvaluatorType the evaluator type of the record key
-     * @param valueEvaluatorType the evaluator type of the record value
+     * @param converterType the converter type of the record key
      * @return a new {@code JsonMessageCodec}
      * @throws IllegalArgumentException if either evaluator type is {@code null} or not supported
      *     for publishing
      */
-    public static JsonMessageCodec<?, ?> of(
-            EvaluatorType keyEvaluatorType, EvaluatorType valueEvaluatorType) {
-        return new JsonMessageCodec<>(lookup(keyEvaluatorType), lookup(valueEvaluatorType));
-    }
-
-    private static JsonPayloadConverter<?> lookup(EvaluatorType evaluatorType) {
-        JsonPayloadConverter<?> converter = CONVERTERS.get(evaluatorType);
+    public static PayloadConverter lookup(PayloadConverterType payloadConverter) {
+        PayloadConverter converter = CONVERTERS.get(payloadConverter);
         if (converter == null) {
             throw new IllegalArgumentException(
-                    "Unsupported evaluator type for publishing: " + evaluatorType);
+                    "Unsupported evaluator type for publishing: " + payloadConverter);
         }
         return converter;
-    }
-
-    /**
-     * Creates a new {@link JsonMessageConverter} bound to the key and value types of this codec.
-     *
-     * @return a new {@code JsonMessageConverter}
-     */
-    public JsonMessageConverter<K, V> converter() {
-        return new JsonMessageConverter<>(keyConverter, valueConverter);
-    }
-
-    /**
-     * Returns the serializer for the record key.
-     *
-     * @return the key {@link Serializer}
-     */
-    public Serializer<K> keySerializer() {
-        return keyConverter.serializer();
-    }
-
-    /**
-     * Returns the serializer for the record value.
-     *
-     * @return the value {@code Serializer}
-     */
-    public Serializer<V> valueSerializer() {
-        return valueConverter.serializer();
     }
 }

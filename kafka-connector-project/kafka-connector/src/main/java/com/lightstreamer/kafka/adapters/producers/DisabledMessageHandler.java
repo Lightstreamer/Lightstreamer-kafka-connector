@@ -21,12 +21,14 @@ import com.lightstreamer.interfaces.metadata.CreditsException;
 
 import java.util.concurrent.CompletableFuture;
 
+/** A message handler that is disabled and always fails to send messages. */
 class DisabledMessageHandler implements MessageHandler {
 
     @Override
-    public CompletableFuture<String> sendMessage(String message) throws CreditsException {
-        throw new CreditsException(
-                ErrorCode.PRODUCER_DISABLED.code(), "Message publishing is not enabled");
+    public CompletableFuture<String> sendMessage(String user, String sessionID, String message) {
+        return CompletableFuture.failedFuture(
+                new CreditsException(
+                        ErrorCode.PRODUCER_DISABLED.code(), "Message publishing is not enabled"));
     }
 
     @Override

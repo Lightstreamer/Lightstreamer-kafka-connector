@@ -17,183 +17,292 @@
 
 package com.lightstreamer.kafka.adapters.producers.converters;
 
-import static com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException.invalidUuid;
-import static com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException.unexpectedType;
-
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.DynamicMessage;
 
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
+
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.serialization.BooleanSerializer;
+import org.apache.kafka.common.serialization.DoubleSerializer;
+import org.apache.kafka.common.serialization.FloatSerializer;
+import org.apache.kafka.common.serialization.IntegerSerializer;
+import org.apache.kafka.common.serialization.LongSerializer;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.ShortSerializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
 
+import java.io.IOException;
 import java.util.UUID;
 
 class JsonPayloadConverters {
 
-    public static JsonPayloadConverter<String> String() {
-        return new JsonPayloadConverter<String>() {
-            @Override
-            public String fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isTextual()) {
-                    throw unexpectedType(json, "STRING");
-                }
-                return json.asText();
-            }
+    static class StringPayloadConverter extends DefaultPayloadConverter<String> {
 
-            @Override
-            public Serializer<String> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.String().serializer();
+        StringPayloadConverter() {
+            super(new StringSerializer());
+        }
+
+        @Override
+        protected String fromJson(JsonNode json) {
+            if (!json.isTextual()) {
+                throw unexpectedType(json.getNodeType(), "STRING");
             }
-        };
+            return json.asText();
+        }
     }
 
-    public static JsonPayloadConverter<Integer> Integer() {
-        return new JsonPayloadConverter<Integer>() {
-            @Override
-            public Integer fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isIntegralNumber() || !json.canConvertToInt()) {
-                    throw unexpectedType(json, "INTEGER");
-                }
-                return json.asInt();
-            }
+    static class IntegerPayloadConverter extends DefaultPayloadConverter<Integer> {
 
-            @Override
-            public Serializer<Integer> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Integer().serializer();
+        IntegerPayloadConverter() {
+            super(new IntegerSerializer());
+        }
+
+        @Override
+        protected Integer fromJson(JsonNode json) {
+            if (!json.isIntegralNumber() || !json.canConvertToInt()) {
+                throw unexpectedType(json.getNodeType(), "INTEGER");
             }
-        };
+            return json.asInt();
+        }
     }
 
-    public static JsonPayloadConverter<Boolean> Boolean() {
-        return new JsonPayloadConverter<Boolean>() {
-            @Override
-            public Boolean fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isBoolean()) {
-                    throw unexpectedType(json, "BOOLEAN");
-                }
-                return json.asBoolean();
-            }
+    static class BooleanPayloadConverter extends DefaultPayloadConverter<Boolean> {
 
-            @Override
-            public Serializer<Boolean> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Boolean().serializer();
+        BooleanPayloadConverter() {
+            super(new BooleanSerializer());
+        }
+
+        @Override
+        protected Boolean fromJson(JsonNode json) {
+            if (!json.isBoolean()) {
+                throw unexpectedType(json.getNodeType(), "BOOLEAN");
             }
-        };
+            return json.asBoolean();
+        }
     }
 
-    public static JsonPayloadConverter<Double> Double() {
-        return new JsonPayloadConverter<Double>() {
-            @Override
-            public Double fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isNumber()) {
-                    throw unexpectedType(json, "a number");
-                }
-                return json.asDouble();
-            }
+    static class DoublePayloadConverter extends DefaultPayloadConverter<Double> {
 
-            @Override
-            public Serializer<Double> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Double().serializer();
+        DoublePayloadConverter() {
+            super(new DoubleSerializer());
+        }
+
+        @Override
+        protected Double fromJson(JsonNode json) {
+            if (!json.isNumber()) {
+                throw unexpectedType(json.getNodeType(), "a number");
             }
-        };
+            return json.asDouble();
+        }
     }
 
-    public static JsonPayloadConverter<Float> Float() {
-        return new JsonPayloadConverter<Float>() {
-            @Override
-            public Float fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isNumber()) {
-                    throw unexpectedType(json, "a number");
-                }
-                return json.floatValue();
-            }
+    static class FloatPayloadConverter extends DefaultPayloadConverter<Float> {
 
-            @Override
-            public Serializer<Float> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Float().serializer();
+        FloatPayloadConverter() {
+            super(new FloatSerializer());
+        }
+
+        @Override
+        protected Float fromJson(JsonNode json) {
+            if (!json.isNumber()) {
+                throw unexpectedType(json.getNodeType(), "a number");
             }
-        };
+            return json.floatValue();
+        }
     }
 
-    public static JsonPayloadConverter<Long> Long() {
-        return new JsonPayloadConverter<Long>() {
-            @Override
-            public Long fromJson(JsonNode json) throws InvalidMessageException {
-                if (json.isIntegralNumber() && json.canConvertToLong()) {
-                    return json.asLong();
-                }
-                if (json.isTextual()) {
-                    try {
-                        return Long.parseLong(json.asText());
-                    } catch (NumberFormatException e) {
-                        throw unexpectedType(json, "LONG");
-                    }
-                }
-                throw unexpectedType(json, "a LONG (number or numeric string)");
-            }
+    static class LongPayloadConverter extends DefaultPayloadConverter<Long> {
 
-            @Override
-            public Serializer<Long> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Long().serializer();
+        LongPayloadConverter() {
+            super(new LongSerializer());
+        }
+
+        @Override
+        protected Long fromJson(JsonNode json) {
+            if (!json.isIntegralNumber() || !json.canConvertToLong()) {
+                throw unexpectedType(json.getNodeType(), "LONG");
             }
-        };
+            return json.asLong();
+        }
     }
 
-    public static JsonPayloadConverter<Short> Short() {
-        return new JsonPayloadConverter<Short>() {
-            @Override
-            public Short fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isIntegralNumber()
-                        || !json.canConvertToInt()
-                        || json.intValue() < Short.MIN_VALUE
-                        || json.intValue() > Short.MAX_VALUE) {
-                    throw unexpectedType(json, "SHORT");
-                }
-                return json.shortValue();
-            }
+    static class ShortPayloadConverter extends DefaultPayloadConverter<Short> {
 
-            @Override
-            public Serializer<Short> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.Short().serializer();
+        ShortPayloadConverter() {
+            super(new ShortSerializer());
+        }
+
+        @Override
+        protected Short fromJson(JsonNode json) {
+            if (!json.isIntegralNumber()
+                    || !json.canConvertToInt()
+                    || json.intValue() < Short.MIN_VALUE
+                    || json.intValue() > Short.MAX_VALUE) {
+                throw unexpectedType(json.getNodeType(), "SHORT");
             }
-        };
+            return json.shortValue();
+        }
     }
 
-    public static JsonPayloadConverter<UUID> UUID() {
-        return new JsonPayloadConverter<UUID>() {
+    static class UUIDPayloadConverter extends DefaultPayloadConverter<UUID> {
+
+        UUIDPayloadConverter() {
+            super(new UUIDSerializer());
+        }
+
+        @Override
+        protected UUID fromJson(JsonNode json) {
+            if (!json.isTextual()) {
+                throw unexpectedType(json.getNodeType(), "a UUID string");
+            }
+            String text = json.asText();
+            try {
+                return UUID.fromString(text);
+            } catch (IllegalArgumentException e) {
+                throw new SerializationException(
+                        "expected a valid UUID but found \"%s\"".formatted(text));
+            }
+        }
+    }
+
+    static class JsonPayloadConverter extends DefaultPayloadConverter<JsonNode> {
+
+        private static class JsonNodeSerializer implements Serializer<JsonNode> {
+
+            private final ObjectMapper objectMapper = new ObjectMapper();
+
             @Override
-            public UUID fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isTextual()) {
-                    throw unexpectedType(json, "a UUID string");
+            public void configure(java.util.Map<String, ?> configs, boolean isKey) {
+                // No configuration needed
+            }
+
+            @Override
+            public byte[] serialize(java.lang.String topic, JsonNode data) {
+                if (data == null) {
+                    return null;
                 }
-                String text = json.asText();
+
                 try {
-                    return UUID.fromString(text);
-                } catch (IllegalArgumentException e) {
-                    throw invalidUuid(text);
+                    return objectMapper.writeValueAsBytes(data);
+                } catch (Exception e) {
+                    // Should not happen, but wrap any exception as SerializationException
+                    throw new SerializationException("Failed to serialize JsonNode", e);
                 }
             }
+        }
 
-            @Override
-            public Serializer<UUID> serializer() {
-                return new UUIDSerializer();
+        JsonPayloadConverter() {
+            super(new JsonNodeSerializer());
+        }
+
+        @Override
+        protected JsonNode fromJson(JsonNode json) {
+            if (!json.isObject()) {
+                throw unexpectedType(json.getNodeType(), "a JSON object");
             }
-        };
+            return json;
+        }
     }
 
-    public static JsonPayloadConverter<String> Json() {
-        return new JsonPayloadConverter<String>() {
-            @Override
-            public String fromJson(JsonNode json) throws InvalidMessageException {
-                if (!json.isObject()) {
-                    throw unexpectedType(json, "a JSON object");
-                }
-                return json.toString();
+    static class GenericRecordPayloadConverter extends DefaultPayloadConverter<GenericRecord> {
+
+        private static class GenericRecordSerializer implements Serializer<GenericRecord> {
+            private final KafkaAvroSerializer kafkaAvroSerializer;
+
+            public GenericRecordSerializer() {
+                this.kafkaAvroSerializer = new KafkaAvroSerializer();
             }
 
             @Override
-            public Serializer<String> serializer() {
-                return org.apache.kafka.common.serialization.Serdes.String().serializer();
+            public void configure(java.util.Map<String, ?> configs, boolean isKey) {
+                this.kafkaAvroSerializer.configure(configs, isKey);
             }
-        };
+
+            @Override
+            public byte[] serialize(java.lang.String topic, GenericRecord data) {
+                if (data == null) {
+                    return null;
+                }
+                try {
+                    return this.kafkaAvroSerializer.serialize(topic, data);
+                } catch (Exception e) {
+                    throw new SerializationException("Failed to serialize GenericRecord", e);
+                }
+            }
+        }
+
+        private GenericDatumReader<GenericRecord> datumReader;
+        private Schema schema;
+
+        GenericRecordPayloadConverter(String schemaString) {
+            super(new GenericRecordSerializer());
+            this.schema = new Schema.Parser().parse(schemaString);
+            this.datumReader = new GenericDatumReader<>(this.schema);
+            // GenericRecord avroRecord = datumReader.read(null, decoder);
+        }
+
+        @Override
+        protected GenericRecord fromJson(JsonNode json) {
+            try {
+                Decoder decoder = DecoderFactory.get().jsonDecoder(this.schema, json.toString());
+                return datumReader.read(null, decoder);
+            } catch (IOException e) {
+                throw new SerializationException("Failed to deserialize JSON to GenericRecord", e);
+            }
+        }
+    }
+
+    static class DynamicMessagePayloadConverter extends DefaultPayloadConverter<DynamicMessage> {
+
+        private static class DynamicMessageSerializer implements Serializer<DynamicMessage> {
+
+            private final KafkaProtobufSerializer<DynamicMessage> kafkaProtobufSerializer;
+
+            public DynamicMessageSerializer() {
+                this.kafkaProtobufSerializer = new KafkaProtobufSerializer<DynamicMessage>();
+            }
+
+            @Override
+            public void configure(java.util.Map<String, ?> configs, boolean isKey) {
+                kafkaProtobufSerializer.configure(configs, isKey);
+            }
+
+            @Override
+            public byte[] serialize(java.lang.String topic, DynamicMessage data) {
+                if (data == null) {
+                    return null;
+                }
+                try {
+                    return this.kafkaProtobufSerializer.serialize(topic, data);
+                } catch (Exception e) {
+                    throw new SerializationException("Failed to serialize DynamicMessage", e);
+                }
+            }
+        }
+
+        DynamicMessagePayloadConverter(String schemaString) {
+            super(new DynamicMessageSerializer());
+            // GenericRecord avroRecord = datumReader.read(null, decoder);
+        }
+
+        @Override
+        protected DynamicMessage fromJson(JsonNode json) {
+            // DynamicMessage.Builder dynamicBuilder = DynamicMessage.newBuilder((Message)null);
+
+            // // The exact same JsonFormat parser works for DynamicMessage builders
+            // JsonFormat.parser().ignoringUnknownFields().merge(json.toString(), dynamicBuilder);
+
+            // return dynamicBuilder.build();
+            return null;
+        }
     }
 }
