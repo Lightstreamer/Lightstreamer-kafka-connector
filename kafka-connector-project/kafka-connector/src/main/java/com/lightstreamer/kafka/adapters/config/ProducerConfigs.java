@@ -21,10 +21,12 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.Evaluato
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_LONG;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.PAYLOAD_CONVERTER;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.POSITIVE_LONG;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
@@ -39,8 +41,10 @@ public class ProducerConfigs {
 
     public static final String BOOTSTRAP_SERVERS = "bootstrap.servers";
 
-    public static final String RECORD_KEY_EVALUATOR_TYPE = "record.key.evaluator.type";
-    public static final String RECORD_VALUE_EVALUATOR_TYPE = "record.value.evaluator.type";
+    public static final String MESSAGE_KEY_PAYLOAD_CONVERTER = "message.key.payload.converter";
+    public static final String MESSAGE_VALUE_PAYLOAD_CONVERTER = "message.value.payload.converter";
+    public static final String DESTINATION_MAPPING = "map";
+    public static final String MAP_TO_TOPICS_SUFFIX = "to";
     public static final String SEND_CONFIRMATION_MODE = "send.confirmation.mode";
     public static final String RECORD_ACKS = "acks";
     public static final String IDEMPOTENCE_ENABLE = "idempotence.enable";
@@ -51,6 +55,7 @@ public class ProducerConfigs {
 
     // Hidden (undocumented) producer config
     public static final String MAX_BLOCK_MS = "max.block.ms";
+    public static final String METADATA_MAX_IDLE_MS = "metadata.max.idle.ms";
 
     private static final ConfigsSpec CONFIG_SPEC;
 
@@ -59,16 +64,16 @@ public class ProducerConfigs {
                 new ConfigsSpec("producer")
                         .add(BOOTSTRAP_SERVERS, true, false, HOST_LIST)
                         .add(
-                                RECORD_KEY_EVALUATOR_TYPE,
+                                MESSAGE_KEY_PAYLOAD_CONVERTER,
                                 false,
                                 false,
-                                EVALUATOR,
+                                PAYLOAD_CONVERTER,
                                 defaultValue(STRING.toString()))
                         .add(
-                                RECORD_VALUE_EVALUATOR_TYPE,
+                                MESSAGE_VALUE_PAYLOAD_CONVERTER,
                                 false,
                                 false,
-                                EVALUATOR,
+                                PAYLOAD_CONVERTER,
                                 defaultValue(STRING.toString()))
                         .add(RECORD_ACKS, false, false, ACKS, defaultValue("all"))
                         .add(
@@ -77,6 +82,7 @@ public class ProducerConfigs {
                                 false,
                                 CONFIRMATION_MODE,
                                 defaultValue(SendConfirmationMode.CONFIRMED.toString()))
+                        .add(DESTINATION_MAPPING, true, true, MAP_TO_TOPICS_SUFFIX, TEXT_LIST)
                         .add(IDEMPOTENCE_ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(
                                 RETRIES,
@@ -90,14 +96,20 @@ public class ProducerConfigs {
                                 false,
                                 false,
                                 NON_NEGATIVE_LONG,
-                                defaultValue("120000"))
+                                defaultValue("5000"))
                         .add(
                                 REQUEST_TIMEOUT_MS,
                                 false,
                                 false,
                                 NON_NEGATIVE_INT,
-                                defaultValue("30000"))
-                        .add(MAX_BLOCK_MS, false, false, NON_NEGATIVE_LONG, defaultValue("1000"));
+                                defaultValue("2000"))
+                        .add(MAX_BLOCK_MS, false, false, NON_NEGATIVE_LONG, defaultValue("100"))
+                        .add(
+                                METADATA_MAX_IDLE_MS,
+                                false,
+                                false,
+                                POSITIVE_LONG,
+                                defaultValue("3600000"));
     }
 
     static ConfigsSpec spec() {
@@ -127,6 +139,9 @@ public class ProducerConfigs {
         properties.setProperty(
                 ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
                 globalConfig.getNonNegativeIntStr(GlobalConfig.PRODUCER_REQUEST_TIMEOUT_MS));
+        properties.setProperty(
+                ProducerConfig.METADATA_MAX_IDLE_CONFIG,
+                globalConfig.getPositiveLongStr(GlobalConfig.PRODUCER_METADATA_MAX_IDLE_MS));
         properties.setProperty(
                 ProducerConfig.ACKS_CONFIG,
                 globalConfig.get(GlobalConfig.PRODUCER_ACKS, ACKS, false));

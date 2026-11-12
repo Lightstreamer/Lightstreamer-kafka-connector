@@ -20,20 +20,19 @@ package com.lightstreamer.kafka.adapters.config;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.EVALUATOR;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.common.config.ConfigException;
-import com.lightstreamer.kafka.common.config.DestinationMappingConfig;
+import com.lightstreamer.kafka.common.config.DestinationConfigurations;
 
 import java.io.File;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -46,10 +45,10 @@ public final class GlobalConfig extends AbstractConfig {
     public static final String PRODUCER_BOOTSTRAP_SERVERS =
             adapt(ProducerConfigs.BOOTSTRAP_SERVERS);
     public static final String PRODUCER_MAX_BLOCK_MS = adapt(ProducerConfigs.MAX_BLOCK_MS);
-    public static final String PRODUCER_RECORD_KEY_EVALUATOR_TYPE =
-            adapt(ProducerConfigs.RECORD_KEY_EVALUATOR_TYPE);
-    public static final String PRODUCER_RECORD_VALUE_EVALUATOR_TYPE =
-            adapt(ProducerConfigs.RECORD_VALUE_EVALUATOR_TYPE);
+    public static final String MESSAGE_KEY_PAYLOAD_CONVERTER =
+            adapt(ProducerConfigs.MESSAGE_KEY_PAYLOAD_CONVERTER);
+    public static final String MESSAGE_VALUE_PAYLOAD_CONVERTER =
+            adapt(ProducerConfigs.MESSAGE_VALUE_PAYLOAD_CONVERTER);
     public static final String PRODUCER_DESTINATION_MAPPING =
             adapt(ProducerConfigs.DESTINATION_MAPPING);
     public static final String PRODUCER_MAP_TO_TOPICS_SUFFIX = ProducerConfigs.MAP_TO_TOPICS_SUFFIX;
@@ -64,6 +63,8 @@ public final class GlobalConfig extends AbstractConfig {
             adapt(ProducerConfigs.DELIVERY_TIMEOUT_MS);
     public static final String PRODUCER_REQUEST_TIMEOUT_MS =
             adapt(ProducerConfigs.REQUEST_TIMEOUT_MS);
+    public static final String PRODUCER_METADATA_MAX_IDLE_MS =
+            adapt(ProducerConfigs.METADATA_MAX_IDLE_MS);
 
     private static final ConfigsSpec CONFIG_SPEC;
 
@@ -82,7 +83,7 @@ public final class GlobalConfig extends AbstractConfig {
                                 PRODUCER_ENABLE);
     }
 
-    private List<DestinationMappingConfig> destionationMapping;
+    private DestinationConfigurations destinationConfigurations;
 
     private GlobalConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
@@ -92,7 +93,7 @@ public final class GlobalConfig extends AbstractConfig {
         this(CONFIG_SPEC, configs);
         Map<String, String> values =
                 getValues(PRODUCER_DESTINATION_MAPPING, PRODUCER_MAP_TO_TOPICS_SUFFIX);
-        this.destionationMapping = DestinationMappingConfig.from(values);
+        this.destinationConfigurations = DestinationConfigurations.from(values);
         postValidate();
     }
 
@@ -171,14 +172,16 @@ public final class GlobalConfig extends AbstractConfig {
         }
     }
 
-    public EvaluatorType getProducerKeyEvaluatorType() {
+    public PayloadConverterType getMessageKeyPayloadConverter() {
         checkProducerEnabled();
-        return EvaluatorType.valueOf(get(PRODUCER_RECORD_KEY_EVALUATOR_TYPE, EVALUATOR, false));
+        return PayloadConverterType.valueOf(
+                get(MESSAGE_KEY_PAYLOAD_CONVERTER, PAYLOAD_CONVERTER, false));
     }
 
-    public EvaluatorType getProducerValueEvaluatorType() {
+    public PayloadConverterType getMessageValuePayloadConverter() {
         checkProducerEnabled();
-        return EvaluatorType.valueOf(get(PRODUCER_RECORD_VALUE_EVALUATOR_TYPE, EVALUATOR, false));
+        return PayloadConverterType.valueOf(
+                get(MESSAGE_VALUE_PAYLOAD_CONVERTER, PAYLOAD_CONVERTER, false));
     }
 
     public SendConfirmationMode getProducerSendConfirmationMode() {
@@ -198,7 +201,7 @@ public final class GlobalConfig extends AbstractConfig {
         return properties.unmodifiable();
     }
 
-    public List<DestinationMappingConfig> getDestinationMapping() {
-        return destionationMapping;
+    public DestinationConfigurations getDestinationConfigurations() {
+        return destinationConfigurations;
     }
 }
