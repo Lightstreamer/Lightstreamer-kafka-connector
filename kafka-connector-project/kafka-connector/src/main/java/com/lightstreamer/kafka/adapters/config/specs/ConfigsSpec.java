@@ -21,6 +21,7 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ConsumerMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.ItemSnapshotEnabledMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.KeystoreType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeFrom;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordConsumeWithOrderStrategy;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHandlingStrategy;
@@ -181,6 +182,8 @@ public class ConfigsSpec {
         BOOL(Options.booleans()) {},
 
         EVALUATOR(Options.evaluatorTypes()),
+
+        PAYLOAD_CONVERTER(Options.payloadConverters()),
 
         CONSUME_FROM(Options.consumeEventsFrom()),
 
@@ -511,6 +514,10 @@ public class ConfigsSpec {
 
         static Options evaluatorTypes() {
             return new Options(EvaluatorType.names());
+        }
+
+        public static Options payloadConverters() {
+            return new Options(PayloadConverterType.names());
         }
 
         static Options itemSnapshotEnabledMode() {
