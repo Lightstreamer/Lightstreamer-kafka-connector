@@ -231,6 +231,28 @@ public interface ConfigTypes {
         }
     }
 
+    public enum PayloadConverterType {
+        AVRO,
+        JSON,
+        PROTOBUF,
+        STRING,
+        INTEGER,
+        BOOLEAN,
+        BYTE_ARRAY,
+        BYTE_BUFFER,
+        BYTES,
+        DOUBLE,
+        FLOAT,
+        LONG,
+        SHORT,
+        UUID,
+        PROVIDED;
+
+        public static Set<String> names() {
+            return enumNames(values());
+        }
+    }
+
     enum RecordErrorHandlingStrategy {
         IGNORE_AND_CONTINUE,
         FORCE_UNSUBSCRIPTION;
