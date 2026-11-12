@@ -28,7 +28,10 @@ import com.lightstreamer.interfaces.metadata.TableInfo;
 import com.lightstreamer.kafka.adapters.commons.MetadataListener;
 import com.lightstreamer.kafka.adapters.config.GlobalConfig;
 import com.lightstreamer.kafka.adapters.producers.MessageHandler;
-import com.lightstreamer.kafka.adapters.producers.ProducerSettings;
+import com.lightstreamer.kafka.adapters.pub.messages.ClientMessage;
+import com.lightstreamer.kafka.adapters.pub.messages.ClientMessageInfo;
+import com.lightstreamer.kafka.adapters.pub.messages.MessageHook;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.mapping.selectors.Expressions;
@@ -53,7 +56,7 @@ import javax.annotation.Nullable;
  *
  * <p>For the sake of simplicity, this documentation shows only the hook methods.
  */
-public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
+public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter implements MessageHook {
 
     private static KafkaConnectorMetadataAdapter METADATA_ADAPTER;
 
@@ -77,6 +80,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
             throws MetadataProviderException {
         super.init(params, configDir);
         globalConfig = GlobalConfig.newConfig(configDir, params);
+
         configureLogging(configDir);
         configureMessageHandler();
         METADATA_ADAPTER = this;
@@ -124,17 +128,10 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     }
 
     private void configureMessageHandler() {
-        if (globalConfig.isProducerEnabled()) {
-            messageHandler =
-                    MessageHandler.create(
-                            logger,
-                            new ProducerSettings(
-                                    globalConfig.getProducerKeyEvaluatorType(),
-                                    globalConfig.getProducerValueEvaluatorType(),
-                                    globalConfig.getProducerSendConfirmationMode(),
-                                    globalConfig.baseProducerProps()));
+        if (!globalConfig.isProducerEnabled()) {
+            messageHandler = MessageHandler.disabled();
         } else {
-            messageHandler = MessageHandler.DISABLED;
+            messageHandler = MessageHandler.create(logger, globalConfig, this);
         }
     }
 
@@ -217,8 +214,7 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     public final CompletableFuture<String> notifyUserMessage(
             String user, String sessionID, String message)
             throws CreditsException, NotificationException {
-        onUserMessage(user, sessionID, message);
-        return messageHandler.sendMessage(message);
+        return messageHandler.sendMessage(user, sessionID, message);
     }
 
     /**
@@ -239,6 +235,16 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
         if (opts.isPresent()) {
             registerConnectorItems(sessionID, table, opts.get());
         }
+    }
+
+    @Override
+    public PayloadConverter createKeyConverter() {
+        return null;
+    }
+
+    @Override
+    public PayloadConverter createValueConverter() {
+        return null;
     }
 
     private void registerConnectorItems(
@@ -370,20 +376,23 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
     }
 
     /**
-     * Hook method invoked by Lightstreamer Kernel to notify that a user has submitted a message.
+     * Hook method invoked by Lightstreamer Kernel to notify that a user is about to publish a
+     * message.
      *
-     * <p>In this default implementation, the KafkaConnector Metadata Adapter does nothing.
+     * <p>In this default implementation, the KafkaConnector Metadata Adapter simply returns the
+     * message as is.
      *
-     * @param user a user name
-     * @param sessionID the ID of the session owned by the user
-     * @param message a non-null string
+     * @param messageInfo a non-null ClientMessageInfo instance representing the message submitted
+     *     by the user
      * @throws CreditsException if the user is not allowed to submit the message
      * @throws NotificationException if something is wrong in the parameters, such as the {@code
      *     sessionID} of a session that is not currently open
      */
-    public void onUserMessage(
-            @Nullable String user, @Nonnull String sessionID, @Nonnull String message)
-            throws CreditsException, NotificationException {}
+    @Override
+    public ClientMessage onMessagePublishing(@Nonnull ClientMessageInfo messageInfo)
+            throws CreditsException, NotificationException {
+        return messageInfo.message();
+    }
 
     /**
      * Hook method invoked by Lightstreamer Kernel to notify that a user has submitted a
@@ -475,5 +484,9 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter {
             return opts.get().itemSnapshotDistinctLength();
         }
         return super.getDistinctSnapshotLength(item, dataAdapter);
+    }
+
+    protected Logger logger() {
+        return logger;
     }
 }
