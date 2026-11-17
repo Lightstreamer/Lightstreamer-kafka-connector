@@ -46,7 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig {
+abstract sealed class AbstractConfig permits GlobalConfig, ConnectorConfig, PublisherConfig {
 
     public static final String ADAPTERS_CONF_ID = "adapters_conf.id";
 
