@@ -17,73 +17,34 @@
 
 package com.lightstreamer.kafka.adapters.config;
 
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.FILE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.TEXT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
-import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.common.config.ConfigException;
-import com.lightstreamer.kafka.common.config.DestinationConfigurations;
 
 import java.io.File;
 import java.util.Map;
-import java.util.Properties;
 
 public final class GlobalConfig extends AbstractConfig {
 
     public static final String LOGGING_CONFIGURATION_PATH = "logging.configuration.path";
-
-    public static final String PRODUCER_NAME_SPACE = "producer";
-    public static final String PRODUCER_ENABLE = "producer.enable";
-    public static final String PRODUCER_BOOTSTRAP_SERVERS =
-            adapt(ProducerConfigs.BOOTSTRAP_SERVERS);
-    public static final String PRODUCER_MAX_BLOCK_MS = adapt(ProducerConfigs.MAX_BLOCK_MS);
-    public static final String MESSAGE_KEY_PAYLOAD_CONVERTER =
-            adapt(ProducerConfigs.MESSAGE_KEY_PAYLOAD_CONVERTER);
-    public static final String MESSAGE_VALUE_PAYLOAD_CONVERTER =
-            adapt(ProducerConfigs.MESSAGE_VALUE_PAYLOAD_CONVERTER);
-    public static final String PRODUCER_DESTINATION_MAPPING =
-            adapt(ProducerConfigs.DESTINATION_MAPPING);
-    public static final String PRODUCER_MAP_TO_TOPICS_SUFFIX = ProducerConfigs.MAP_TO_TOPICS_SUFFIX;
-    public static final String PRODUCER_SEND_CONFIRMATION_MODE =
-            adapt(ProducerConfigs.SEND_CONFIRMATION_MODE);
-    public static final String PRODUCER_ACKS = adapt(ProducerConfigs.RECORD_ACKS);
-    public static final String PRODUCER_IDEMPOTENCE_ENABLE =
-            adapt(ProducerConfigs.IDEMPOTENCE_ENABLE);
-    public static final String PRODUCER_RETRIES = adapt(ProducerConfigs.RETRIES);
-    public static final String PRODUCER_LINGER_MS = adapt(ProducerConfigs.LINGER_MS);
-    public static final String PRODUCER_DELIVERY_TIMEOUT_MS =
-            adapt(ProducerConfigs.DELIVERY_TIMEOUT_MS);
-    public static final String PRODUCER_REQUEST_TIMEOUT_MS =
-            adapt(ProducerConfigs.REQUEST_TIMEOUT_MS);
-    public static final String PRODUCER_METADATA_MAX_IDLE_MS =
-            adapt(ProducerConfigs.METADATA_MAX_IDLE_MS);
+    public static final String PUBLISHER_ENABLE = "publisher.enable";
 
     private static final ConfigsSpec CONFIG_SPEC;
-
-    static String adapt(String key) {
-        return PRODUCER_NAME_SPACE + "." + key;
-    }
 
     static {
         CONFIG_SPEC =
                 new ConfigsSpec()
                         .add(ADAPTERS_CONF_ID, true, false, TEXT)
                         .add(LOGGING_CONFIGURATION_PATH, true, false, FILE)
-                        .add(PRODUCER_ENABLE, true, false, BOOL, defaultValue("false"))
-                        .withEnabledChildConfigs(
-                                ProducerConfigs.spec().newSpecWithNameSpace(PRODUCER_NAME_SPACE),
-                                PRODUCER_ENABLE);
+                        .add(PUBLISHER_ENABLE, true, false, BOOL, defaultValue("false"))
+                        .withEnabledChildConfigs(PublisherConfig.spec(), PUBLISHER_ENABLE);
     }
 
-    private DestinationConfigurations destinationConfigurations;
+    private PublisherConfig publisherConfig;
 
     private GlobalConfig(ConfigsSpec spec, Map<String, String> configs) {
         super(spec, configs);
@@ -91,63 +52,16 @@ public final class GlobalConfig extends AbstractConfig {
 
     public GlobalConfig(Map<String, String> configs) {
         this(CONFIG_SPEC, configs);
-        Map<String, String> values =
-                getValues(PRODUCER_DESTINATION_MAPPING, PRODUCER_MAP_TO_TOPICS_SUFFIX);
-        this.destinationConfigurations = DestinationConfigurations.from(values);
+
+        if (isPublisherEnabled()) {
+            this.publisherConfig = new PublisherConfig(configs);
+        }
         postValidate();
     }
 
     private void postValidate() {
-        if (!isProducerEnabled()) {
+        if (!isPublisherEnabled()) {
             return;
-        }
-
-        String acks = get(PRODUCER_ACKS, ACKS, false);
-        checkSendConfirmationMode(acks);
-        checkEnableIdempotence(acks);
-        checkProducerDeliveryTimeout();
-    }
-
-    private void checkSendConfirmationMode(String acks) {
-        SendConfirmationMode confirmationMode = getProducerSendConfirmationModeInternal();
-        if (confirmationMode == SendConfirmationMode.DETAILED && acks.equals("0")) {
-            throw new ConfigException(
-                    "Parameter [%s] set to %s is not compatible with parameter [%s] set to 0"
-                            .formatted(
-                                    PRODUCER_SEND_CONFIRMATION_MODE,
-                                    SendConfirmationMode.DETAILED,
-                                    PRODUCER_ACKS));
-        }
-    }
-
-    private void checkEnableIdempotence(String acks) {
-        boolean enableIdempotence = getBoolean(PRODUCER_IDEMPOTENCE_ENABLE);
-        if (enableIdempotence) {
-            if (!(acks.equals("all") || acks.equals("-1"))) {
-                throw new ConfigException(
-                        "Parameter [%s] set to true is not compatible with parameter [%s] set to %s"
-                                .formatted(PRODUCER_IDEMPOTENCE_ENABLE, PRODUCER_ACKS, acks));
-            }
-
-            if (getNonNegativeInt(PRODUCER_RETRIES) == 0) {
-                throw new ConfigException(
-                        "Parameter [%s] set to true is not compatible with parameter [%s] set to 0"
-                                .formatted(PRODUCER_IDEMPOTENCE_ENABLE, PRODUCER_RETRIES));
-            }
-        }
-    }
-
-    private void checkProducerDeliveryTimeout() {
-        long linger = getNonNegativeLong(PRODUCER_LINGER_MS);
-        long requestTimeout = getNonNegativeInt(PRODUCER_REQUEST_TIMEOUT_MS);
-        long deliveryTimeout = getNonNegativeLong(PRODUCER_DELIVERY_TIMEOUT_MS);
-        if (deliveryTimeout < linger + requestTimeout) {
-            throw new ConfigException(
-                    "Parameter [%s] must be at least the sum of [%s] and [%s]"
-                            .formatted(
-                                    PRODUCER_DELIVERY_TIMEOUT_MS,
-                                    PRODUCER_LINGER_MS,
-                                    PRODUCER_REQUEST_TIMEOUT_MS));
         }
     }
 
@@ -161,47 +75,19 @@ public final class GlobalConfig extends AbstractConfig {
         return new GlobalConfig(updatedConfigs);
     }
 
-    public boolean isProducerEnabled() {
-        return getBoolean(PRODUCER_ENABLE);
+    public boolean isPublisherEnabled() {
+        return getBoolean(PUBLISHER_ENABLE);
     }
 
-    private void checkProducerEnabled() {
-        if (!isProducerEnabled()) {
+    private void checkPublisherEnabled() {
+        if (!isPublisherEnabled()) {
             throw new ConfigException(
-                    "Producer is not enabled. Check parameter [%s]".formatted(PRODUCER_ENABLE));
+                    "Publisher is not enabled. Check parameter [%s]".formatted(PUBLISHER_ENABLE));
         }
     }
 
-    public PayloadConverterType getMessageKeyPayloadConverter() {
-        checkProducerEnabled();
-        return PayloadConverterType.valueOf(
-                get(MESSAGE_KEY_PAYLOAD_CONVERTER, PAYLOAD_CONVERTER, false));
-    }
-
-    public PayloadConverterType getMessageValuePayloadConverter() {
-        checkProducerEnabled();
-        return PayloadConverterType.valueOf(
-                get(MESSAGE_VALUE_PAYLOAD_CONVERTER, PAYLOAD_CONVERTER, false));
-    }
-
-    public SendConfirmationMode getProducerSendConfirmationMode() {
-        checkProducerEnabled();
-        return getProducerSendConfirmationModeInternal();
-    }
-
-    private SendConfirmationMode getProducerSendConfirmationModeInternal() {
-        return SendConfirmationMode.valueOf(
-                get(PRODUCER_SEND_CONFIRMATION_MODE, CONFIRMATION_MODE, false));
-    }
-
-    public Properties baseProducerProps() {
-        checkProducerEnabled();
-        NonNullKeyProperties properties = new NonNullKeyProperties();
-        properties.putAll(ProducerConfigs.addBaseProperties(this));
-        return properties.unmodifiable();
-    }
-
-    public DestinationConfigurations getDestinationConfigurations() {
-        return destinationConfigurations;
+    public PublisherConfig getPublisherConfig() {
+        checkPublisherEnabled();
+        return publisherConfig;
     }
 }
