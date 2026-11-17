@@ -18,7 +18,7 @@
 package com.lightstreamer.kafka.adapters.producers;
 
 import com.lightstreamer.interfaces.metadata.CreditsException;
-import com.lightstreamer.kafka.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka.adapters.config.PublisherConfig;
 import com.lightstreamer.kafka.adapters.pub.messages.MessageHook;
 
 import org.slf4j.Logger;
@@ -48,8 +48,8 @@ public interface MessageHandler {
 
     void close();
 
-    static MessageHandler create(Logger logger, GlobalConfig globalConfig, MessageHook hook) {
-        return new MessagePublisher(logger, globalConfig, hook);
+    static MessageHandler create(Logger logger, PublisherConfig config, MessageHook hook) {
+        return new MessagePublisher(logger, config, hook);
     }
 
     static MessageHandler disabled() {
