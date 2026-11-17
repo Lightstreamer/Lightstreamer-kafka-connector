@@ -31,6 +31,7 @@ import com.lightstreamer.kafka.adapters.producers.MessageHandler;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessage;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessageInfo;
 import com.lightstreamer.kafka.adapters.pub.messages.MessageHook;
+import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 import com.lightstreamer.kafka.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.common.config.ConfigException;
@@ -128,10 +129,10 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter imple
     }
 
     private void configureMessageHandler() {
-        if (!globalConfig.isProducerEnabled()) {
+        if (!globalConfig.isPublisherEnabled()) {
             messageHandler = MessageHandler.disabled();
         } else {
-            messageHandler = MessageHandler.create(logger, globalConfig, this);
+            messageHandler = MessageHandler.create(logger, globalConfig.getPublisherConfig(), this);
         }
     }
 
@@ -384,13 +385,12 @@ public class KafkaConnectorMetadataAdapter extends MetadataProviderAdapter imple
      *
      * @param messageInfo a non-null ClientMessageInfo instance representing the message submitted
      *     by the user
-     * @throws CreditsException if the user is not allowed to submit the message
-     * @throws NotificationException if something is wrong in the parameters, such as the {@code
+     * @throws PublishingException if something is wrong in the parameters, such as the {@code
      *     sessionID} of a session that is not currently open
      */
     @Override
     public ClientMessage onMessagePublishing(@Nonnull ClientMessageInfo messageInfo)
-            throws CreditsException, NotificationException {
+            throws PublishingException {
         return messageInfo.message();
     }
 
