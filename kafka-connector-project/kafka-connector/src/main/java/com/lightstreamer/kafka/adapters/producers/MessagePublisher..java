@@ -17,19 +17,19 @@
 
 package com.lightstreamer.kafka.adapters.producers;
 
-import com.fasterxml.jackson.core.JacksonException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.lightstreamer.interfaces.metadata.CreditsException;
-import com.lightstreamer.interfaces.metadata.NotificationException;
-import com.lightstreamer.kafka.adapters.config.GlobalConfig;
+import com.lightstreamer.kafka.adapters.config.PublisherConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
-import com.lightstreamer.kafka.adapters.producers.converters.InvalidMessageException;
 import com.lightstreamer.kafka.adapters.producers.converters.JsonMessageCodec;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessage;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessageInfo;
 import com.lightstreamer.kafka.adapters.pub.messages.MessageHook;
+import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 import com.lightstreamer.kafka.common.config.DestinationConfigurations;
 
@@ -41,6 +41,7 @@ import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -140,14 +141,14 @@ class MessagePublisher implements MessageHandler {
     private final ObjectMapper mapper = new ObjectMapper();
     private final ConfirmationModeHandler confirmationModeHandler;
 
-    MessagePublisher(Logger logger, GlobalConfig config, MessageHook messageHook) {
+    MessagePublisher(Logger logger, PublisherConfig config, MessageHook messageHook) {
         this(logger, ProducerFactory.defaultFactory(), config, messageHook);
     }
 
     MessagePublisher(
             Logger logger,
             ProducerFactory producerFactory,
-            GlobalConfig config,
+            PublisherConfig config,
             MessageHook messageHook) {
         this.logger = logger;
         this.messageHook = messageHook;
@@ -163,119 +164,114 @@ class MessagePublisher implements MessageHandler {
                 producerFactory.createProducer(
                         config.baseProducerProps(), keySerializer, valueSerializer);
         this.confirmationModeHandler =
-                ConfirmationModeHandler.from(config.getProducerSendConfirmationMode(), logger);
+                ConfirmationModeHandler.from(config.getSendConfirmationMode(), logger);
         this.destinationConfigs = config.getDestinationConfigurations();
     }
 
-    private static PayloadConverter createMessageConverter(
+    static PayloadConverter createMessageConverter(
             PayloadConverterType type, Supplier<PayloadConverter> providedConverterSupplier) {
-        PayloadConverterType messageValuePayloadConverter = type;
-        return switch (messageValuePayloadConverter) {
-            case PROVIDED -> providedConverterSupplier.get();
-            default -> JsonMessageCodec.lookup(messageValuePayloadConverter);
+        return switch (type) {
+            case PROVIDED -> Objects.requireNonNull(providedConverterSupplier.get());
+            default -> JsonMessageCodec.lookup(type);
         };
-    }
-
-    ClientMessage parseClientMessage(String clientMessage) throws InvalidMessageException {
-        ClientMessage message;
-        try {
-            message = mapper.readValue(clientMessage, ClientMessage.class);
-        } catch (IllegalArgumentException e) {
-            throw InvalidMessageException.malformedJson(e.getMessage());
-        } catch (JacksonException e) {
-            throw InvalidMessageException.malformedJson(e.getOriginalMessage());
-        }
-
-        return message;
     }
 
     @Override
     public CompletableFuture<String> sendMessage(String user, String sessionID, String message) {
         CompletableFuture<String> future = new CompletableFuture<>();
+
+        // #1 Parse the incoming client message into a structured ClientMessage object
+        ClientMessage clientMessage;
+        logger.atDebug().log("Parsing client message: {}", message);
         try {
-            logger.atDebug().log("Parsing client message: {}", message);
-            ClientMessage clientMessage = parseClientMessage(message);
+            clientMessage = mapper.readValue(message, ClientMessage.class);
+        } catch (JsonProcessingException e) {
+            logger.atError().log("Failed to parse client message: {}", e.getMessage());
+            future.completeExceptionally(e);
+            return future;
+        }
+
+        // #2 Apply the message hook to allow custom processing before publishing
+        try {
+            logger.atDebug().log("Applying message hook for client message: {}", clientMessage);
             clientMessage =
                     messageHook.onMessagePublishing(
                             new ClientMessageInfo(user, sessionID, clientMessage));
-
-            logger.atDebug().log(
-                    "Checking topics for destination: {}", clientMessage.destination());
-            String destination = clientMessage.destination();
-            Set<String> topic = destinationConfigs.lookupTopics(destination);
-            if (topic.isEmpty()) {
-                throw InvalidMessageException.invalidDestination(destination);
-            }
-            logger.atDebug().log("Resolved topics for destination {}: {}", destination, topic);
-            if (clientMessage.value() == null) {
-                throw InvalidMessageException.missingValue();
-            }
-
-            for (String t : topic) {
-                logger.atDebug().log("Sending message to topic [{}]: [{}]...", t, message);
-                ProducerRecord<JsonNode, JsonNode> record =
-                        new ProducerRecord<>(t, clientMessage.key(), clientMessage.value());
-                try {
-                    producer.send(
-                            record,
-                            (metadata, exception) ->
-                                    confirmationModeHandler.onCompleted(
-                                            future, metadata, exception));
-                    confirmationModeHandler.onEnqueued(future);
-                    logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
-                } catch (InterruptException e) {
-                    Thread.currentThread().interrupt();
-                    logger.atError()
-                            .setCause(e)
-                            .log("Interrupted while sending message to topic [{}]", record.topic());
-                    future.completeExceptionally(e);
-                    break;
-                } catch (KafkaException | IllegalStateException e) {
-                    logger.atError()
-                            .log(
-                                    "Failed to send message to topic [{}]: {}",
-                                    record.topic(),
-                                    e.getMessage());
-                    future.completeExceptionally(e);
-                    break;
-                }
-            }
-        } catch (InvalidMessageException e) {
-            logger.atWarn().log("Rejected invalid message: {}", e.getMessage());
-            future.completeExceptionally(
-                    new CreditsException(ErrorCode.MESSAGE_REJECTED.code(), e.getMessage()));
-        } catch (CreditsException | NotificationException e) {
+        } catch (PublishingException e) {
             logger.atError().setCause(e).log("Failed to process message hook: {}", e.getMessage());
             future.completeExceptionally(e);
+            return future;
         }
+
+        // #3 Check if the destination is valid and retrieve the corresponding topics
+        logger.atDebug().log("Checking topics for destination: {}", clientMessage.destination());
+        String destination = clientMessage.destination();
+        if (destination == null || destination.isBlank()) {
+            logger.atError().log("Invalid destination: {}", destination);
+            future.completeExceptionally(
+                    new CreditsException(
+                            ErrorCode.MESSAGE_REJECTED.code(),
+                            "Invalid destination: " + destination));
+            return future;
+        }
+        Set<String> topic = destinationConfigs.lookupTopics(destination);
+        if (topic.isEmpty()) {
+            logger.atError().log("No topics found for destination: {}", destination);
+            future.completeExceptionally(
+                    new CreditsException(
+                            ErrorCode.MESSAGE_REJECTED.code(),
+                            "Invalid destination: " + destination));
+            return future;
+        }
+        logger.atDebug().log("Resolved topics for destination {}: {}", destination, topic);
+        if (clientMessage.value() == null) {
+            logger.atError().log("Missing message value for client message: {}", clientMessage);
+            future.completeExceptionally(
+                    new CreditsException(
+                            ErrorCode.MESSAGE_REJECTED.code(), "Missing message value"));
+            return future;
+        }
+
+        // #4 Send the message to each resolved topic
+        for (String t : topic) {
+            logger.atDebug().log("Sending message to topic [{}]: [{}]...", t, message);
+            ProducerRecord<JsonNode, JsonNode> record =
+                    new ProducerRecord<>(t, clientMessage.key(), clientMessage.value());
+            try {
+                producer.send(
+                        record,
+                        (metadata, exception) ->
+                                confirmationModeHandler.onCompleted(future, metadata, exception));
+                confirmationModeHandler.onEnqueued(future);
+                logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
+            } catch (InterruptException e) {
+                Thread.currentThread().interrupt();
+                logger.atError()
+                        .setCause(e)
+                        .log("Interrupted while sending message to topic [{}]", record.topic());
+                future.completeExceptionally(e);
+                break;
+            } catch (KafkaException | IllegalStateException e) {
+                logger.atError()
+                        .log(
+                                "Failed to send message to topic [{}]: {}",
+                                record.topic(),
+                                e.getMessage());
+                future.completeExceptionally(e);
+                break;
+            }
+        }
+
         return future;
     }
-
-    // void send(ClientMessage message, CompletableFuture<String> future) throws
-    // InvalidMessageException {
-    //         try {
-    //             producer.send(
-    //                     record,
-    //                     (metadata, exception) ->
-    //                             confirmationModeHandler.onCompleted(future, metadata,
-    // exception));
-    //             confirmationModeHandler.onEnqueued(future);
-    //         } catch (InterruptException e) {
-    //             Thread.currentThread().interrupt();
-    //             logger.atError()
-    //                     .setCause(e)
-    //                     .log("Interrupted while sending message to topic {}", record.topic());
-    //             future.completeExceptionally(e);
-    //         } catch (KafkaException | IllegalStateException e) {
-    //             logger.atError()
-    //                     .setCause(e)
-    //                     .log("Failed to send message to topic {}", record.topic());
-    //             future.completeExceptionally(e);
-    //         }
-    //     }
 
     @Override
     public void close() {
         producer.close();
+    }
+
+    @VisibleForTesting
+    ConfirmationModeHandler confirmationModeHandler() {
+        return confirmationModeHandler;
     }
 }
