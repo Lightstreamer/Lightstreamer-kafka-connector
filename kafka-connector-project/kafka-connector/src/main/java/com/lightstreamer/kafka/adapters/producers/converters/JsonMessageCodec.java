@@ -73,11 +73,18 @@ public final class JsonMessageCodec {
      *     for publishing
      */
     public static PayloadConverter lookup(PayloadConverterType payloadConverter) {
+        if (payloadConverter == null) {
+            throw new IllegalArgumentException("Payload converter type cannot be null");
+        }
         PayloadConverter converter = CONVERTERS.get(payloadConverter);
         if (converter == null) {
             throw new IllegalArgumentException(
-                    "Unsupported evaluator type for publishing: " + payloadConverter);
+                    "Unsupported payload converter type for publishing: " + payloadConverter);
         }
         return converter;
+    }
+
+    private JsonMessageCodec() {
+        // Prevent instantiation
     }
 }
