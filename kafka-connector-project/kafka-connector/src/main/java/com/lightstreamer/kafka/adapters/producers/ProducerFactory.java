@@ -19,6 +19,7 @@ package com.lightstreamer.kafka.adapters.producers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
 
@@ -38,8 +39,7 @@ public interface ProducerFactory {
                     Properties props,
                     Serializer<JsonNode> keySerializer,
                     Serializer<JsonNode> valueSerializer) {
-                return new org.apache.kafka.clients.producer.KafkaProducer<>(
-                        props, keySerializer, valueSerializer);
+                return new KafkaProducer<>(props, keySerializer, valueSerializer);
             }
         };
     }
