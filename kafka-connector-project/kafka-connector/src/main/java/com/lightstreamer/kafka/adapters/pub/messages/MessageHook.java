@@ -17,14 +17,11 @@
 
 package com.lightstreamer.kafka.adapters.pub.messages;
 
-import com.lightstreamer.interfaces.metadata.CreditsException;
-import com.lightstreamer.interfaces.metadata.NotificationException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
 public interface MessageHook {
 
-    ClientMessage onMessagePublishing(ClientMessageInfo messageInfo)
-            throws CreditsException, NotificationException;
+    ClientMessage onMessagePublishing(ClientMessageInfo messageInfo) throws PublishingException;
 
     PayloadConverter createKeyConverter();
 
