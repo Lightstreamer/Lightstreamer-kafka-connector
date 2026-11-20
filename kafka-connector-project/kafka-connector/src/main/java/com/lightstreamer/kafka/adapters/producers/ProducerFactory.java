@@ -23,12 +23,12 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.serialization.Serializer;
 
-import java.util.Properties;
+import java.util.Map;
 
 public interface ProducerFactory {
 
     Producer<JsonNode, JsonNode> createProducer(
-            Properties props,
+            Map<String, Object> configs,
             Serializer<JsonNode> keySerializer,
             Serializer<JsonNode> valueSerializer);
 
@@ -36,10 +36,10 @@ public interface ProducerFactory {
         return new ProducerFactory() {
             @Override
             public Producer<JsonNode, JsonNode> createProducer(
-                    Properties props,
+                    Map<String, Object> configs,
                     Serializer<JsonNode> keySerializer,
                     Serializer<JsonNode> valueSerializer) {
-                return new KafkaProducer<>(props, keySerializer, valueSerializer);
+                return new KafkaProducer<>(configs, keySerializer, valueSerializer);
             }
         };
     }

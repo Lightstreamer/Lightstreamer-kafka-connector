@@ -28,19 +28,99 @@ import java.util.concurrent.CompletableFuture;
 /** A handler for sending messages to the Kafka producer. */
 public interface MessageHandler {
 
-    /** Error codes reported to the client through {@link CreditsException}. */
-    enum ErrorCode {
-        PRODUCER_DISABLED(-1),
-        MESSAGE_REJECTED(-2);
+    /**
+     * Error codes and their client-facing messages, reported to the client through {@link
+     * CreditsException}.
+     *
+     * <p>Each constant carries a fixed message. Some failures also attach a detail message, which
+     * is exposed to the client together with the fixed one (see {@link
+     * #toCreditsException(String)}).
+     */
+    enum ClientError {
+
+        /** Message publishing is disabled in the configuration. */
+        PUBLISHING_DISABLED(-1, "Message publishing disabled"),
+
+        /** The client message could not be parsed. */
+        MALFORMED_MESSAGE(-2, "Malformed message"),
+
+        /**
+         * The message hook rejected the message. The detail is the message of the exception thrown
+         * by the hook.
+         */
+        MESSAGE_HOOK_FAILED(-3, "Message hook failed"),
+
+        /** The client message has no destination, or the destination is blank. */
+        MISSING_DESTINATION(-4, "Missing destination"),
+
+        /** The destination is not mapped to any topic. */
+        UNMAPPED_DESTINATION(-5, "Destination not mapped"),
+
+        /** The client message has no value. */
+        MISSING_PAYLOAD_VALUE(-6, "Missing payload value"),
+
+        /**
+         * The key or the value cannot be serialized. The detail is the message of the serialization
+         * error.
+         */
+        INVALID_PAYLOAD_FORMAT(-7, "Invalid payload format"),
+
+        /**
+         * The producer reported the failure asynchronously, through the send callback, after the
+         * message was accepted for sending. It is most likely caused by the broker or the network.
+         */
+        BROKER_DELIVERY_FAILED(-8, "Broker delivery failed"),
+
+        /**
+         * The failure was raised synchronously while sending the message (for example, a closed
+         * producer or an interrupted thread), and is not attributable to the broker.
+         */
+        SEND_FAILED(-9, "Message send failed");
 
         private final int code;
+        private final String message;
 
-        ErrorCode(int code) {
+        ClientError(int code, String message) {
             this.code = code;
+            this.message = message;
         }
 
+        /**
+         * Returns the numeric error code.
+         *
+         * @return the error code, always negative
+         */
         public int code() {
             return code;
+        }
+
+        /**
+         * Returns the fixed client-facing message.
+         *
+         * @return the error message
+         */
+        public String message() {
+            return message;
+        }
+
+        /**
+         * Creates a {@link CreditsException} with this error's code and fixed message.
+         *
+         * @return a new {@code CreditsException}
+         */
+        public CreditsException toCreditsException() {
+            return new CreditsException(code, message);
+        }
+
+        /**
+         * Creates a {@link CreditsException} with this error's code and fixed message, plus a
+         * detail message to be shown to the client.
+         *
+         * @param userMessage the detail message for the client
+         * @return a new {@code CreditsException}
+         */
+        public CreditsException toCreditsException(String userMessage) {
+            return new CreditsException(code, message, userMessage);
         }
     }
 
