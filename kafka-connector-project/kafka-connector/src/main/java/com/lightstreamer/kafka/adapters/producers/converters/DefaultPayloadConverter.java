@@ -27,6 +27,7 @@ import org.apache.kafka.common.serialization.Serializer;
 abstract class DefaultPayloadConverter<T> implements PayloadConverter {
 
     private final Serializer<T> serializer;
+    private boolean isKey;
 
     protected DefaultPayloadConverter(Serializer<T> serializer) {
         this.serializer = serializer;
@@ -39,6 +40,7 @@ abstract class DefaultPayloadConverter<T> implements PayloadConverter {
     @Override
     public void configure(java.util.Map<String, ?> configs, boolean isKey) {
         serializer.configure(configs, isKey);
+        this.isKey = isKey;
     }
 
     @Override
@@ -56,6 +58,10 @@ abstract class DefaultPayloadConverter<T> implements PayloadConverter {
 
     protected abstract T fromJson(JsonNode node);
 
+    protected boolean isKey() {
+        return isKey;
+    }
+
     /**
      * Creates an exception for a JSON node whose type does not match the configured evaluator type.
      * The field name is not known at this level and is added by the caller through {@link
@@ -63,9 +69,13 @@ abstract class DefaultPayloadConverter<T> implements PayloadConverter {
      *
      * @param nodeType the offending node type
      * @param expected a short description of the expected type
+     * @param isKey TODO
      * @return a new {@code SerializationException}
      */
-    public static SerializationException unexpectedType(JsonNodeType nodeType, String expected) {
-        return new SerializationException("expected %s but found %s".formatted(expected, nodeType));
+    public static SerializationException unexpectedType(
+            JsonNodeType nodeType, String expected, boolean isKey) {
+        return new SerializationException(
+                "Invalid %s: expected %s but found %s"
+                        .formatted(isKey ? "key" : "value", expected, nodeType));
     }
 }
