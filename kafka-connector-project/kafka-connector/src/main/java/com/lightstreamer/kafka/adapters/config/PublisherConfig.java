@@ -30,7 +30,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultHolder.defaultValue;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.lightstreamer.kafka.adapters.commons.NonNullKeyProperties;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
@@ -39,8 +38,8 @@ import com.lightstreamer.kafka.common.config.DestinationConfigurations;
 
 import org.apache.kafka.clients.producer.ProducerConfig;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 public final class PublisherConfig extends AbstractConfig {
 
@@ -129,25 +128,22 @@ public final class PublisherConfig extends AbstractConfig {
         return CONFIG_SPEC;
     }
 
-    private Properties addBaseProperties() {
-        NonNullKeyProperties properties = new NonNullKeyProperties();
-        properties.setProperty(
-                ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
-        properties.setProperty(
-                ProducerConfig.MAX_BLOCK_MS_CONFIG, getNonNegativeLongStr(MAX_BLOCK_MS));
-        properties.setProperty(
-                ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, getBooleanStr(IDEMPOTENCE_ENABLE));
-        properties.setProperty(ProducerConfig.RETRIES_CONFIG, getNonNegativeIntStr(RETRIES));
-        properties.setProperty(ProducerConfig.LINGER_MS_CONFIG, getNonNegativeLongStr(LINGER_MS));
-        properties.setProperty(
+    private Map<String, Object> addBaseConfigs() {
+        Map<String, Object> configs = new HashMap<>();
+        configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, getHostsList(BOOTSTRAP_SERVERS));
+        configs.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, getNonNegativeLongStr(MAX_BLOCK_MS));
+        configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, getBooleanStr(IDEMPOTENCE_ENABLE));
+        configs.put(ProducerConfig.RETRIES_CONFIG, getNonNegativeIntStr(RETRIES));
+        configs.put(ProducerConfig.LINGER_MS_CONFIG, getNonNegativeLongStr(LINGER_MS));
+        configs.put(
                 ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,
                 getNonNegativeLongStr(DELIVERY_TIMEOUT_MS));
-        properties.setProperty(
+        configs.put(
                 ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, getNonNegativeIntStr(REQUEST_TIMEOUT_MS));
-        properties.setProperty(
+        configs.put(
                 ProducerConfig.METADATA_MAX_IDLE_CONFIG, getPositiveLongStr(METADATA_MAX_IDLE_MS));
-        properties.setProperty(ProducerConfig.ACKS_CONFIG, get(RECORD_ACKS, ACKS, false));
-        return properties.unmodifiable();
+        configs.put(ProducerConfig.ACKS_CONFIG, get(RECORD_ACKS, ACKS, false));
+        return configs;
     }
 
     private DestinationConfigurations destinationConfigurations;
@@ -230,13 +226,12 @@ public final class PublisherConfig extends AbstractConfig {
         return SendConfirmationMode.valueOf(get(SEND_CONFIRMATION_MODE, CONFIRMATION_MODE, false));
     }
 
-    public Properties baseProducerProps() {
-        NonNullKeyProperties properties = new NonNullKeyProperties();
-        properties.putAll(addBaseProperties());
-        return properties.unmodifiable();
+    public Map<String, Object> producerConfigs() {
+        return Map.copyOf(addBaseConfigs());
     }
 
     public DestinationConfigurations getDestinationConfigurations() {
+
         return destinationConfigurations;
     }
 
@@ -248,5 +243,18 @@ public final class PublisherConfig extends AbstractConfig {
                         "localhost:9092",
                         "publisher.map.destination.to",
                         "topic"));
+    }
+
+    @VisibleForTesting
+    public static PublisherConfig defaultConfig(Map<String, String> additionalProperties) {
+        Map<String, String> config =
+                new HashMap<>(
+                        Map.of(
+                                BOOTSTRAP_SERVERS,
+                                "localhost:9092",
+                                "publisher.map.destination.to",
+                                "topic"));
+        config.putAll(additionalProperties);
+        return new PublisherConfig(config);
     }
 }
