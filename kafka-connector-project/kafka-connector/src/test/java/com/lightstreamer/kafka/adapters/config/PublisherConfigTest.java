@@ -237,13 +237,36 @@ class PublisherConfigTest {
                 "BYTE_ARRAY",
                 "BYTE_BUFFER"
             })
-    void shouldGetMessagePayloadConverterType(String converterType) {
+    void shouldGetKeyMessagePayloadConverterType(String converterType) {
         Map<String, String> params = minimal();
         params.put(PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER, converterType);
-        params.put(PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER, converterType);
         PublisherConfig config = new PublisherConfig(params);
         assertThat(config.getMessageKeyPayloadConverter())
                 .isEqualTo(PayloadConverterType.valueOf(converterType));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "AVRO",
+                "PROTOBUF",
+                "STRING",
+                "JSON",
+                "INTEGER",
+                "SHORT",
+                "FLOAT",
+                "LONG",
+                "UUID",
+                "DOUBLE",
+                "BOOLEAN",
+                "BYTES",
+                "BYTE_ARRAY",
+                "BYTE_BUFFER"
+            })
+    void shouldGetValueMessagePayloadConverterType(String converterType) {
+        Map<String, String> params = minimal();
+        params.put(PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER, converterType);
+        PublisherConfig config = new PublisherConfig(params);
         assertThat(config.getMessageValuePayloadConverter())
                 .isEqualTo(PayloadConverterType.valueOf(converterType));
     }
@@ -310,7 +333,7 @@ class PublisherConfigTest {
     @Test
     void shouldRetrieveBaseProducerProperties() {
         PublisherConfig config = new PublisherConfig(minimal());
-        assertThat(config.baseProducerProps())
+        assertThat(config.producerConfigs())
                 .containsExactly(
                         ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092",
                         ProducerConfig.MAX_BLOCK_MS_CONFIG, "100",
@@ -331,7 +354,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.IDEMPOTENCE_ENABLE, "false");
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps()).containsEntry(ProducerConfig.ACKS_CONFIG, acks);
+        assertThat(config.producerConfigs()).containsEntry(ProducerConfig.ACKS_CONFIG, acks);
     }
 
     @ParameterizedTest
@@ -355,7 +378,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.IDEMPOTENCE_ENABLE, "false");
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
+        assertThat(config.producerConfigs())
                 .containsEntry(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "false");
     }
 
@@ -408,8 +431,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.RETRIES, retries);
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
-                .containsEntry(ProducerConfig.RETRIES_CONFIG, retries);
+        assertThat(config.producerConfigs()).containsEntry(ProducerConfig.RETRIES_CONFIG, retries);
     }
 
     @ParameterizedTest
@@ -450,8 +472,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.LINGER_MS, linger);
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
-                .containsEntry(ProducerConfig.LINGER_MS_CONFIG, linger);
+        assertThat(config.producerConfigs()).containsEntry(ProducerConfig.LINGER_MS_CONFIG, linger);
     }
 
     @ParameterizedTest
@@ -478,7 +499,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.LINGER_MS, "0");
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
+        assertThat(config.producerConfigs())
                 .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeout);
     }
 
@@ -523,7 +544,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.LINGER_MS, "60");
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
+        assertThat(config.producerConfigs())
                 .containsEntry(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "110");
     }
 
@@ -534,7 +555,7 @@ class PublisherConfigTest {
         params.put(PublisherConfig.REQUEST_TIMEOUT_MS, requestTimeout);
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.baseProducerProps())
+        assertThat(config.producerConfigs())
                 .containsEntry(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeout);
     }
 
