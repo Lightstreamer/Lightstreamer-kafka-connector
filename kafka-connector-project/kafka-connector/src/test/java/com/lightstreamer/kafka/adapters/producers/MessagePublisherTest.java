@@ -22,14 +22,15 @@ import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_KE
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode.DETAILED;
+import static com.lightstreamer.kafka.adapters.producers.MessageHandler.ClientError.MESSAGE_HOOK_FAILED;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.kafka.adapters.config.PublisherConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
+import com.lightstreamer.kafka.adapters.producers.MessageHandler.ClientError;
 import com.lightstreamer.kafka.adapters.producers.MessagePublisher.DetailedHandler;
 import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
@@ -44,7 +45,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -87,8 +87,8 @@ public class MessagePublisherTest {
 
     @Test
     void shouldCreateMessagePublisher() {
-        AtomicReference<Properties> baseProps = new AtomicReference<>();
-        Consumer<Properties> basePropConsumer = props -> baseProps.set(props);
+        AtomicReference<Map<String, Object>> baseProps = new AtomicReference<>();
+        Consumer<Map<String, Object>> basePropConsumer = props -> baseProps.set(props);
 
         AtomicReference<Serializer<JsonNode>> keySerializerRef = new AtomicReference<>();
         Consumer<Serializer<JsonNode>> keySerializerConsumer = s -> keySerializerRef.set(s);
@@ -99,10 +99,10 @@ public class MessagePublisherTest {
 
                     @Override
                     public Producer<JsonNode, JsonNode> createProducer(
-                            Properties props,
+                            Map<String, Object> configs,
                             Serializer<JsonNode> keySerializer,
                             Serializer<JsonNode> valueSerializer) {
-                        basePropConsumer.accept(props);
+                        basePropConsumer.accept(configs);
                         keySerializerConsumer.accept(keySerializer);
                         valueSerializerConsumer.accept(valueSerializer);
                         return new MockProducer<>();
@@ -152,7 +152,10 @@ public class MessagePublisherTest {
         assertThat(future.isCompletedExceptionally()).isTrue();
         assertThrows(CompletionException.class, future::join);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(JsonProcessingException.class);
+        assertThat(exception)
+                .hasCauseThat()
+                .hasMessageThat()
+                .contains(ClientError.MALFORMED_MESSAGE.message());
     }
 
     @Test
@@ -172,12 +175,14 @@ public class MessagePublisherTest {
             "destination": "destination",
             "value": "someValue"
           }
-        """;
-        ;
+                """;
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        assertThrows(CompletionException.class, future::join);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(PublishingException.class);
+        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
+        assertThat(exception)
+                .hasCauseThat()
+                .hasMessageThat()
+                .isEqualTo(MESSAGE_HOOK_FAILED.message());
     }
 
     static Stream<String> invalidDestination() {
@@ -200,7 +205,6 @@ public class MessagePublisherTest {
                         messageHook);
 
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        assertThrows(CompletionException.class, future::join);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
         assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
     }
@@ -217,9 +221,52 @@ public class MessagePublisherTest {
 
         String message = "{ \"destination\": \"invalidMapping\", \"value\": \"someValue\" }";
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        assertThrows(CompletionException.class, future::join);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
         assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
+    }
+
+    @Test
+    void shouldFailDueToInvalidValuePayloadConverterType() {
+        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        createProducerFactory(),
+                        PublisherConfig.defaultConfig(
+                                Map.of(PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER, "JSON")),
+                        messageHook);
+
+        String message =
+                "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+        CompletionException exception = assertThrows(CompletionException.class, future::join);
+        CreditsException creditsException = (CreditsException) exception.getCause();
+        assertThat(creditsException)
+                .hasMessageThat()
+                .isEqualTo(ClientError.INVALID_PAYLOAD_FORMAT.message());
+        assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid value");
+    }
+
+    @Test
+    void shouldFailDueToInvalidKeyPayloadConverterType() {
+        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        createProducerFactory(),
+                        PublisherConfig.defaultConfig(
+                                Map.of(PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER, "JSON")),
+                        messageHook);
+
+        String message =
+                "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+        CompletionException exception = assertThrows(CompletionException.class, future::join);
+        CreditsException creditsException = (CreditsException) exception.getCause();
+        assertThat(creditsException)
+                .hasMessageThat()
+                .isEqualTo(ClientError.INVALID_PAYLOAD_FORMAT.message());
+        assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid key");
     }
 
     @Test
@@ -242,7 +289,7 @@ public class MessagePublisherTest {
 
             @Override
             public Producer<JsonNode, JsonNode> createProducer(
-                    Properties props,
+                    Map<String, Object> configs,
                     Serializer<JsonNode> keySerializer,
                     Serializer<JsonNode> valueSerializer) {
                 return new MockProducer<>(true, null, keySerializer, valueSerializer);
@@ -250,4 +297,3 @@ public class MessagePublisherTest {
         };
     }
 }
-
