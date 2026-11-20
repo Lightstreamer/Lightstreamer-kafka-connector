@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.DynamicMessage;
 
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import io.confluent.kafka.serializers.KafkaJsonSerializer;
 import io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer;
 
 import org.apache.avro.Schema;
@@ -54,7 +55,7 @@ class JsonPayloadConverters {
         @Override
         protected String fromJson(JsonNode json) {
             if (!json.isTextual()) {
-                throw unexpectedType(json.getNodeType(), "STRING");
+                throw unexpectedType(json.getNodeType(), "STRING", isKey());
             }
             return json.asText();
         }
@@ -69,7 +70,7 @@ class JsonPayloadConverters {
         @Override
         protected Integer fromJson(JsonNode json) {
             if (!json.isIntegralNumber() || !json.canConvertToInt()) {
-                throw unexpectedType(json.getNodeType(), "INTEGER");
+                throw unexpectedType(json.getNodeType(), "INTEGER", isKey());
             }
             return json.asInt();
         }
@@ -84,7 +85,7 @@ class JsonPayloadConverters {
         @Override
         protected Boolean fromJson(JsonNode json) {
             if (!json.isBoolean()) {
-                throw unexpectedType(json.getNodeType(), "BOOLEAN");
+                throw unexpectedType(json.getNodeType(), "BOOLEAN", isKey());
             }
             return json.asBoolean();
         }
@@ -99,7 +100,7 @@ class JsonPayloadConverters {
         @Override
         protected Double fromJson(JsonNode json) {
             if (!json.isNumber()) {
-                throw unexpectedType(json.getNodeType(), "a number");
+                throw unexpectedType(json.getNodeType(), "a number", isKey());
             }
             return json.asDouble();
         }
@@ -114,7 +115,7 @@ class JsonPayloadConverters {
         @Override
         protected Float fromJson(JsonNode json) {
             if (!json.isNumber()) {
-                throw unexpectedType(json.getNodeType(), "a number");
+                throw unexpectedType(json.getNodeType(), "a number", isKey());
             }
             return json.floatValue();
         }
@@ -129,7 +130,7 @@ class JsonPayloadConverters {
         @Override
         protected Long fromJson(JsonNode json) {
             if (!json.isIntegralNumber() || !json.canConvertToLong()) {
-                throw unexpectedType(json.getNodeType(), "LONG");
+                throw unexpectedType(json.getNodeType(), "LONG", isKey());
             }
             return json.asLong();
         }
@@ -147,7 +148,7 @@ class JsonPayloadConverters {
                     || !json.canConvertToInt()
                     || json.intValue() < Short.MIN_VALUE
                     || json.intValue() > Short.MAX_VALUE) {
-                throw unexpectedType(json.getNodeType(), "SHORT");
+                throw unexpectedType(json.getNodeType(), "SHORT", isKey());
             }
             return json.shortValue();
         }
@@ -162,7 +163,7 @@ class JsonPayloadConverters {
         @Override
         protected UUID fromJson(JsonNode json) {
             if (!json.isTextual()) {
-                throw unexpectedType(json.getNodeType(), "a UUID string");
+                throw unexpectedType(json.getNodeType(), "a UUID string", isKey());
             }
             String text = json.asText();
             try {
@@ -201,13 +202,13 @@ class JsonPayloadConverters {
         }
 
         JsonPayloadConverter() {
-            super(new JsonNodeSerializer());
+            super(new KafkaJsonSerializer<JsonNode>());
         }
 
         @Override
         protected JsonNode fromJson(JsonNode json) {
             if (!json.isObject()) {
-                throw unexpectedType(json.getNodeType(), "a JSON object");
+                throw unexpectedType(json.getNodeType(), "a JSON object", isKey());
             }
             return json;
         }
@@ -216,6 +217,7 @@ class JsonPayloadConverters {
     static class GenericRecordPayloadConverter extends DefaultPayloadConverter<GenericRecord> {
 
         private static class GenericRecordSerializer implements Serializer<GenericRecord> {
+
             private final KafkaAvroSerializer kafkaAvroSerializer;
 
             public GenericRecordSerializer() {
