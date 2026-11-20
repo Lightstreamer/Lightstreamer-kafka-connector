@@ -21,16 +21,18 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.EvaluatorType;
+import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.BooleanPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.DoublePayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.FloatPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.IntegerPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.JsonPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.LongPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.ShortPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.StringPayloadConverter;
+import com.lightstreamer.kafka.adapters.producers.converters.JsonPayloadConverters.UUIDPayloadConverter;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
-import org.apache.kafka.common.serialization.BooleanSerializer;
-import org.apache.kafka.common.serialization.DoubleSerializer;
-import org.apache.kafka.common.serialization.FloatSerializer;
-import org.apache.kafka.common.serialization.IntegerSerializer;
-import org.apache.kafka.common.serialization.LongSerializer;
-import org.apache.kafka.common.serialization.ShortSerializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.apache.kafka.common.serialization.UUIDSerializer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -43,71 +45,40 @@ class JsonMessageCodecTest {
 
     static Stream<Arguments> supportedTypes() {
         return Stream.of(
-                Arguments.of(EvaluatorType.STRING, StringSerializer.class),
-                Arguments.of(EvaluatorType.INTEGER, IntegerSerializer.class),
-                Arguments.of(EvaluatorType.BOOLEAN, BooleanSerializer.class),
-                Arguments.of(EvaluatorType.DOUBLE, DoubleSerializer.class),
-                Arguments.of(EvaluatorType.FLOAT, FloatSerializer.class),
-                Arguments.of(EvaluatorType.LONG, LongSerializer.class),
-                Arguments.of(EvaluatorType.SHORT, ShortSerializer.class),
-                Arguments.of(EvaluatorType.UUID, UUIDSerializer.class),
-                Arguments.of(EvaluatorType.JSON, StringSerializer.class));
+                Arguments.of(PayloadConverterType.STRING, StringPayloadConverter.class),
+                Arguments.of(PayloadConverterType.INTEGER, IntegerPayloadConverter.class),
+                Arguments.of(PayloadConverterType.BOOLEAN, BooleanPayloadConverter.class),
+                Arguments.of(PayloadConverterType.DOUBLE, DoublePayloadConverter.class),
+                Arguments.of(PayloadConverterType.FLOAT, FloatPayloadConverter.class),
+                Arguments.of(PayloadConverterType.LONG, LongPayloadConverter.class),
+                Arguments.of(PayloadConverterType.SHORT, ShortPayloadConverter.class),
+                Arguments.of(PayloadConverterType.UUID, UUIDPayloadConverter.class),
+                Arguments.of(PayloadConverterType.JSON, JsonPayloadConverter.class));
     }
 
     @ParameterizedTest
     @MethodSource("supportedTypes")
-    void shouldCreateCodecForSupportedEvaluatorType(
-            EvaluatorType type, Class<?> expectedSerializer) {
-        JsonMessageCodec<?, ?> codec = JsonMessageCodec.of(type, type);
-        assertThat(codec.keySerializer()).isInstanceOf(expectedSerializer);
-        assertThat(codec.valueSerializer()).isInstanceOf(expectedSerializer);
-
-        JsonMessageConverter<?, ?> converter = codec.converter();
-        assertThat(converter).isNotNull();
-    }
-
-    @Test
-    void shouldCreateCodecWithDistinctKeyAndValueTypes() {
-        JsonMessageCodec<?, ?> codec =
-                JsonMessageCodec.of(EvaluatorType.INTEGER, EvaluatorType.JSON);
-        assertThat(codec.keySerializer()).isInstanceOf(IntegerSerializer.class);
-        assertThat(codec.valueSerializer()).isInstanceOf(StringSerializer.class);
+    void shouldLookup(PayloadConverterType type, Class<?> expectedPayloadConverter) {
+        PayloadConverter converter = JsonMessageCodec.lookup(type);
+        assertThat(converter).isInstanceOf(expectedPayloadConverter);
     }
 
     @ParameterizedTest
     @EnumSource(
-            value = EvaluatorType.class,
-            names = {"AVRO", "PROTOBUF", "KVP", "BYTES", "BYTE_ARRAY", "BYTE_BUFFER"})
-    void shouldFailDueToUnsupportedEvaluatorType(EvaluatorType type) {
+            value = PayloadConverterType.class,
+            names = {"AVRO", "PROTOBUF", "BYTES", "BYTE_ARRAY", "BYTE_BUFFER"})
+    void shouldFailDueToUnsupportedType(PayloadConverterType type) {
         IllegalArgumentException e =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> JsonMessageCodec.of(type, EvaluatorType.STRING));
+                assertThrows(IllegalArgumentException.class, () -> JsonMessageCodec.lookup(type));
         assertThat(e)
                 .hasMessageThat()
-                .isEqualTo("Unsupported evaluator type for publishing: " + type);
-
-        e =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> JsonMessageCodec.of(EvaluatorType.STRING, type));
-        assertThat(e)
-                .hasMessageThat()
-                .isEqualTo("Unsupported evaluator type for publishing: " + type);
+                .isEqualTo("Unsupported payload converter type for publishing: " + type);
     }
 
     @Test
     void shouldFailDueToNullEvaluatorType() {
         IllegalArgumentException e =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> JsonMessageCodec.of(null, EvaluatorType.STRING));
-        assertThat(e).hasMessageThat().isEqualTo("Unsupported evaluator type for publishing: null");
-
-        e =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> JsonMessageCodec.of(EvaluatorType.STRING, null));
-        assertThat(e).hasMessageThat().isEqualTo("Unsupported evaluator type for publishing: null");
+                assertThrows(IllegalArgumentException.class, () -> JsonMessageCodec.lookup(null));
+        assertThat(e).hasMessageThat().isEqualTo("Payload converter type cannot be null");
     }
 }
