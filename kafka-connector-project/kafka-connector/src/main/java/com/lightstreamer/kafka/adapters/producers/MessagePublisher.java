@@ -101,7 +101,7 @@ class MessagePublisher implements MessageHandler {
                 logger.atError()
                         .setCause(exception)
                         .log(
-                                "Failed to asynchronously process message [{}]; client was not notified (mode=IMMEDIATE)",
+                                "Failed to deliver message [{}]; client was not notified (mode=IMMEDIATE)",
                                 messageInfo(metadata));
             }
         }
@@ -119,11 +119,9 @@ class MessagePublisher implements MessageHandler {
         public final void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception) {
             if (exception != null) {
-                logger.atWarn()
+                logger.atError()
                         .setCause(exception)
-                        .log(
-                                "Failed to asynchronously process message [{}] ",
-                                messageInfo(metadata));
+                        .log("Failed to deliver message [{}]", messageInfo(metadata));
                 future.completeExceptionally(BROKER_DELIVERY_FAILED.toCreditsException());
             } else {
                 onCompletedWithSuccess(future, metadata);
@@ -206,7 +204,7 @@ class MessagePublisher implements MessageHandler {
         try {
             clientMessage = mapper.readValue(message, ClientMessage.class);
         } catch (JsonProcessingException e) {
-            logger.atError().log("Failed to parse client message: {}", e.getMessage());
+            logger.atWarn().log("Failed to parse client message: {}", e.getOriginalMessage());
             future.completeExceptionally(MALFORMED_MESSAGE.toCreditsException());
             return future;
         }
@@ -218,7 +216,7 @@ class MessagePublisher implements MessageHandler {
                     messageHook.onMessagePublishing(
                             new ClientMessageInfo(user, sessionID, clientMessage));
         } catch (PublishingException e) {
-            logger.atError().setCause(e).log("Failed to process message hook");
+            logger.atWarn().setCause(e).log("Failed to process message hook");
             future.completeExceptionally(MESSAGE_HOOK_FAILED.toCreditsException(e.getMessage()));
             return future;
         }
@@ -227,7 +225,7 @@ class MessagePublisher implements MessageHandler {
         logger.atDebug().log("Checking topics for destination: {}", clientMessage.destination());
         String destination = clientMessage.destination();
         if (destination == null || destination.isBlank()) {
-            logger.atError().log("No valid destination provided");
+            logger.atWarn().log("No valid destination provided");
             future.completeExceptionally(MISSING_DESTINATION.toCreditsException());
             return future;
         }
@@ -235,13 +233,13 @@ class MessagePublisher implements MessageHandler {
         // #4 Retrieve and validate the topics for the destination
         Set<String> topic = destinationConfigs.lookupTopics(destination);
         if (topic.isEmpty()) {
-            logger.atError().log("No topics found for destination: {}", destination);
+            logger.atWarn().log("No topics found for destination: {}", destination);
             future.completeExceptionally(UNMAPPED_DESTINATION.toCreditsException());
             return future;
         }
         logger.atDebug().log("Resolved topics for destination {}: {}", destination, topic);
         if (clientMessage.value() == null) {
-            logger.atError().log("Missing message value for client message: {}", clientMessage);
+            logger.atWarn().log("Missing message value for destination: {}", destination);
             future.completeExceptionally(MISSING_PAYLOAD_VALUE.toCreditsException());
             return future;
         }
@@ -260,10 +258,10 @@ class MessagePublisher implements MessageHandler {
                 logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
             } catch (SerializationException e) {
                 logger.atWarn()
-                        .setCause(e)
                         .log(
-                                "Serialization error while sending message to topic [{}]",
-                                record.topic());
+                                "Serialization error while sending message to topic [{}]: {}",
+                                record.topic(),
+                                e.getMessage());
                 future.completeExceptionally(
                         INVALID_PAYLOAD_FORMAT.toCreditsException(e.getMessage()));
                 break;
@@ -275,11 +273,9 @@ class MessagePublisher implements MessageHandler {
                 future.completeExceptionally(SEND_FAILED.toCreditsException());
                 break;
             } catch (KafkaException | IllegalStateException e) {
-                logger.atWarn()
-                        .log(
-                                "Failed to send message to topic [{}]: {}",
-                                record.topic(),
-                                e.getMessage());
+                logger.atError()
+                        .setCause(e)
+                        .log("Failed to send message to topic [{}]", record.topic());
                 future.completeExceptionally(SEND_FAILED.toCreditsException());
                 break;
             }
