@@ -32,7 +32,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.adapters.config.PublisherConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.producers.converters.JsonMessageCodec;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessage;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessageInfo;
@@ -44,7 +43,6 @@ import com.lightstreamer.kafka.common.config.DestinationConfigurations;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
@@ -66,12 +64,8 @@ class MessagePublisher implements MessageHandler {
         void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception);
 
-        static ConfirmationModeHandler from(SendConfirmationMode confirmationMode, Logger logger) {
-            return switch (confirmationMode) {
-                case IMMEDIATE -> new ImmediateHandler(logger);
-                case CONFIRMED -> new ConfirmedHandler(logger);
-                case DETAILED -> new DetailedHandler(logger);
-            };
+        static ConfirmationModeHandler from(boolean enabled, Logger logger) {
+            return enabled ? new ConfirmedHandler(logger) : new ImmediateHandler(logger);
         }
 
         default String messageInfo(RecordMetadata metadata) {
@@ -107,7 +101,7 @@ class MessagePublisher implements MessageHandler {
         }
     }
 
-    static sealed class ConfirmedHandler implements ConfirmationModeHandler {
+    static class ConfirmedHandler implements ConfirmationModeHandler {
 
         protected final Logger logger;
 
@@ -130,23 +124,6 @@ class MessagePublisher implements MessageHandler {
 
         void onCompletedWithSuccess(CompletableFuture<String> future, RecordMetadata metadata) {
             future.complete(null);
-        }
-    }
-
-    static final class DetailedHandler extends ConfirmedHandler {
-
-        DetailedHandler(Logger logger) {
-            super(logger);
-        }
-
-        @Override
-        void onCompletedWithSuccess(CompletableFuture<String> future, RecordMetadata metadata) {
-            future.complete(receipt(metadata));
-        }
-
-        private static String receipt(RecordMetadata m) {
-            return "{\"partition\":%d,\"offset\":%d,\"timestamp\":%d}"
-                    .formatted(m.partition(), m.offset(), m.timestamp());
         }
     }
 
@@ -182,7 +159,7 @@ class MessagePublisher implements MessageHandler {
         this.producer =
                 producerFactory.createProducer(producerConfig, keySerializer, valueSerializer);
         this.confirmationModeHandler =
-                ConfirmationModeHandler.from(config.getSendConfirmationMode(), logger);
+                ConfirmationModeHandler.from(config.isSendConfirmationEnable(), logger);
         this.destinationConfigs = config.getDestinationConfigurations();
     }
 
@@ -196,7 +173,7 @@ class MessagePublisher implements MessageHandler {
 
     @Override
     public CompletableFuture<String> sendMessage(String user, String sessionID, String message) {
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<String> topicFuture = new CompletableFuture<>();
 
         // #1 Parse the incoming client message into a structured ClientMessage object
         ClientMessage clientMessage;
@@ -205,8 +182,8 @@ class MessagePublisher implements MessageHandler {
             clientMessage = mapper.readValue(message, ClientMessage.class);
         } catch (JsonProcessingException e) {
             logger.atWarn().log("Failed to parse client message: {}", e.getOriginalMessage());
-            future.completeExceptionally(MALFORMED_MESSAGE.toCreditsException());
-            return future;
+            topicFuture.completeExceptionally(MALFORMED_MESSAGE.toCreditsException());
+            return topicFuture;
         }
 
         // #2 Apply the message hook to allow custom processing before publishing
@@ -217,8 +194,8 @@ class MessagePublisher implements MessageHandler {
                             new ClientMessageInfo(user, sessionID, clientMessage));
         } catch (PublishingException e) {
             logger.atWarn().setCause(e).log("Failed to process message hook");
-            future.completeExceptionally(MESSAGE_HOOK_FAILED.toCreditsException(e.getMessage()));
-            return future;
+            topicFuture.completeExceptionally(MESSAGE_HOOK_FAILED.toCreditsException(e.getMessage()));
+            return topicFuture;
         }
 
         // #3 Check if the destination is valid
@@ -226,26 +203,27 @@ class MessagePublisher implements MessageHandler {
         String destination = clientMessage.destination();
         if (destination == null || destination.isBlank()) {
             logger.atWarn().log("No valid destination provided");
-            future.completeExceptionally(MISSING_DESTINATION.toCreditsException());
-            return future;
+            topicFuture.completeExceptionally(MISSING_DESTINATION.toCreditsException());
+            return topicFuture;
         }
 
         // #4 Retrieve and validate the topics for the destination
         Set<String> topic = destinationConfigs.lookupTopics(destination);
         if (topic.isEmpty()) {
             logger.atWarn().log("No topics found for destination: {}", destination);
-            future.completeExceptionally(UNMAPPED_DESTINATION.toCreditsException());
-            return future;
+            topicFuture.completeExceptionally(UNMAPPED_DESTINATION.toCreditsException());
+            return topicFuture;
         }
         logger.atDebug().log("Resolved topics for destination {}: {}", destination, topic);
         if (clientMessage.value() == null) {
             logger.atWarn().log("Missing message value for destination: {}", destination);
-            future.completeExceptionally(MISSING_PAYLOAD_VALUE.toCreditsException());
-            return future;
+            topicFuture.completeExceptionally(MISSING_PAYLOAD_VALUE.toCreditsException());
+            return topicFuture;
         }
 
         // #4 Send the message to each resolved topic
         for (String t : topic) {
+            // CompletableFuture<String> topicFuture = new CompletableFuture<>();
             logger.atDebug().log("Sending message to topic [{}]: [{}]...", t, message);
             ProducerRecord<JsonNode, JsonNode> record =
                     new ProducerRecord<>(t, clientMessage.key(), clientMessage.value());
@@ -253,8 +231,9 @@ class MessagePublisher implements MessageHandler {
                 producer.send(
                         record,
                         (metadata, exception) ->
-                                confirmationModeHandler.onCompleted(future, metadata, exception));
-                confirmationModeHandler.onEnqueued(future);
+                                confirmationModeHandler.onCompleted(
+                                        topicFuture, metadata, exception));
+                confirmationModeHandler.onEnqueued(topicFuture);
                 logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
             } catch (SerializationException e) {
                 logger.atWarn()
@@ -262,26 +241,27 @@ class MessagePublisher implements MessageHandler {
                                 "Serialization error while sending message to topic [{}]: {}",
                                 record.topic(),
                                 e.getMessage());
-                future.completeExceptionally(
+                topicFuture.completeExceptionally(
                         INVALID_PAYLOAD_FORMAT.toCreditsException(e.getMessage()));
                 break;
             } catch (InterruptException e) {
-                Thread.currentThread().interrupt();
+                // No need to call Thread.currentThread().interrupt(): InterruptException
+                // already restores the interrupt flag when it is constructed.
                 logger.atWarn()
                         .setCause(e)
                         .log("Interrupted while sending message to topic [{}]", record.topic());
-                future.completeExceptionally(SEND_FAILED.toCreditsException());
+                topicFuture.completeExceptionally(SEND_FAILED.toCreditsException());
                 break;
-            } catch (KafkaException | IllegalStateException e) {
+            } catch (RuntimeException e) {
                 logger.atError()
                         .setCause(e)
                         .log("Failed to send message to topic [{}]", record.topic());
-                future.completeExceptionally(SEND_FAILED.toCreditsException());
+                topicFuture.completeExceptionally(SEND_FAILED.toCreditsException());
                 break;
             }
         }
 
-        return future;
+        return topicFuture;
     }
 
     @Override
