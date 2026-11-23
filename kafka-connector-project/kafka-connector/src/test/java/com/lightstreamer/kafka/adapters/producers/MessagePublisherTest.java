@@ -20,28 +20,33 @@ package com.lightstreamer.kafka.adapters.producers;
 import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER;
-import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_MODE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode.DETAILED;
+import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_ENABLE;
 import static com.lightstreamer.kafka.adapters.producers.MessageHandler.ClientError.MESSAGE_HOOK_FAILED;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.lightstreamer.interfaces.metadata.CreditsException;
 import com.lightstreamer.kafka.adapters.config.PublisherConfig;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
 import com.lightstreamer.kafka.adapters.producers.MessageHandler.ClientError;
-import com.lightstreamer.kafka.adapters.producers.MessagePublisher.DetailedHandler;
+import com.lightstreamer.kafka.adapters.producers.MessagePublisher.ConfirmedHandler;
 import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 import com.lightstreamer.kafka.test_utils.PublisherMocks;
+import com.lightstreamer.kafka.test_utils.PublisherMocks.MockProducerFactory;
 
-import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.KafkaException;
+import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
@@ -105,7 +110,8 @@ public class MessagePublisherTest {
                         basePropConsumer.accept(configs);
                         keySerializerConsumer.accept(keySerializer);
                         valueSerializerConsumer.accept(valueSerializer);
-                        return new MockProducer<>();
+                        return new MockProducerFactory()
+                                .createProducer(configs, keySerializer, valueSerializer);
                     }
                 };
         Map<String, String> config =
@@ -118,8 +124,8 @@ public class MessagePublisherTest {
                         "PROVIDED",
                         MESSAGE_VALUE_PAYLOAD_CONVERTER,
                         "PROVIDED",
-                        SEND_CONFIRMATION_MODE,
-                        DETAILED.toString());
+                        SEND_CONFIRMATION_ENABLE,
+                        "true");
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
@@ -128,7 +134,7 @@ public class MessagePublisherTest {
                         new PublisherMocks.MockMessageHook(
                                 () -> new FakePayloadConverter("key"),
                                 () -> new FakePayloadConverter("value")));
-        assertThat(publisher.confirmationModeHandler()).isInstanceOf(DetailedHandler.class);
+        assertThat(publisher.confirmationModeHandler()).isInstanceOf(ConfirmedHandler.class);
         assertThat(baseProps.get()).isNotNull();
 
         FakePayloadConverter keyPayloadConverter = (FakePayloadConverter) keySerializerRef.get();
@@ -144,7 +150,7 @@ public class MessagePublisherTest {
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(),
                         new PublisherMocks.MockMessageHook());
 
@@ -165,7 +171,7 @@ public class MessagePublisherTest {
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(),
                         messageHook);
 
@@ -195,27 +201,31 @@ public class MessagePublisherTest {
 
     @ParameterizedTest
     @MethodSource("invalidDestination")
-    void shouldFailSendMessageDueToInvalidDestination(String message) {
+    void shouldFailSendMessageDueToMissingDestination(String message) {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(),
                         messageHook);
 
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
         assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
+        assertThat(exception)
+                .hasCauseThat()
+                .hasMessageThat()
+                .isEqualTo(ClientError.MISSING_DESTINATION.message());
     }
 
     @Test
-    void shouldFailSendMessageDueToInvalidDestinationMapping() {
+    void shouldFailSendMessageDueDestinationNotMapped() {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(),
                         messageHook);
 
@@ -223,15 +233,40 @@ public class MessagePublisherTest {
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
         CompletionException exception = assertThrows(CompletionException.class, future::join);
         assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
+        assertThat(exception)
+                .hasCauseThat()
+                .hasMessageThat()
+                .isEqualTo(ClientError.UNMAPPED_DESTINATION.message());
     }
 
     @Test
-    void shouldFailDueToInvalidValuePayloadConverterType() {
+    void shouldFailSendMessageDueToMissingPayloadValue() {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
+                        PublisherConfig.defaultConfig(),
+                        messageHook);
+
+        String message = "{ \"destination\": \"destination\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+        CompletionException exception = assertThrows(CompletionException.class, future::join);
+        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
+        assertThat(exception)
+                .hasCauseThat()
+                .hasMessageThat()
+                .isEqualTo(ClientError.MISSING_PAYLOAD_VALUE.message());
+    }
+
+    @Test()
+    @Timeout(5)
+    void shouldFailSendMessageDueToInvalidValuePayloadConverterType() {
+        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(
                                 Map.of(PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER, "JSON")),
                         messageHook);
@@ -248,12 +283,12 @@ public class MessagePublisherTest {
     }
 
     @Test
-    void shouldFailDueToInvalidKeyPayloadConverterType() {
+    void shouldFailSendMessageDueToInvalidKeyPayloadConverterType() {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        new PublisherMocks.MockProducerFactory(),
                         PublisherConfig.defaultConfig(
                                 Map.of(PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER, "JSON")),
                         messageHook);
@@ -269,14 +304,80 @@ public class MessagePublisherTest {
         assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid key");
     }
 
-    @Test
-    void shouldSendMessageSuccessfully() {
+    static Stream<RuntimeException> runtimeExceptions() {
+        return Stream.of(
+                new InterruptException("Fake interrupted exception"),
+                new IllegalStateException("Fake illegal state exception"),
+                new RuntimeException("Fake runtime exception"),
+                new KafkaException("Fake exception"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("runtimeExceptions")
+    void shouldFailSendMessageDueToRuntimeException(RuntimeException runtimeException) {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        ProducerFactory producerFactory = new PublisherMocks.MockProducerFactory(runtimeException);
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        createProducerFactory(),
+                        producerFactory,
                         PublisherConfig.defaultConfig(),
+                        messageHook);
+
+        String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+        CompletionException exception = assertThrows(CompletionException.class, future::join);
+        CreditsException creditsException = (CreditsException) exception.getCause();
+        assertThat(creditsException).hasMessageThat().isEqualTo(ClientError.SEND_FAILED.message());
+    }
+
+//     @ParameterizedTest
+//     @ValueSource(booleans = {true, false})
+    void shouldFailSendMessageAsynchronously(boolean enabled) {
+        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        ProducerFactory producerFactory =
+                new PublisherMocks.MockProducerFactory(
+                        null, new RuntimeException("Fake async exception"));
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        producerFactory,
+                        PublisherConfig.defaultConfig(
+                                Map.of(
+                                        PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                        Boolean.toString(enabled))),
+                        messageHook);
+
+        String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+
+        if (enabled) {
+            CompletionException exception = assertThrows(CompletionException.class, future::join);
+            CreditsException creditsException = (CreditsException) exception.getCause();
+            assertThat(creditsException)
+                    .hasMessageThat()
+                    .isEqualTo(ClientError.BROKER_DELIVERY_FAILED.message());
+
+        } else {
+            assertThat(future.join()).isNull();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSendMessageSuccessfully(boolean enabled)
+            throws JsonMappingException, JsonProcessingException {
+        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+        PublisherConfig defaultConfig =
+                PublisherConfig.defaultConfig(
+                        Map.of(
+                                PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                Boolean.toString(enabled)));
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        new PublisherMocks.MockProducerFactory(),
+                        defaultConfig,
                         messageHook);
 
         String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
@@ -284,16 +385,32 @@ public class MessagePublisherTest {
         assertThat(future.join()).isNull();
     }
 
-    private ProducerFactory createProducerFactory() {
-        return new ProducerFactory() {
+    //     @ParameterizedTest
+    //     @EnumSource(SendConfirmationMode.class)
+    //     void shouldSendMessageSuccessfullyForAllTopics(SendConfirmationMode confirmationMode)
+    //             throws JsonMappingException, JsonProcessingException {
+    //         AtomicReference<MockProducer<?, ?>> producerRef = new AtomicReference<>();
 
-            @Override
-            public Producer<JsonNode, JsonNode> createProducer(
-                    Map<String, Object> configs,
-                    Serializer<JsonNode> keySerializer,
-                    Serializer<JsonNode> valueSerializer) {
-                return new MockProducer<>(true, null, keySerializer, valueSerializer);
-            }
-        };
-    }
+    //         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+    //         PublisherConfig defaultConfig =
+    //                 PublisherConfig.defaultConfig(
+    //                         Map.of(
+    //                                 PublisherConfig.SEND_CONFIRMATION_ENABLE,
+    //                                 confirmationMode.toString(),
+    //                                 "publisher.map.destination.to",
+    //                                 "topic1,topic2"));
+    //         MessagePublisher publisher =
+    //                 new MessagePublisher(
+    //                         LoggerFactory.getLogger("Publisher"),
+    //                         new PublisherMocks.MockProducerFactory(producerRef::set),
+    //                         defaultConfig,
+    //                         messageHook);
+
+    //         String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
+    //         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId",
+    // message);
+    //         MockProducer<?, ?> producer = producerRef.get();
+    //         assertThat(producer.history()).hasSize(2);
+    //         assertThat(future.join()).isNull();
+    //     }
 }
