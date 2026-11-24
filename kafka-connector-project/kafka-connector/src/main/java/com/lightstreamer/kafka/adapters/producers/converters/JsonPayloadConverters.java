@@ -18,8 +18,9 @@
 package com.lightstreamer.kafka.adapters.producers.converters;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.google.protobuf.DynamicMessage;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.kafka.serializers.KafkaJsonSerializer;
@@ -45,6 +46,62 @@ import java.io.IOException;
 import java.util.UUID;
 
 class JsonPayloadConverters {
+
+    private abstract static class DefaultPayloadConverter<T> implements PayloadConverter {
+
+        private final Serializer<T> serializer;
+        private boolean isKey;
+
+        protected DefaultPayloadConverter(Serializer<T> serializer) {
+            this.serializer = serializer;
+        }
+
+        private byte[] doSerialize(java.lang.String topic, T value) {
+            return serializer.serialize(topic, value);
+        }
+
+        @Override
+        public final void configure(java.util.Map<String, ?> configs, boolean isKey) {
+            serializer.configure(configs, isKey);
+            this.isKey = isKey;
+        }
+
+        @Override
+        public final void close() {
+            serializer.close();
+        }
+
+        @Override
+        public final byte[] serialize(java.lang.String topic, JsonNode data) {
+            if (data == null) {
+                return null;
+            }
+            return doSerialize(topic, fromJson(data));
+        }
+
+        protected abstract T fromJson(JsonNode node);
+
+        protected boolean isKey() {
+            return isKey;
+        }
+
+        /**
+         * Creates an exception for a JSON node whose type does not match the configured evaluator
+         * type. The field name is not known at this level and is added by the caller through {@link
+         * #invalidField(String, String)}.
+         *
+         * @param nodeType the offending node type
+         * @param expected a short description of the expected type
+         * @param isKey TODO
+         * @return a new {@code SerializationException}
+         */
+        public static SerializationException unexpectedType(
+                JsonNodeType nodeType, String expected, boolean isKey) {
+            return new SerializationException(
+                    "Invalid %s: expected %s but found %s"
+                            .formatted(isKey ? "key" : "value", expected, nodeType));
+        }
+    }
 
     static class StringPayloadConverter extends DefaultPayloadConverter<String> {
 
@@ -176,30 +233,6 @@ class JsonPayloadConverters {
     }
 
     static class JsonPayloadConverter extends DefaultPayloadConverter<JsonNode> {
-
-        private static class JsonNodeSerializer implements Serializer<JsonNode> {
-
-            private final ObjectMapper objectMapper = new ObjectMapper();
-
-            @Override
-            public void configure(java.util.Map<String, ?> configs, boolean isKey) {
-                // No configuration needed
-            }
-
-            @Override
-            public byte[] serialize(java.lang.String topic, JsonNode data) {
-                if (data == null) {
-                    return null;
-                }
-
-                try {
-                    return objectMapper.writeValueAsBytes(data);
-                } catch (Exception e) {
-                    // Should not happen, but wrap any exception as SerializationException
-                    throw new SerializationException("Failed to serialize JsonNode", e);
-                }
-            }
-        }
 
         JsonPayloadConverter() {
             super(new KafkaJsonSerializer<JsonNode>());
