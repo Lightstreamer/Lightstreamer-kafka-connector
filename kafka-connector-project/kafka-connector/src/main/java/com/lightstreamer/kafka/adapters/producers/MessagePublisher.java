@@ -48,6 +48,8 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -59,7 +61,7 @@ class MessagePublisher implements MessageHandler {
 
     interface ConfirmationModeHandler {
 
-        default void onEnqueued(CompletableFuture<String> future) {}
+        CompletableFuture<String> combine(List<CompletableFuture<String>> futures);
 
         void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception);
@@ -84,11 +86,6 @@ class MessagePublisher implements MessageHandler {
         }
 
         @Override
-        public void onEnqueued(CompletableFuture<String> future) {
-            future.complete(null);
-        }
-
-        @Override
         public void onCompleted(
                 CompletableFuture<String> future, RecordMetadata metadata, Exception exception) {
             if (exception != null) {
@@ -98,6 +95,16 @@ class MessagePublisher implements MessageHandler {
                                 "Failed to deliver message [{}]; client was not notified (mode=IMMEDIATE)",
                                 messageInfo(metadata));
             }
+        }
+
+        @Override
+        public CompletableFuture<String> combine(List<CompletableFuture<String>> futures) {
+            for (CompletableFuture<String> f : futures) {
+                if (f.isCompletedExceptionally()) {
+                    return f; // sync failure, already holds the CreditsException
+                }
+            }
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -118,12 +125,23 @@ class MessagePublisher implements MessageHandler {
                         .log("Failed to deliver message [{}]", messageInfo(metadata));
                 future.completeExceptionally(BROKER_DELIVERY_FAILED.toCreditsException());
             } else {
-                onCompletedWithSuccess(future, metadata);
+                future.complete(null);
             }
         }
 
-        void onCompletedWithSuccess(CompletableFuture<String> future, RecordMetadata metadata) {
-            future.complete(null);
+        @Override
+        public CompletableFuture<String> combine(List<CompletableFuture<String>> futures) {
+            CompletableFuture<String> response = new CompletableFuture<>();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                    .whenComplete(
+                            (v, t) -> {
+                                if (t != null) {
+                                    response.completeExceptionally(t.getCause());
+                                } else {
+                                    response.complete(null);
+                                }
+                            });
+            return response;
         }
     }
 
@@ -173,8 +191,6 @@ class MessagePublisher implements MessageHandler {
 
     @Override
     public CompletableFuture<String> sendMessage(String user, String sessionID, String message) {
-        CompletableFuture<String> topicFuture = new CompletableFuture<>();
-
         // #1 Parse the incoming client message into a structured ClientMessage object
         ClientMessage clientMessage;
         logger.atDebug().log("Parsing client message: {}", message);
@@ -182,8 +198,7 @@ class MessagePublisher implements MessageHandler {
             clientMessage = mapper.readValue(message, ClientMessage.class);
         } catch (JsonProcessingException e) {
             logger.atWarn().log("Failed to parse client message: {}", e.getOriginalMessage());
-            topicFuture.completeExceptionally(MALFORMED_MESSAGE.toCreditsException());
-            return topicFuture;
+            return CompletableFuture.failedFuture(MALFORMED_MESSAGE.toCreditsException());
         }
 
         // #2 Apply the message hook to allow custom processing before publishing
@@ -194,8 +209,8 @@ class MessagePublisher implements MessageHandler {
                             new ClientMessageInfo(user, sessionID, clientMessage));
         } catch (PublishingException e) {
             logger.atWarn().setCause(e).log("Failed to process message hook");
-            topicFuture.completeExceptionally(MESSAGE_HOOK_FAILED.toCreditsException(e.getMessage()));
-            return topicFuture;
+            return CompletableFuture.failedFuture(
+                    MESSAGE_HOOK_FAILED.toCreditsException(e.getMessage()));
         }
 
         // #3 Check if the destination is valid
@@ -203,64 +218,61 @@ class MessagePublisher implements MessageHandler {
         String destination = clientMessage.destination();
         if (destination == null || destination.isBlank()) {
             logger.atWarn().log("No valid destination provided");
-            topicFuture.completeExceptionally(MISSING_DESTINATION.toCreditsException());
-            return topicFuture;
+            return CompletableFuture.failedFuture(MISSING_DESTINATION.toCreditsException());
         }
 
         // #4 Retrieve and validate the topics for the destination
-        Set<String> topic = destinationConfigs.lookupTopics(destination);
-        if (topic.isEmpty()) {
+        Set<String> topics = destinationConfigs.lookupTopics(destination);
+        if (topics.isEmpty()) {
             logger.atWarn().log("No topics found for destination: {}", destination);
-            topicFuture.completeExceptionally(UNMAPPED_DESTINATION.toCreditsException());
-            return topicFuture;
+            return CompletableFuture.failedFuture(UNMAPPED_DESTINATION.toCreditsException());
         }
-        logger.atDebug().log("Resolved topics for destination {}: {}", destination, topic);
+        logger.atDebug().log("Resolved topics for destination {}: {}", destination, topics);
         if (clientMessage.value() == null) {
             logger.atWarn().log("Missing message value for destination: {}", destination);
-            topicFuture.completeExceptionally(MISSING_PAYLOAD_VALUE.toCreditsException());
-            return topicFuture;
+            return CompletableFuture.failedFuture(MISSING_PAYLOAD_VALUE.toCreditsException());
         }
 
         // #4 Send the message to each resolved topic
-        for (String t : topic) {
-            // CompletableFuture<String> topicFuture = new CompletableFuture<>();
-            logger.atDebug().log("Sending message to topic [{}]: [{}]...", t, message);
-            ProducerRecord<JsonNode, JsonNode> record =
-                    new ProducerRecord<>(t, clientMessage.key(), clientMessage.value());
-            try {
-                producer.send(
-                        record,
-                        (metadata, exception) ->
-                                confirmationModeHandler.onCompleted(
-                                        topicFuture, metadata, exception));
-                confirmationModeHandler.onEnqueued(topicFuture);
-                logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
-            } catch (SerializationException e) {
-                logger.atWarn()
-                        .log(
-                                "Serialization error while sending message to topic [{}]: {}",
-                                record.topic(),
-                                e.getMessage());
-                topicFuture.completeExceptionally(
-                        INVALID_PAYLOAD_FORMAT.toCreditsException(e.getMessage()));
-                break;
-            } catch (InterruptException e) {
-                // No need to call Thread.currentThread().interrupt(): InterruptException
-                // already restores the interrupt flag when it is constructed.
-                logger.atWarn()
-                        .setCause(e)
-                        .log("Interrupted while sending message to topic [{}]", record.topic());
-                topicFuture.completeExceptionally(SEND_FAILED.toCreditsException());
-                break;
-            } catch (RuntimeException e) {
-                logger.atError()
-                        .setCause(e)
-                        .log("Failed to send message to topic [{}]", record.topic());
-                topicFuture.completeExceptionally(SEND_FAILED.toCreditsException());
-                break;
-            }
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+        for (String t : topics) {
+            futures.add(sendToTopic(t, clientMessage, message));
         }
+        return confirmationModeHandler.combine(futures);
+    }
 
+    CompletableFuture<String> sendToTopic(String t, ClientMessage clientMessage, String message) {
+        CompletableFuture<String> topicFuture = new CompletableFuture<>();
+        logger.atDebug().log("Sending message to topic [{}]: [{}]...", t, message);
+        ProducerRecord<JsonNode, JsonNode> record =
+                new ProducerRecord<>(t, clientMessage.key(), clientMessage.value());
+        try {
+            producer.send(
+                    record,
+                    (metadata, exception) ->
+                            confirmationModeHandler.onCompleted(topicFuture, metadata, exception));
+            logger.atDebug().log("Sent message to topic [{}]: [{}]", t, message);
+        } catch (SerializationException e) {
+            logger.atWarn()
+                    .log(
+                            "Serialization error while sending message to topic [{}]: {}",
+                            record.topic(),
+                            e.getMessage());
+            return CompletableFuture.failedFuture(
+                    INVALID_PAYLOAD_FORMAT.toCreditsException(e.getMessage()));
+        } catch (InterruptException e) {
+            // No need to call Thread.currentThread().interrupt(): InterruptException
+            // already restores the interrupt flag when it is constructed.
+            logger.atWarn()
+                    .setCause(e)
+                    .log("Interrupted while sending message to topic [{}]", record.topic());
+            return CompletableFuture.failedFuture(SEND_FAILED.toCreditsException());
+        } catch (RuntimeException e) {
+            logger.atError()
+                    .setCause(e)
+                    .log("Failed to send message to topic [{}]", record.topic());
+            return CompletableFuture.failedFuture(SEND_FAILED.toCreditsException());
+        }
         return topicFuture;
     }
 
