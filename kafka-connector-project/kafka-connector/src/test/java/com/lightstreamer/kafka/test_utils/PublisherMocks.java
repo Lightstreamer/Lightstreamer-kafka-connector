@@ -17,17 +17,28 @@
 
 package com.lightstreamer.kafka.test_utils;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.lightstreamer.kafka.adapters.producers.ProducerFactory;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessage;
 import com.lightstreamer.kafka.adapters.pub.messages.ClientMessageInfo;
 import com.lightstreamer.kafka.adapters.pub.messages.MessageHook;
 import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
+import org.apache.kafka.clients.producer.Callback;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.Serializer;
+
+import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class PublisherMocks {
 
     public static class MockMessageHook implements MessageHook {
+
         Supplier<PayloadConverter> keyConverterSupplier;
         Supplier<PayloadConverter> valueConverterSupplier;
 
@@ -71,6 +82,76 @@ public class PublisherMocks {
                 return valueConverterSupplier.get();
             }
             return null;
+        }
+    }
+
+    public static class MockProducerFactory implements ProducerFactory {
+
+        RuntimeException sendException;
+        RuntimeException asyncException;
+        Consumer<MockProducer<?, ?>> consumer;
+
+        public MockProducerFactory(
+                RuntimeException sendException,
+                RuntimeException asyncException,
+                Consumer<MockProducer<?, ?>> consumer) {
+            this.sendException = sendException;
+            this.asyncException = asyncException;
+            this.consumer = consumer;
+        }
+
+        public MockProducerFactory(
+                RuntimeException sendException, RuntimeException asyncException) {
+            this.sendException = sendException;
+            this.asyncException = asyncException;
+        }
+
+        public MockProducerFactory(RuntimeException sendException) {
+            this(sendException, null);
+        }
+
+        public MockProducerFactory() {
+            this(null, null);
+        }
+
+        public MockProducerFactory(Consumer<MockProducer<?, ?>> consumer) {
+            this(null, null, consumer);
+        }
+
+        @Override
+        public MockProducer<JsonNode, JsonNode> createProducer(
+                Map<String, Object> configs,
+                Serializer<JsonNode> keySerializer,
+                Serializer<JsonNode> valueSerializer) {
+            MockProducer<JsonNode, JsonNode> mockProducer =
+                    new MockProducer<>(keySerializer, valueSerializer);
+            mockProducer.sendException = sendException;
+            mockProducer.asyncException = asyncException;
+            if (consumer != null) {
+                consumer.accept(mockProducer);
+            }
+            return mockProducer;
+        }
+    }
+
+    public static class MockProducer<K, V>
+            extends org.apache.kafka.clients.producer.MockProducer<K, V> {
+
+        RuntimeException asyncException;
+
+        public MockProducer(Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+            super(false, null, keySerializer, valueSerializer);
+        }
+
+        @Override
+        public Future<RecordMetadata> send(ProducerRecord<K, V> record, Callback callback) {
+            Future<RecordMetadata> future = super.send(record, callback);
+            if (asyncException != null) {
+                errorNext(asyncException);
+            } else {
+                this.completeNext();
+            }
+            return future;
         }
     }
 }
