@@ -24,17 +24,46 @@ import com.lightstreamer.kafka.common.records.KafkaRecord.KafkaHeaders;
 
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.connect.header.ConnectHeaders;
-import org.junit.Test;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Stream;
 
 class KafkaHeadersTest {
 
-    @Test
-    void shouldCreateKafkaHeadersFromRecordHeaders() {
-        byte[] value = "test-value".getBytes();
-        org.apache.kafka.common.header.Headers recordHeaders =
-                new RecordHeaders().add("test-key", value);
+    /** Builds a {@link KafkaHeaders} from ordered key/value pairs through one of the sources. */
+    interface HeadersSource {
+        KafkaHeaders build(List<Entry<String, byte[]>> entries);
+    }
 
-        KafkaHeaders headers = KafkaHeaders.from(recordHeaders);
+    static Stream<Named<HeadersSource>> sources() {
+        return Stream.of(
+                Named.of(
+                        "RecordHeaders",
+                        entries -> {
+                            RecordHeaders headers = new RecordHeaders();
+                            entries.forEach(e -> headers.add(e.getKey(), e.getValue()));
+                            return KafkaHeaders.from(headers);
+                        }),
+                Named.of(
+                        "ConnectHeaders",
+                        entries -> {
+                            ConnectHeaders headers = new ConnectHeaders();
+                            entries.forEach(e -> headers.addBytes(e.getKey(), e.getValue()));
+                            return KafkaHeaders.from(headers);
+                        }));
+    }
+
+    @ParameterizedTest
+    @MethodSource("sources")
+    void shouldCreateKafkaHeaders(HeadersSource source) {
+        byte[] value = "test-value".getBytes();
+
+        KafkaHeaders headers = source.build(List.of(Map.entry("test-key", value)));
 
         assertThat(headers.has("test-key")).isTrue();
         assertThat(headers.size()).isEqualTo(1);
@@ -43,14 +72,18 @@ class KafkaHeadersTest {
         assertThat(header.value()).isEqualTo(value);
     }
 
-    @Test
-    void shouldCreateKafkaHeadersFromRecordHeadersMultiple() {
+    @ParameterizedTest
+    @MethodSource("sources")
+    void shouldKeepRepeatedKeys(HeadersSource source) {
         byte[] value1 = "value1".getBytes();
         byte[] value2 = "value2".getBytes();
-        org.apache.kafka.common.header.Headers recordHeaders =
-                new RecordHeaders().add("key1", value1).add("key2", value2).add("key1", value1);
 
-        KafkaHeaders headers = KafkaHeaders.from(recordHeaders);
+        KafkaHeaders headers =
+                source.build(
+                        List.of(
+                                Map.entry("key1", value1),
+                                Map.entry("key2", value2),
+                                Map.entry("key1", value1)));
 
         assertThat(headers.has("key1")).isTrue();
         assertThat(headers.has("key2")).isTrue();
@@ -58,54 +91,10 @@ class KafkaHeadersTest {
         assertThat(headers.headers("key1")).hasSize(2);
     }
 
-    @Test
-    void shouldCreateKafkaHeadersFromConnectHeaders() {
-        byte[] value = "connect-value".getBytes();
-        org.apache.kafka.connect.header.Headers connectHeaders =
-                new ConnectHeaders().addBytes("connect-key", value);
-
-        KafkaHeaders headers = KafkaHeaders.from(connectHeaders);
-
-        assertThat(headers.has("connect-key")).isTrue();
-        assertThat(headers.size()).isEqualTo(1);
-        KafkaHeader header = headers.get(0);
-        assertThat(header.key()).isEqualTo("connect-key");
-        assertThat(header.value()).isEqualTo(value);
-    }
-
-    @Test
-    void shouldCreateKafkaHeadersFromConnectHeadersMultiple() {
-        byte[] value1 = "value1".getBytes();
-        byte[] value2 = "value2".getBytes();
-        org.apache.kafka.connect.header.Headers connectHeaders =
-                new ConnectHeaders()
-                        .addBytes("key1", value1)
-                        .addBytes("key2", value2)
-                        .addBytes("key1", value1);
-
-        KafkaHeaders headers = KafkaHeaders.from(connectHeaders);
-
-        assertThat(headers.has("key1")).isTrue();
-        assertThat(headers.has("key2")).isTrue();
-        assertThat(headers.size()).isEqualTo(3);
-        assertThat(headers.headers("key1")).hasSize(2);
-    }
-
-    @Test
-    void shouldCreateKafkaHeadersFromEmptyRecordHeaders() {
-        org.apache.kafka.common.header.Headers recordHeaders = new RecordHeaders();
-
-        KafkaHeaders headers = KafkaHeaders.from(recordHeaders);
-
-        assertThat(headers.size()).isEqualTo(0);
-        assertThat(headers.has("any-key")).isFalse();
-    }
-
-    @Test
-    void shouldCreateKafkaHeadersFromEmptyConnectHeaders() {
-        org.apache.kafka.connect.header.Headers connectHeaders = new ConnectHeaders();
-
-        KafkaRecord.KafkaHeaders headers = KafkaRecord.KafkaHeaders.from(connectHeaders);
+    @ParameterizedTest
+    @MethodSource("sources")
+    void shouldCreateEmptyKafkaHeaders(HeadersSource source) {
+        KafkaHeaders headers = source.build(List.of());
 
         assertThat(headers.size()).isEqualTo(0);
         assertThat(headers.has("any-key")).isFalse();
