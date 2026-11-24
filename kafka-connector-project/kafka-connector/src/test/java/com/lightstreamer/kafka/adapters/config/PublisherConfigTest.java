@@ -31,8 +31,8 @@ import static com.lightstreamer.kafka.adapters.config.PublisherConfig.METADATA_M
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.RECORD_ACKS;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.REQUEST_TIMEOUT_MS;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.RETRIES;
-import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_MODE;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
+import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_ENABLE;
+import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_LONG;
@@ -45,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfParameter;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType;
@@ -112,13 +111,13 @@ class PublisherConfigTest {
         assertThat(mapDestinationsTo.defaultValue()).isNull();
         assertThat(mapDestinationsTo.type()).isEqualTo(TEXT_LIST);
 
-        ConfParameter sendConfirmationMode = configSpec.findParameter(SEND_CONFIRMATION_MODE);
-        assertThat(sendConfirmationMode.name()).isEqualTo(SEND_CONFIRMATION_MODE);
+        ConfParameter sendConfirmationMode = configSpec.findParameter(SEND_CONFIRMATION_ENABLE);
+        assertThat(sendConfirmationMode.name()).isEqualTo(SEND_CONFIRMATION_ENABLE);
         assertThat(sendConfirmationMode.required()).isFalse();
         assertThat(sendConfirmationMode.multiple()).isFalse();
         assertThat(sendConfirmationMode.mutable()).isTrue();
-        assertThat(sendConfirmationMode.defaultValue()).isEqualTo("CONFIRMED");
-        assertThat(sendConfirmationMode.type()).isEqualTo(CONFIRMATION_MODE);
+        assertThat(sendConfirmationMode.defaultValue()).isEqualTo("true");
+        assertThat(sendConfirmationMode.type()).isEqualTo(BOOL);
 
         ConfParameter enableIdempotence = configSpec.findParameter(IDEMPOTENCE_ENABLE);
         assertThat(enableIdempotence.name()).isEqualTo(IDEMPOTENCE_ENABLE);
@@ -126,7 +125,7 @@ class PublisherConfigTest {
         assertThat(enableIdempotence.multiple()).isFalse();
         assertThat(enableIdempotence.mutable()).isTrue();
         assertThat(enableIdempotence.defaultValue()).isEqualTo("true");
-        assertThat(enableIdempotence.type()).isEqualTo(ConfType.BOOL);
+        assertThat(enableIdempotence.type()).isEqualTo(BOOL);
 
         ConfParameter retries = configSpec.findParameter(RETRIES);
         assertThat(retries.name()).isEqualTo(RETRIES);
@@ -577,64 +576,44 @@ class PublisherConfigTest {
     @Test
     void shouldGetDefaultSendConfirmationMode() {
         PublisherConfig config = new PublisherConfig(minimal());
-        assertThat(config.getSendConfirmationMode()).isEqualTo(SendConfirmationMode.CONFIRMED);
+        assertThat(config.isSendConfirmationEnable()).isTrue();
     }
 
     static Stream<Arguments> sendConfirmationModes() {
         return Stream.of(
-                Arguments.of(SendConfirmationMode.IMMEDIATE, "0"),
-                Arguments.of(SendConfirmationMode.IMMEDIATE, "1"),
-                Arguments.of(SendConfirmationMode.IMMEDIATE, "-1"),
-                Arguments.of(SendConfirmationMode.IMMEDIATE, "all"),
-                Arguments.of(SendConfirmationMode.CONFIRMED, "0"),
-                Arguments.of(SendConfirmationMode.CONFIRMED, "1"),
-                Arguments.of(SendConfirmationMode.CONFIRMED, "-1"),
-                Arguments.of(SendConfirmationMode.CONFIRMED, "all"),
-                Arguments.of(SendConfirmationMode.DETAILED, "-1"),
-                Arguments.of(SendConfirmationMode.DETAILED, "1"),
-                Arguments.of(SendConfirmationMode.DETAILED, "all"));
+                Arguments.of(true, "0"),
+                Arguments.of(true, "1"),
+                Arguments.of(true, "-1"),
+                Arguments.of(true, "all"),
+                Arguments.of(false, "0"),
+                Arguments.of(false, "1"),
+                Arguments.of(false, "-1"),
+                Arguments.of(false, "all"));
     }
 
     @ParameterizedTest
     @MethodSource("sendConfirmationModes")
-    void shouldGetSendConfirmationMode(SendConfirmationMode mode, String acksString) {
+    void shouldGetSendConfirmationMode(boolean mode, String acksString) {
         Map<String, String> params = minimal();
         params.put(PublisherConfig.IDEMPOTENCE_ENABLE, "false");
         params.put(PublisherConfig.RECORD_ACKS, acksString);
-        params.put(PublisherConfig.SEND_CONFIRMATION_MODE, mode.name());
+        params.put(PublisherConfig.SEND_CONFIRMATION_ENABLE, Boolean.toString(mode));
 
         PublisherConfig config = new PublisherConfig(params);
-        assertThat(config.getSendConfirmationMode()).isEqualTo(mode);
+        assertThat(config.isSendConfirmationEnable()).isEqualTo(mode);
     }
 
     @Test
     void shouldFailDueToInvalidSendConfirmationMode() {
         Map<String, String> params = minimal();
-        params.put(PublisherConfig.SEND_CONFIRMATION_MODE, "INVALID_MODE");
+        params.put(PublisherConfig.SEND_CONFIRMATION_ENABLE, "INVALID_MODE");
 
         ConfigException ce = assertThrows(ConfigException.class, () -> new PublisherConfig(params));
         assertThat(ce)
                 .hasMessageThat()
                 .isEqualTo(
                         "Specify a valid value for parameter [%s]"
-                                .formatted(PublisherConfig.SEND_CONFIRMATION_MODE));
-    }
-
-    @Test
-    void shouldFailDueToDetailedSendConfirmationModeWithProducerAcksZero() {
-        Map<String, String> params = minimal();
-        params.put(PublisherConfig.RECORD_ACKS, "0");
-        params.put(PublisherConfig.SEND_CONFIRMATION_MODE, "DETAILED");
-
-        ConfigException ce = assertThrows(ConfigException.class, () -> new PublisherConfig(params));
-        assertThat(ce)
-                .hasMessageThat()
-                .isEqualTo(
-                        "Parameter [%s] set to %s is not compatible with parameter [%s] set to 0"
-                                .formatted(
-                                        PublisherConfig.SEND_CONFIRMATION_MODE,
-                                        SendConfirmationMode.DETAILED,
-                                        PublisherConfig.RECORD_ACKS));
+                                .formatted(PublisherConfig.SEND_CONFIRMATION_ENABLE));
     }
 
     private Map<String, String> minimal() {
