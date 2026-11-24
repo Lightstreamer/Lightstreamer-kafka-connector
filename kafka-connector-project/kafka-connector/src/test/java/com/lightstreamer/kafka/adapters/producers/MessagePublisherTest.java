@@ -21,9 +21,6 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER;
 import static com.lightstreamer.kafka.adapters.config.PublisherConfig.SEND_CONFIRMATION_ENABLE;
-import static com.lightstreamer.kafka.adapters.producers.MessageHandler.ClientError.MESSAGE_HOOK_FAILED;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -37,23 +34,23 @@ import com.lightstreamer.kafka.adapters.pub.messages.PublishingException;
 import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 import com.lightstreamer.kafka.test_utils.PublisherMocks;
 import com.lightstreamer.kafka.test_utils.PublisherMocks.MockProducerFactory;
+import com.lightstreamer.kafka.test_utils.PublisherMocks.ProducerListener;
 
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.errors.InterruptException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public class MessagePublisherTest {
@@ -93,12 +90,9 @@ public class MessagePublisherTest {
     @Test
     void shouldCreateMessagePublisher() {
         AtomicReference<Map<String, Object>> baseProps = new AtomicReference<>();
-        Consumer<Map<String, Object>> basePropConsumer = props -> baseProps.set(props);
 
         AtomicReference<Serializer<JsonNode>> keySerializerRef = new AtomicReference<>();
-        Consumer<Serializer<JsonNode>> keySerializerConsumer = s -> keySerializerRef.set(s);
         AtomicReference<Serializer<JsonNode>> valueSerializerRef = new AtomicReference<>();
-        Consumer<Serializer<JsonNode>> valueSerializerConsumer = s -> valueSerializerRef.set(s);
         ProducerFactory factory =
                 new ProducerFactory() {
 
@@ -107,9 +101,9 @@ public class MessagePublisherTest {
                             Map<String, Object> configs,
                             Serializer<JsonNode> keySerializer,
                             Serializer<JsonNode> valueSerializer) {
-                        basePropConsumer.accept(configs);
-                        keySerializerConsumer.accept(keySerializer);
-                        valueSerializerConsumer.accept(valueSerializer);
+                        baseProps.set(configs);
+                        keySerializerRef.set(keySerializer);
+                        valueSerializerRef.set(valueSerializer);
                         return new MockProducerFactory()
                                 .createProducer(configs, keySerializer, valueSerializer);
                     }
@@ -147,48 +141,46 @@ public class MessagePublisherTest {
 
     @Test
     void shouldFailSendMessageDueToMalformedMessage() {
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(),
-                        new PublisherMocks.MockMessageHook());
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            new PublisherMocks.MockMessageHook());
 
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", "");
-        assertThat(future.isCompletedExceptionally()).isTrue();
-        assertThrows(CompletionException.class, future::join);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception)
-                .hasCauseThat()
-                .hasMessageThat()
-                .contains(ClientError.MALFORMED_MESSAGE.message());
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", "");
+            assertCreditsException(future, ClientError.MALFORMED_MESSAGE);
+        }
     }
 
     @Test
     void shouldFailSendMessageDueToPublishingException() {
         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
         messageHook.setPublishingException(new PublishingException("Fake publishing exception"));
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            messageHook);
 
-        String message =
-                """
-          {
-            "destination": "destination",
-            "value": "someValue"
-          }
-                """;
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
-        assertThat(exception)
-                .hasCauseThat()
-                .hasMessageThat()
-                .isEqualTo(MESSAGE_HOOK_FAILED.message());
+            String message =
+                    """
+                {
+                        "destination": "destination",
+                        "value": "someValue"
+                }
+                        """;
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            CreditsException ce = assertCreditsException(future, ClientError.MESSAGE_HOOK_FAILED);
+            assertThat(ce.getClientErrorMsg()).isEqualTo("Fake publishing exception");
+        }
     }
 
     static Stream<String> invalidDestination() {
@@ -202,109 +194,105 @@ public class MessagePublisherTest {
     @ParameterizedTest
     @MethodSource("invalidDestination")
     void shouldFailSendMessageDueToMissingDestination(String message) {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            new PublisherMocks.MockMessageHook());
 
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
-        assertThat(exception)
-                .hasCauseThat()
-                .hasMessageThat()
-                .isEqualTo(ClientError.MISSING_DESTINATION.message());
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            assertCreditsException(future, ClientError.MISSING_DESTINATION);
+        }
     }
 
     @Test
     void shouldFailSendMessageDueDestinationNotMapped() {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            new PublisherMocks.MockMessageHook());
 
-        String message = "{ \"destination\": \"invalidMapping\", \"value\": \"someValue\" }";
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
-        assertThat(exception)
-                .hasCauseThat()
-                .hasMessageThat()
-                .isEqualTo(ClientError.UNMAPPED_DESTINATION.message());
+            String message = "{ \"destination\": \"invalidMapping\", \"value\": \"someValue\" }";
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            assertCreditsException(future, ClientError.UNMAPPED_DESTINATION);
+        }
     }
 
     @Test
     void shouldFailSendMessageDueToMissingPayloadValue() {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            new PublisherMocks.MockMessageHook());
 
-        String message = "{ \"destination\": \"destination\" }";
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        assertThat(exception).hasCauseThat().isInstanceOf(CreditsException.class);
-        assertThat(exception)
-                .hasCauseThat()
-                .hasMessageThat()
-                .isEqualTo(ClientError.MISSING_PAYLOAD_VALUE.message());
+            String message = "{ \"destination\": \"destination\" }";
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            assertCreditsException(future, ClientError.MISSING_PAYLOAD_VALUE);
+        }
     }
 
     @Test()
-    @Timeout(5)
     void shouldFailSendMessageDueToInvalidValuePayloadConverterType() {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(
-                                Map.of(PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER, "JSON")),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled),
+                                    PublisherConfig.MESSAGE_VALUE_PAYLOAD_CONVERTER,
+                                    "JSON"),
+                            messageHook);
 
-        String message =
-                "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        CreditsException creditsException = (CreditsException) exception.getCause();
-        assertThat(creditsException)
-                .hasMessageThat()
-                .isEqualTo(ClientError.INVALID_PAYLOAD_FORMAT.message());
-        assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid value");
+            String message =
+                    "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            CreditsException creditsException =
+                    assertCreditsException(future, ClientError.INVALID_PAYLOAD_FORMAT);
+            assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid value");
+        }
     }
 
     @Test
     void shouldFailSendMessageDueToInvalidKeyPayloadConverterType() {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        PublisherConfig.defaultConfig(
-                                Map.of(PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER, "JSON")),
-                        messageHook);
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled),
+                                    PublisherConfig.MESSAGE_KEY_PAYLOAD_CONVERTER,
+                                    "JSON"),
+                            new PublisherMocks.MockMessageHook());
 
-        String message =
-                "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        CreditsException creditsException = (CreditsException) exception.getCause();
-        assertThat(creditsException)
-                .hasMessageThat()
-                .isEqualTo(ClientError.INVALID_PAYLOAD_FORMAT.message());
-        assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid key");
+            String message =
+                    "{ \"destination\": \"destination\", \"value\": \"someValue\", \"key\": \"someKey\" }";
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            CreditsException creditsException =
+                    assertCreditsException(future, ClientError.INVALID_PAYLOAD_FORMAT);
+            assertThat(creditsException.getClientErrorMsg()).startsWith("Invalid key");
+        }
     }
 
-    static Stream<RuntimeException> runtimeExceptions() {
+    static Stream<RuntimeException> sendExceptions() {
         return Stream.of(
                 new InterruptException("Fake interrupted exception"),
                 new IllegalStateException("Fake illegal state exception"),
@@ -313,51 +301,49 @@ public class MessagePublisherTest {
     }
 
     @ParameterizedTest
-    @MethodSource("runtimeExceptions")
-    void shouldFailSendMessageDueToRuntimeException(RuntimeException runtimeException) {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        ProducerFactory producerFactory = new PublisherMocks.MockProducerFactory(runtimeException);
-        MessagePublisher publisher =
-                new MessagePublisher(
-                        LoggerFactory.getLogger("Publisher"),
-                        producerFactory,
-                        PublisherConfig.defaultConfig(),
-                        messageHook);
+    @MethodSource("sendExceptions")
+    void shouldFailSendMessageDueToRuntimeException(RuntimeException sendException) {
+        AtomicInteger successfullyDeliveredCount = new AtomicInteger();
+        ProducerListener listener =
+                (producer, record) -> successfullyDeliveredCount.incrementAndGet();
+        for (boolean sendConfirmationEnabled : List.of(true, false)) {
+            MessagePublisher publisher =
+                    new MessagePublisher(
+                            LoggerFactory.getLogger("Publisher"),
+                            new PublisherMocks.MockProducerFactory(sendException, listener),
+                            PublisherConfig.defaultConfig(
+                                    PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                    String.valueOf(sendConfirmationEnabled)),
+                            new PublisherMocks.MockMessageHook());
 
-        String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
-        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
-        CompletionException exception = assertThrows(CompletionException.class, future::join);
-        CreditsException creditsException = (CreditsException) exception.getCause();
-        assertThat(creditsException).hasMessageThat().isEqualTo(ClientError.SEND_FAILED.message());
+            String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
+            CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+            assertCreditsException(future, ClientError.SEND_FAILED);
+            assertThat(successfullyDeliveredCount.get()).isEqualTo(0);
+        }
     }
 
-//     @ParameterizedTest
-//     @ValueSource(booleans = {true, false})
-    void shouldFailSendMessageAsynchronously(boolean enabled) {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        ProducerFactory producerFactory =
-                new PublisherMocks.MockProducerFactory(
-                        null, new RuntimeException("Fake async exception"));
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldFailSendMessageAsynchronously(boolean sendConfirmationEnabled) {
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        producerFactory,
+                        new PublisherMocks.MockProducerFactory(
+                                (producer, record) -> {
+                                    producer.errorNext(
+                                            new RuntimeException("Fake async exception"));
+                                }),
                         PublisherConfig.defaultConfig(
-                                Map.of(
-                                        PublisherConfig.SEND_CONFIRMATION_ENABLE,
-                                        Boolean.toString(enabled))),
-                        messageHook);
+                                PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                Boolean.toString(sendConfirmationEnabled)),
+                        new PublisherMocks.MockMessageHook());
 
         String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
 
-        if (enabled) {
-            CompletionException exception = assertThrows(CompletionException.class, future::join);
-            CreditsException creditsException = (CreditsException) exception.getCause();
-            assertThat(creditsException)
-                    .hasMessageThat()
-                    .isEqualTo(ClientError.BROKER_DELIVERY_FAILED.message());
-
+        if (sendConfirmationEnabled) {
+            assertCreditsException(future, ClientError.BROKER_DELIVERY_FAILED);
         } else {
             assertThat(future.join()).isNull();
         }
@@ -365,52 +351,78 @@ public class MessagePublisherTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    void shouldSendMessageSuccessfully(boolean enabled)
+    void shouldSendMessageSuccessfully(boolean sendConfirmationEnabled)
             throws JsonMappingException, JsonProcessingException {
-        PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-        PublisherConfig defaultConfig =
-                PublisherConfig.defaultConfig(
-                        Map.of(
-                                PublisherConfig.SEND_CONFIRMATION_ENABLE,
-                                Boolean.toString(enabled)));
+        AtomicInteger deliveryCount = new AtomicInteger();
+
         MessagePublisher publisher =
                 new MessagePublisher(
                         LoggerFactory.getLogger("Publisher"),
-                        new PublisherMocks.MockProducerFactory(),
-                        defaultConfig,
-                        messageHook);
+                        new PublisherMocks.MockProducerFactory(
+                                (producer, record) -> {
+                                    deliveryCount.incrementAndGet();
+                                    producer.completeNext();
+                                }),
+                        PublisherConfig.defaultConfig(
+                                PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                Boolean.toString(sendConfirmationEnabled),
+                                "publisher.map.destination.to",
+                                "topic1,topic2"),
+                        new PublisherMocks.MockMessageHook());
 
         String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
         assertThat(future.join()).isNull();
+        assertThat(deliveryCount.get()).isEqualTo(2);
     }
 
-    //     @ParameterizedTest
-    //     @EnumSource(SendConfirmationMode.class)
-    //     void shouldSendMessageSuccessfullyForAllTopics(SendConfirmationMode confirmationMode)
-    //             throws JsonMappingException, JsonProcessingException {
-    //         AtomicReference<MockProducer<?, ?>> producerRef = new AtomicReference<>();
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSendMessagePartially(boolean sendConfirmationEnabled)
+            throws JsonMappingException, JsonProcessingException {
+        AtomicInteger successfullyDeliveredCount = new AtomicInteger();
+        AtomicInteger topicCount = new AtomicInteger();
+        ProducerListener listener =
+                (producer, record) -> {
+                    if (topicCount.incrementAndGet() == 2) {
+                        // Simulate an async error for the second topic after the first one
+                        // succeeds
+                        producer.errorNext(
+                                new RuntimeException("Simulated error for the second topic"));
+                    } else {
+                        successfullyDeliveredCount.incrementAndGet();
+                        producer.completeNext();
+                    }
+                };
 
-    //         PublisherMocks.MockMessageHook messageHook = new PublisherMocks.MockMessageHook();
-    //         PublisherConfig defaultConfig =
-    //                 PublisherConfig.defaultConfig(
-    //                         Map.of(
-    //                                 PublisherConfig.SEND_CONFIRMATION_ENABLE,
-    //                                 confirmationMode.toString(),
-    //                                 "publisher.map.destination.to",
-    //                                 "topic1,topic2"));
-    //         MessagePublisher publisher =
-    //                 new MessagePublisher(
-    //                         LoggerFactory.getLogger("Publisher"),
-    //                         new PublisherMocks.MockProducerFactory(producerRef::set),
-    //                         defaultConfig,
-    //                         messageHook);
+        MessagePublisher publisher =
+                new MessagePublisher(
+                        LoggerFactory.getLogger("Publisher"),
+                        new PublisherMocks.MockProducerFactory(listener),
+                        PublisherConfig.defaultConfig(
+                                PublisherConfig.SEND_CONFIRMATION_ENABLE,
+                                Boolean.toString(sendConfirmationEnabled),
+                                "publisher.map.destination.to",
+                                "topic1,topic2"),
+                        new PublisherMocks.MockMessageHook());
 
-    //         String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
-    //         CompletableFuture<String> future = publisher.sendMessage("user", "sessionId",
-    // message);
-    //         MockProducer<?, ?> producer = producerRef.get();
-    //         assertThat(producer.history()).hasSize(2);
-    //         assertThat(future.join()).isNull();
-    //     }
+        String message = "{ \"destination\": \"destination\", \"value\": \"someValue\" }";
+        CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
+        if (sendConfirmationEnabled) {
+            assertCreditsException(future, ClientError.BROKER_DELIVERY_FAILED);
+        } else {
+            assertThat(future.join()).isNull();
+        }
+        assertThat(successfullyDeliveredCount.get()).isEqualTo(1);
+    }
+
+    static CreditsException assertCreditsException(
+            CompletableFuture<String> future, ClientError error) {
+        Throwable ex = future.handle((result, e) -> e).join();
+        assertThat(ex).isInstanceOf(CreditsException.class);
+        CreditsException creditsException = (CreditsException) ex;
+        assertThat(creditsException.getClientErrorCode()).isEqualTo(error.code());
+        assertThat(creditsException.getMessage()).isEqualTo(error.message());
+        return creditsException;
+    }
 }
