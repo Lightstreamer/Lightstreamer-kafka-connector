@@ -310,16 +310,6 @@ public interface ConfigTypes {
         }
     }
 
-    enum SendConfirmationMode {
-        IMMEDIATE,
-        CONFIRMED,
-        DETAILED;
-
-        public static Set<String> names() {
-            return enumNames(values());
-        }
-    }
-
     private static Set<String> enumNames(Enum<?>[] e) {
         return Arrays.stream(e).map(Enum::toString).collect(Collectors.toUnmodifiableSet());
     }

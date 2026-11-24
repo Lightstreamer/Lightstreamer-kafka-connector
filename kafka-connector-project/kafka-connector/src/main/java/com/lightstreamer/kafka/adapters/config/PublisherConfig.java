@@ -20,7 +20,6 @@ package com.lightstreamer.kafka.adapters.config;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType.STRING;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.ACKS;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.BOOL;
-import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.CONFIRMATION_MODE;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.HOST_LIST;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_INT;
 import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.ConfType.NON_NEGATIVE_LONG;
@@ -31,7 +30,6 @@ import static com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec.DefaultH
 
 import com.google.common.annotations.VisibleForTesting;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.PayloadConverterType;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigsSpec;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.config.DestinationConfigurations;
@@ -51,7 +49,7 @@ public final class PublisherConfig extends AbstractConfig {
             adapt("message.value.payload.converter.type");
     public static final String DESTINATION_MAPPING = adapt("map");
     public static final String MAP_TO_TOPICS_SUFFIX = "to";
-    public static final String SEND_CONFIRMATION_MODE = adapt("send.confirmation.mode");
+    public static final String SEND_CONFIRMATION_ENABLE = adapt("send.confirmation.enable");
     public static final String RECORD_ACKS = adapt("acks");
     public static final String IDEMPOTENCE_ENABLE = adapt("idempotence.enable");
     public static final String RETRIES = adapt("retries");
@@ -88,12 +86,7 @@ public final class PublisherConfig extends AbstractConfig {
                                 PAYLOAD_CONVERTER,
                                 defaultValue(STRING.toString()))
                         .add(RECORD_ACKS, false, false, ACKS, defaultValue("all"))
-                        .add(
-                                SEND_CONFIRMATION_MODE,
-                                false,
-                                false,
-                                CONFIRMATION_MODE,
-                                defaultValue(SendConfirmationMode.CONFIRMED.toString()))
+                        .add(SEND_CONFIRMATION_ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(DESTINATION_MAPPING, true, true, MAP_TO_TOPICS_SUFFIX, TEXT_LIST)
                         .add(IDEMPOTENCE_ENABLE, false, false, BOOL, defaultValue("true"))
                         .add(
@@ -163,21 +156,8 @@ public final class PublisherConfig extends AbstractConfig {
 
     private void postValidate() {
         String acks = get(RECORD_ACKS, ACKS, false);
-        checkSendConfirmationMode(acks);
         checkEnableIdempotence(acks);
         checkProducerDeliveryTimeout();
-    }
-
-    private void checkSendConfirmationMode(String acks) {
-        SendConfirmationMode confirmationMode = getSendConfirmationModeInternal();
-        if (confirmationMode == SendConfirmationMode.DETAILED && acks.equals("0")) {
-            throw new ConfigException(
-                    "Parameter [%s] set to %s is not compatible with parameter [%s] set to 0"
-                            .formatted(
-                                    SEND_CONFIRMATION_MODE,
-                                    SendConfirmationMode.DETAILED,
-                                    RECORD_ACKS));
-        }
     }
 
     private void checkEnableIdempotence(String acks) {
@@ -218,12 +198,8 @@ public final class PublisherConfig extends AbstractConfig {
                 get(MESSAGE_VALUE_PAYLOAD_CONVERTER, PAYLOAD_CONVERTER, false));
     }
 
-    public SendConfirmationMode getSendConfirmationMode() {
-        return getSendConfirmationModeInternal();
-    }
-
-    private SendConfirmationMode getSendConfirmationModeInternal() {
-        return SendConfirmationMode.valueOf(get(SEND_CONFIRMATION_MODE, CONFIRMATION_MODE, false));
+    public boolean isSendConfirmationEnable() {
+        return getBoolean(SEND_CONFIRMATION_ENABLE);
     }
 
     public Map<String, Object> producerConfigs() {
@@ -246,7 +222,10 @@ public final class PublisherConfig extends AbstractConfig {
     }
 
     @VisibleForTesting
-    public static PublisherConfig defaultConfig(Map<String, String> additionalProperties) {
+    public static PublisherConfig defaultConfig(String... kvPairs) {
+        if (kvPairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Expected even number of key-value pairs");
+        }
         Map<String, String> config =
                 new HashMap<>(
                         Map.of(
@@ -254,7 +233,9 @@ public final class PublisherConfig extends AbstractConfig {
                                 "localhost:9092",
                                 "publisher.map.destination.to",
                                 "topic"));
-        config.putAll(additionalProperties);
+        for (int i = 0; i < kvPairs.length - 1; i += 2) {
+            config.put(kvPairs[i], kvPairs[i + 1]);
+        }
         return new PublisherConfig(config);
     }
 }

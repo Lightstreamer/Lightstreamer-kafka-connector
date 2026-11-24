@@ -28,7 +28,6 @@ import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.RecordErrorHand
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SaslMechanism;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SchemaRegistryProvider;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SecurityProtocol;
-import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SendConfirmationMode;
 import com.lightstreamer.kafka.adapters.config.specs.ConfigTypes.SslProtocol;
 import com.lightstreamer.kafka.common.config.ConfigException;
 import com.lightstreamer.kafka.common.utils.Split;
@@ -262,9 +261,7 @@ public class ConfigsSpec {
 
         CONSUMER_MODE(Options.consumerModes()),
 
-        SASL_MECHANISM(Options.saslMechanisms()),
-
-        CONFIRMATION_MODE(Options.sendConfirmationModes());
+        SASL_MECHANISM(Options.saslMechanisms());
 
         Type embeddedType;
 
@@ -558,10 +555,6 @@ public class ConfigsSpec {
 
         static Options acks() {
             return new Options(Set.of("0", "1", "all", "-1"));
-        }
-
-        static Options sendConfirmationModes() {
-            return new Options(SendConfirmationMode.names());
         }
 
         private Set<String> choices;
