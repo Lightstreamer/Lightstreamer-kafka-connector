@@ -18,43 +18,48 @@
 package com.lightstreamer.kafka.adapters.producers.converters;
 
 import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.nio.ByteBuffer;
-import java.util.stream.Stream;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 
 import org.apache.kafka.common.errors.SerializationException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import com.fasterxml.jackson.core.JacksonException;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.BooleanNode;
-import com.fasterxml.jackson.databind.node.DoubleNode;
-import com.fasterxml.jackson.databind.node.FloatNode;
-import com.fasterxml.jackson.databind.node.IntNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.databind.node.LongNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.ShortNode;
-import com.fasterxml.jackson.databind.node.TextNode;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.util.stream.Stream;
 
 public class JsonPayloadConvertersTest {
 
-    static Stream<Arguments> provideTextNodes() {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    // Builds the node the same way MessagePublisher does when it parses a client message, so the
+    // converters are tested with the node types Jackson actually produces (for example, IntNode
+    // or LongNode for integers and DoubleNode for decimals).
+    private static JsonNode json(String text) {
+        try {
+            return MAPPER.readTree(text);
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    static Stream<Arguments> provideValidTextNodes() {
         return Stream.of(
-                Arguments.of(new TextNode(null), null),
-                Arguments.of(new TextNode(""), new byte[0]),
-                Arguments.of(new TextNode("test"), "test".getBytes()));
+                Arguments.of(json("\"\""), new byte[0]),
+                Arguments.of(json("\"test\""), "test".getBytes()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideTextNodes")
-    void shouldConvertJsonToString(TextNode textNode, byte[] expected) {
+    @MethodSource("provideValidTextNodes")
+    void shouldConvertToString(JsonNode textNode, byte[] expected) {
         try (JsonPayloadConverters.StringPayloadConverter converter =
                 new JsonPayloadConverters.StringPayloadConverter()) {
 
@@ -63,39 +68,40 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidTextNodes() {
+    static Stream<Arguments> provideInvalidTextNodes() {
         return Stream.of(
-                Arguments.of(new IntNode(1), JsonNodeType.NUMBER),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT),
-                Arguments.of(new LongNode(1L), JsonNodeType.NUMBER));
+                Arguments.of(json("123"), JsonNodeType.NUMBER),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidTextNodes")
-    void shouldFailConvertJsonToString(JsonNode textNode, JsonNodeType foundType) {
+    @MethodSource("provideInvalidTextNodes")
+    void shouldFailToConvertToString(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.StringPayloadConverter converter =
                 new JsonPayloadConverters.StringPayloadConverter()) {
 
             SerializationException ce =
                     assertThrows(
-                            SerializationException.class,
-                            () -> converter.serialize("topic", textNode));
+                            SerializationException.class, () -> converter.serialize("topic", node));
             assertThat(ce)
                     .hasMessageThat()
                     .contains("Invalid value: expected STRING but found " + foundType);
         }
     }
 
-    static Stream<Arguments> provideIntNodes() {
+    static Stream<Arguments> provideValidIntNodes() {
         return Stream.of(
-                Arguments.of(new IntNode(1), ByteBuffer.allocate(4).putInt(1).array()),
-                Arguments.of(new IntNode(0), ByteBuffer.allocate(4).putInt(0).array()),
-                Arguments.of(new IntNode(-1), ByteBuffer.allocate(4).putInt(-1).array()));
+                Arguments.of(json("1"), ByteBuffer.allocate(4).putInt(1).array()),
+                Arguments.of(json("0"), ByteBuffer.allocate(4).putInt(0).array()),
+                Arguments.of(json("-1"), ByteBuffer.allocate(4).putInt(-1).array()),
+                Arguments.of(
+                        json("2147483647"),
+                        ByteBuffer.allocate(4).putInt(Integer.MAX_VALUE).array()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideIntNodes")
-    void shouldConvertJsonToInteger(IntNode intNode, byte[] expected) {
+    @MethodSource("provideValidIntNodes")
+    void shouldConvertToInteger(JsonNode intNode, byte[] expected) {
         try (JsonPayloadConverters.IntegerPayloadConverter converter =
                 new JsonPayloadConverters.IntegerPayloadConverter()) {
 
@@ -104,15 +110,18 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidIntNodes() {
+    static Stream<Arguments> provideInvalidIntNodes() {
         return Stream.of(
-                Arguments.of(new TextNode("text"), JsonNodeType.STRING),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT));
+                // Fails only !isIntegralNumber(): the value is within the int range.
+                Arguments.of(json("1.5"), JsonNodeType.NUMBER),
+                // Fails only !canConvertToInt(): asInt() would wrap around to 1.
+                Arguments.of(json("4294967297"), JsonNodeType.NUMBER),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidIntNodes")
-    void shouldFailConvertJsonToInteger(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidIntNodes")
+    void shouldFailToConvertToInteger(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.IntegerPayloadConverter converter =
                 new JsonPayloadConverters.IntegerPayloadConverter()) {
 
@@ -125,15 +134,15 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> provideBooleanNodes() {
+    static Stream<Arguments> provideValidBooleanNodes() {
         return Stream.of(
-                Arguments.of(BooleanNode.TRUE, ByteBuffer.allocate(1).put((byte) 1).array()),
-                Arguments.of(BooleanNode.FALSE, ByteBuffer.allocate(1).put((byte) 0).array()));
+                Arguments.of(json("true"), ByteBuffer.allocate(1).put((byte) 1).array()),
+                Arguments.of(json("false"), ByteBuffer.allocate(1).put((byte) 0).array()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideBooleanNodes")
-    void shouldConvertJsonToBoolean(BooleanNode booleanNode, byte[] expected) {
+    @MethodSource("provideValidBooleanNodes")
+    void shouldConvertToBoolean(JsonNode booleanNode, byte[] expected) {
         try (JsonPayloadConverters.BooleanPayloadConverter converter =
                 new JsonPayloadConverters.BooleanPayloadConverter()) {
 
@@ -142,15 +151,16 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidBooleanNodes() {
+    static Stream<Arguments> provideInvalidBooleanNodes() {
         return Stream.of(
-                Arguments.of(new TextNode("text"), JsonNodeType.STRING),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT));
+                // A boolean-looking string must not be accepted as a boolean.
+                Arguments.of(json("\"true\""), JsonNodeType.STRING),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidBooleanNodes")
-    void shouldFailConvertJsonToBoolean(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidBooleanNodes")
+    void shouldFailToConvertToBoolean(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.BooleanPayloadConverter converter =
                 new JsonPayloadConverters.BooleanPayloadConverter()) {
 
@@ -163,15 +173,15 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> provideDoubleNodes() {
+    static Stream<Arguments> provideValidDoubleNodes() {
         return Stream.of(
-                Arguments.of(new DoubleNode(3.14), ByteBuffer.allocate(8).putDouble(3.14).array()),
-                Arguments.of(new DoubleNode(100), ByteBuffer.allocate(8).putDouble(100).array()));
+                Arguments.of(json("3.14"), ByteBuffer.allocate(8).putDouble(3.14).array()),
+                Arguments.of(json("100"), ByteBuffer.allocate(8).putDouble(100).array()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideDoubleNodes")
-    void shouldConvertJsonToDouble(DoubleNode doubleNode, byte[] expected) {
+    @MethodSource("provideValidDoubleNodes")
+    void shouldConvertToDouble(JsonNode doubleNode, byte[] expected) {
         try (JsonPayloadConverters.DoublePayloadConverter converter =
                 new JsonPayloadConverters.DoublePayloadConverter()) {
 
@@ -180,15 +190,16 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidDoubleNodes() {
+    static Stream<Arguments> provideInvalidDoubleNodes() {
         return Stream.of(
-                Arguments.of(new TextNode("text"), JsonNodeType.STRING),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT));
+                // A numeric-looking string must not be accepted as a number.
+                Arguments.of(json("\"1.5\""), JsonNodeType.STRING),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidDoubleNodes")
-    void shouldFailConvertJsonToDouble(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidDoubleNodes")
+    void shouldFailToConvertToDouble(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.DoublePayloadConverter converter =
                 new JsonPayloadConverters.DoublePayloadConverter()) {
 
@@ -201,15 +212,18 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> provideFloatNodes() {
+    static Stream<Arguments> provideValidFloatNodes() {
         return Stream.of(
-                Arguments.of(new FloatNode(3.14f), ByteBuffer.allocate(4).putFloat(3.14f).array()),
-                Arguments.of(new FloatNode(100), ByteBuffer.allocate(4).putFloat(100).array()));
+                Arguments.of(json("3.14"), ByteBuffer.allocate(4).putFloat(3.14f).array()),
+                Arguments.of(json("100"), ByteBuffer.allocate(4).putFloat(100).array()),
+                Arguments.of(
+                        json("3.4028235e38"),
+                        ByteBuffer.allocate(4).putFloat(Float.MAX_VALUE).array()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideFloatNodes")
-    void shouldConvertJsonToFloat(FloatNode floatNode, byte[] expected) {
+    @MethodSource("provideValidFloatNodes")
+    void shouldConvertToFloat(JsonNode floatNode, byte[] expected) {
         try (JsonPayloadConverters.FloatPayloadConverter converter =
                 new JsonPayloadConverters.FloatPayloadConverter()) {
 
@@ -218,15 +232,16 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidFloatNodes() {
+    static Stream<Arguments> provideInvalidFloatNodes() {
         return Stream.of(
-                Arguments.of(new TextNode("text"), JsonNodeType.STRING),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT));
+                // A numeric-looking string must not be accepted as a number.
+                Arguments.of(json("\"1.5\""), JsonNodeType.STRING),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidFloatNodes")
-    void shouldFailConvertJsonToFloat(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidFloatNodes")
+    void shouldFailToConvertToFloat(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.FloatPayloadConverter converter =
                 new JsonPayloadConverters.FloatPayloadConverter()) {
 
@@ -239,19 +254,33 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> provideLongNodes() {
+    @ParameterizedTest
+    @ValueSource(strings = {"1e40", "-1e40"})
+    void shouldFailToConvertToFloatWhenOutOfRange(String text) {
+        try (JsonPayloadConverters.FloatPayloadConverter converter =
+                new JsonPayloadConverters.FloatPayloadConverter()) {
+
+            SerializationException ce =
+                    assertThrows(
+                            SerializationException.class,
+                            () -> converter.serialize("topic", json(text)));
+            assertThat(ce)
+                    .hasMessageThat()
+                    .contains("Invalid value: expected a number within the FLOAT range");
+        }
+    }
+
+    static Stream<Arguments> provideValidLongNodes() {
         return Stream.of(
+                Arguments.of(json("123"), ByteBuffer.allocate(8).putLong(123L).array()),
                 Arguments.of(
-                        new LongNode(123L),
-                        ByteBuffer.allocate(8).putLong(123L).array()),
-                Arguments.of(
-                        new LongNode(Long.MAX_VALUE),
+                        json("9223372036854775807"),
                         ByteBuffer.allocate(8).putLong(Long.MAX_VALUE).array()));
     }
 
     @ParameterizedTest
-    @MethodSource("provideLongNodes")
-    void shouldConvertJsonToLong(LongNode longNode, byte[] expected) {
+    @MethodSource("provideValidLongNodes")
+    void shouldConvertToLong(JsonNode longNode, byte[] expected) {
         try (JsonPayloadConverters.LongPayloadConverter converter =
                 new JsonPayloadConverters.LongPayloadConverter()) {
 
@@ -260,22 +289,23 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> invalidLongNodes() throws JacksonException {
+    static Stream<Arguments> provideInvalidLongNodes() {
         return Stream.of(
-                Arguments.of(new TextNode("text"), JsonNodeType.STRING),
-                Arguments.of(new ObjectNode(null), JsonNodeType.OBJECT),
-                Arguments.of(new ObjectMapper().readTree("9223372036854775808"), 
-                JsonNodeType.NUMBER));
+                // Fails only !isIntegralNumber(): the value is within the long range.
+                Arguments.of(json("1.5"), JsonNodeType.NUMBER),
+                // Fails only !canConvertToLong(): the value is integral but exceeds Long.MAX_VALUE.
+                Arguments.of(json("9223372036854775808"), JsonNodeType.NUMBER),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidLongNodes")
-    void shouldFailConvertJsonToLong(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidLongNodes")
+    void shouldFailToConvertToLong(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.LongPayloadConverter converter =
                 new JsonPayloadConverters.LongPayloadConverter()) {
 
             SerializationException ce =
-                    assertThrows(           
+                    assertThrows(
                             SerializationException.class, () -> converter.serialize("topic", node));
             assertThat(ce)
                     .hasMessageThat()
@@ -283,21 +313,18 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-    static Stream<Arguments> provideShortNodes() {
+    static Stream<Arguments> provideValidShortNodes() {
         return Stream.of(
+                Arguments.of(json("123"), ByteBuffer.allocate(2).putShort((short) 123).array()),
                 Arguments.of(
-                        new ShortNode((short) 123),
-                        ByteBuffer.allocate(2).putShort((short) 123).array()),
+                        json("32767"), ByteBuffer.allocate(2).putShort(Short.MAX_VALUE).array()),
                 Arguments.of(
-                        new ShortNode(Short.MAX_VALUE),
-                        ByteBuffer.allocate(2).putShort(Short.MAX_VALUE).array()));
+                        json("-32768"), ByteBuffer.allocate(2).putShort(Short.MIN_VALUE).array()));
     }
 
-
-
     @ParameterizedTest
-    @MethodSource("provideShortNodes")
-    void shouldConvertJsonToShort(ShortNode shortNode, byte[] expected) {
+    @MethodSource("provideValidShortNodes")
+    void shouldConvertToShort(JsonNode shortNode, byte[] expected) {
         try (JsonPayloadConverters.ShortPayloadConverter converter =
                 new JsonPayloadConverters.ShortPayloadConverter()) {
 
@@ -306,17 +333,22 @@ public class JsonPayloadConvertersTest {
         }
     }
 
-        static Stream<Arguments> invalidShortNodes() throws JsonProcessingException {
+    static Stream<Arguments> provideInvalidShortNodes() {
         return Stream.of(
-                Arguments.of(new ObjectMapper().readTree("\"a text\""), JsonNodeType.STRING),
-                Arguments.of(new IntNode(Short.MIN_VALUE - 1), JsonNodeType.NUMBER),
-                Arguments.of(new IntNode(Short.MAX_VALUE + 1), JsonNodeType.NUMBER),
-                Arguments.of(new ObjectMapper().readTree("32768"), JsonNodeType.NUMBER));
+                // Fails only !isIntegralNumber(): intValue() is 1, a valid short.
+                Arguments.of(json("1.5"), JsonNodeType.NUMBER),
+                // Fails only !canConvertToInt(): intValue() wraps around to 1, a valid short.
+                Arguments.of(json("4294967297"), JsonNodeType.NUMBER),
+                // Fails only intValue() < Short.MIN_VALUE.
+                Arguments.of(json("-32769"), JsonNodeType.NUMBER),
+                // Fails only intValue() > Short.MAX_VALUE.
+                Arguments.of(json("32768"), JsonNodeType.NUMBER),
+                Arguments.of(json("null"), JsonNodeType.NULL));
     }
 
     @ParameterizedTest
-    @MethodSource("invalidShortNodes")
-    void shouldFailConvertJsonToShort(JsonNode node, JsonNodeType foundType) {
+    @MethodSource("provideInvalidShortNodes")
+    void shouldFailToConvertToShort(JsonNode node, JsonNodeType foundType) {
         try (JsonPayloadConverters.ShortPayloadConverter converter =
                 new JsonPayloadConverters.ShortPayloadConverter()) {
 
