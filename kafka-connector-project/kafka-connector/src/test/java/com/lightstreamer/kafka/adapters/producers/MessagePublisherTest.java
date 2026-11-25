@@ -227,8 +227,13 @@ public class MessagePublisherTest {
         }
     }
 
-    @Test
-    void shouldFailSendMessageDueToMissingPayloadValue() {
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "{ \"destination\": \"destination\" }",
+                "{ \"destination\": \"destination\", \"value\": null }",
+            })
+    void shouldFailSendMessageDueToMissingPayloadValue(String message) {
         for (boolean sendConfirmationEnabled : List.of(true, false)) {
             MessagePublisher publisher =
                     new MessagePublisher(
@@ -239,7 +244,6 @@ public class MessagePublisherTest {
                                     String.valueOf(sendConfirmationEnabled)),
                             new PublisherMocks.MockMessageHook());
 
-            String message = "{ \"destination\": \"destination\" }";
             CompletableFuture<String> future = publisher.sendMessage("user", "sessionId", message);
             assertCreditsException(future, ClientError.MISSING_PAYLOAD_VALUE);
         }
