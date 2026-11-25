@@ -228,7 +228,7 @@ class MessagePublisher implements MessageHandler {
             return CompletableFuture.failedFuture(UNMAPPED_DESTINATION.toCreditsException());
         }
         logger.atDebug().log("Resolved topics for destination {}: {}", destination, topics);
-        if (clientMessage.value() == null) {
+        if (clientMessage.value() == null || clientMessage.value().isNull()) {
             logger.atWarn().log("Missing message value for destination: {}", destination);
             return CompletableFuture.failedFuture(MISSING_PAYLOAD_VALUE.toCreditsException());
         }
