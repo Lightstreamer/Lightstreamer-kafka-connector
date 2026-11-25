@@ -43,6 +43,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.serialization.UUIDSerializer;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.UUID;
 
 class JsonPayloadConverters {
@@ -56,12 +57,8 @@ class JsonPayloadConverters {
             this.serializer = serializer;
         }
 
-        private byte[] doSerialize(java.lang.String topic, T value) {
-            return serializer.serialize(topic, value);
-        }
-
         @Override
-        public final void configure(java.util.Map<String, ?> configs, boolean isKey) {
+        public final void configure(Map<String, ?> configs, boolean isKey) {
             serializer.configure(configs, isKey);
             this.isKey = isKey;
         }
@@ -72,34 +69,69 @@ class JsonPayloadConverters {
         }
 
         @Override
-        public final byte[] serialize(java.lang.String topic, JsonNode data) {
+        public final byte[] serialize(String topic, JsonNode data) {
             if (data == null) {
                 return null;
             }
             return doSerialize(topic, fromJson(data));
         }
 
+        private byte[] doSerialize(String topic, T value) {
+            return serializer.serialize(topic, value);
+        }
+
+        /**
+         * Converts the given JSON node to the Java value handled by the wrapped serializer.
+         *
+         * @param node the JSON node to convert
+         * @return the converted value
+         * @throws SerializationException if the node cannot be converted to the expected type
+         */
         protected abstract T fromJson(JsonNode node);
 
+        /**
+         * Indicates whether this converter has been configured to handle record keys.
+         *
+         * @return {@code true} if the converter handles keys, {@code false} if it handles values
+         */
         protected boolean isKey() {
             return isKey;
         }
 
         /**
-         * Creates an exception for a JSON node whose type does not match the configured evaluator
-         * type. The field name is not known at this level and is added by the caller through {@link
-         * #invalidField(String, String)}.
+         * Creates an exception for a JSON node whose type does not match the expected type.
          *
          * @param nodeType the offending node type
          * @param expected a short description of the expected type
-         * @param isKey TODO
-         * @return a new {@code SerializationException}
+         * @param isKey {@code true} if the invalid data is a record key, {@code false} if it is a
+         *     value
+         * @return a new {@link SerializationException}
          */
-        public static SerializationException unexpectedType(
+        static SerializationException unexpectedType(
                 JsonNodeType nodeType, String expected, boolean isKey) {
+            return unexpected(nodeType.name(), expected, isKey);
+        }
+
+        /**
+         * Creates an exception for a text whose content is not valid for the expected type. The
+         * text is quoted in the message to make empty or blank content visible.
+         *
+         * @param found the offending text
+         * @param expected a short description of the expected content
+         * @param isKey {@code true} if the invalid data is a record key, {@code false} if it is a
+         *     value
+         * @return a new {@link SerializationException}
+         */
+        static SerializationException unexpectedString(
+                String found, String expected, boolean isKey) {
+            return unexpected("\"" + found + "\"", expected, isKey);
+        }
+
+        private static SerializationException unexpected(
+                String found, String expected, boolean isKey) {
             return new SerializationException(
                     "Invalid %s: expected %s but found %s"
-                            .formatted(isKey ? "key" : "value", expected, nodeType));
+                            .formatted(isKey ? "key" : "value", expected, found));
         }
     }
 
@@ -231,8 +263,7 @@ class JsonPayloadConverters {
             try {
                 return UUID.fromString(text);
             } catch (IllegalArgumentException e) {
-                throw new SerializationException(
-                        "expected a valid UUID but found \"%s\"".formatted(text));
+                throw unexpectedString(text, "a valid UUID string", isKey());
             }
         }
     }
