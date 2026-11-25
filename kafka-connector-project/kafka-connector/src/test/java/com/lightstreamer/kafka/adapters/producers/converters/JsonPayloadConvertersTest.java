@@ -25,18 +25,24 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.lightstreamer.kafka.adapters.pub.messages.converters.PayloadConverter;
 
 import org.apache.kafka.common.errors.SerializationException;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class JsonPayloadConvertersTest {
+class JsonPayloadConvertersTest {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -48,6 +54,109 @@ public class JsonPayloadConvertersTest {
             return MAPPER.readTree(text);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    @Test
+    void shouldSerializeNullToNull() {
+        try (JsonPayloadConverters.StringPayloadConverter converter =
+                new JsonPayloadConverters.StringPayloadConverter()) {
+
+            assertThat(converter.serialize("topic", null)).isNull();
+        }
+    }
+
+    private static Arguments invalidInput(
+            String name, Supplier<PayloadConverter> supplier, JsonNode json) {
+        return Arguments.of(name, supplier, json);
+    }
+
+    // Each case is a converter paired with an input that it rejects, so that every converter is
+    // checked for reporting whether the invalid data is a key or a value.
+    static Stream<Arguments> provideConvertersWithInvalidInput() {
+        Stream<Arguments> cases =
+                Stream.of(
+                        invalidInput(
+                                "String",
+                                JsonPayloadConverters.StringPayloadConverter::new,
+                                json("123")),
+                        invalidInput(
+                                "Integer",
+                                JsonPayloadConverters.IntegerPayloadConverter::new,
+                                json("\"1\"")),
+                        invalidInput(
+                                "Boolean",
+                                JsonPayloadConverters.BooleanPayloadConverter::new,
+                                json("\"true\"")),
+                        invalidInput(
+                                "Double",
+                                JsonPayloadConverters.DoublePayloadConverter::new,
+                                json("\"1.5\"")),
+                        invalidInput(
+                                "Float",
+                                JsonPayloadConverters.FloatPayloadConverter::new,
+                                json("\"1.5\"")),
+                        invalidInput(
+                                "Float out of range",
+                                JsonPayloadConverters.FloatPayloadConverter::new,
+                                json("1e40")),
+                        invalidInput(
+                                "Long",
+                                JsonPayloadConverters.LongPayloadConverter::new,
+                                json("\"1\"")),
+                        invalidInput(
+                                "Short",
+                                JsonPayloadConverters.ShortPayloadConverter::new,
+                                json("\"1\"")),
+                        invalidInput(
+                                "UUID",
+                                JsonPayloadConverters.UUIDPayloadConverter::new,
+                                json("123")),
+                        invalidInput(
+                                "UUID text",
+                                JsonPayloadConverters.UUIDPayloadConverter::new,
+                                json("\"not-a-uuid\"")),
+                        invalidInput(
+                                "JSON",
+                                JsonPayloadConverters.JsonPayloadConverter::new,
+                                json("123")));
+        return cases.flatMap(
+                c -> {
+                    Object[] a = c.get();
+                    return Stream.of(
+                            Arguments.of(a[0], a[1], a[2], true, "key"),
+                            Arguments.of(a[0], a[1], a[2], false, "value"));
+                });
+    }
+
+    @ParameterizedTest(name = "{0}, isKey={3}")
+    @MethodSource("provideConvertersWithInvalidInput")
+    void shouldReportKeyOrValueInErrorMessage(
+            String name,
+            Supplier<PayloadConverter> converterSupplier,
+            JsonNode invalidInput,
+            boolean isKey,
+            String expectedLabel) {
+        try (PayloadConverter converter = converterSupplier.get()) {
+            converter.configure(Map.of(), isKey);
+
+            SerializationException ce =
+                    assertThrows(
+                            SerializationException.class,
+                            () -> converter.serialize("topic", invalidInput));
+            assertThat(ce).hasMessageThat().startsWith("Invalid " + expectedLabel + ":");
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true,key.serializer.encoding", "false,value.serializer.encoding"})
+    void shouldPassConfigsToSerializer(boolean isKey, String encodingConfig) {
+        try (JsonPayloadConverters.StringPayloadConverter converter =
+                new JsonPayloadConverters.StringPayloadConverter()) {
+            converter.configure(Map.of(encodingConfig, "UTF-16"), isKey);
+
+            byte[] result = converter.serialize("topic", json("\"é\""));
+            assertThat(result).isEqualTo("é".getBytes(StandardCharsets.UTF_16));
         }
     }
 
@@ -358,6 +467,65 @@ public class JsonPayloadConvertersTest {
             assertThat(ce)
                     .hasMessageThat()
                     .contains("Invalid value: expected SHORT but found " + foundType);
+        }
+    }
+
+    static Stream<Arguments> provideValidUuidNodes() {
+        return Stream.of(
+                Arguments.of(
+                        json("\"123e4567-e89b-12d3-a456-426614174000\""),
+                        "123e4567-e89b-12d3-a456-426614174000"),
+                // The serialized form is the canonical lowercase representation.
+                Arguments.of(
+                        json("\"123E4567-E89B-12D3-A456-426614174000\""),
+                        "123e4567-e89b-12d3-a456-426614174000"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideValidUuidNodes")
+    void shouldConvertToUuid(JsonNode uuidNode, String expected) {
+        try (JsonPayloadConverters.UUIDPayloadConverter converter =
+                new JsonPayloadConverters.UUIDPayloadConverter()) {
+
+            byte[] result = converter.serialize("topic", uuidNode);
+            assertThat(result).isEqualTo(expected.getBytes(StandardCharsets.UTF_8));
+        }
+    }
+
+    static Stream<Arguments> provideInvalidUuidNodes() {
+        return Stream.of(
+                Arguments.of(json("123"), JsonNodeType.NUMBER),
+                Arguments.of(json("null"), JsonNodeType.NULL));
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideInvalidUuidNodes")
+    void shouldFailToConvertToUuid(JsonNode node, JsonNodeType foundType) {
+        try (JsonPayloadConverters.UUIDPayloadConverter converter =
+                new JsonPayloadConverters.UUIDPayloadConverter()) {
+
+            SerializationException ce =
+                    assertThrows(
+                            SerializationException.class, () -> converter.serialize("topic", node));
+            assertThat(ce)
+                    .hasMessageThat()
+                    .contains("Invalid value: expected a UUID string but found " + foundType);
+        }
+    }
+
+    @Test
+    void shouldFailToConvertToUuidWhenTextIsNotAValidUuid() {
+        try (JsonPayloadConverters.UUIDPayloadConverter converter =
+                new JsonPayloadConverters.UUIDPayloadConverter()) {
+
+            SerializationException ce =
+                    assertThrows(
+                            SerializationException.class,
+                            () -> converter.serialize("topic", json("\"not-a-uuid\"")));
+            assertThat(ce)
+                    .hasMessageThat()
+                    .contains(
+                            "Invalid value: expected a valid UUID string but found \"not-a-uuid\"");
         }
     }
 }
