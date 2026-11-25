@@ -174,7 +174,12 @@ class JsonPayloadConverters {
             if (!json.isNumber()) {
                 throw unexpectedType(json.getNodeType(), "a number", isKey());
             }
-            return json.floatValue();
+            float value = json.floatValue();
+            if (Float.isInfinite(value)) {
+                throw unexpectedType(
+                        json.getNodeType(), "a number within the FLOAT range", isKey());
+            }
+            return value;
         }
     }
 
