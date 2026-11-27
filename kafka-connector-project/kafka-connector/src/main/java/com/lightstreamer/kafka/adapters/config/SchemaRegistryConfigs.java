@@ -224,10 +224,14 @@ public class SchemaRegistryConfigs {
                 props.setProperty(
                         ns(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG),
                         cfg.confluentSchemaRegistryTruststorePassword());
-                if (!cfg.isConfluentSchemaRegistryHostNameVerificationEnabled()) {
-                    props.setProperty(
-                            ns(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG), "");
-                }
+                // Unlike the Kafka clients, the Confluent Schema Registry client does not verify
+                // the
+                // hostname when the property is missing: it must be explicitly set to enable it.
+                props.setProperty(
+                        ns(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG),
+                        cfg.isConfluentSchemaRegistryHostNameVerificationEnabled()
+                                ? SslConfigs.DEFAULT_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM
+                                : "");
                 props.setProperty(
                         ns(SslConfigs.SSL_CIPHER_SUITES_CONFIG),
                         cfg.confluentSchemaRegistryCipherSuitesAsStr());
