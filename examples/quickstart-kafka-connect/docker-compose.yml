@@ -40,8 +40,6 @@ services:
     configs:
       - source: producer.properties
         target: /usr/app/producer.properties
-    volumes:
-      - ./secrets/producer:/usr/app/secrets
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks", "--config-file", "/usr/app/producer.properties"]
 
   broker:
@@ -81,8 +79,6 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
       SCHEMA_REGISTRY_LISTENERS: 'http://0.0.0.0:8081'
-    volumes:
-     - ./secrets/schema-registry:/etc/schema-registry/secrets
 
 configs:
   producer.properties:
