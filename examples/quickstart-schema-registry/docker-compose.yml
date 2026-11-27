@@ -5,8 +5,8 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
-      broker:
-        condition: service_started
+      init-broker:
+        condition: service_completed_successfully    
       schema-registry:
         condition: service_started
     ports:
@@ -19,12 +19,9 @@ services:
 
   producer:
     container_name: producer
-    restart: always
     depends_on:
-      broker:
-        condition: service_started
-      schema-registry:
-        condition: service_started
+      init-broker:
+        condition: service_completed_successfully
     build:
       context: ../quickstart-producer
     configs:
@@ -71,12 +68,12 @@ services:
       - ./secrets/broker:/etc/kafka/secrets
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:7.5.0
+    image: confluentinc/cp-schema-registry:8.4.1
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
-      broker:
-        condition: service_started
+      init-broker:
+        condition: service_completed_successfully
     ports:
       - "8081:8081"
       - "8084:8084"
@@ -96,6 +93,15 @@ services:
       SCHEMA_REGISTRY_SSL_CLIENT_AUTHENTICATION: REQUIRED
     volumes:
      - ./secrets/schema-registry:/etc/schema-registry/secrets
+
+  init-broker:
+    container_name: init-broker
+    image: apache/kafka
+    command: |
+      /opt/kafka/bin/kafka-topics.sh --create --topic stocks --if-not-exists --bootstrap-server broker:29092
+    depends_on:
+        broker:
+            condition: service_started
 
 configs:
   producer.properties:
