@@ -5,8 +5,8 @@ services:
     container_name: kafka-connector
     image: lightstreamer-kafka-connector:${VERSION}
     depends_on:
-      broker:
-        condition: service_started
+      init-broker:
+        condition: service_completed_successfully    
     ports:
       - 8080:8080
     volumes:
@@ -16,14 +16,14 @@ services:
   producer:
     container_name: producer
     depends_on:
-      broker:
-        condition: service_started
+      init-broker:
+        condition: service_completed_successfully
     build:
       context: quickstart-producer
     command: ["--bootstrap-servers", "broker:29092", "--topic", "stocks"]
 
   broker:
-    image: confluentinc/cp-kafka
+    image: confluentinc/cp-kafka:8.4.1
     hostname: broker
     container_name: broker
     ports:
@@ -47,3 +47,13 @@ services:
       KAFKA_REST_BOOTSTRAP_SERVERS: 'broker:29092'
       KAFKA_REST_LISTENERS: 'http://0.0.0.0:8082'
       CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+
+  init-broker:
+    container_name: init-broker
+    image: apache/kafka
+    command: |
+      /opt/kafka/bin/kafka-topics.sh --create --topic stocks --if-not-exists --bootstrap-server broker:29092
+    depends_on:
+        broker:
+            condition: service_started
+
