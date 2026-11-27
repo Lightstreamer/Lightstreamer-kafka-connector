@@ -71,13 +71,14 @@ Full example: [quickstart-ssl/docker-compose.yml](../quickstart-ssl/docker-compo
 security.protocol=SSL
 
 # Trust store to authenticate the broker
-ssl.truststore.location=/path/to/producer.truststore.jks
+ssl.truststore.location=/path/to/producer.truststore.p12
+ssl.truststore.type=PKCS12
 ssl.truststore.password=<truststore-password>
 
 # Key store for client certificate (if broker requires mTLS)
-ssl.keystore.location=/path/to/producer.keystore.jks
+ssl.keystore.location=/path/to/producer.keystore.p12
+ssl.keystore.type=PKCS12
 ssl.keystore.password=<keystore-password>
-ssl.key.password=<key-password>
 
 # Disable hostname verification (if using self-signed certs)
 ssl.endpoint.identification.algorithm=
@@ -151,11 +152,12 @@ value.serializer=io.confluent.kafka.serializers.protobuf.KafkaProtobufSerializer
 schema.registry.url=https://<schema-registry-host>:<port>
 
 # Optional: mTLS for Schema Registry
-schema.registry.ssl.truststore.location=/path/to/producer.truststore.jks
+schema.registry.ssl.truststore.location=/path/to/producer.truststore.p12
+schema.registry.ssl.truststore.type=PKCS12
 schema.registry.ssl.truststore.password=<truststore-password>
-schema.registry.ssl.keystore.location=/path/to/producer.keystore.jks
+schema.registry.ssl.keystore.location=/path/to/producer.keystore.p12
+schema.registry.ssl.keystore.type=PKCS12
 schema.registry.ssl.keystore.password=<keystore-password>
-schema.registry.ssl.key.password=<key-password>
 ```
 
 #### Azure Schema Registry
