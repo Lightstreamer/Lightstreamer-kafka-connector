@@ -22,6 +22,8 @@ services:
     depends_on:
       init-broker:
         condition: service_completed_successfully
+      schema-registry:
+        condition: service_started
     build:
       context: ../quickstart-producer
     configs:
