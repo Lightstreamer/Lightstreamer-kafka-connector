@@ -11,8 +11,10 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
   - Definition of new environment variables to configure key store, trust store, client authentication, and secrets:
 
     - `KAFKA_SSL_TRUSTSTORE_FILENAME`
+    - `KAFKA_SSL_TRUSTSTORE_TYPE`
     - `KAFKA_SSL_TRUSTSTORE_CREDENTIALS`
     - `KAFKA_SSL_KEYSTORE_FILENAME`
+    - `KAFKA_SSL_KEYSTORE_TYPE`
     - `KAFKA_SSL_KEYSTORE_CREDENTIALS`
     - `KAFKA_SSL_KEY_CREDENTIALS`
     - `KAFKA_SSL_CLIENT_AUTH`
@@ -32,13 +34,13 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     ```xml
     <param name="encryption.enable">true</param>
     <param name="encryption.protocol">TLSv1.2</param>
-    <param name="encryption.hostname.verification.enable">false</param>
+    <param name="encryption.hostname.verification.enable">true</param>
     ```
 
   - Configuration of the trust store to authenticate the broker:
 
     ```xml
-    <param name="encryption.truststore.path">secrets/kafka.connector.truststore.jks</param>
+    <param name="encryption.truststore.path">secrets/kafka-connector.truststore.p12</param>
     <param name="encryption.truststore.password">kafka-connector-truststore-password</param>
     ```
 
@@ -46,9 +48,8 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
 
     ```xml
     <param name="encryption.keystore.enable">true</param>
-    <param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+    <param name="encryption.keystore.path">secrets/kafka-connector.keystore.p12</param>
     <param name="encryption.keystore.password">kafka-connector-keystore-password</param>
-    <param name="encryption.keystore.key.password">kafka-connector-private-keypassword</param>
     ```
 
 - _producer_:
@@ -61,43 +62,46 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to enable sup
     # Enable SSL
     security.protocol=SSL
     # Trust store configuration to authenticate the broker
-    ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+    ssl.truststore.location=/usr/app/secrets/producer.truststore.p12
+    ssl.truststore.type=PKCS12
     ssl.truststore.password=producer-truststore-password
-    # Key tore configuration for client authentication with the broker
-    ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
-    ssl.keystore.password=producer-password
-    ssl.key.password=producer-password
-    # Disable host name verification
-    ssl.endpoint.identification.algorithm=
+    # Key store configuration for client authentication with the broker
+    ssl.keystore.location=/usr/app/secrets/producer.keystore.p12
+    ssl.keystore.type=PKCS12
+    ssl.keystore.password=producer-keystore-password
+    # Enable host name verification of the broker certificate
+    ssl.endpoint.identification.algorithm=https
     ```  
 
 In addition, all services reference the local [`secrets`](../compose-templates/secrets/) folder to retrieve their secrets. In particular:
 
 - _broker_ mounts [`secrets/broker`](../compose-templates/secrets/broker/) to `/etc/kafka/secrets` for the following resources:
 
-  - The trust store file [`broker.truststore.jks`](../compose-templates/secrets/broker/broker.truststore.jks)
+  - The trust store file [`broker.truststore.p12`](../compose-templates/secrets/broker/broker.truststore.p12)
 
-  - The key store file [`broker.keystore.jks`](../compose-templates/secrets/broker/broker.keystore.jks)
+  - The key store file [`broker.keystore.p12`](../compose-templates/secrets/broker/broker.keystore.p12)
   
-  - The credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials)
+  - The credentials files [`broker_keystore_credentials`](../compose-templates/secrets/broker/broker_keystore_credentials) and [`broker_key_credentials`](../compose-templates/secrets/broker/broker_key_credentials) (both contain the key store password, since a PKCS12 key store uses the same password for the private key), and [`broker_truststore_credentials`](../compose-templates/secrets/broker/broker_truststore_credentials)
 
 - _kafka-connector_ mounts [`secrets/kafka-connector`](../compose-templates/secrets/kafka-connector/) to `LS_KAFKA_CONNECTOR_HOME/secrets` for the following resources:
 
-  - The trust store file [`kafka-connector.truststore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.jks)
+  - The trust store file [`kafka-connector.truststore.p12`](../compose-templates/secrets/kafka-connector/kafka-connector.truststore.p12)
 
-  - The key store file [`kafka-connector.keystore.jks`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.jks)
+  - The key store file [`kafka-connector.keystore.p12`](../compose-templates/secrets/kafka-connector/kafka-connector.keystore.p12)
 
 - _producer_ mounts [`secrets/producer`](../compose-templates/secrets/producer/) to `/usr/app/secrets` for the following resources:
 
-  - The trust store file [`producer.truststore.jks`](../compose-templates/secrets/producer/producer.truststore.jks)
+  - The trust store file [`producer.truststore.p12`](../compose-templates/secrets/producer/producer.truststore.p12)
   
-  - The key store file [`producer.keystore.jks`](../compose-templates/secrets/producer/producer.keystore.jks)
+  - The key store file [`producer.keystore.p12`](../compose-templates/secrets/producer/producer.keystore.p12)
 
 You can regenerate all of them with:
 
 ```sh
 $ ./generate-secrets.sh
 ```
+
+The script reuses the existing CA, so the trust stores stay valid. To also create a new CA, run `./generate-secrets.sh --new-ca`. To see when the certificates expire without changing anything, run `./generate-secrets.sh --check`: it fails if any certificate expires within 90 days (configurable with the `CHECK_DAYS` environment variable).
 
 ## Run
 
