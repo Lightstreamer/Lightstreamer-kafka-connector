@@ -721,7 +721,7 @@ The trust store is used to validate the certificates provided by the Kafka broke
 Example:
 
 ```xml
-<param name="encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+<param name="encryption.truststore.path">secrets/kafka-connector.truststore.p12</param>
 ```
 
 #### `encryption.truststore.type`
@@ -730,12 +730,12 @@ _Optional_. The type of the trust store. Can be one of the following:
 - `JKS`
 - `PKCS12`
 
-Default value: `JKS`.
+Default value: `PKCS12`.
 
 Example:
 
 ```xml
-<param name="encryption.truststore.type">PKCS12</param>
+<param name="encryption.truststore.type">JKS</param>
 ```
 
 #### `encryption.truststore.password`
@@ -780,7 +780,7 @@ _Mandatory if [key store](#encryptionkeystoreenable) is enabled_. The path of th
 Example:
 
 ```xml
-<param name="encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="encryption.keystore.path">secrets/kafka-connector.keystore.p12</param>
 ```
 
 #### `encryption.keystore.type`
@@ -789,12 +789,12 @@ _Optional_. The type of the key store. Can be one of the following:
 - `JKS`
 - `PKCS12`
 
-Default value: `JKS`.
+Default value: `PKCS12`.
 
 Example:
 
 ```xml
-<param name="encryption.keystore.type">PKCS12</param>
+<param name="encryption.keystore.type">JKS</param>
 ```
 
 #### `encryption.keystore.password`
@@ -2048,12 +2048,12 @@ Example:
 <param name="schema.registry.confluent.encryption.hostname.verification.enable">true</param>
 
 <!-- If required, configure the trust store to trust the Confluent Schema Registry certificates -->
-<param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.jks</param>
+<param name="schema.registry.confluent.encryption.truststore.path">secrets/kafka-connector.truststore.p12</param>
 <param name="schema.registry.confluent.encryption.truststore.password">kafka-connector-truststore-password</param>
 
 <!-- If mutual TLS is enabled on the Confluent Schema Registry, enable and configure the key store -->
 <param name="schema.registry.confluent.encryption.keystore.enable">true</param>
-<param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.jks</param>
+<param name="schema.registry.confluent.encryption.keystore.path">secrets/kafka-connector.keystore.p12</param>
 <param name="schema.registry.confluent.encryption.keystore.password">kafka-connector-keystore-password</param>
 <param name="schema.registry.confluent.encryption.keystore.key.password">kafka-connector-private-key-password</param>
 ```
