@@ -49,6 +49,7 @@ The [docker-compose.yml](docker-compose.yml) file has been revised to realize th
       <param name="encryption.enable">true</param>
       <param name="encryption.protocol">TLSv1.2</param>
       <param name="encryption.hostname.verification.enable">false</param>
+      <param name="encryption.truststore.type">JKS</param>
       <param name="encryption.truststore.path">secrets/client.truststore.jks</param>
       <param name="encryption.truststore.password">$env.truststore_password</param>
       ```
