@@ -51,7 +51,7 @@ In [`docker-compose.yml`](docker-compose.yml#L60) we have also deployed [_Redpan
 ```yaml
 console:
   container_name: redpanda-console
-  image: docker.redpanda.com/redpandadata/console:v2.4.5
+  image: docker.redpanda.com/redpandadata/console:v3.4.8
   entrypoint: /bin/sh
   command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
   environment:
