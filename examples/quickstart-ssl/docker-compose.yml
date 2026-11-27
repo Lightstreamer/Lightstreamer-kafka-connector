@@ -45,12 +45,13 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_SSL_TRUSTSTORE_FILENAME: broker.truststore.jks
+      KAFKA_SSL_TRUSTSTORE_FILENAME: broker.truststore.p12
+      KAFKA_SSL_TRUSTSTORE_TYPE: PKCS12
       KAFKA_SSL_TRUSTSTORE_CREDENTIALS: broker_truststore_credentials
-      KAFKA_SSL_KEYSTORE_FILENAME: broker.keystore.jks
+      KAFKA_SSL_KEYSTORE_FILENAME: broker.keystore.p12
+      KAFKA_SSL_KEYSTORE_TYPE: PKCS12
       KAFKA_SSL_KEYSTORE_CREDENTIALS: broker_keystore_credentials
       KAFKA_SSL_KEY_CREDENTIALS: broker_key_credentials
-      KAFKA_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: " "
       KAFKA_SSL_CLIENT_AUTH: "required"
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
@@ -71,13 +72,14 @@ configs:
       security.protocol=SSL
 
       # Trust store configuration to authenticate the broker
-      ssl.truststore.location=/usr/app/secrets/producer.truststore.jks
+      ssl.truststore.location=/usr/app/secrets/producer.truststore.p12
+      ssl.truststore.type=PKCS12
       ssl.truststore.password=producer-truststore-password
 
       # Key store configuration for client authentication with the broker
-      ssl.keystore.location=/usr/app/secrets/producer.keystore.jks
+      ssl.keystore.location=/usr/app/secrets/producer.keystore.p12
+      ssl.keystore.type=PKCS12
       ssl.keystore.password=producer-keystore-password
-      ssl.key.password=producer-private-key-password
 
-      # Disable hostname verification
-      ssl.endpoint.identification.algorithm=
+      # Enable hostname verification of the broker certificate
+      ssl.endpoint.identification.algorithm=https
