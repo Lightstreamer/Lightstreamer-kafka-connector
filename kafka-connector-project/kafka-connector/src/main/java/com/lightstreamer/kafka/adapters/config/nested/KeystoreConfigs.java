@@ -43,7 +43,7 @@ public class KeystoreConfigs {
                                 false,
                                 false,
                                 ConfType.KEYSTORE_TYPE,
-                                defaultValue(KeystoreType.JKS.toString()))
+                                defaultValue(KeystoreType.PKCS12.toString()))
                         .add(KEYSTORE_PASSWORD, false, false, TEXT)
                         .add(KEY_PASSWORD, false, false, TEXT);
     }

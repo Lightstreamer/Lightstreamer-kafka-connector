@@ -70,7 +70,7 @@ public class TlsConfigs {
                                 false,
                                 false,
                                 ConfType.KEYSTORE_TYPE,
-                                defaultValue(KeystoreType.JKS.toString()))
+                                defaultValue(KeystoreType.PKCS12.toString()))
                         .add(TRUSTSTORE_PATH, false, false, FILE)
                         .add(TRUSTSTORE_PASSWORD, false, false, TEXT)
                         .add(
